@@ -2,7 +2,7 @@
 
 ## Context
 
-複数のGitホスティングサービス（GitHub, GitLab, Bitbucket, Gitea, Forgejo, GitBucket, Backlog）を統一コマンドで操作するCLI「gfo」を新規作成する。既存の統合CLI（GCLI等）はBacklog・GitBucket・Bitbucketに未対応であり、この7サービスすべてをカバーするツールは存在しない。
+複数のGitホスティングサービス（GitHub, GitLab, Bitbucket Cloud, Azure DevOps, Gitea, Forgejo, Gogs, GitBucket, Backlog）を統一コマンドで操作するCLI「gfo」を新規作成する。既存の統合CLI（GCLI等）はBacklog・GitBucket・Bitbucket Cloud・Gogs・Azure DevOpsに未対応であり、この9サービスすべてをカバーするツールは存在しない。
 
 **方式**: REST API 直接呼び出し（外部CLI依存なし）
 **言語**: Python 3.11+、依存は `requests` のみ（TOML読み込みは標準ライブラリ `tomllib` を使用。credentials.toml への書き込みはシンプルな文字列フォーマットで行う）
@@ -33,9 +33,11 @@ gfo/
 │   │   ├── gitlab.py        # GitLab API v4
 │   │   ├── gitea.py         # Gitea API v1
 │   │   ├── forgejo.py       # Forgejo API v1 (Gitea継承)
+│   │   ├── gogs.py          # Gogs API v1 (Gitea継承、PRなし)
 │   │   ├── bitbucket.py     # Bitbucket Cloud API v2
 │   │   ├── gitbucket.py     # GitBucket (GitHub API v3互換、GitHub継承)
-│   │   └── backlog.py       # Backlog API v2
+│   │   ├── backlog.py       # Backlog API v2
+│   │   └── azure_devops.py  # Azure DevOps REST API v7.1 (独立実装)
 │   └── commands/
 │       ├── __init__.py
 │       ├── init.py          # gfo init (対話的 + --non-interactive)
@@ -126,7 +128,7 @@ git remote URL からの自動検出 (detect.py)
 
 1. `credentials.toml` のホスト別トークン
 2. `GFO_TOKEN` (汎用)
-3. サービス固有: `GITHUB_TOKEN`, `GITLAB_TOKEN`, `GITEA_TOKEN`, `BITBUCKET_APP_PASSWORD`, `BACKLOG_API_KEY`
+3. サービス固有: `GITHUB_TOKEN`, `GITLAB_TOKEN`, `GITEA_TOKEN`, `BITBUCKET_APP_PASSWORD`, `BACKLOG_API_KEY`, `AZURE_DEVOPS_PAT`
 
 ---
 
@@ -177,9 +179,11 @@ gfo auth status
 |---------|-----|----------|------|------|
 | GitHub | v3 REST | `https://api.github.com` | `Authorization: Bearer {token}` | 基本実装 |
 | GitLab | v4 REST | `{host}/api/v4` | `Private-Token: {token}` | 独立 |
+| Bitbucket Cloud | v2 REST | `https://api.bitbucket.org/2.0` | Basic Auth | 独立 |
+| Azure DevOps | v7.1 REST | `https://dev.azure.com/{org}/{project}/_apis` | Basic Auth (PAT) | 独立 |
 | Gitea | v1 REST | `{host}/api/v1` | `Authorization: token {token}` | 独立 |
 | Forgejo | v1 REST | `{host}/api/v1` | `Authorization: token {token}` | Gitea継承 |
-| Bitbucket | v2 REST | `https://api.bitbucket.org/2.0` | Basic Auth | 独立 |
+| Gogs | v1 REST | `{host}/api/v1` | `Authorization: token {token}` | Gitea継承（PRなし） |
 | GitBucket | v3 REST (GitHub互換) | `{host}/api/v3` | `Authorization: token {token}` | GitHub継承 |
 | Backlog | v2 REST | `{host}/api/v2` | `?apiKey={key}` | 独立 |
 
@@ -198,17 +202,40 @@ gfo auth status
 - MRマージ: `PUT /projects/{id}/merge_requests/{iid}/merge`
 - Issue一覧: `GET /projects/{id}/issues`
 
+**Bitbucket Cloud**:
+- PR一覧: `GET /repositories/{workspace}/{repo}/pullrequests`
+- PR作成: `POST /repositories/{workspace}/{repo}/pullrequests`
+- PRマージ: `POST /repositories/{workspace}/{repo}/pullrequests/{id}/merge`
+- Issue一覧: `GET /repositories/{workspace}/{repo}/issues`
+
+**Azure DevOps** (v7.1):
+- PR一覧: `GET /_apis/git/repositories/{repoId}/pullrequests?api-version=7.1`
+  - フィルタ: `searchCriteria.status` (active/abandoned/completed/all)
+  - ページネーション: `$top` + `$skip`
+- PR作成: `POST /_apis/git/repositories/{repoId}/pullrequests?api-version=7.1`
+  - Body: `{ "sourceRefName": "refs/heads/xxx", "targetRefName": "refs/heads/main", "title": "...", "description": "..." }`
+- PR取得: `GET /_apis/git/repositories/{repoId}/pullrequests/{pullRequestId}?api-version=7.1`
+- PRマージ: `PATCH /_apis/git/repositories/{repoId}/pullrequests/{pullRequestId}?api-version=7.1`
+  - Body: `{ "status": "completed", "completionOptions": { "mergeStrategy": "squash|noFastForward|rebase|rebaseMerge" } }`
+- PRクローズ: `PATCH ...` + `{ "status": "abandoned" }`
+- Work Item検索 (Issue相当): `POST /_apis/wit/wiql?api-version=7.1` (WIQL クエリ言語)
+- Work Item作成: `POST /_apis/wit/workitems/$Task?api-version=7.1` (JSON Patch形式, Content-Type: `application/json-patch+json`)
+- Work Item取得: `GET /_apis/wit/workitems/{id}?api-version=7.1`
+- Work Item更新: `PATCH /_apis/wit/workitems/{id}?api-version=7.1` (JSON Patch形式)
+- Repo一覧: `GET /_apis/git/repositories?api-version=7.1`
+
 **Gitea / Forgejo**:
 - PR一覧: `GET /repos/{owner}/{repo}/pulls`
 - PR作成: `POST /repos/{owner}/{repo}/pulls`
 - PRマージ: `POST /repos/{owner}/{repo}/pulls/{index}/merge`
 - Issue一覧: `GET /repos/{owner}/{repo}/issues`
 
-**Bitbucket Cloud**:
-- PR一覧: `GET /repositories/{workspace}/{repo}/pullrequests`
-- PR作成: `POST /repositories/{workspace}/{repo}/pullrequests`
-- PRマージ: `POST /repositories/{workspace}/{repo}/pullrequests/{id}/merge`
-- Issue一覧: `GET /repositories/{workspace}/{repo}/issues`
+**Gogs** (Gitea互換、ただしPR APIなし):
+- Issue一覧: `GET /repos/{owner}/{repo}/issues`
+- Issue作成: `POST /repos/{owner}/{repo}/issues`
+- Repo一覧: `GET /user/repos`
+- Release一覧: `GET /repos/{owner}/{repo}/releases`
+- **PR操作**: APIなし → `gfo pr *` はすべてWeb URLを表示して案内
 
 **Backlog**:
 - PR一覧: `GET /projects/{key}/git/repositories/{repo}/pullRequests`
@@ -227,8 +254,9 @@ gfo auth status
 |---------|------|------|
 | GitHub | Link header | `rel="next"` URL をパース |
 | GitLab | X-Page / X-Total-Pages header | ページ番号ベース |
+| Bitbucket Cloud | `next` URL in response body | JSON内の `next` フィールド |
+| Azure DevOps | `$top` + `$skip` パラメータ | クエリパラメータベース |
 | Gitea/Forgejo | Link header (GitHub互換) | `page` + `limit` パラメータ |
-| Bitbucket | `next` URL in response body | JSON内の `next` フィールド |
 | GitBucket | Link header (GitHub互換) | GitHub同様 |
 | Backlog | `count` + `offset` パラメータ | オフセットベース |
 
@@ -259,12 +287,68 @@ git remote URL をパースしてサービス種別を判定:
 
 1. `git config --local gfo.type` があればそれを使用
 2. `config.toml` の `hosts` セクションとホスト照合
-3. 既知ホストテーブル (`github.com`→github, `gitlab.com`→gitlab, `codeberg.org`→forgejo, `bitbucket.org`→bitbucket)
-4. Backlog特殊パターン (`*.backlog.com`, `*.backlog.jp`)
+3. 既知ホストテーブル (`github.com`→github, `gitlab.com`→gitlab, `bitbucket.org`→bitbucket, `dev.azure.com`→azure-devops, `codeberg.org`→forgejo)
+4. 特殊パターン:
+   - `*.backlog.com`, `*.backlog.jp` → backlog
+   - `*.visualstudio.com` → azure-devops（旧URL形式）
+   - `dev.azure.com` → azure-devops
 5. 未知ホスト → APIエンドポイントプローブ:
-   - `GET /api/v1/version` → Gitea/Forgejo (レスポンス内容で区別)
+   - `GET /api/v1/version` → Gitea/Forgejo/Gogs (レスポンス内容で区別)
    - `GET /api/v4/version` → GitLab
    - `GET /api/v3/` → GitBucket
+
+---
+
+## Azure DevOps固有の対応
+
+- **3階層構造**: Organization > Project > Repository
+  - git remote URLからパース: `https://dev.azure.com/{org}/{project}/_git/{repo}` または `https://{org}.visualstudio.com/{project}/_git/{repo}`
+  - git config: `gfo.organization` キーを追加
+- **認証**: Basic Auth (`Authorization: Basic base64(:{PAT})`) — ユーザー名は空文字
+- **Work Items → Issue マッピング**:
+  - `gfo issue create` 時にデフォルト type=Task、`--type Bug|Task|"User Story"` オプションで変更可
+  - 一覧取得にはWIQL検索が必須（ID一覧取得 → バッチ取得の2段階）
+  - 作成・更新は `application/json-patch+json` Content-Type（JSON Patch形式）
+- **PRマージ戦略**: `--method` オプションを `completionOptions.mergeStrategy` にマッピング
+  - `merge` → `noFastForward`、`squash` → `squash`、`rebase` → `rebase`
+- **ブランチ名の `refs/heads/` prefix**: PR作成時にsource/target ブランチ名に自動付与
+
+### 設定例
+
+```ini
+# .git/config
+[gfo]
+    type = azure-devops
+    host = dev.azure.com
+    organization = myorg
+```
+
+### gfoコマンドとのマッピング
+
+| gfo コマンド | Azure DevOps API | 備考 |
+|-------------|-----------------|------|
+| `gfo pr list` | GET pullrequests | status: open→active, closed→abandoned, merged→completed |
+| `gfo pr create` | POST pullrequests | sourceRefName に `refs/heads/` prefix 自動付与 |
+| `gfo pr view` | GET pullrequests/{id} | |
+| `gfo pr merge` | PATCH pullrequests/{id} (status=completed) | `--method` → mergeStrategy マッピング |
+| `gfo pr close` | PATCH pullrequests/{id} (status=abandoned) | |
+| `gfo pr checkout` | git fetch + checkout（ローカル操作） | |
+| `gfo issue list` | POST wiql (WIQL検索) | デフォルト: State != 'Closed' |
+| `gfo issue create` | POST workitems/$Task | デフォルト type=Task、`--type` で変更可 |
+| `gfo issue view` | GET workitems/{id} | |
+| `gfo issue close` | PATCH workitems/{id} (State→Closed) | JSON Patch形式 |
+| `gfo repo list` | GET repositories | project内のリポジトリ一覧 |
+| `gfo repo create` | POST repositories | |
+| `gfo repo view` | GET repositories/{id} | |
+
+---
+
+## Gogs固有の対応
+
+- **PR操作**: APIなし → `gfo pr list/create/view/merge/close/checkout` はすべて `NotSupportedError` を発生させ、Web URLを案内（Backlogの `pr merge` と同じパターン）
+- **Issue/Repo/Release**: Gitea互換APIで動作（GogsがGiteaの前身であり、エンドポイントパスが同一）
+- **アダプター実装**: `adapter/gogs.py` は `GiteaAdapter` を継承し、PR関連メソッドのみオーバーライド
+- **自動検出**: `/api/v1/version` のレスポンス内容でGitea/Forgejo/Gogsを区別
 
 ---
 
@@ -326,12 +410,14 @@ dev = ["pytest", "responses"]
 23. `adapter/gitlab.py` + テスト
 24. `adapter/gitea.py` + テスト
 25. `adapter/forgejo.py` (Gitea継承)
-26. `adapter/bitbucket.py` + テスト
-27. `commands/release.py`, `commands/label.py`, `commands/milestone.py` の各アダプター対応
+26. `adapter/gogs.py` (Gitea継承、PR操作は `NotSupportedError`) + テスト
+27. `adapter/bitbucket.py` (Bitbucket Cloud) + テスト
+28. `commands/release.py`, `commands/label.py`, `commands/milestone.py` の各アダプター対応
 
 ### Phase 3: 残りサービス
-28. `adapter/gitbucket.py` (GitHub継承、base_url変更)
-29. `adapter/backlog.py` + テスト (最も特殊)
+29. `adapter/gitbucket.py` (GitHub継承、base_url変更)
+30. `adapter/backlog.py` + テスト (最も特殊)
+31. `adapter/azure_devops.py` + テスト (3階層構造、Work Items、JSON Patch、WIQL)
 
 ---
 
@@ -344,3 +430,8 @@ dev = ["pytest", "responses"]
 5. `gfo pr list`, `gfo issue list` 動作確認
 6. `gfo --format json pr list` でJSON出力確認
 7. `pytest tests/` で単体テスト実行 (responsesライブラリでAPIモック)
+8. Gogs: Giteaアダプターのテストを流用 (Issue/Repo/Release) + PR操作の `NotSupportedError` テスト
+9. Azure DevOps: responsesライブラリでREST API v7.1のモックテスト
+   - PR CRUD + マージ (completionOptions.mergeStrategy指定)
+   - Work Item作成 (JSON Patch形式) + WIQL検索
+   - Basic Auth ヘッダーの正しいエンコーディング
