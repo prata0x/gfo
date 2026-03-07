@@ -108,9 +108,11 @@ api_url = "https://myteam.backlog.com/api/v2"
 [tokens]
 "github.com" = "ghp_xxxx"
 "gitlab.example.com" = "glpat-xxxx"
-"bitbucket.org" = "app-password-xxxx"
+"bitbucket.org" = "user:app-password-xxxx"   # user:password 形式
 "myteam.backlog.com" = "backlog-api-key-xxxx"
 ```
+
+Bitbucket Cloud の App Password は `username:app-password` の形式で格納する。`auth.py` がコロンで分割し Basic Auth に渡す。
 
 Windows: `%APPDATA%/gfo/` に配置。ファイル作成時に icacls で現在のユーザーのみにアクセス権を付与（ベストエフォート）。
 
@@ -124,11 +126,17 @@ git config --local gfo.* (プロジェクト固有)
 git remote URL からの自動検出 (detect.py)
 ```
 
+### 未設定状態での動作
+
+`gfo init` 未実施でも、git remote URL からの自動検出が成功すれば暗黙的に動作する。
+`gfo init` は明示的にカスタム設定（api-url, project-key 等）が必要な場合のみ必要。
+自動検出に失敗した場合は `gfo init` の実行を案内するエラーメッセージを表示。
+
 ### 環境変数フォールバック (トークン)
 
 1. `credentials.toml` のホスト別トークン
-2. `GFO_TOKEN` (汎用)
-3. サービス固有: `GITHUB_TOKEN`, `GITLAB_TOKEN`, `GITEA_TOKEN`, `BITBUCKET_APP_PASSWORD`, `BACKLOG_API_KEY`, `AZURE_DEVOPS_PAT`
+2. サービス固有: `GITHUB_TOKEN`, `GITLAB_TOKEN`, `GITEA_TOKEN`, `BITBUCKET_APP_PASSWORD`, `BACKLOG_API_KEY`, `AZURE_DEVOPS_PAT`
+3. `GFO_TOKEN` (汎用フォールバック)
 
 ---
 
@@ -139,24 +147,28 @@ gfo [--format table|json|plain] <command> <subcommand> [args]
 
 gfo init [--non-interactive] [--type TYPE] [--host HOST]  # プロジェクト初期設定
 
-gfo pr list       [--state open|closed|merged|all] [--limit N]
+gfo pr list       [--state open|closed|merged|all] [--limit N]  # --limit デフォルト: 30, 0で全件
 gfo pr create     [--title T] [--body B] [--base BRANCH] [--head BRANCH] [--draft]
+  --head 省略時: 現在のブランチを使用
+  --base 省略時: リポジトリのデフォルトブランチを使用
+  --title 省略時: 現在のブランチの最後のコミットメッセージ subject を使用
+  --body 省略時: 空文字列
 gfo pr view       <number>
 gfo pr merge      <number> [--method merge|squash|rebase]
 gfo pr close      <number>
 gfo pr checkout   <number>
 
-gfo issue list    [--state open|closed|all] [--assignee USER] [--label L] [--limit N]
+gfo issue list    [--state open|closed|all] [--assignee USER] [--label L] [--limit N]  # --limit デフォルト: 30, 0で全件
 gfo issue create  [--title T] [--body B] [--assignee USER] [--label L]
 gfo issue view    <number>
 gfo issue close   <number>
 
-gfo repo list     [--owner USER] [--limit N]
+gfo repo list     [--owner USER] [--limit N]  # --limit デフォルト: 30, 0で全件
 gfo repo create   <name> [--private] [--description D]
 gfo repo clone    <owner/name>
 gfo repo view     [<owner/name>]
 
-gfo release list  [--limit N]
+gfo release list  [--limit N]  # --limit デフォルト: 30, 0で全件
 gfo release create <tag> [--title T] [--notes N] [--draft] [--prerelease]
 
 gfo label list
@@ -166,6 +178,8 @@ gfo milestone list
 gfo milestone create <title> [--description D] [--due DATE]
 
 gfo auth login    [--host HOST] [--token TOKEN]
+  --token 省略時: インタラクティブに入力を求める (getpass使用、エコーバック無し)
+  --token 指定: CI環境向け (シェル履歴に残る旨を注意)
 gfo auth status
 ```
 
@@ -186,6 +200,80 @@ gfo auth status
 | Gogs | v1 REST | `{host}/api/v1` | `Authorization: token {token}` | Gitea継承（PRなし） |
 | GitBucket | v3 REST (GitHub互換) | `{host}/api/v3` | `Authorization: token {token}` | GitHub継承 |
 | Backlog | v2 REST | `{host}/api/v2` | `?apiKey={key}` | 独立 |
+
+---
+
+## データクラス定義 (adapter/base.py)
+
+全サービスの差異を `Optional` フィールドで吸収する。サービスが提供しない情報は `None`。
+
+### PullRequest
+| フィールド | 型 | 備考 |
+|-----------|---|------|
+| number | int | GitLab: iid, Azure DevOps: pullRequestId |
+| title | str | |
+| body | str \| None | |
+| state | str | "open" \| "closed" \| "merged" に正規化 |
+| author | str | ユーザー名/表示名 |
+| source_branch | str | Azure DevOps: refs/heads/ を除去して格納 |
+| target_branch | str | 同上 |
+| draft | bool | 未対応サービスは False |
+| url | str | Web URL |
+| created_at | str | ISO 8601 |
+| updated_at | str \| None | |
+
+### Issue
+| フィールド | 型 | 備考 |
+|-----------|---|------|
+| number | int | Azure DevOps: Work Item ID |
+| title | str | |
+| body | str \| None | |
+| state | str | "open" \| "closed" に正規化 |
+| author | str | |
+| assignees | list[str] | |
+| labels | list[str] | Azure DevOps: Tags |
+| url | str | Web URL |
+| created_at | str | |
+
+### Repository
+| フィールド | 型 | 備考 |
+|-----------|---|------|
+| name | str | |
+| full_name | str | owner/repo 形式に統一 (Azure DevOps: project/repo) |
+| description | str \| None | |
+| private | bool | |
+| default_branch | str \| None | |
+| clone_url | str | HTTPS URL |
+| url | str | Web URL |
+
+### Release
+| フィールド | 型 | 備考 |
+|-----------|---|------|
+| tag | str | |
+| title | str | |
+| body | str \| None | |
+| draft | bool | |
+| prerelease | bool | |
+| url | str | |
+| created_at | str | |
+
+### Label
+| フィールド | 型 | 備考 |
+|-----------|---|------|
+| name | str | |
+| color | str \| None | HEX |
+| description | str \| None | |
+
+### Milestone
+| フィールド | 型 | 備考 |
+|-----------|---|------|
+| number | int | |
+| title | str | |
+| description | str \| None | |
+| state | str | "open" \| "closed" |
+| due_date | str \| None | |
+
+---
 
 ### 主要APIエンドポイント
 
@@ -297,6 +385,23 @@ git remote URL をパースしてサービス種別を判定:
    - `GET /api/v4/version` → GitLab
    - `GET /api/v3/` → GitBucket
 
+### 対応する remote URL パターン
+
+| サービス | HTTPS | SSH |
+|---------|-------|-----|
+| GitHub | `https://github.com/{owner}/{repo}.git` | `git@github.com:{owner}/{repo}.git` |
+| GitLab | `https://gitlab.com/{group}[/{sub}]/{project}.git` | `git@gitlab.com:{group}[/{sub}]/{project}.git` |
+| Bitbucket | `https://bitbucket.org/{workspace}/{repo}.git` | `git@bitbucket.org:{workspace}/{repo}.git` |
+| Azure DevOps | `https://dev.azure.com/{org}/{project}/_git/{repo}` | `git@ssh.dev.azure.com:v3/{org}/{project}/{repo}` |
+| Azure DevOps (旧) | `https://{org}.visualstudio.com/{project}/_git/{repo}` | — |
+| Gitea/Forgejo/Gogs | `https://{host}/{owner}/{repo}.git` | `git@{host}:{owner}/{repo}.git` |
+| GitBucket | `https://{host}/git/{owner}/{repo}.git` | `git@{host}:{owner}/{repo}.git` |
+| Backlog | `https://{space}.backlog.com/git/{PROJECT}/{repo}.git` | `{space}@{space}.git.backlog.com:/{PROJECT}/{repo}.git` |
+
+- `.git` サフィックスは有無両方に対応
+- SSH は `git@host:path` 形式と `ssh://git@host/path` 形式の両方に対応
+- ポート指定 (`ssh://git@host:2222/path`) にも対応
+
 ---
 
 ## Azure DevOps固有の対応
@@ -312,6 +417,9 @@ git remote URL をパースしてサービス種別を判定:
 - **PRマージ戦略**: `--method` オプションを `completionOptions.mergeStrategy` にマッピング
   - `merge` → `noFastForward`、`squash` → `squash`、`rebase` → `rebase`
 - **ブランチ名の `refs/heads/` prefix**: PR作成時にsource/target ブランチ名に自動付与
+- **State正規化**: プロセステンプレートにより完了状態の名前が異なる (Agile: Closed, Scrum: Done, Basic: Done)。
+  `gfo issue list --state open` は WIQL で `State NOT IN ('Closed', 'Done', 'Removed')` を使用。
+  `--state closed` は `State IN ('Closed', 'Done')` を使用。
 
 ### 設定例
 
@@ -358,6 +466,15 @@ git remote URL をパースしてサービス種別を判定:
 - **Issue作成**: `issueTypeId`, `priorityId` が必須 → `gfo issue create` 時にプロジェクト情報を自動取得しデフォルト選択。`--type`, `--priority` オプションで指定も可
 - **URL形式**: `https://<space>.backlog.com/git/<PROJECT>/<REPO>.git`
 - **認証**: APIキーをクエリパラメータに付与 (`?apiKey={key}`)
+
+---
+
+## サービス非対応機能の動作
+
+サービスが対応していない機能（Gogs の PR操作、Backlog の PRマージ等）:
+- 終了コード **1** で終了
+- stderr: `Error: {service} does not support {operation}. Use the web interface instead.`
+- stdout: 該当操作の Web URL（パイプで利用可能にするため）
 
 ---
 
@@ -430,6 +547,17 @@ dev = ["pytest", "responses"]
 5. `gfo pr list`, `gfo issue list` 動作確認
 6. `gfo --format json pr list` でJSON出力確認
 7. `pytest tests/` で単体テスト実行 (responsesライブラリでAPIモック)
+
+### テスト層の分離
+- **アダプター層**: `responses` でHTTP応答をモック、APIレスポンス→データクラス変換を検証
+- **コマンド層**: アダプターABCをモック（`unittest.mock`）、コマンドロジックを検証
+- **detect層**: `subprocess` 出力をモック、URL パースの全パターンを検証
+
+### ページネーション テストケース
+- 2ページ以上の取得
+- 空の結果（0件）
+- limit が1ページ分より少ない
+- limit=0（全件取得）
 8. Gogs: Giteaアダプターのテストを流用 (Issue/Repo/Release) + PR操作の `NotSupportedError` テスト
 9. Azure DevOps: responsesライブラリでREST API v7.1のモックテスト
    - PR CRUD + マージ (completionOptions.mergeStrategy指定)
