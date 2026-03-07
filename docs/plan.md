@@ -145,7 +145,7 @@ git remote URL からの自動検出 (detect.py)
 ```
 gfo [--format table|json|plain] <command> <subcommand> [args]
 
-gfo init [--non-interactive] [--type TYPE] [--host HOST]  # プロジェクト初期設定
+gfo init [--non-interactive] [--type TYPE] [--host HOST] [--api-url URL] [--project-key KEY]  # プロジェクト初期設定
 
 gfo pr list       [--state open|closed|merged|all] [--limit N]  # --limit デフォルト: 30, 0で全件
 gfo pr create     [--title T] [--body B] [--base BRANCH] [--head BRANCH] [--draft]
@@ -364,7 +364,7 @@ gfo auth status
   - 429: レート制限 → Retry-After ヘッダーを尊重して待機（最大1回リトライ）
   - 5xx: サーバーエラー → リトライなし、エラーメッセージ表示
 - **リトライ**: レート制限(429)のみ自動リトライ。それ以外はリトライしない
-- **タイムアウト**: requests のデフォルト30秒
+- **タイムアウト**: 全リクエストに `timeout=30` を明示指定（`requests` のデフォルトは None＝無制限のため）
 - **URLログ出力時のマスキング**: Backlog の `?apiKey=xxx` をログ・エラーメッセージから `?apiKey=***` に置換して出力
 
 ---
@@ -379,7 +379,6 @@ git remote URL をパースしてサービス種別を判定:
 4. 特殊パターン:
    - `*.backlog.com`, `*.backlog.jp` → backlog
    - `*.visualstudio.com` → azure-devops（旧URL形式）
-   - `dev.azure.com` → azure-devops
 5. 未知ホスト → APIエンドポイントプローブ:
    - `GET /api/v1/version` → Gitea/Forgejo/Gogs (レスポンス内容で区別)
    - `GET /api/v4/version` → GitLab
@@ -429,6 +428,7 @@ git remote URL をパースしてサービス種別を判定:
     type = azure-devops
     host = dev.azure.com
     organization = myorg
+    project = myproject
 ```
 
 ### gfoコマンドとのマッピング
