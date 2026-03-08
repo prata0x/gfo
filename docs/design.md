@@ -63,6 +63,14 @@
 
 ## 2. 各モジュール詳細設計
 
+#### import 方針（全モジュール共通）
+
+- 内部モジュール間の import は `import gfo.xxx` 形式で行い、`gfo.xxx.func()` と完全修飾で呼び出す
+  - 例: `import gfo.git_util` → `gfo.git_util.git_config_get()`
+  - これにより `patch("gfo.git_util.git_config_get")` で全箇所のモックが効く
+- 例外クラスは `from gfo.exceptions import GfoError, ConfigError, ...` で個別 import する
+  - 例外型は定数的に使用されるため、完全修飾パスでは冗長になりすぎる
+
 ### 2.1 git_util.py
 
 #### 責務
@@ -159,9 +167,9 @@ class DetectResult:
 
 def detect_from_url(remote_url: str) -> DetectResult:
     """remote URL をパースし、ホスト・owner・repo を抽出する。
-    
-    サービス種別は既知ホストテーブルおよび特殊パターンで判定。
-    未知ホストの場合は service_type を None としたまま返す（後段でプローブ）。
+
+    責務: URL パース＋既知ホストテーブル/特殊パターンによるサービス種別の判定。
+    未知ホストの場合は service_type を None としたまま返す（プローブは行わない）。
     """
 
 def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
@@ -180,9 +188,11 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
     """
 
 def detect_service(cwd: str | None = None) -> DetectResult:
-    """完全な検出フローを実行する。
+    """完全な検出フローを実行する（上位エントリポイント）。
 
-    内部で detect_from_url() を呼び出し、URL パース結果を基に判定する。
+    責務: git config → config.toml → URL パース → プローブ の全段階を統合する。
+    detect_from_url() は URL パース＋既知ホスト判定のみを担当し、
+    プローブ（probe_unknown_host）はこの関数が呼び出す。
 
     1. git_config_get("gfo.type") → 設定済みならそれを使用
     2. config.toml の hosts セクションを参照
@@ -344,12 +354,17 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
 
 def save_project_config(config: ProjectConfig, cwd: str | None = None) -> None:
     """ProjectConfig を git config --local に保存する。
-    
+
     git_config_set("gfo.type", ...)
     git_config_set("gfo.host", ...)
     git_config_set("gfo.api-url", ...)
     organization があれば git_config_set("gfo.organization", ...)
     project_key があれば git_config_set("gfo.project-key", ...)
+
+    注意: owner/repo は保存しない。これらは毎回 remote URL から
+    detect_from_url() で取得する設計とする。理由:
+    - git remote を変更した場合（fork 元に切り替え等）に自動追従する
+    - owner/repo を git config にキャッシュすると remote との不整合リスクがある
     """
 
 def _build_default_api_url(service_type: str, host: str,
@@ -384,7 +399,10 @@ def _write_credentials_toml(path: Path, tokens: dict[str, str]) -> None:
     "github.com" = "ghp_xxxx"
     "gitlab.example.com" = "glpat-xxxx"
     
-    値に含まれる特殊文字はダブルクォートでエスケープ。
+    値はダブルクォート文字列としてエスケープする:
+    - バックスラッシュ: \\ → \\\\
+    - ダブルクォート: " → \\"
+    - 改行・タブ等の制御文字: \\n, \\t 等にエスケープ
     既存ファイルは全体を上書きする（部分更新ではない）。
     """
 ```
@@ -516,7 +534,7 @@ class HttpClient:
         """HTTP リクエストを実行する。
 
         1. URL 構築: base_url + path
-        2. default_params → auth_params → params の順でクエリパラメータをマージ
+        2. default_params → auth_params → params の順でクエリパラメータをマージ（後勝ち: 同キーは後段の値で上書き）
         3. requests.Session.request() を呼び出し
         4. _handle_response() でステータスコードを検査
         5. Response を返す
@@ -842,8 +860,8 @@ def create_parser() -> argparse.ArgumentParser:
     release_list.add_argument("--limit", type=int, default=30)
     # release create
     release_create = release_sub.add_parser("create")
-    release_create.add_argument("--tag", required=True)
-    release_create.add_argument("--title", default="")
+    release_create.add_argument("tag")  # 位置引数（必須）
+    release_create.add_argument("--title", default=None)  # 省略時はタグ名と同じ
     release_create.add_argument("--notes", default="")
     release_create.add_argument("--draft", action="store_true")
     release_create.add_argument("--prerelease", action="store_true")
@@ -855,7 +873,7 @@ def create_parser() -> argparse.ArgumentParser:
     label_sub.add_parser("list")
     # label create
     label_create = label_sub.add_parser("create")
-    label_create.add_argument("--name", required=True)
+    label_create.add_argument("name")  # 位置引数（必須）
     label_create.add_argument("--color")
     label_create.add_argument("--description")
 
@@ -866,9 +884,9 @@ def create_parser() -> argparse.ArgumentParser:
     milestone_sub.add_parser("list")
     # milestone create
     milestone_create = milestone_sub.add_parser("create")
-    milestone_create.add_argument("--title", required=True)
+    milestone_create.add_argument("title")  # 位置引数（必須）
     milestone_create.add_argument("--description")
-    milestone_create.add_argument("--due-date")
+    milestone_create.add_argument("--due")
     
     return parser
 
@@ -1276,7 +1294,8 @@ class GitHubAdapter(GitServiceAdapter):
             prs = [pr for pr in prs if pr.state == "merged"]
         return prs
     
-    def get_pr_checkout_refspec(self, number: int, **kwargs) -> str:
+    def get_pr_checkout_refspec(self, number: int, *,
+                                pr: PullRequest | None = None) -> str:
         return f"pull/{number}/head"
 ```
 
@@ -1300,7 +1319,8 @@ class GitLabAdapter(GitServiceAdapter):
                                       params=params, limit=limit)
         return [self._to_pull_request(r) for r in results]
     
-    def get_pr_checkout_refspec(self, number: int, **kwargs) -> str:
+    def get_pr_checkout_refspec(self, number: int, *,
+                                pr: PullRequest | None = None) -> str:
         return f"merge-requests/{number}/head"
 ```
 
@@ -1383,7 +1403,8 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         """
         ...
     
-    def get_pr_checkout_refspec(self, number: int, **kwargs) -> str:
+    def get_pr_checkout_refspec(self, number: int, *,
+                                pr: PullRequest | None = None) -> str:
         return f"pull/{number}/head"
 
     # ブランチ名の refs/heads/ 付与/除去
@@ -1412,7 +1433,8 @@ class GiteaAdapter(GitServiceAdapter):
     # パラメータ名が page + limit のため per_page_key="limit" を使用
     # 例: paginate_link_header(self._client, path, per_page_key="limit", ...)
     
-    def get_pr_checkout_refspec(self, number: int) -> str:
+    def get_pr_checkout_refspec(self, number: int, *,
+                                pr: PullRequest | None = None) -> str:
         return f"pull/{number}/head"
 ```
 
@@ -1435,8 +1457,9 @@ class GogsAdapter(GiteaAdapter):
     
     def _web_url(self) -> str:
         """Web UI のベース URL を構築する。"""
-        # HttpClient の base_url プロパティから /api/v1 を除去
-        return self._client.base_url.removesuffix("/api/v1")
+        # API Base URL からスキーム+ホストを抽出（Gitea/Forgejo と同じパターン）
+        parsed = urllib.parse.urlparse(self._client.base_url)
+        return f"{parsed.scheme}://{parsed.hostname}" + (f":{parsed.port}" if parsed.port else "")
 
     def list_pull_requests(self, **kwargs):
         raise NotSupportedError("Gogs", "pull request operations",
@@ -1543,7 +1566,7 @@ class BacklogAdapter(GitServiceAdapter):
 
     def merge_pull_request(self, number, **kwargs):
         raise NotSupportedError("Backlog", "pull request merge",
-                                web_url=f"https://{self._client.base_url.split('//')[1].split('/')[0]}"
+                                web_url=f"https://{urllib.parse.urlparse(self._client.base_url).hostname}"
                                         f"/git/{self._project_key}/{self._repo}/pullRequests/{number}")
     
     def list_issues(self, *, state="open", assignee=None, label=None, limit=30):
@@ -1665,30 +1688,43 @@ def handle_list(args: argparse.Namespace, *, format: str) -> None:
     4. output(repos, format=format, fields=["full_name", "description", "private"])
     """
 
-def handle_create(args: argparse.Namespace, *, format: str) -> None:
-    """gfo repo create <name> のハンドラ。
+def _resolve_host_without_repo(args_host: str | None) -> tuple[str, str]:
+    """git リポジトリ外でも動作するホスト解決ユーティリティ。
 
-    ホスト解決フロー:
-    1. args.host が指定されている → そのホストを使用
+    repo create / repo clone が共通で使用する。
+    resolve_project_config() はリポジトリ内を前提とするため、
+    リポジトリ外でも動作する独自フローが必要。
+
+    解決フロー:
+    1. args_host が指定されている → そのホストを使用
     2. 未指定:
        a. git リポジトリ内なら detect_service().host で自動検出
        b. リポジトリ外なら get_default_host()（config.toml の defaults.host）
        c. いずれも未設定なら ConfigError
     3. ホストから service_type を解決（config.toml hosts セクション → probe）
-    4. トークンを resolve_token(host, service_type) で取得
-    5. HttpClient + adapter を構築
-    6. repo = adapter.create_repository(name=args.name, private=args.private,
+
+    戻り値: (host, service_type) のタプル
+    """
+
+def handle_create(args: argparse.Namespace, *, format: str) -> None:
+    """gfo repo create <name> のハンドラ。
+
+    1. host, service_type = _resolve_host_without_repo(args.host)
+    2. トークンを resolve_token(host, service_type) で取得
+    3. HttpClient + adapter を構築
+    4. repo = adapter.create_repository(name=args.name, private=args.private,
                                         description=args.description or "")
-    7. output(repo, format=format)
+    5. output(repo, format=format)
     """
 
 def handle_clone(args: argparse.Namespace, *, format: str) -> None:
     """gfo repo clone <owner/name> のハンドラ。
 
     ホスト解決フロー:
-    1. args.host が指定されている → そのホストを使用
-    2. 未指定: get_default_host()（config.toml の defaults.host）
-    3. 未設定なら ConfigError("No default host configured. Use --host or set defaults.host in config.toml.")
+    1. host, service_type = _resolve_host_without_repo(args.host)
+       ※ clone はリポジトリ外が主な利用場面のため、検出に失敗した場合は
+       get_default_host() へのフォールバックのみ
+    2. 未設定なら ConfigError("No default host configured. Use --host or set defaults.host in config.toml.")
 
     クローン URL 構築:
     1. ホストの service_type を解決
