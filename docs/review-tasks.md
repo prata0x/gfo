@@ -47,7 +47,7 @@
 
 ## Phase R-C: テストカバレッジ強化
 
-### R-04: adapter/forgejo.py のテスト強化
+### R-04: adapter/forgejo.py のテスト強化 ✅
 
 - **問題**: 7テストのみ。GiteaAdapter 継承だが差分メソッドのテストが不足の可能性
 - **参照**: @docs/design.md L1480-1487 (Forgejo アダプター設計), L1866 (継承関係), L1882 (継承共有ロジック), L2156-2164 (adapter テスト方針)
