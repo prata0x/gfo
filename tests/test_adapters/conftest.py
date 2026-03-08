@@ -10,12 +10,14 @@ from gfo.adapter.github import GitHubAdapter
 from gfo.adapter.gitlab import GitLabAdapter
 from gfo.adapter.bitbucket import BitbucketAdapter
 from gfo.adapter.azure_devops import AzureDevOpsAdapter
+from gfo.adapter.gitea import GiteaAdapter
 
 
 BASE_URL = "https://api.github.com"
 GITLAB_BASE_URL = "https://gitlab.com/api/v4"
 BITBUCKET_BASE_URL = "https://api.bitbucket.org/2.0"
 AZURE_DEVOPS_BASE_URL = "https://dev.azure.com/test-org/test-project/_apis"
+GITEA_BASE_URL = "https://gitea.example.com/api/v1"
 
 
 @pytest.fixture
@@ -69,3 +71,13 @@ def azure_devops_adapter(azure_devops_client):
         azure_devops_client, "test-owner", "test-repo",
         organization="test-org", project_key="test-project",
     )
+
+
+@pytest.fixture
+def gitea_client():
+    return HttpClient(GITEA_BASE_URL, auth_header={"Authorization": "token test-token"})
+
+
+@pytest.fixture
+def gitea_adapter(gitea_client):
+    return GiteaAdapter(gitea_client, "test-owner", "test-repo")

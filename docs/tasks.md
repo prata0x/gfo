@@ -139,7 +139,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-09, T-04
 - **検証**: `pytest tests/test_adapters/test_azure_devops.py`
 
-### T-15: Gitea アダプター
+### T-15: Gitea アダプター ✅
 - **参照**: design.md L1461-1478 (Gitea アダプター)
 - **成果物**:
   - `src/gfo/adapter/gitea.py` — GiteaAdapter
