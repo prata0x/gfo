@@ -357,3 +357,21 @@
 - `_patch_all` コンテキストマネージャを `contextlib.contextmanager` + `with` で構成し、各テストで簡潔に再利用できる構造にした
 - `setup_method` でフィクスチャを初期化することで、クラス内の各テストメソッドが独立した状態で実行されるようにした
 - 14テスト全パス（TestHandleList 4件 + TestHandleCreate 6件 + TestHandleView 2件 + TestHandleClose 2件）
+
+---
+
+## T-23: commands/repo.py — repo コマンドハンドラ
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- `_resolve_host_without_repo` の3段フォールバック (args_host → `detect_service()` → `get_default_host()`) を計画通りに実装できた
+- service_type 解決で `get_host_config` → `probe_unknown_host` → `_KNOWN_HOSTS` の順にフォールバックする設計がシンプルかつ網羅的
+- `handle_create` でサービス別 `HttpClient` 構築ロジックを `registry.py` の `create_adapter` と同じパターンで実装し、一貫性を保てた
+- `handle_clone` のサービス別 URL 構築ロジック (github/gitlab/bitbucket/azure-devops/gitea-forgejo-gogs/gitbucket/backlog) をプランの URL テーブル通りに実装
+- T-21/T-22 で確立した `_patch_all` コンテキストマネージャパターンをそのまま流用し、ボイラープレートを最小化
+- `handle_create` / `handle_clone` のテストでは `_resolve_host_without_repo` 自体をモックすることで、ホスト解決ロジックと切り離した独立テストを構成できた
+- 19テスト全パス（TestHandleList 2件 + TestResolveHostWithoutRepo 5件 + TestHandleCreate 2件 + TestHandleClone 7件 + TestHandleView 3件）
