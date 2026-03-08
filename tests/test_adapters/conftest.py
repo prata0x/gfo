@@ -14,6 +14,7 @@ from gfo.adapter.gitea import GiteaAdapter
 from gfo.adapter.forgejo import ForgejoAdapter
 from gfo.adapter.gogs import GogsAdapter
 from gfo.adapter.gitbucket import GitBucketAdapter
+from gfo.adapter.backlog import BacklogAdapter
 
 
 BASE_URL = "https://api.github.com"
@@ -24,6 +25,7 @@ GITEA_BASE_URL = "https://gitea.example.com/api/v1"
 FORGEJO_BASE_URL = "https://forgejo.example.com/api/v1"
 GOGS_BASE_URL = "https://gogs.example.com/api/v1"
 GITBUCKET_BASE_URL = "https://gitbucket.example.com/api/v3"
+BACKLOG_BASE_URL = "https://example.backlog.com/api/v2"
 
 
 @pytest.fixture
@@ -117,3 +119,13 @@ def gitbucket_client():
 @pytest.fixture
 def gitbucket_adapter(gitbucket_client):
     return GitBucketAdapter(gitbucket_client, "test-owner", "test-repo")
+
+
+@pytest.fixture
+def backlog_client():
+    return HttpClient(BACKLOG_BASE_URL, auth_params={"apiKey": "test-key"})
+
+
+@pytest.fixture
+def backlog_adapter(backlog_client):
+    return BacklogAdapter(backlog_client, "test-owner", "test-repo", project_key="TEST")
