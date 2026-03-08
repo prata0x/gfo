@@ -123,7 +123,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-09, T-04
 - **検証**: `pytest tests/test_adapters/test_gitlab.py`
 
-### T-13: Bitbucket Cloud アダプター
+### T-13: Bitbucket Cloud アダプター ✅
 - **参照**: design.md L1361-1380 (Bitbucket Cloud アダプター)
 - **成果物**:
   - `src/gfo/adapter/bitbucket.py` — BitbucketAdapter

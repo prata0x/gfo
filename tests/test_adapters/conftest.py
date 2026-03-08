@@ -8,10 +8,12 @@ import responses
 from gfo.http import HttpClient
 from gfo.adapter.github import GitHubAdapter
 from gfo.adapter.gitlab import GitLabAdapter
+from gfo.adapter.bitbucket import BitbucketAdapter
 
 
 BASE_URL = "https://api.github.com"
 GITLAB_BASE_URL = "https://gitlab.com/api/v4"
+BITBUCKET_BASE_URL = "https://api.bitbucket.org/2.0"
 
 
 @pytest.fixture
@@ -38,3 +40,13 @@ def gitlab_client():
 @pytest.fixture
 def gitlab_adapter(gitlab_client):
     return GitLabAdapter(gitlab_client, "test-owner", "test-repo")
+
+
+@pytest.fixture
+def bitbucket_client():
+    return HttpClient(BITBUCKET_BASE_URL, basic_auth=("testuser", "testpass"))
+
+
+@pytest.fixture
+def bitbucket_adapter(bitbucket_client):
+    return BitbucketAdapter(bitbucket_client, "test-workspace", "test-repo")
