@@ -259,3 +259,19 @@
 - `forgejo.py` 本体は9行 (docstring・import・クラス定義含む) と非常にシンプル
 - テストは Registry・継承確認・service_name・PR list の4件で継承の意図を明確に検証
 - 4テスト全パス、全既存テストにも影響なし
+
+---
+
+## T-17: adapter/gogs.py — GogsAdapter
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- T-15/T-16 の継承パターンに沿い、`GiteaAdapter` を継承する最小実装でスムーズに完了
+- `_web_url()` で `urllib.parse.urlparse` を使い、`scheme://hostname[:port]` を抽出する設計が明快で再利用しやすい
+- PR 5メソッドは `web_url` 付き、Label/Milestone 4メソッドは `web_url=None` という使い分けを `NotSupportedError` の `web_url` 属性で表現でき、テストで全9パターンを網羅
+- ポート番号付き URL (`http://gogs.local:3000/api/v1` → `http://gogs.local:3000`) の検証も `TestWebUrl` で明示的にカバー
+- 15テスト全パス、全既存テストにも影響なし
