@@ -475,3 +475,21 @@
 - `main()` のサブコマンド未指定ハンドリングで `parser._subparsers._group_actions[0].choices[args.command].print_help()` を使い、コマンド別 help 表示を実現できた
 - `NotSupportedError` の `web_url` を stdout、エラーメッセージを stderr に分けて出力することで、パイプ利用時にURLだけを抽出できる設計を実装できた
 - 38テスト全パス（パーサー27件 + ディスパッチ3件 + main8件）、全607テストにも影響なし
+
+---
+
+## T-30: conftest.py 整理統合
+
+### 発生した問題
+
+1. **`setup_method` が pytest fixture を直接受け取れない問題**
+   - `test_release.py` / `test_label.py` / `test_milestone.py` は `setup_method` 内で `_make_config()` を呼んで `self.config` を初期化していた
+   - `setup_method` は pytest fixture を引数として受け取れないため、`sample_config` fixture に単純に置き換えることができなかった
+   - 解決: `self.config = _make_config()` を `setup_method` から削除し、各テストメソッドのシグネチャに `sample_config` fixture 引数を追加することで対応
+
+### うまくいった点
+
+- `tests/conftest.py` を design.md L2062-2106 の仕様通り3フィクスチャ (`config_dir`, `mock_git_config`, `mock_remote_url`) で新規作成できた
+- `test_pr.py` / `test_repo.py` の `mock_config` fixture を削除し、`conftest.py` の `sample_config` に置換する変更が `replace_all` で一括適用できた
+- `test_commands/conftest.py` と `test_adapters/conftest.py` は変更不要と判断でき、最小限の変更で重複除去を完了した
+- 全607テストが引き続き通過し、リグレッションなし
