@@ -392,3 +392,19 @@
 - `builtins.input` を `patch` でモックすることで、対話モードの各入力シナリオを `side_effect=iter([...])` で簡潔にテストできた
 - T-21〜T-23 で確立したコマンドテストパターン（`patch` + `make_args`）をそのまま流用し、ボイラープレートを最小化
 - 11テスト全パス（TestHandleInteractive 5件 + TestHandleNonInteractive 6件）
+
+---
+
+## T-25: commands/auth_cmd.py — auth コマンドハンドラ
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- `handle_login` の `args.host` / `args.token` 両方オプションのロジックが、`detect_service()` との連携含めシンプルに実装できた
+- `gfo.auth.save_token` / `gfo.detect.detect_service` を `patch("gfo.commands.auth_cmd.gfo.auth.save_token")` 形式の完全修飾パスでモックすることで、テストが他モジュールの実装に依存しない独立した構造になった
+- `handle_status` のテーブル出力は `output.py` の `output()` 関数が dataclass 専用のため自前で組んだが、列幅を動的に計算するシンプルな実装で対応できた
+- T-21〜T-24 で確立したコマンドテストパターン（`patch` + `make_args` + `capsys`）をそのまま流用でき、ボイラープレートを最小化
+- 6テスト全パス（TestHandleLogin 4件 + TestHandleStatus 2件）
