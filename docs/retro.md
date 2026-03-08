@@ -275,3 +275,18 @@
 - PR 5メソッドは `web_url` 付き、Label/Milestone 4メソッドは `web_url=None` という使い分けを `NotSupportedError` の `web_url` 属性で表現でき、テストで全9パターンを網羅
 - ポート番号付き URL (`http://gogs.local:3000/api/v1` → `http://gogs.local:3000`) の検証も `TestWebUrl` で明示的にカバー
 - 15テスト全パス、全既存テストにも影響なし
+
+---
+
+## T-18: adapter/gitbucket.py — GitBucketAdapter
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- T-16 (Forgejo) と同じ最小継承パターンで、`GitHubAdapter` を継承し `service_name = "GitBucket"` のみオーバーライドする実装が11行で完了
+- GitHub v3 互換 API のため追加オーバーライドは不要で、レジストリの `"gitbucket"` エントリが既に存在していたため登録もスムーズ
+- テストは Registry・継承確認・service_name・PR list の4件で意図を明確に検証
+- 4テスト全パス、全既存テストにも影響なし
