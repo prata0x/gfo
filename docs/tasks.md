@@ -240,7 +240,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **検証**: `pytest tests/test_commands/test_release.py`
 - **注記**: design.md 2.11 に個別設計なし。共通パターンに従い、adapter.list_releases / adapter.create_release を呼び出す
 
-### T-27: commands/label.py
+### ✅ T-27: commands/label.py
 - **参照**: design.md L885-894 (CLI パーサー), L950-951 (ディスパッチ), L1648-1665 (共通パターン)
 - **成果物**:
   - `src/gfo/commands/label.py` — handle_list, handle_create
