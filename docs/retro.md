@@ -321,3 +321,23 @@
 - 全9アダプター (github, gitlab, bitbucket, azure-devops, gitea, forgejo, gogs, gitbucket, backlog) を `import` するだけでレジストリへの自動登録が完了する設計が機能した
 - T-10 (registry.py) の `@register` デコレータパターンにより、`__init__.py` は9行のシンプルな実装で済んだ
 - 3テスト全パス (全サービス登録確認・クラス取得・未対応サービスエラー)、全既存テストにも影響なし
+
+---
+
+## T-21: commands/pr.py — PR コマンドハンドラ
+
+### 発生した問題
+
+1. **`format_json` の1件リスト出力がオブジェクトになるテスト失敗**
+   - `output.py` の `format_json` は1件のリストを単一オブジェクトとして出力する仕様だった
+   - テストで `isinstance(data, list)` を assert したため失敗
+   - 解決: `list` と `dict` 両方に対応するアサーションに修正
+   - 教訓: `output.py` の仕様 (1件→オブジェクト、複数→配列) をテスト設計時に確認すること
+
+### うまくいった点
+
+- design.md L1648-1699 に全6ハンドラの擬似コードが揃っており、そのまま実装に移せた
+- `git_util.py` に `git_fetch` / `git_checkout_new_branch` が既に実装済みで、`handle_checkout` をシームレスに実装できた
+- `unittest.mock.patch` + `MagicMock` を活用し、`resolve_project_config` / `create_adapter` / `gfo.git_util.*` をすべてモック化したユニットテストを構築できた
+- `tests/test_commands/conftest.py` に共通フィクスチャ (`make_args`) を用意し、後続コマンドテストで再利用可能な構造にした
+- 14テスト全パス、全500テストにも影響なし
