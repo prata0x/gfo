@@ -23,14 +23,14 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 
 ## Phase 1: 基盤モジュール
 
-### T-02: exceptions.py
+### T-02: exceptions.py ✅
 - **参照**: design.md L1887-2005 (セクション 4), L2217-2219 (付録 C)
 - **成果物**:
   - `src/gfo/exceptions.py` — 全エラー型 (GfoError, GitCommandError, DetectionError, ConfigError, AuthError, HttpError, AuthenticationError, NotFoundError, RateLimitError, ServerError, NetworkError, NotSupportedError, UnsupportedServiceError)
   - `tests/test_exceptions.py` — メッセージフォーマット検証
 - **検証**: `pytest tests/test_exceptions.py`
 
-### T-03: git_util.py
+### T-03: git_util.py ✅
 - **参照**: design.md L76-151 (セクション 2.1)
 - **成果物**:
   - `src/gfo/git_util.py` — run_git, get_remote_url, get_current_branch, get_default_branch, get_last_commit_subject, git_config_get, git_config_set, git_fetch, git_checkout_new_branch, git_clone
@@ -38,7 +38,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-02 (exceptions)
 - **検証**: `pytest tests/test_git_util.py`
 
-### T-04: http.py
+### T-04: http.py✅
 - **参照**: design.md L489-690 (セクション 2.5)
 - **成果物**:
   - `src/gfo/http.py` — HttpClient クラス (get, post, put, patch, delete (※ design.md 未定義だが PR close / issue close 等に必要), get_paginated), ページネーション (Link header, page_param, response_body, offset, $top+$skip), エラーハンドリング
