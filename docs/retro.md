@@ -197,3 +197,18 @@
 - 主な差異対応: プロジェクトパスの URL エンコード (`urllib.parse.quote`)、state マッピング (`open` ↔ `opened`)、MR 用語 (`/merge_requests`)、`paginate_page_param` (`X-Next-Page` ヘッダー方式)、close/merge の PUT + `state_event`、author (`data["author"]["username"]`)、Label color の `#` プレフィックス除去
 - conftest.py の `mock_responses` フィクスチャを GitHub テストと共有し、`gitlab_client` / `gitlab_adapter` を追加するだけで済んだ
 - 38テスト全パス (変換8 + MR11 + Issue6 + Repo5 + Release2 + Label3 + Milestone3 + Registry1)、全292テストにも影響なし
+
+---
+
+## T-13: adapter/bitbucket.py — BitbucketAdapter
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- T-11/T-12 で確立したアダプター実装パターンに沿い、スムーズに実装完了
+- Bitbucket 固有の差異を計画通りに反映: state 大文字→小文字変換 (`OPEN`→`open`, `DECLINED`/`SUPERSEDED`→`closed`, `MERGED`→`merged`)、ネストされた branch 名 (`source.branch.name`)、`paginate_response_body` (`values`/`next` キーによるレスポンスボディベースページネーション)、Issue の `content.raw` → `body`、assignee 単一値→リスト化、`links.clone` から https の href 抽出
+- Release/Label/Milestone の 6 メソッドを `NotSupportedError` で実装し、テストでも全て検証
+- 36テスト全パス (変換10 + PR9 + Issue6 + Repo5 + NotSupported6 + Registry1)、全116アダプターテスト・既存テストにも影響なし
