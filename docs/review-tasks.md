@@ -63,7 +63,7 @@
   - `tests/test_adapters/test_gitbucket.py` — base_url 差異の検証、GitHub API 互換パス構造テスト、エラーケース追加
 - **検証**: `pytest tests/test_adapters/test_gitbucket.py -v`
 
-### R-06: commands/auth_cmd.py のテスト強化
+### R-06: commands/auth_cmd.py のテスト強化 ✅
 
 - **問題**: 6テストのみ。エラーケースのテストが不足
 - **参照**: @docs/design.md L1833-1851 (auth_cmd ハンドラ設計)
