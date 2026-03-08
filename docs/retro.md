@@ -493,3 +493,20 @@
 - `test_pr.py` / `test_repo.py` の `mock_config` fixture を削除し、`conftest.py` の `sample_config` に置換する変更が `replace_all` で一括適用できた
 - `test_commands/conftest.py` と `test_adapters/conftest.py` は変更不要と判断でき、最小限の変更で重複除去を完了した
 - 全607テストが引き続き通過し、リグレッションなし
+
+---
+
+## T-31: 全テスト実行・カバレッジ確認
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- テストギャップを体系的に8カテゴリに分類し、27テストを一気に追加できた
+- `responses` ライブラリの `add_callback` パターン (T-04 の教訓) を adapter ページネーションテストで再活用し、`mock_responses.add_callback(...)` で Link header 2ページ遷移を確実にテストできた
+- Azure DevOps の `basic_auth` 検証では、base64 値をハードコードせず `base64.b64decode` でデコードして `":test-pat"` を assert する方式にし、将来の変更に強いテストになった
+- Backlog offset ページネーションテストで `count=20` の1ページ分 (20件) を `[_pr_data(number=i) for i in range(1, 21)]` でコンパクトに生成できた
+- Windows icacls OSError テストは `subprocess.run` を例外送出する mock に差し替えるだけで、既存の `test_save_token_windows_icacls` と対称的なテストケースを追加できた
+- 全634テスト (607 + 27) が 1.89s で全パス、リグレッションなし
