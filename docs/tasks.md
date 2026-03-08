@@ -16,6 +16,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
   - `src/gfo/commands/__init__.py`
   - `src/gfo/adapter/__init__.py`
   - `tests/__init__.py`, `tests/test_commands/__init__.py`, `tests/test_adapters/__init__.py`
+  - コーディング規約: `import gfo.xxx` 形式、完全修飾呼び出し (design.md L68-74)
 - **検証**: `pip install -e ".[dev]"` が成功し、`python -m gfo --version` で `0.1.0` が表示される
 
 ---
@@ -40,7 +41,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 ### T-04: http.py
 - **参照**: design.md L489-690 (セクション 2.5)
 - **成果物**:
-  - `src/gfo/http.py` — HttpClient クラス (get, post, put, patch, delete, get_paginated), ページネーション (Link header, offset, $top+$skip), エラーハンドリング
+  - `src/gfo/http.py` — HttpClient クラス (get, post, put, patch, delete (※ design.md 未定義だが PR close / issue close 等に必要), get_paginated), ページネーション (Link header, page_param, response_body, offset, $top+$skip), エラーハンドリング
   - `tests/test_http.py` — responses ライブラリによるHTTPモックテスト (ページネーション含む)
 - **依存**: T-02 (exceptions)
 - **検証**: `pytest tests/test_http.py`
@@ -114,7 +115,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **検証**: `pytest tests/test_adapters/test_github.py`
 
 ### T-12: GitLab アダプター
-- **参照**: design.md L1336-1360 (GitLab アダプター)
+- **参照**: design.md L1336-1359 (GitLab アダプター)
 - **成果物**:
   - `src/gfo/adapter/gitlab.py` — GitLabAdapter
   - `tests/test_adapters/test_gitlab.py`
@@ -122,7 +123,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **検証**: `pytest tests/test_adapters/test_gitlab.py`
 
 ### T-13: Bitbucket Cloud アダプター
-- **参照**: design.md L1361-1381 (Bitbucket Cloud アダプター)
+- **参照**: design.md L1361-1380 (Bitbucket Cloud アダプター)
 - **成果物**:
   - `src/gfo/adapter/bitbucket.py` — BitbucketAdapter
   - `tests/test_adapters/test_bitbucket.py`
@@ -130,7 +131,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **検証**: `pytest tests/test_adapters/test_bitbucket.py`
 
 ### T-14: Azure DevOps アダプター
-- **参照**: design.md L1382-1460 (Azure DevOps アダプター)
+- **参照**: design.md L1382-1459 (Azure DevOps アダプター)
 - **成果物**:
   - `src/gfo/adapter/azure_devops.py` — AzureDevOpsAdapter (WIQL, JSON Patch, Basic Auth, refs/heads/ 処理)
   - `tests/test_adapters/test_azure_devops.py` — 固有テスト含む (L2166-2172)
@@ -138,7 +139,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **検証**: `pytest tests/test_adapters/test_azure_devops.py`
 
 ### T-15: Gitea アダプター
-- **参照**: design.md L1461-1479 (Gitea アダプター)
+- **参照**: design.md L1461-1478 (Gitea アダプター)
 - **成果物**:
   - `src/gfo/adapter/gitea.py` — GiteaAdapter
   - `tests/test_adapters/test_gitea.py`
@@ -146,7 +147,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **検証**: `pytest tests/test_adapters/test_gitea.py`
 
 ### T-16: Forgejo アダプター
-- **参照**: design.md L1480-1488 (Forgejo アダプター)
+- **参照**: design.md L1480-1487 (Forgejo アダプター)
 - **成果物**:
   - `src/gfo/adapter/forgejo.py` — ForgejoAdapter (Gitea 継承、オーバーライドなし)
   - `tests/test_adapters/test_forgejo.py`
@@ -154,7 +155,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **検証**: `pytest tests/test_adapters/test_forgejo.py`
 
 ### T-17: Gogs アダプター
-- **参照**: design.md L1489-1535 (Gogs アダプター)
+- **参照**: design.md L1489-1534 (Gogs アダプター)
 - **成果物**:
   - `src/gfo/adapter/gogs.py` — GogsAdapter (Gitea 継承、PR/Label/Milestone を NotSupportedError)
   - `tests/test_adapters/test_gogs.py` — NotSupportedError テスト含む
@@ -162,7 +163,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **検証**: `pytest tests/test_adapters/test_gogs.py`
 
 ### T-18: GitBucket アダプター
-- **参照**: design.md L1536-1549 (GitBucket アダプター)
+- **参照**: design.md L1536-1548 (GitBucket アダプター)
 - **成果物**:
   - `src/gfo/adapter/gitbucket.py` — GitBucketAdapter (GitHub 継承、base_url 変更)
   - `tests/test_adapters/test_gitbucket.py`
@@ -170,7 +171,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **検証**: `pytest tests/test_adapters/test_gitbucket.py`
 
 ### T-19: Backlog アダプター
-- **参照**: design.md L1550-1647 (Backlog アダプター)
+- **参照**: design.md L1550-1644 (Backlog アダプター)
 - **成果物**:
   - `src/gfo/adapter/backlog.py` — BacklogAdapter (独立実装)
   - `tests/test_adapters/test_backlog.py`
@@ -261,7 +262,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 ## Phase 6: CLI 統合
 
 ### T-29: cli.py
-- **参照**: design.md L759-955 (セクション 2.7)
+- **参照**: design.md L759-957 (セクション 2.7)
 - **成果物**:
   - `src/gfo/cli.py` — create_parser, main, _DISPATCH テーブル
   - `tests/test_cli.py` — パーサーテスト、ディスパッチテスト
@@ -297,22 +298,21 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 T-01 (setup)
   └→ T-02 (exceptions)
        ├→ T-03 (git_util)
-       │    ├→ T-05 (detect)
-       │    │    ├→ T-06 (config)
-       │    │    │    ├→ T-07 (auth)
-       │    │    │    │    └→ T-10 (registry + output)
-       │    │    │    │         ├→ T-20 (adapter 登録)
-       │    │    │    │         │    └→ T-21〜T-28 (commands)
-       │    │    │    │         │         └→ T-29 (cli)
-       │    │    │    │         │              └→ T-30 (conftest) → T-31 (全テスト)
-       │    │    │    │         └→ T-11〜T-19 (adapters) → T-20
-       │    │    │    ├→ T-24 (init cmd)
-       │    │    │    └→ T-25 (auth cmd)
-       │    │    └→ T-23 (repo cmd)
-       │    └→ T-04 (http)
-       │         ├→ T-05
-       │         └→ T-08 (base dataclass) → T-09 (base ABC)
-       └→ T-08
+       │    └→ T-05 (detect) ←── T-04 も依存
+       │         ├→ T-06 (config)
+       │         │    ├→ T-07 (auth)
+       │         │    │    └→ T-10 (registry + output) ←── T-04, T-08, T-09 も依存
+       │         │    │         ├→ T-20 (adapter 登録)
+       │         │    │         │    └→ T-21〜T-28 (commands)
+       │         │    │         │         └→ T-29 (cli)
+       │         │    │         │              └→ T-30 (conftest) → T-31 (全テスト)
+       │         │    │         └→ T-11〜T-19 (adapters) → T-20
+       │         │    ├→ T-24 (init cmd)
+       │         │    └→ T-25 (auth cmd)
+       │         └→ T-23 (repo cmd)
+       ├→ T-04 (http)
+       │    └→ T-05, T-10
+       └→ T-08 (base dataclass) → T-09 (base ABC)
 ```
 
 **アダプター間の継承依存**:
