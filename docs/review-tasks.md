@@ -71,7 +71,7 @@
   - `tests/test_commands/test_auth_cmd.py` — トークン未設定時のエラー、無効ホストのエラー、`--token` オプション警告、status コマンドの各状態テスト追加
 - **検証**: `pytest tests/test_commands/test_auth_cmd.py -v`
 
-### R-07: commands/label.py のテスト強化
+### R-07: commands/label.py のテスト強化 ✅
 
 - **問題**: 5テストのみ。他コマンド (pr:14, issue:14) と比較して少ない
 - **参照**: @docs/design.md L885-894 (label CLI パーサー), L950-951 (ディスパッチ), L1648-1664 (コマンド共通パターン)
