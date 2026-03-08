@@ -181,10 +181,13 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
 
 def detect_service(cwd: str | None = None) -> DetectResult:
     """完全な検出フローを実行する。
-    
+
+    内部で detect_from_url() を呼び出し、URL パース結果を基に判定する。
+
     1. git_config_get("gfo.type") → 設定済みならそれを使用
     2. config.toml の hosts セクションを参照
-    3. remote URL パース → 既知ホスト/特殊パターン判定
+    3. get_remote_url() で URL 取得 → detect_from_url() でパース
+       → 既知ホスト/特殊パターン判定
     4. 未知ホストなら probe_unknown_host()
     5. すべて失敗なら DetectionError
     """
@@ -373,7 +376,7 @@ def _build_default_api_url(service_type: str, host: str,
 - **書き込み**: `tomllib` は読み取り専用のため、シンプルな文字列フォーマットで書き込む
 
 ```python
-def _write_toml_tokens(path: Path, tokens: dict[str, str]) -> None:
+def _write_credentials_toml(path: Path, tokens: dict[str, str]) -> None:
     """credentials.toml を書き込む。
     
     フォーマット:
@@ -492,10 +495,17 @@ class HttpClient:
         auth_count = sum(x is not None for x in (auth_header, auth_params, basic_auth))
         if auth_count > 1:
             raise ValueError("auth_header, auth_params, basic_auth are mutually exclusive.")
+        self._base_url = base_url.rstrip("/")
         self._session = requests.Session()
+        self._auth_params = auth_params or {}
         self._default_params = default_params or {}
         # Session に認証情報を設定
         # extra_headers を Session.headers に追加
+
+    @property
+    def base_url(self) -> str:
+        """API ベース URL を返す（読み取り専用）。"""
+        return self._base_url
 
     def request(self, method: str, path: str, *,
                 params: dict | None = None,
@@ -754,8 +764,27 @@ def create_parser() -> argparse.ArgumentParser:
     pr_list = pr_sub.add_parser("list")
     pr_list.add_argument("--state", choices=["open","closed","merged","all"], default="open")
     pr_list.add_argument("--limit", type=int, default=30)
-    # pr create, view, merge, close, checkout ...（同様のパターン）
-    
+    # pr create
+    pr_create = pr_sub.add_parser("create")
+    pr_create.add_argument("--title")
+    pr_create.add_argument("--body", default="")
+    pr_create.add_argument("--base")
+    pr_create.add_argument("--head")
+    pr_create.add_argument("--draft", action="store_true")
+    # pr view
+    pr_view = pr_sub.add_parser("view")
+    pr_view.add_argument("number", type=int)
+    # pr merge
+    pr_merge = pr_sub.add_parser("merge")
+    pr_merge.add_argument("number", type=int)
+    pr_merge.add_argument("--method", choices=["merge","squash","rebase"], default="merge")
+    # pr close
+    pr_close = pr_sub.add_parser("close")
+    pr_close.add_argument("number", type=int)
+    # pr checkout
+    pr_checkout = pr_sub.add_parser("checkout")
+    pr_checkout.add_argument("number", type=int)
+
     # gfo issue → サブサブコマンド
     issue_parser = subparsers.add_parser("issue")
     issue_sub = issue_parser.add_subparsers(dest="subcommand")
@@ -767,15 +796,79 @@ def create_parser() -> argparse.ArgumentParser:
     issue_list.add_argument("--limit", type=int, default=30)
     # issue create
     issue_create = issue_sub.add_parser("create")
-    issue_create.add_argument("--title", required=True)  # 省略時はエラー: "Error: --title is required"
+    issue_create.add_argument("--title", required=True)
+    # 省略時は argparse が自動エラー:
+    # "error: the following arguments are required: --title"
+    # ※ spec.md の "Error: --title is required" とは文言が異なるが、
+    #   argparse のデフォルト動作に合わせる（カスタムバリデーション不要）
     issue_create.add_argument("--body", default="")
     issue_create.add_argument("--assignee")
     issue_create.add_argument("--label")
     issue_create.add_argument("--type")
     issue_create.add_argument("--priority")
-    # issue view, close ...
+    # issue view
+    issue_view = issue_sub.add_parser("view")
+    issue_view.add_argument("number", type=int)
+    # issue close
+    issue_close = issue_sub.add_parser("close")
+    issue_close.add_argument("number", type=int)
 
-    # gfo repo, release, label, milestone も同様
+    # gfo repo → サブサブコマンド
+    repo_parser = subparsers.add_parser("repo")
+    repo_sub = repo_parser.add_subparsers(dest="subcommand")
+    # repo list
+    repo_list = repo_sub.add_parser("list")
+    repo_list.add_argument("--owner")
+    repo_list.add_argument("--limit", type=int, default=30)
+    # repo create
+    repo_create = repo_sub.add_parser("create")
+    repo_create.add_argument("name")
+    repo_create.add_argument("--private", action="store_true")
+    repo_create.add_argument("--description", default="")
+    repo_create.add_argument("--host")
+    # repo clone
+    repo_clone = repo_sub.add_parser("clone")
+    repo_clone.add_argument("name")  # "owner/repo" 形式
+    repo_clone.add_argument("--host")
+    # repo view
+    repo_view = repo_sub.add_parser("view")
+    repo_view.add_argument("name", nargs="?")  # "owner/repo" 形式、省略時は現リポジトリ
+
+    # gfo release → サブサブコマンド
+    release_parser = subparsers.add_parser("release")
+    release_sub = release_parser.add_subparsers(dest="subcommand")
+    # release list
+    release_list = release_sub.add_parser("list")
+    release_list.add_argument("--limit", type=int, default=30)
+    # release create
+    release_create = release_sub.add_parser("create")
+    release_create.add_argument("--tag", required=True)
+    release_create.add_argument("--title", default="")
+    release_create.add_argument("--notes", default="")
+    release_create.add_argument("--draft", action="store_true")
+    release_create.add_argument("--prerelease", action="store_true")
+
+    # gfo label → サブサブコマンド
+    label_parser = subparsers.add_parser("label")
+    label_sub = label_parser.add_subparsers(dest="subcommand")
+    # label list
+    label_sub.add_parser("list")
+    # label create
+    label_create = label_sub.add_parser("create")
+    label_create.add_argument("--name", required=True)
+    label_create.add_argument("--color")
+    label_create.add_argument("--description")
+
+    # gfo milestone → サブサブコマンド
+    milestone_parser = subparsers.add_parser("milestone")
+    milestone_sub = milestone_parser.add_subparsers(dest="subcommand")
+    # milestone list
+    milestone_sub.add_parser("list")
+    # milestone create
+    milestone_create = milestone_sub.add_parser("create")
+    milestone_create.add_argument("--title", required=True)
+    milestone_create.add_argument("--description")
+    milestone_create.add_argument("--due-date")
     
     return parser
 
@@ -953,11 +1046,18 @@ class GitServiceAdapter(ABC):
     @abstractmethod
     def close_pull_request(self, number: int) -> None: ...
 
-    def get_pr_checkout_refspec(self, number: int) -> str:
+    def get_pr_checkout_refspec(self, number: int, *,
+                                pr: PullRequest | None = None) -> str:
         """PR チェックアウト用の refspec を返す。
-        
-        サブクラスでオーバーライド可能。デフォルト実装はなし（abstractmethod にはしない）。
-        サポートしないサービスは NotSupportedError を送出。
+
+        Args:
+            number: PR 番号
+            pr: 取得済みの PullRequest。Bitbucket/Backlog ではソースブランチ名の
+                取得に PR 情報が必要なため、呼び出し元で既に取得済みの場合に渡す
+                ことで API 重複呼び出しを回避する。
+
+        サブクラスでオーバーライド可能。
+        デフォルト実装は NotSupportedError を送出する。
         """
         raise NotSupportedError(self.service_name, "pr checkout")
 
@@ -1067,9 +1167,37 @@ def create_adapter(config: ProjectConfig) -> GitServiceAdapter:
     """ProjectConfig からアダプターインスタンスを生成する。
 
     1. resolve_token(config.host, config.service_type) でトークン取得
-    2. サービス種別に応じた HttpClient を構築
+    2. サービス種別に応じた HttpClient を構築（認証方式テーブル §2.5 参照）
     3. get_adapter_class(config.service_type) でクラス取得
     4. クラスをインスタンス化して返す
+
+    HttpClient 構築の擬似コード:
+        token = resolve_token(config.host, config.service_type)
+        stype = config.service_type
+
+        if stype == "backlog":
+            client = HttpClient(config.api_url, auth_params={"apiKey": token})
+        elif stype == "bitbucket":
+            user, pw = token.split(":", 1)
+            client = HttpClient(config.api_url, basic_auth=(user, pw))
+        elif stype == "azure-devops":
+            client = HttpClient(config.api_url, basic_auth=("", token),
+                                default_params={"api-version": "7.1"})
+        elif stype == "gitlab":
+            client = HttpClient(config.api_url,
+                                auth_header={"Private-Token": token})
+        elif stype in ("github",):
+            client = HttpClient(config.api_url,
+                                auth_header={"Authorization": f"Bearer {token}"})
+        elif stype in ("gitea", "forgejo", "gogs", "gitbucket"):
+            client = HttpClient(config.api_url,
+                                auth_header={"Authorization": f"token {token}"})
+        else:
+            raise UnsupportedServiceError(stype)
+
+    アダプター固有 kwargs:
+        Azure DevOps: organization=config.organization, project=config.project_key
+        Backlog: project_key=config.project_key
     """
 ```
 
@@ -1090,6 +1218,13 @@ class GitHubAdapter(GitServiceAdapter):
 
 ```python
 # adapter/__init__.py
+# 各アダプターモジュールを import してデコレータ登録を実行させる。
+# 依存チェーンの安全性:
+#   adapter/*.py → adapter/base.py, http.py のみに依存
+#   adapter/registry.py → adapter/base.py のみに依存
+#   adapter/__init__.py → adapter/*.py を import（registry.py は各アダプターが自分で import）
+# registry.py と各アダプターは相互に import しない（デコレータは registry → adapter 方向のみ）。
+# 循環依存は発生しない。
 from . import github, gitlab, gitea, forgejo, gogs, bitbucket, gitbucket, backlog, azure_devops
 ```
 
@@ -1141,7 +1276,7 @@ class GitHubAdapter(GitServiceAdapter):
             prs = [pr for pr in prs if pr.state == "merged"]
         return prs
     
-    def get_pr_checkout_refspec(self, number: int) -> str:
+    def get_pr_checkout_refspec(self, number: int, **kwargs) -> str:
         return f"pull/{number}/head"
 ```
 
@@ -1165,7 +1300,7 @@ class GitLabAdapter(GitServiceAdapter):
                                       params=params, limit=limit)
         return [self._to_pull_request(r) for r in results]
     
-    def get_pr_checkout_refspec(self, number: int) -> str:
+    def get_pr_checkout_refspec(self, number: int, **kwargs) -> str:
         return f"merge-requests/{number}/head"
 ```
 
@@ -1182,10 +1317,11 @@ class BitbucketAdapter(GitServiceAdapter):
     # ページネーション: http.py の paginate_response_body() を使用
     # 例: paginate_response_body(self._client, path, params=params, limit=limit)
     
-    def get_pr_checkout_refspec(self, number: int) -> str:
-        # Bitbucket はソースブランチ名を直接 fetch するため、
-        # まず PR 情報を取得してブランチ名を返す
-        pr = self.get_pull_request(number)
+    def get_pr_checkout_refspec(self, number: int, *,
+                                pr: PullRequest | None = None) -> str:
+        # Bitbucket はソースブランチ名を直接 fetch する
+        if pr is None:
+            pr = self.get_pull_request(number)
         return pr.source_branch  # git_util.git_fetch で直接使用
 ```
 
@@ -1204,13 +1340,16 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         # 全リクエストに自動付与される（create_adapter 内で設定）
     
     def _git_path(self) -> str:
-        return f"/_apis/git/repositories/{self._repo}"
-    
+        # base_url は "https://dev.azure.com/{org}/{project}/_apis" なので
+        # パスには /_apis を含めない（重複防止）
+        return f"/git/repositories/{self._repo}"
+
     def _wit_path(self) -> str:
-        return "/_apis/wit"
+        return "/wit"
     
     # PR 状態マッピング
-    _PR_STATE_TO_API = {"open": "active", "closed": "abandoned", "merged": "completed", "all": "all"}
+    # "all" の場合は status パラメータ自体を送信しない（API に status=all は存在しない）
+    _PR_STATE_TO_API = {"open": "active", "closed": "abandoned", "merged": "completed"}
     _PR_STATE_FROM_API = {"active": "open", "abandoned": "closed", "completed": "merged"}
     
     # Issue → Work Item
@@ -1244,9 +1383,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         """
         ...
     
-    def get_pr_checkout_refspec(self, number: int) -> str:
+    def get_pr_checkout_refspec(self, number: int, **kwargs) -> str:
         return f"pull/{number}/head"
-    
+
     # ブランチ名の refs/heads/ 付与/除去
     @staticmethod
     def _add_refs_prefix(branch: str) -> str:
@@ -1296,8 +1435,8 @@ class GogsAdapter(GiteaAdapter):
     
     def _web_url(self) -> str:
         """Web UI のベース URL を構築する。"""
-        # HttpClient の base_url から /api/v1 を除去
-        return self._client._base_url.removesuffix("/api/v1")
+        # HttpClient の base_url プロパティから /api/v1 を除去
+        return self._client.base_url.removesuffix("/api/v1")
 
     def list_pull_requests(self, **kwargs):
         raise NotSupportedError("Gogs", "pull request operations",
@@ -1343,9 +1482,7 @@ class GitBucketAdapter(GitHubAdapter):
     差異があるエンドポイントのみオーバーライド。
     """
     service_name = "GitBucket"
-    
-    def get_pr_checkout_refspec(self, number: int) -> str:
-        return f"pull/{number}/head"
+    # get_pr_checkout_refspec は親クラス GitHubAdapter の実装をそのまま継承
 ```
 
 #### Backlog アダプター (`adapter/backlog.py`)
@@ -1359,7 +1496,8 @@ class BacklogAdapter(GitServiceAdapter):
         super().__init__(client, owner, repo)
         self._project_key = project_key
         self._project_id: int | None = None  # 遅延取得
-    
+        self._merged_status_id: int | None = None  # 遅延取得・キャッシュ
+
     def _pr_path(self) -> str:
         return f"/projects/{self._project_key}/git/repositories/{self._repo}/pullRequests"
     
@@ -1369,8 +1507,6 @@ class BacklogAdapter(GitServiceAdapter):
             resp = self._client.get(f"/projects/{self._project_key}")
             self._project_id = resp.json()["id"]
         return self._project_id
-
-    _merged_status_id: int | None = None  # キャッシュ
 
     def _resolve_merged_status_id(self) -> int | None:
         """PR ステータス一覧から Merged 相当の statusId を動的に判定する。
@@ -1394,18 +1530,36 @@ class BacklogAdapter(GitServiceAdapter):
             merged_id = self._resolve_merged_status_id()
             if merged_id is not None:
                 params["statusId[]"] = merged_id
-        elif state != "all":
-            # open/closed に応じたステータスフィルタを設定
-            pass
+        elif state == "open":
+            # Backlog のデフォルトステータス: 1=未対応, 2=処理中, 3=処理済み
+            params["statusId[]"] = [1, 2, 3]
+        elif state == "closed":
+            # 4=完了
+            params["statusId[]"] = [4]
+        # state == "all" の場合はフィルタなし
         results = paginate_offset(self._client, self._pr_path(),
                                   params=params, limit=limit)
         return [self._to_pull_request(r) for r in results]
 
     def merge_pull_request(self, number, **kwargs):
         raise NotSupportedError("Backlog", "pull request merge",
-                                web_url=f"https://{self._client._base_url.split('//')[1].split('/')[0]}"
+                                web_url=f"https://{self._client.base_url.split('//')[1].split('/')[0]}"
                                         f"/git/{self._project_key}/{self._repo}/pullRequests/{number}")
     
+    def list_issues(self, *, state="open", assignee=None, label=None, limit=30):
+        """Backlog の Issue 一覧を取得する。
+
+        1. project_id = self._ensure_project_id()
+        2. params = {"projectId[]": project_id}
+        3. state フィルタ:
+           - "open":   params["statusId[]"] = [1, 2, 3]  # 未対応/処理中/処理済み
+           - "closed": params["statusId[]"] = [4]          # 完了
+           - "all":    フィルタなし
+        4. assignee/label があれば params に追加
+        5. paginate_offset(self._client, "/issues", params=params, limit=limit)
+        """
+        ...
+
     def create_issue(self, *, title, body="", assignee=None, label=None,
                      issue_type=None, priority=None, **kwargs):
         """
@@ -1416,9 +1570,11 @@ class BacklogAdapter(GitServiceAdapter):
         """
         ...
     
-    def get_pr_checkout_refspec(self, number: int) -> str:
+    def get_pr_checkout_refspec(self, number: int, *,
+                                pr: PullRequest | None = None) -> str:
         # Backlog はソースブランチ名を直接 fetch
-        pr = self.get_pull_request(number)
+        if pr is None:
+            pr = self.get_pull_request(number)
         return pr.source_branch
 ```
 
@@ -1466,11 +1622,12 @@ def handle_close(args: argparse.Namespace, *, format: str) -> None:
 
 def handle_checkout(args: argparse.Namespace, *, format: str) -> None:
     """gfo pr checkout <number> のハンドラ。
-    
+
     1. config = resolve_project_config()
     2. adapter = create_adapter(config)
     3. pr = adapter.get_pull_request(args.number)
-    4. refspec = adapter.get_pr_checkout_refspec(args.number)
+    4. refspec = adapter.get_pr_checkout_refspec(args.number, pr=pr)
+       - pr を渡すことで Bitbucket/Backlog が内部で再取得するのを防ぐ
     5. git_fetch("origin", refspec)
     6. git_checkout_new_branch(pr.source_branch)
     """
@@ -1807,6 +1964,12 @@ def mock_git_config():
     def _set(key, value, cwd=None):
         store[key] = value
     
+    # パッチパスは「参照される側」ではなく「使用する側」に合わせる。
+    # config.py が from gfo.git_util import git_config_get でインポートする場合は
+    # patch("gfo.config.git_config_get") を使う。
+    # モジュールごとに import 方式を統一する方針:
+    #   import gfo.git_util として gfo.git_util.git_config_get() で呼ぶ
+    # これにより patch("gfo.git_util.git_config_get") で全箇所に効く。
     with patch("gfo.git_util.git_config_get", side_effect=_get), \
          patch("gfo.git_util.git_config_set", side_effect=_set):
         yield store
