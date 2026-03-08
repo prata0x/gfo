@@ -147,7 +147,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-09, T-04
 - **検証**: `pytest tests/test_adapters/test_gitea.py`
 
-### T-16: Forgejo アダプター
+### T-16: Forgejo アダプター ✅
 - **参照**: design.md L1480-1487 (Forgejo アダプター)
 - **成果物**:
   - `src/gfo/adapter/forgejo.py` — ForgejoAdapter (Gitea 継承、オーバーライドなし)
