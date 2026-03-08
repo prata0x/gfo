@@ -228,3 +228,19 @@
 - Work Item の state 変換で `frozenset` を使い、Closed/Done/Removed → "closed"、それ以外 → "open" を簡潔に実装
 - `_to_repository` はインスタンスメソッド (`self._project` を `full_name` に使用) とし、他の変換ヘルパーは `@staticmethod` で統一
 - 49テスト全パス (変換12 + PR11 + Issue8 + Repo4 + NotSupported6 + RefsPrefix5 + Registry1 + Refspec1 + Checkout1)
+
+---
+
+## T-15: adapter/gitea.py — GiteaAdapter
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- GitHub API とほぼ互換のため、`github.py` をベースに `per_page_key="limit"` の差分のみ反映するだけで実装完了
+- T-11〜T-14 で確立したアダプター実装・テストパターンに沿い、非常にスムーズに進んだ
+- Gitea 固有の検証として、ページネーション4箇所 (`list_pull_requests`, `list_issues`, `list_repositories`, `list_releases`) で `limit` パラメータが使われ `per_page` が使われないことを明示的にテスト
+- 後続の T-16 (Forgejo) と T-17 (Gogs) が継承する基底クラスとして安定した実装を提供
+- 41テスト全パス (変換8 + PR7 + Issue7 + Repo5 + Release3 + Label3 + Milestone3 + Registry1 + Checkout1 + limit検証4)、全418テストにも影響なし
