@@ -56,6 +56,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
   - `src/gfo/detect.py` — detect_service, URL パース正規表現, パスパーサー, API プローブ, Backlog SSH 特殊処理
   - `tests/test_detect.py` — 全9サービスの URL パターン、API プローブ、エッジケース
 - **依存**: T-03 (git_util), T-04 (http)
+- **注記**: detect.py は config.py の hosts セクションを実行時に参照する (design.md L56, L62)。循環回避のため関数内 import。T-06 との相互依存に注意
 - **検証**: `pytest tests/test_detect.py`
 
 ### T-06: config.py
@@ -296,23 +297,23 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 
 ```
 T-01 (setup)
-  └→ T-02 (exceptions)
-       ├→ T-03 (git_util)
-       │    └→ T-05 (detect) ←── T-04 も依存
-       │         ├→ T-06 (config)
-       │         │    ├→ T-07 (auth)
-       │         │    │    └→ T-10 (registry + output) ←── T-04, T-08, T-09 も依存
-       │         │    │         ├→ T-20 (adapter 登録)
-       │         │    │         │    └→ T-21〜T-28 (commands)
-       │         │    │         │         └→ T-29 (cli)
-       │         │    │         │              └→ T-30 (conftest) → T-31 (全テスト)
-       │         │    │         └→ T-11〜T-19 (adapters) → T-20
-       │         │    ├→ T-24 (init cmd)
-       │         │    └→ T-25 (auth cmd)
-       │         └→ T-23 (repo cmd)
-       ├→ T-04 (http)
-       │    └→ T-05, T-10
-       └→ T-08 (base dataclass) → T-09 (base ABC)
+  ├→ T-02 (exceptions)
+  │    ├→ T-03 (git_util)
+  │    │    └→ T-05 (detect) ←── T-04 も依存
+  │    │         ├→ T-06 (config)
+  │    │         │    ├→ T-07 (auth)
+  │    │         │    │    └→ T-10 (registry + output) ←── T-04, T-08, T-09 も依存
+  │    │         │    │         ├→ T-20 (adapter 登録)
+  │    │         │    │         │    └→ T-21〜T-28 (commands)
+  │    │         │    │         │         └→ T-29 (cli)
+  │    │         │    │         │              └→ T-30 (conftest) → T-31 (全テスト)
+  │    │         │    │         └→ T-11〜T-19 (adapters) → T-20
+  │    │         │    ├→ T-24 (init cmd)
+  │    │         │    └→ T-25 (auth cmd)
+  │    │         └→ T-23 (repo cmd)
+  │    └→ T-04 (http)
+  │         └→ T-05, T-10
+  └→ T-08 (base dataclass) → T-09 (base ABC)
 ```
 
 **アダプター間の継承依存**:
