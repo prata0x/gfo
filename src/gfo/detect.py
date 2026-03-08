@@ -1,0 +1,266 @@
+"""git remote URL からサービス種別・ホスト名・owner/repo を検出するモジュール。"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+
+from gfo.exceptions import DetectionError
+from gfo.git_util import get_remote_url, git_config_get
+
+
+# ── データクラス ──
+
+
+@dataclass
+class DetectResult:
+    """検出結果。"""
+
+    service_type: str | None  # "github", "gitlab", "bitbucket", "azure-devops",
+    #                           "gitea", "forgejo", "gogs", "gitbucket", "backlog"
+    host: str
+    owner: str
+    repo: str
+    api_url: str | None = None
+    organization: str | None = None  # Azure DevOps 用
+    project: str | None = None  # Azure DevOps / Backlog 用
+
+
+# ── URL パース正規表現 ──
+
+_HTTPS_RE = re.compile(
+    r"^https?://(?P<host>[^/:]+)(?::(?P<port>\d+))?/(?P<path>.+?)(?:\.git)?/?$"
+)
+
+_SSH_URL_RE = re.compile(
+    r"^ssh://(?:\w+@)?(?P<host>[^/:]+)(?::(?P<port>\d+))?/(?P<path>.+?)(?:\.git)?/?$"
+)
+
+_SSH_SCP_RE = re.compile(
+    r"^(?:\w+@)?(?P<host>[^:]+):(?P<path>.+?)(?:\.git)?/?$"
+)
+
+
+# ── パスパーサー正規表現 ──
+
+# Azure DevOps: {org}/{project}/_git/{repo} or v3/{org}/{project}/{repo}
+_AZURE_GIT_PATH_RE = re.compile(
+    r"^(?:(?P<org>[^/]+)/)?(?P<project>[^/]+)/_git/(?P<repo>[^/]+)$"
+)
+_AZURE_V3_PATH_RE = re.compile(
+    r"^v3/(?P<org>[^/]+)/(?P<project>[^/]+)/(?P<repo>[^/]+)$"
+)
+
+_BACKLOG_PATH_RE = re.compile(
+    r"^git/(?P<project>[^/]+)/(?P<repo>[^/]+)$"
+)
+
+_GITBUCKET_PATH_RE = re.compile(
+    r"^git/(?P<owner>[^/]+)/(?P<repo>[^/]+)$"
+)
+
+_GENERIC_PATH_RE = re.compile(
+    r"^(?P<owner>.+)/(?P<repo>[^/]+)$"
+)
+
+
+# ── 既知ホストテーブル ──
+
+_KNOWN_HOSTS: dict[str, str] = {
+    "github.com": "github",
+    "gitlab.com": "gitlab",
+    "bitbucket.org": "bitbucket",
+    "dev.azure.com": "azure-devops",
+    "ssh.dev.azure.com": "azure-devops",
+    "codeberg.org": "forgejo",
+}
+
+
+# ── URL パース ──
+
+
+def _parse_url(remote_url: str) -> tuple[str, str]:
+    """remote URL から (host, path) を抽出する。"""
+    for pattern in (_HTTPS_RE, _SSH_URL_RE, _SSH_SCP_RE):
+        m = pattern.match(remote_url)
+        if m:
+            return m.group("host"), m.group("path")
+    raise DetectionError(f"Cannot parse URL: {remote_url}")
+
+
+def detect_from_url(remote_url: str) -> DetectResult:
+    """remote URL をパースし、ホスト・owner・repo を抽出する。"""
+    host, path = _parse_url(remote_url)
+
+    # Backlog SSH 特殊処理: *.git.backlog.{com,jp} → *.backlog.{com,jp}
+    is_backlog = False
+    for suffix in (".backlog.com", ".backlog.jp"):
+        git_suffix = ".git" + suffix
+        if host.endswith(git_suffix):
+            host = host.replace(".git" + suffix, suffix)
+            path = path.lstrip("/")
+            is_backlog = True
+            break
+
+    # Backlog サフィックスマッチ (HTTPS)
+    if not is_backlog:
+        for suffix in (".backlog.com", ".backlog.jp"):
+            if host.endswith(suffix):
+                is_backlog = True
+                break
+
+    if is_backlog:
+        # Backlog HTTPS: path = "git/{PROJECT}/{repo}"
+        m = _BACKLOG_PATH_RE.match(path)
+        if m:
+            return DetectResult(
+                service_type="backlog",
+                host=host,
+                owner=m.group("project"),
+                repo=m.group("repo"),
+                project=m.group("project"),
+            )
+        # Backlog SSH: path = "{PROJECT}/{repo}" (lstrip 済み)
+        m = _GENERIC_PATH_RE.match(path)
+        if m:
+            return DetectResult(
+                service_type="backlog",
+                host=host,
+                owner=m.group("owner"),
+                repo=m.group("repo"),
+                project=m.group("owner"),
+            )
+        raise DetectionError(f"Cannot parse Backlog path: {path}")
+
+    # 既知ホストテーブル照合
+    service_type = _KNOWN_HOSTS.get(host)
+
+    # *.visualstudio.com → azure-devops
+    if service_type is None and host.endswith(".visualstudio.com"):
+        service_type = "azure-devops"
+
+    # Azure DevOps パス処理
+    if service_type == "azure-devops":
+        m = _AZURE_GIT_PATH_RE.match(path) or _AZURE_V3_PATH_RE.match(path)
+        if m:
+            org = m.group("org") or ""
+            # legacy *.visualstudio.com: org はホストのサブドメイン部分
+            if host.endswith(".visualstudio.com") or not org:
+                org = host.split(".")[0]
+            return DetectResult(
+                service_type="azure-devops",
+                host=host,
+                owner=org,
+                repo=m.group("repo"),
+                organization=org,
+                project=m.group("project"),
+            )
+        raise DetectionError(f"Cannot parse Azure DevOps path: {path}")
+
+    # 既知ホスト + 汎用パス
+    if service_type is not None:
+        m = _GENERIC_PATH_RE.match(path)
+        if m:
+            return DetectResult(
+                service_type=service_type,
+                host=host,
+                owner=m.group("owner"),
+                repo=m.group("repo"),
+            )
+        raise DetectionError(f"Cannot parse path: {path}")
+
+    # 未知ホスト → service_type=None
+    m = _GENERIC_PATH_RE.match(path)
+    if m:
+        return DetectResult(
+            service_type=None,
+            host=host,
+            owner=m.group("owner"),
+            repo=m.group("repo"),
+        )
+    raise DetectionError(f"Cannot parse path: {path}")
+
+
+# ── API プローブ ──
+
+
+def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
+    """未知ホストに対して API プローブを実行し、サービス種別を返す。"""
+    import requests
+
+    base = f"{scheme}://{host}"
+
+    # 1. Gitea/Forgejo/Gogs (v1)
+    try:
+        resp = requests.get(f"{base}/api/v1/version", timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            if "forgejo" in data:
+                return "forgejo"
+            if "go-version" in data or "go_version" in data:
+                return "gitea"
+            if "version" in data:
+                return "gogs"
+    except Exception:
+        pass
+
+    # 2. GitLab (v4)
+    try:
+        resp = requests.get(f"{base}/api/v4/version", timeout=5)
+        if resp.status_code == 200:
+            return "gitlab"
+    except Exception:
+        pass
+
+    # 3. GitBucket (v3)
+    try:
+        resp = requests.get(f"{base}/api/v3/", timeout=5)
+        if resp.status_code == 200:
+            return "gitbucket"
+    except Exception:
+        pass
+
+    return None
+
+
+# ── 統合検出フロー ──
+
+
+def detect_service(cwd: str | None = None) -> DetectResult:
+    """完全な検出フローを実行する。"""
+    # 1. git config ショートカット
+    stype = git_config_get("gfo.type", cwd=cwd)
+    shost = git_config_get("gfo.host", cwd=cwd)
+    if stype and shost:
+        remote_url = get_remote_url(cwd=cwd)
+        result = detect_from_url(remote_url)
+        result.service_type = stype
+        return result
+
+    # 2. URL パース
+    remote_url = get_remote_url(cwd=cwd)
+    result = detect_from_url(remote_url)
+
+    # 3. config.toml hosts 参照
+    if result.service_type is None:
+        try:
+            import gfo.config
+
+            hosts = gfo.config.get_hosts_config()
+            if result.host in hosts:
+                result.service_type = hosts[result.host]
+        except (ImportError, AttributeError):
+            pass
+
+    # 4. プローブ
+    if result.service_type is None:
+        scheme = "https" if remote_url.startswith("https") else "https"
+        probed = probe_unknown_host(result.host, scheme=scheme)
+        if probed is not None:
+            result.service_type = probed
+
+    # 5. 全失敗
+    if result.service_type is None:
+        raise DetectionError(f"Unknown host: {result.host}")
+
+    return result

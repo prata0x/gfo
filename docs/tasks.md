@@ -38,7 +38,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-02 (exceptions)
 - **検証**: `pytest tests/test_git_util.py`
 
-### T-04: http.py✅
+### T-04: http.py ✅
 - **参照**: design.md L489-690 (セクション 2.5)
 - **成果物**:
   - `src/gfo/http.py` — HttpClient クラス (get, post, put, patch, delete (※ design.md 未定義だが PR close / issue close 等に必要), get_paginated), ページネーション (Link header, page_param, response_body, offset, $top+$skip), エラーハンドリング
@@ -50,7 +50,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 
 ## Phase 2: 設定・検出・認証
 
-### T-05: detect.py
+### T-05: detect.py ✅
 - **参照**: design.md L153-291 (セクション 2.2)
 - **成果物**:
   - `src/gfo/detect.py` — detect_service, URL パース正規表現, パスパーサー, API プローブ, Backlog SSH 特殊処理
