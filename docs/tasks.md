@@ -215,7 +215,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-10, T-03, T-05, T-06, T-07
 - **検証**: `pytest tests/test_commands/test_repo.py`
 
-### T-24: commands/init.py
+### T-24: commands/init.py ✅
 - **参照**: design.md L1739-1757 (init ハンドラ)
 - **成果物**:
   - `src/gfo/commands/init.py` — handle (対話モード + --non-interactive)
