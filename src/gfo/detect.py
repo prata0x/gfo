@@ -254,7 +254,7 @@ def detect_service(cwd: str | None = None) -> DetectResult:
 
     # 4. プローブ
     if result.service_type is None:
-        scheme = "https" if remote_url.startswith("https") else "https"
+        scheme = "https" if remote_url.startswith("https") else "http"
         probed = probe_unknown_host(result.host, scheme=scheme)
         if probed is not None:
             result.service_type = probed

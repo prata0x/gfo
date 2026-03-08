@@ -7,7 +7,7 @@
 
 ## Phase R-A: バグ修正
 
-### R-01: detect.py — scheme 判定デッドコード修正
+### R-01: detect.py — scheme 判定デッドコード修正 ✅
 
 - **問題**: `detect_service()` 内の scheme 条件分岐が両方 `"https"` を返すバグ
 - **参照**: @docs/design.md L197-210 (detect_service フロー), L182-195 (probe_unknown_host の scheme パラメータ)

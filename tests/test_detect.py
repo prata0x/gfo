@@ -342,3 +342,12 @@ class TestDetectService:
         # (実際の ImportError はガード済みなので、probe が None → DetectionError になる)
         with pytest.raises(DetectionError):
             detect_service()
+
+    @patch("gfo.detect.probe_unknown_host", return_value="gitea")
+    @patch("gfo.detect.get_remote_url", return_value="http://git.example.com/owner/repo.git")
+    @patch("gfo.detect.git_config_get", return_value=None)
+    def test_http_remote_url_passes_http_scheme(self, mock_config, mock_remote, mock_probe):
+        """HTTP remote URL でプローブ時に scheme='http' が渡されることを検証 (R-01)。"""
+        r = detect_service()
+        assert r.service_type == "gitea"
+        mock_probe.assert_called_once_with("git.example.com", scheme="http")
