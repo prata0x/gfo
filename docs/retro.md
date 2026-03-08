@@ -290,3 +290,20 @@
 - GitHub v3 互換 API のため追加オーバーライドは不要で、レジストリの `"gitbucket"` エントリが既に存在していたため登録もスムーズ
 - テストは Registry・継承確認・service_name・PR list の4件で意図を明確に検証
 - 4テスト全パス、全既存テストにも影響なし
+
+---
+
+## T-19: adapter/backlog.py — BacklogAdapter
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- `paginate_offset` が既に `http.py` に用意されていたため、Backlog のオフセットページネーションをそのまま利用できた
+- `_ensure_project_id()` と `_resolve_merged_status_id()` の遅延取得キャッシュにより、API 呼び出しを必要最小限に抑えられた
+- `_to_issue()` で `issueKey`（例: `"TEST-42"`）から末尾の数字部分を取り出す設計がシンプルかつ実用的
+- `create_issue()` で `issue_type`/`priority` 未指定時に API から自動取得しつつ、指定済みの場合は API 呼び出しをスキップする最適化も実装
+- `merge_pull_request()` の `NotSupportedError` に `web_url` を付与し、ユーザーがブラウザで直接マージできるよう誘導
+- 42テスト全パス、全271既存テストにも影響なし
