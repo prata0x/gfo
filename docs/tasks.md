@@ -59,7 +59,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **注記**: detect.py は config.py の hosts セクションを実行時に参照する (design.md L56, L62)。循環回避のため関数内 import。T-06 との相互依存に注意
 - **検証**: `pytest tests/test_detect.py`
 
-### T-06: config.py
+### T-06: config.py ✅
 - **参照**: design.md L292-423 (セクション 2.3)
 - **成果物**:
   - `src/gfo/config.py` — ProjectConfig, get_config_dir, resolve_project_config, save_project_config, get_default_host, get_default_output_format, TOML 読み書き
