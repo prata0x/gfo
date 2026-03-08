@@ -67,7 +67,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-03 (git_util), T-05 (detect — 実行時依存)
 - **検証**: `pytest tests/test_config.py`
 
-### T-07: auth.py
+### T-07: auth.py ✅
 - **参照**: design.md L424-488 (セクション 2.4)
 - **成果物**:
   - `src/gfo/auth.py` — resolve_token, save_token, get_auth_status, credentials.toml 管理, 環境変数フォールバック

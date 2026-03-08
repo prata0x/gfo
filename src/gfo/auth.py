@@ -1,0 +1,140 @@
+"""トークン解決と credentials.toml 管理。"""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+import tomllib
+from pathlib import Path
+
+from gfo.config import get_config_dir, get_credentials_path
+from gfo.exceptions import AuthError
+
+_SERVICE_ENV_MAP: dict[str, str] = {
+    "github": "GITHUB_TOKEN",
+    "gitlab": "GITLAB_TOKEN",
+    "gitea": "GITEA_TOKEN",
+    "forgejo": "GITEA_TOKEN",
+    "gogs": "GITEA_TOKEN",
+    "gitbucket": "GITBUCKET_TOKEN",
+    "bitbucket": "BITBUCKET_APP_PASSWORD",
+    "backlog": "BACKLOG_API_KEY",
+    "azure-devops": "AZURE_DEVOPS_PAT",
+}
+
+
+def resolve_token(host: str, service_type: str) -> str:
+    """トークンを解決する。
+
+    解決順序:
+    1. credentials.toml の tokens.{host}
+    2. _SERVICE_ENV_MAP[service_type] 環境変数
+    3. GFO_TOKEN 環境変数
+    4. すべて未設定なら AuthError
+    """
+    # 1. credentials.toml
+    tokens = load_tokens()
+    if host in tokens:
+        return tokens[host]
+
+    # 2. サービス別環境変数
+    env_var = _SERVICE_ENV_MAP.get(service_type)
+    if env_var:
+        val = os.environ.get(env_var)
+        if val:
+            return val
+
+    # 3. GFO_TOKEN
+    gfo_token = os.environ.get("GFO_TOKEN")
+    if gfo_token:
+        return gfo_token
+
+    # 4. 未設定
+    raise AuthError(host)
+
+
+def save_token(host: str, token: str) -> None:
+    """credentials.toml にトークンを保存する。"""
+    config_dir = get_config_dir()
+    config_dir.mkdir(parents=True, exist_ok=True)
+
+    tokens = load_tokens()
+    tokens[host] = token
+
+    path = get_credentials_path()
+    _write_credentials_toml(path, tokens)
+
+    # パーミッション設定
+    if sys.platform != "win32":
+        os.chmod(path, 0o600)
+    else:
+        try:
+            subprocess.run(
+                [
+                    "icacls",
+                    str(path),
+                    "/inheritance:r",
+                    "/grant:r",
+                    f"{os.getlogin()}:R",
+                ],
+                capture_output=True,
+                check=False,
+            )
+        except OSError:
+            pass
+
+
+def load_tokens() -> dict[str, str]:
+    """credentials.toml の [tokens] セクションを dict で返す。"""
+    path = get_credentials_path()
+    if not path.exists():
+        return {}
+    with open(path, "rb") as f:
+        data = tomllib.load(f)
+    return data.get("tokens", {})
+
+
+def get_auth_status() -> list[dict[str, str]]:
+    """全ホストのトークン状態を返す。トークン値は含めない。"""
+    result: list[dict[str, str]] = []
+    seen_hosts: set[str] = set()
+
+    # credentials.toml のトークン
+    tokens = load_tokens()
+    for host in tokens:
+        result.append(
+            {"host": host, "status": "configured", "source": "credentials.toml"}
+        )
+        seen_hosts.add(host)
+
+    # 環境変数で設定されているトークン
+    for service_type, env_var in _SERVICE_ENV_MAP.items():
+        val = os.environ.get(env_var)
+        if val:
+            result.append(
+                {
+                    "host": service_type,
+                    "status": "configured",
+                    "source": f"env:{env_var}",
+                }
+            )
+
+    return result
+
+
+# ── 内部ヘルパー ──
+
+
+def _write_credentials_toml(path: Path, tokens: dict[str, str]) -> None:
+    """credentials.toml を書き出す。"""
+    lines = ["[tokens]"]
+    for key, value in tokens.items():
+        escaped = (
+            value.replace("\\", "\\\\")
+            .replace('"', '\\"')
+            .replace("\n", "\\n")
+            .replace("\t", "\\t")
+        )
+        lines.append(f'"{key}" = "{escaped}"')
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
