@@ -26,10 +26,39 @@ def get_adapter_class(service_type: str) -> Type[GitServiceAdapter]:
     return _REGISTRY[service_type]
 
 
+def create_http_client(service_type: str, api_url: str, token: str):
+    """サービス種別・API URL・トークンから HttpClient インスタンスを生成する。"""
+    from gfo.http import HttpClient
+
+    if service_type == "backlog":
+        return HttpClient(api_url, auth_params={"apiKey": token})
+    elif service_type == "bitbucket":
+        if ":" not in token:
+            raise ConfigError(
+                "Bitbucket token must be in 'username:app-password' format. "
+                "Run 'gfo auth login --host bitbucket.org' to reconfigure."
+            )
+        user, pw = token.split(":", 1)
+        return HttpClient(api_url, basic_auth=(user, pw))
+    elif service_type == "azure-devops":
+        return HttpClient(
+            api_url,
+            basic_auth=("", token),
+            default_params={"api-version": "7.1"},
+        )
+    elif service_type == "gitlab":
+        return HttpClient(api_url, auth_header={"Private-Token": token})
+    elif service_type == "github":
+        return HttpClient(api_url, auth_header={"Authorization": f"Bearer {token}"})
+    elif service_type in ("gitea", "forgejo", "gogs", "gitbucket"):
+        return HttpClient(api_url, auth_header={"Authorization": f"token {token}"})
+    else:
+        raise UnsupportedServiceError(service_type)
+
+
 def create_adapter(config: ProjectConfig) -> GitServiceAdapter:
     """ProjectConfig からアダプターインスタンスを生成する。"""
     import gfo.auth
-    from gfo.http import HttpClient
 
     token = gfo.auth.resolve_token(config.host, config.service_type)
     stype = config.service_type
@@ -37,41 +66,11 @@ def create_adapter(config: ProjectConfig) -> GitServiceAdapter:
     kwargs: dict = {}
 
     if stype == "backlog":
-        client = HttpClient(config.api_url, auth_params={"apiKey": token})
         kwargs["project_key"] = config.project_key
-    elif stype == "bitbucket":
-        if ":" not in token:
-            raise ConfigError(
-                "Bitbucket token must be in 'username:app-password' format. "
-                "Run 'gfo auth login --host bitbucket.org' to reconfigure."
-            )
-        user, pw = token.split(":", 1)
-        client = HttpClient(config.api_url, basic_auth=(user, pw))
     elif stype == "azure-devops":
-        client = HttpClient(
-            config.api_url,
-            basic_auth=("", token),
-            default_params={"api-version": "7.1"},
-        )
         kwargs["organization"] = config.organization
         kwargs["project_key"] = config.project_key
-    elif stype == "gitlab":
-        client = HttpClient(
-            config.api_url,
-            auth_header={"Private-Token": token},
-        )
-    elif stype == "github":
-        client = HttpClient(
-            config.api_url,
-            auth_header={"Authorization": f"Bearer {token}"},
-        )
-    elif stype in ("gitea", "forgejo", "gogs", "gitbucket"):
-        client = HttpClient(
-            config.api_url,
-            auth_header={"Authorization": f"token {token}"},
-        )
-    else:
-        raise UnsupportedServiceError(stype)
 
+    client = create_http_client(stype, config.api_url, token)
     adapter_cls = get_adapter_class(stype)
     return adapter_cls(client, config.owner, config.repo, **kwargs)

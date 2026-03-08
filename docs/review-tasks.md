@@ -21,7 +21,7 @@
 
 ## Phase R-B: コード品質改善
 
-### R-02: HttpClient 生成ロジックの共通化
+### R-02: HttpClient 生成ロジックの共通化 ✅
 
 - **問題**: `commands/repo.py:74-104` と `adapter/registry.py:29-77` に HttpClient 生成の service_type 分岐が重複。更新漏れリスクあり
 - **参照**: @docs/design.md L1208-1248 (create_adapter), L1789-1798 (handle_create)

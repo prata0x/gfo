@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from gfo.adapter.registry import create_adapter, get_adapter_class
+from gfo.adapter.registry import create_adapter, create_http_client, get_adapter_class
 from gfo.auth import resolve_token
 from gfo.config import (
     _build_default_api_url,
@@ -15,7 +15,6 @@ from gfo.config import (
 from gfo.detect import detect_service, probe_unknown_host
 from gfo.exceptions import ConfigError, DetectionError
 from gfo.git_util import git_clone
-from gfo.http import HttpClient
 from gfo.output import output
 
 
@@ -78,31 +77,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     token = resolve_token(host, service_type)
     api_url = _build_default_api_url(service_type, host)
 
-    if service_type == "backlog":
-        client = HttpClient(api_url, auth_params={"apiKey": token})
-    elif service_type == "bitbucket":
-        if ":" not in token:
-            raise ConfigError(
-                "Bitbucket token must be in 'username:app-password' format."
-            )
-        user, pw = token.split(":", 1)
-        client = HttpClient(api_url, basic_auth=(user, pw))
-    elif service_type == "azure-devops":
-        client = HttpClient(
-            api_url,
-            basic_auth=("", token),
-            default_params={"api-version": "7.1"},
-        )
-    elif service_type == "gitlab":
-        client = HttpClient(api_url, auth_header={"Private-Token": token})
-    elif service_type == "github":
-        client = HttpClient(api_url, auth_header={"Authorization": f"Bearer {token}"})
-    elif service_type in ("gitea", "forgejo", "gogs", "gitbucket"):
-        client = HttpClient(api_url, auth_header={"Authorization": f"token {token}"})
-    else:
-        from gfo.exceptions import UnsupportedServiceError
-        raise UnsupportedServiceError(service_type)
-
+    client = create_http_client(service_type, api_url, token)
     adapter_cls = get_adapter_class(service_type)
     adapter = adapter_cls(client, "", "")
     repo = adapter.create_repository(

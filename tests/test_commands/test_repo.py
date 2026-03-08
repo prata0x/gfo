@@ -127,7 +127,7 @@ class TestHandleCreate:
         with patch("gfo.commands.repo._resolve_host_without_repo", return_value=("github.com", "github")), \
              patch("gfo.commands.repo.resolve_token", return_value="test-token"), \
              patch("gfo.commands.repo._build_default_api_url", return_value="https://api.github.com"), \
-             patch("gfo.commands.repo.HttpClient"), \
+             patch("gfo.commands.repo.create_http_client"), \
              patch("gfo.commands.repo.get_adapter_class", return_value=mock_adapter_cls):
             repo_cmd.handle_create(args, fmt="table")
 
@@ -155,7 +155,7 @@ class TestHandleCreate:
         with patch("gfo.commands.repo._resolve_host_without_repo", return_value=("github.com", "github")), \
              patch("gfo.commands.repo.resolve_token", return_value="test-token"), \
              patch("gfo.commands.repo._build_default_api_url", return_value="https://api.github.com"), \
-             patch("gfo.commands.repo.HttpClient"), \
+             patch("gfo.commands.repo.create_http_client"), \
              patch("gfo.commands.repo.get_adapter_class", return_value=mock_adapter_cls):
             repo_cmd.handle_create(args, fmt="table")
 

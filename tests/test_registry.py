@@ -10,6 +10,7 @@ from gfo.adapter.base import GitServiceAdapter
 from gfo.adapter.registry import (
     _REGISTRY,
     create_adapter,
+    create_http_client,
     get_adapter_class,
     register,
 )
@@ -159,3 +160,63 @@ class TestCreateAdapter:
         config = _make_config("unknown-service")
         with pytest.raises(UnsupportedServiceError):
             create_adapter(config)
+
+
+class TestCreateHttpClient:
+    @patch("gfo.http.HttpClient")
+    def test_github(self, MockHttpClient):
+        create_http_client("github", "https://api.github.com", "ghp_tok")
+        MockHttpClient.assert_called_once_with(
+            "https://api.github.com",
+            auth_header={"Authorization": "Bearer ghp_tok"},
+        )
+
+    @patch("gfo.http.HttpClient")
+    def test_gitlab(self, MockHttpClient):
+        create_http_client("gitlab", "https://gitlab.com/api/v4", "glpat-xxx")
+        MockHttpClient.assert_called_once_with(
+            "https://gitlab.com/api/v4",
+            auth_header={"Private-Token": "glpat-xxx"},
+        )
+
+    @patch("gfo.http.HttpClient")
+    def test_bitbucket(self, MockHttpClient):
+        create_http_client("bitbucket", "https://api.bitbucket.org/2.0", "user:pw")
+        MockHttpClient.assert_called_once_with(
+            "https://api.bitbucket.org/2.0",
+            basic_auth=("user", "pw"),
+        )
+
+    def test_bitbucket_invalid_token_raises(self):
+        with pytest.raises(ConfigError, match="username:app-password"):
+            create_http_client("bitbucket", "https://api.bitbucket.org/2.0", "nocolon")
+
+    @patch("gfo.http.HttpClient")
+    def test_azure_devops(self, MockHttpClient):
+        create_http_client("azure-devops", "https://dev.azure.com", "pat")
+        MockHttpClient.assert_called_once_with(
+            "https://dev.azure.com",
+            basic_auth=("", "pat"),
+            default_params={"api-version": "7.1"},
+        )
+
+    @patch("gfo.http.HttpClient")
+    def test_backlog(self, MockHttpClient):
+        create_http_client("backlog", "https://example.backlog.com/api/v2", "apikey")
+        MockHttpClient.assert_called_once_with(
+            "https://example.backlog.com/api/v2",
+            auth_params={"apiKey": "apikey"},
+        )
+
+    @pytest.mark.parametrize("stype", ["gitea", "forgejo", "gogs", "gitbucket"])
+    @patch("gfo.http.HttpClient")
+    def test_token_auth_services(self, MockHttpClient, stype):
+        create_http_client(stype, "https://example.com/api/v1", "tok123")
+        MockHttpClient.assert_called_once_with(
+            "https://example.com/api/v1",
+            auth_header={"Authorization": "token tok123"},
+        )
+
+    def test_unsupported_service_raises(self):
+        with pytest.raises(UnsupportedServiceError):
+            create_http_client("unknown-service", "https://example.com", "tok")
