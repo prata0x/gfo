@@ -190,7 +190,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 
 ## Phase 5: コマンド実装
 
-### T-21: commands/pr.py
+### ✅ T-21: commands/pr.py
 - **参照**: design.md L1648-1699 (commands 共通パターン + PR ハンドラ)
 - **成果物**:
   - `src/gfo/commands/pr.py` — handle_list, handle_create, handle_view, handle_merge, handle_close, handle_checkout
