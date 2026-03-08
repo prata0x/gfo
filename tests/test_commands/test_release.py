@@ -1,0 +1,137 @@
+"""gfo.commands.release のテスト。"""
+
+from __future__ import annotations
+
+import contextlib
+import json
+from unittest.mock import MagicMock, patch
+
+from gfo.adapter.base import Release
+from gfo.commands import release as release_cmd
+from gfo.config import ProjectConfig
+from tests.test_commands.conftest import make_args
+
+
+def _make_config() -> ProjectConfig:
+    return ProjectConfig(
+        service_type="github",
+        host="github.com",
+        api_url="https://api.github.com",
+        owner="test-owner",
+        repo="test-repo",
+    )
+
+
+def _make_release() -> Release:
+    return Release(
+        tag="v1.0.0",
+        title="Version 1.0.0",
+        body="Release notes",
+        draft=False,
+        prerelease=False,
+        url="https://github.com/test-owner/test-repo/releases/tag/v1.0.0",
+        created_at="2024-01-01T00:00:00Z",
+    )
+
+
+def _make_adapter(sample_release: Release) -> MagicMock:
+    adapter = MagicMock()
+    adapter.list_releases.return_value = [sample_release]
+    adapter.create_release.return_value = sample_release
+    return adapter
+
+
+@contextlib.contextmanager
+def _patch_all(config: ProjectConfig, adapter: MagicMock):
+    with patch("gfo.commands.release.resolve_project_config", return_value=config), \
+         patch("gfo.commands.release.create_adapter", return_value=adapter):
+        yield
+
+
+class TestHandleList:
+    def setup_method(self):
+        self.config = _make_config()
+        self.release = _make_release()
+        self.adapter = _make_adapter(self.release)
+
+    def test_calls_list_releases(self):
+        args = make_args(limit=30)
+        with _patch_all(self.config, self.adapter):
+            release_cmd.handle_list(args, fmt="table")
+
+        self.adapter.list_releases.assert_called_once_with(limit=30)
+
+    def test_outputs_results(self, capsys):
+        args = make_args(limit=30)
+        with _patch_all(self.config, self.adapter):
+            release_cmd.handle_list(args, fmt="table")
+
+        out = capsys.readouterr().out
+        assert "v1.0.0" in out
+        assert "Version 1.0.0" in out
+
+    def test_json_format(self, capsys):
+        args = make_args(limit=10)
+        with _patch_all(self.config, self.adapter):
+            release_cmd.handle_list(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        if isinstance(data, list):
+            assert data[0]["tag"] == "v1.0.0"
+        else:
+            assert data["tag"] == "v1.0.0"
+
+
+class TestHandleCreate:
+    def setup_method(self):
+        self.config = _make_config()
+        self.release = _make_release()
+        self.adapter = _make_adapter(self.release)
+
+    def test_basic_create(self):
+        args = make_args(tag="v1.0.0", title="Version 1.0.0", notes="Notes", draft=False, prerelease=False)
+        with _patch_all(self.config, self.adapter):
+            release_cmd.handle_create(args, fmt="table")
+
+        self.adapter.create_release.assert_called_once_with(
+            tag="v1.0.0",
+            title="Version 1.0.0",
+            notes="Notes",
+            draft=False,
+            prerelease=False,
+        )
+
+    def test_title_defaults_to_tag(self):
+        args = make_args(tag="v2.0.0", title=None, notes="", draft=False, prerelease=False)
+        with _patch_all(self.config, self.adapter):
+            release_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = self.adapter.create_release.call_args.kwargs
+        assert call_kwargs["title"] == "v2.0.0"
+
+    def test_draft_flag(self):
+        args = make_args(tag="v1.0.0-draft", title=None, notes="", draft=True, prerelease=False)
+        with _patch_all(self.config, self.adapter):
+            release_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = self.adapter.create_release.call_args.kwargs
+        assert call_kwargs["draft"] is True
+        assert call_kwargs["prerelease"] is False
+
+    def test_prerelease_flag(self):
+        args = make_args(tag="v1.0.0-rc1", title=None, notes="", draft=False, prerelease=True)
+        with _patch_all(self.config, self.adapter):
+            release_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = self.adapter.create_release.call_args.kwargs
+        assert call_kwargs["prerelease"] is True
+        assert call_kwargs["draft"] is False
+
+    def test_notes_defaults_to_empty_string(self):
+        args = make_args(tag="v1.0.0", title="Release", notes=None, draft=False, prerelease=False)
+        with _patch_all(self.config, self.adapter):
+            release_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = self.adapter.create_release.call_args.kwargs
+        assert call_kwargs["notes"] == ""
