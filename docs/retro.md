@@ -67,3 +67,26 @@
 
 - design.md の仕様が詳細で、HttpClient の構造・ページネーション関数のシグネチャをそのまま実装できた
 - 43テスト全パス、既存テスト (89件) にも影響なし
+
+---
+
+## T-05: detect.py — サービス自動検出
+
+### 発生した問題
+
+1. **`import gfo.config` による `gfo` 名前空間の衝突**
+   - `detect_service()` 内で `import gfo.config` を関数内 import したところ、モジュールレベルの `import gfo.git_util` と衝突し `UnboundLocalError` が発生
+   - Python は関数内に `import gfo.config` があると `gfo` をローカル変数と見なし、それ以前の `gfo.git_util` 参照が失敗する
+   - 解決: `import gfo.git_util` → `from gfo.git_util import get_remote_url, git_config_get` に変更
+   - 教訓: 関数内 import でパッケージ名を使う場合、同じパッケージ名のモジュールレベル import との衝突に注意
+
+2. **`_AZURE_PATH_RE` のオプショナルグループによる誤マッチ**
+   - design.md の正規表現 `(?:_git/)?` がオプショナルだったため、`project/_git/repo` が `org=project, project=_git, repo=repo` と誤パースされた
+   - 解決: `_AZURE_GIT_PATH_RE` (`_git/` 必須) と `_AZURE_V3_PATH_RE` (`v3/` プレフィックス) の2つに分離
+   - さらに `*.visualstudio.com` では path に org がないため `(?:(?P<org>[^/]+)/)?` でオプショナル化
+   - 教訓: design.md の正規表現をそのまま使う前に、各パターンの実際の URL でマッチ結果を検証すべき
+
+### うまくいった点
+
+- URL パース 18件 + API プローブ 8件 + 統合フロー 5件 = 31テスト全パス、既存テスト (89件) にも影響なし
+- Backlog SSH 特殊処理 (ホスト名正規化 + path lstrip) がプラン通りに動作
