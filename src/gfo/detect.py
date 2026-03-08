@@ -244,6 +244,11 @@ def detect_service(cwd: str | None = None) -> DetectResult:
     # 3. config.toml hosts 参照
     if result.service_type is None:
         try:
+            # 循環依存回避のため遅延インポートを使用。
+            # detect.py はモジュールレベルで config.py を import できない:
+            #   config.py → resolve_project_config() で gfo.detect を遅延 import
+            #   detect.py → detect_service() で gfo.config を遅延 import
+            # 両者が互いを参照するため、トップレベル import にすると循環 ImportError が発生する。
             import gfo.config
 
             hosts = gfo.config.get_hosts_config()

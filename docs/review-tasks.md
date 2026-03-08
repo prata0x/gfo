@@ -33,7 +33,7 @@
   - 既存テストが引き続きパスすることを確認
 - **検証**: `pytest tests/test_registry.py tests/test_commands/test_repo.py -v`
 
-### R-03: config.py ⇔ detect.py 相互遅延インポートの整理
+### R-03: config.py ⇔ detect.py 相互遅延インポートの整理 ✅
 
 - **問題**: `config.py` が `detect.py` を、`detect.py` が `config.py` を関数内 import で相互参照。循環依存の兆候
 - **参照**: @docs/design.md L62 (循環回避の設計方針), L292-295 (config.py の責務), L345-360 (resolve_project_config)

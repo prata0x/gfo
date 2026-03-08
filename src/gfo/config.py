@@ -97,6 +97,11 @@ def get_hosts_config() -> dict[str, str]:
 
 def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
     """3 層の設定解決を実行し、ProjectConfig を返す。"""
+    # 循環依存回避のため遅延インポートを使用。
+    # config.py はモジュールレベルで detect.py / git_util.py を import できない:
+    #   detect.py → detect_service() で gfo.config を遅延 import
+    #   config.py → resolve_project_config() で gfo.detect を遅延 import
+    # 両者が互いを参照するため、トップレベル import にすると循環 ImportError が発生する。
     import gfo.detect
     import gfo.git_util
 
