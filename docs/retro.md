@@ -167,3 +167,18 @@
 - output.py: table/json/plain の3フォーマッタ + output 関数を実装。dataclasses.asdict/fields を活用しシンプルに
 - registry.py: register デコレータ + get_adapter_class + create_adapter ファクトリを実装。9サービスの認証方式を網羅
 - 29テスト全パス、既存テストにも影響なし
+
+---
+
+## T-11: adapter/github.py — GitHubAdapter
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- design.md の PR 関連実装例 (L1282-1334) をベースに、残り15メソッド + 5変換ヘルパーを GitHub REST API パターンに沿ってスムーズに実装
+- list_issues で PR 除外フィルタ (`"pull_request" not in data`)、list_pull_requests の merged フィルタなど GitHub 固有の注意点を計画通り処理
+- conftest.py に共通フィクスチャ (mock_responses, github_client, github_adapter) を用意し、後続アダプターテストでも再利用可能な構造に
+- 38テスト全パス (変換8 + PR11 + Issue6 + Repo5 + Release2 + Label3 + Milestone3 + Registry1)、全254テストにも影響なし

@@ -106,14 +106,14 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 
 ## Phase 4: アダプター実装
 
-### T-11: GitHub アダプター
+### T-11: GitHub アダプター ✅
 - **参照**: design.md L1282-1335 (GitHub アダプター)
 - **成果物**:
-  - `src/gfo/adapter/github.py` — GitHubAdapter (全メソッド実装)
+  - `src/gfo/adapter/github.py` — GitHubAdapter (全18メソッド + 6変換ヘルパー)
   - `tests/test_adapters/conftest.py` — mock_responses, github_client 等の共通フィクスチャ
-  - `tests/test_adapters/test_github.py`
+  - `tests/test_adapters/test_github.py` — 38テスト
 - **依存**: T-09 (ABC), T-04 (http)
-- **検証**: `pytest tests/test_adapters/test_github.py`
+- **検証**: `pytest tests/test_adapters/test_github.py` — 38 passed
 
 ### T-12: GitLab アダプター
 - **参照**: design.md L1336-1359 (GitLab アダプター)
