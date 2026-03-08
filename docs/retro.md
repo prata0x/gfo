@@ -212,3 +212,19 @@
 - Bitbucket 固有の差異を計画通りに反映: state 大文字→小文字変換 (`OPEN`→`open`, `DECLINED`/`SUPERSEDED`→`closed`, `MERGED`→`merged`)、ネストされた branch 名 (`source.branch.name`)、`paginate_response_body` (`values`/`next` キーによるレスポンスボディベースページネーション)、Issue の `content.raw` → `body`、assignee 単一値→リスト化、`links.clone` から https の href 抽出
 - Release/Label/Milestone の 6 メソッドを `NotSupportedError` で実装し、テストでも全て検証
 - 36テスト全パス (変換10 + PR9 + Issue6 + Repo5 + NotSupported6 + Registry1)、全116アダプターテスト・既存テストにも影響なし
+
+---
+
+## T-14: adapter/azure_devops.py — AzureDevOpsAdapter
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- T-11〜T-13 で確立したアダプター実装パターンに沿い、スムーズに実装完了
+- Azure DevOps 固有の複雑な仕組みを計画通りに反映: `refs/heads/` の自動付与/除去ヘルパー (`_add_refs_prefix`/`_strip_refs_prefix`)、PR state マッピング (`active`↔`open`, `abandoned`↔`closed`, `completed`↔`merged`)、merge strategy マッピング (`merge`→`noFastForward`, `squash`→`squash`, `rebase`→`rebase`)、WIQL 2段階クエリ (POST wiql → バッチ GET workitems)、JSON Patch 形式 (`application/json-patch+json`) での Work Item 作成/更新、`$top/$skip` ページネーション (`paginate_top_skip`)
+- Work Item の state 変換で `frozenset` を使い、Closed/Done/Removed → "closed"、それ以外 → "open" を簡潔に実装
+- `_to_repository` はインスタンスメソッド (`self._project` を `full_name` に使用) とし、他の変換ヘルパーは `@staticmethod` で統一
+- 49テスト全パス (変換12 + PR11 + Issue8 + Repo4 + NotSupported6 + RefsPrefix5 + Registry1 + Refspec1 + Checkout1)
