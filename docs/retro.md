@@ -22,7 +22,3 @@
 
 - `src/` レイアウト + hatchling の組み合わせは問題なく動作
 - `__main__.py` に暫定バージョン表示を入れる方針で `python -m gfo --version` 検証をクリア
-
-### 今後のタスクへの申し送り
-
-- pyproject.toml の requires-python は `>=3.9` だが、plan.md では Python 3.11+ と記載。tomllib は 3.11+ 標準なので、後続タスクで TOML 読み込みを実装する際に整合性を確認する必要がある
