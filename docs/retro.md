@@ -456,3 +456,22 @@
 - `Milestone` データクラスが `number`, `title`, `description`, `state`, `due_date` の5フィールドで、`handle_list` の `fields` 指定も計画通り `["number", "title", "state", "due_date"]` で実装できた
 - `test_create_without_optional_args` で `description=None`, `due=None` のケースを明示的にカバーし、オプション引数の None 伝播を検証した
 - 6テスト全パス（TestHandleList 3件 + TestHandleCreate 3件）
+
+---
+
+## T-29: cli.py — CLI 統合実装
+
+### 発生した問題
+
+1. **argparse 位置引数への `dest` 指定エラー**
+   - `repo_clone.add_argument("name", dest="repo")` と書いたところ `ValueError: dest supplied twice for positional argument` で失敗
+   - argparse では位置引数の `dest` は第一引数そのものが名前になるため、`dest` を別途指定できない
+   - 解決: `add_argument("repo")` と引数名を直接 `repo` にすることで `args.repo` が使えるようになった
+   - 教訓: argparse 位置引数の `dest` はオプション引数専用。位置引数を `dest` で別名にしたい場合は引数名自体を変える
+
+### うまくいった点
+
+- T-21〜T-28 で全コマンドハンドラが完成していたため、`create_parser()` + `_DISPATCH` の実装に集中できた
+- `main()` のサブコマンド未指定ハンドリングで `parser._subparsers._group_actions[0].choices[args.command].print_help()` を使い、コマンド別 help 表示を実現できた
+- `NotSupportedError` の `web_url` を stdout、エラーメッセージを stderr に分けて出力することで、パイプ利用時にURLだけを抽出できる設計を実装できた
+- 38テスト全パス（パーサー27件 + ディスパッチ3件 + main8件）、全607テストにも影響なし
