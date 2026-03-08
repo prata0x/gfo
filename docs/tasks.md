@@ -223,7 +223,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-05 (detect), T-06 (config)
 - **検証**: `pytest tests/test_commands/test_init.py`
 
-### T-25: commands/auth_cmd.py
+### T-25: commands/auth_cmd.py ✅
 - **参照**: design.md L1833-1852 (auth_cmd ハンドラ)
 - **成果物**:
   - `src/gfo/commands/auth_cmd.py` — handle_login, handle_status
