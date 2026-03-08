@@ -125,3 +125,16 @@
 - design.md の仕様が明確で、4段フォールバック (`credentials.toml` → サービス別環境変数 → `GFO_TOKEN` → `AuthError`) の実装がスムーズ
 - T-06 の retro で学んだ「Windows 環境変数全クリアで `Path.home()` が失敗する」問題を回避できた（`monkeypatch.delenv` で必要変数のみ操作）
 - 16テスト全パス、既存152テストにも影響なし（計168テスト）
+
+---
+
+## T-08: adapter/base.py — データクラス
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- design.md に完全なコード定義があり、6つの frozen dataclass をそのまま実装するだけで完了
+- 15テスト全パス、既存テストにも影響なし
