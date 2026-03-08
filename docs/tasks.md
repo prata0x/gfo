@@ -249,7 +249,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **検証**: `pytest tests/test_commands/test_label.py`
 - **注記**: design.md 2.11 に個別設計なし。共通パターンに従う
 
-### T-28: commands/milestone.py
+### ✅ T-28: commands/milestone.py
 - **参照**: design.md L896-905 (CLI パーサー), L952-953 (ディスパッチ), L1648-1665 (共通パターン)
 - **成果物**:
   - `src/gfo/commands/milestone.py` — handle_list, handle_create

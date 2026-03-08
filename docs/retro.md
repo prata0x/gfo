@@ -440,3 +440,19 @@
 - `handle_list` のテストで `list_labels.assert_called_once_with()` (引数なし) を明示的に検証し、limit 引数が渡らないことを確認できた
 - `test_create_without_color` で `color=None`, `description=None` のケースを明示的にカバーし、オプション引数の None 伝播を検証した
 - 5テスト全パス（TestHandleList 3件 + TestHandleCreate 2件）
+
+---
+
+## T-28: commands/milestone.py — milestone コマンドハンドラ
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- T-27 (label.py) のパターンをそのまま踏襲し、`handle_list` / `handle_create` を最小限のコードで実装できた
+- CLI 引数 `--due` → adapter 引数 `due_date` のマッピングを `args.due` → `due_date=args.due` で明示的に行い、テスト `test_due_to_due_date_mapping` で `"due"` キーが渡らないことを確認した
+- `Milestone` データクラスが `number`, `title`, `description`, `state`, `due_date` の5フィールドで、`handle_list` の `fields` 指定も計画通り `["number", "title", "state", "due_date"]` で実装できた
+- `test_create_without_optional_args` で `description=None`, `due=None` のケースを明示的にカバーし、オプション引数の None 伝播を検証した
+- 6テスト全パス（TestHandleList 3件 + TestHandleCreate 3件）
