@@ -341,3 +341,19 @@
 - `unittest.mock.patch` + `MagicMock` を活用し、`resolve_project_config` / `create_adapter` / `gfo.git_util.*` をすべてモック化したユニットテストを構築できた
 - `tests/test_commands/conftest.py` に共通フィクスチャ (`make_args`) を用意し、後続コマンドテストで再利用可能な構造にした
 - 14テスト全パス、全500テストにも影響なし
+
+---
+
+## T-22: commands/issue.py — issue コマンドハンドラ
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- T-21 (pr.py) で確立したコマンドハンドラ実装・テストパターンをそのまま適用でき、スムーズに完了
+- `handle_create` の kwargs 分岐 (`azure_devops` → `work_item_type`、`backlog` → `issue_type`/`priority`) を `config.service_type` で判定する設計がシンプルかつ明快
+- `_patch_all` コンテキストマネージャを `contextlib.contextmanager` + `with` で構成し、各テストで簡潔に再利用できる構造にした
+- `setup_method` でフィクスチャを初期化することで、クラス内の各テストメソッドが独立した状態で実行されるようにした
+- 14テスト全パス（TestHandleList 4件 + TestHandleCreate 6件 + TestHandleView 2件 + TestHandleClose 2件）
