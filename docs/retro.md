@@ -307,3 +307,17 @@
 - `create_issue()` で `issue_type`/`priority` 未指定時に API から自動取得しつつ、指定済みの場合は API 呼び出しをスキップする最適化も実装
 - `merge_pull_request()` の `NotSupportedError` に `web_url` を付与し、ユーザーがブラウザで直接マージできるよう誘導
 - 42テスト全パス、全271既存テストにも影響なし
+
+---
+
+## T-20: adapter/__init__.py — 全アダプター登録
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- 全9アダプター (github, gitlab, bitbucket, azure-devops, gitea, forgejo, gogs, gitbucket, backlog) を `import` するだけでレジストリへの自動登録が完了する設計が機能した
+- T-10 (registry.py) の `@register` デコレータパターンにより、`__init__.py` は9行のシンプルな実装で済んだ
+- 3テスト全パス (全サービス登録確認・クラス取得・未対応サービスエラー)、全既存テストにも影響なし
