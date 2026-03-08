@@ -67,6 +67,43 @@ class TestHandleList:
         else:
             assert data["title"] == "v1.0"
 
+    def test_table_output_includes_state(self, sample_config, capsys):
+        args = make_args()
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_list(args, fmt="table")
+
+        out = capsys.readouterr().out
+        assert "open" in out
+
+    def test_table_output_includes_due_date(self, sample_config, capsys):
+        args = make_args()
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_list(args, fmt="table")
+
+        out = capsys.readouterr().out
+        assert "2026-04-01" in out
+
+    def test_empty_list(self, sample_config, capsys):
+        self.adapter.list_milestones.return_value = []
+        args = make_args()
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_list(args, fmt="table")
+
+        # 空リストでも例外なく実行される
+        self.adapter.list_milestones.assert_called_once_with()
+
+    def test_json_format_has_all_fields(self, sample_config, capsys):
+        args = make_args()
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_list(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        item = data[0] if isinstance(data, list) else data
+        assert "title" in item
+        assert "state" in item
+        assert "number" in item
+
 
 class TestHandleCreate:
     def setup_method(self):
@@ -104,3 +141,40 @@ class TestHandleCreate:
         assert "due_date" in call_kwargs
         assert call_kwargs["due_date"] == "2026-06-30"
         assert "due" not in call_kwargs
+
+    def test_create_outputs_title(self, sample_config, capsys):
+        args = make_args(title="v1.0", description="First release", due="2026-04-01")
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_create(args, fmt="table")
+
+        out = capsys.readouterr().out
+        assert "v1.0" in out
+
+    def test_create_json_format(self, sample_config, capsys):
+        args = make_args(title="v1.0", description="First release", due="2026-04-01")
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_create(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["title"] == "v1.0"
+
+    def test_create_adapter_error_propagates(self, sample_config):
+        self.adapter.create_milestone.side_effect = RuntimeError("API error")
+        args = make_args(title="v1.0", description=None, due=None)
+        with _patch_all(sample_config, self.adapter):
+            try:
+                milestone_cmd.handle_create(args, fmt="table")
+                assert False, "例外が伝播されるべき"
+            except RuntimeError as e:
+                assert "API error" in str(e)
+
+    def test_create_args_forwarded_correctly(self, sample_config):
+        args = make_args(title="v4.0", description="Major release", due="2026-12-31")
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = self.adapter.create_milestone.call_args.kwargs
+        assert call_kwargs["title"] == "v4.0"
+        assert call_kwargs["description"] == "Major release"
+        assert call_kwargs["due_date"] == "2026-12-31"

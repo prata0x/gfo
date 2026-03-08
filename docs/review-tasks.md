@@ -79,7 +79,7 @@
   - `tests/test_commands/test_label.py` — list のフォーマット出力テスト、create のエラーケース、引数バリデーション追加
 - **検証**: `pytest tests/test_commands/test_label.py -v`
 
-### R-08: commands/milestone.py のテスト強化
+### R-08: commands/milestone.py のテスト強化 ✅
 
 - **問題**: 6テストのみ。label と同様に少ない
 - **参照**: @docs/design.md L896-905 (milestone CLI パーサー), L952-953 (ディスパッチ), L1648-1664 (コマンド共通パターン)
