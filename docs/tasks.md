@@ -115,7 +115,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-09 (ABC), T-04 (http)
 - **検証**: `pytest tests/test_adapters/test_github.py` — 38 passed
 
-### T-12: GitLab アダプター
+### T-12: GitLab アダプター ✅
 - **参照**: design.md L1336-1359 (GitLab アダプター)
 - **成果物**:
   - `src/gfo/adapter/gitlab.py` — GitLabAdapter

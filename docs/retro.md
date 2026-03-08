@@ -182,3 +182,18 @@
 - list_issues で PR 除外フィルタ (`"pull_request" not in data`)、list_pull_requests の merged フィルタなど GitHub 固有の注意点を計画通り処理
 - conftest.py に共通フィクスチャ (mock_responses, github_client, github_adapter) を用意し、後続アダプターテストでも再利用可能な構造に
 - 38テスト全パス (変換8 + PR11 + Issue6 + Repo5 + Release2 + Label3 + Milestone3 + Registry1)、全254テストにも影響なし
+
+---
+
+## T-12: adapter/gitlab.py — GitLabAdapter
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- T-11 (GitHub) のコード構造をベースに、GitLab API v4 の差異を計画通りに反映できた
+- 主な差異対応: プロジェクトパスの URL エンコード (`urllib.parse.quote`)、state マッピング (`open` ↔ `opened`)、MR 用語 (`/merge_requests`)、`paginate_page_param` (`X-Next-Page` ヘッダー方式)、close/merge の PUT + `state_event`、author (`data["author"]["username"]`)、Label color の `#` プレフィックス除去
+- conftest.py の `mock_responses` フィクスチャを GitHub テストと共有し、`gitlab_client` / `gitlab_adapter` を追加するだけで済んだ
+- 38テスト全パス (変換8 + MR11 + Issue6 + Repo5 + Release2 + Label3 + Milestone3 + Registry1)、全292テストにも影響なし
