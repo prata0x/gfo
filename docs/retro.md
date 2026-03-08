@@ -105,3 +105,23 @@
 
 - design.md の仕様が明確で、3層設定解決 (デフォルト → TOML → 環境変数) の実装がスムーズに進んだ
 - 32テスト全パス、既存テスト (120件) にも影響なし
+
+---
+
+## T-07: auth.py — トークン解決 + credentials.toml 管理
+
+### 発生した問題
+
+1. **`get_auth_status()` の型アノテーションバグ**
+   - `result: list[dict[str, str]] = {}` と dict リテラルで初期化してしまった
+   - 正しくは `= []`。実装直後に気づいて即修正
+
+2. **Windows での `os.chmod` テスト失敗**
+   - `sys.platform` を `"linux"` に mock して POSIX パーミッションテストを書いたが、Windows では `os.chmod(path, 0o600)` が実際には POSIX パーミッションを設定しない
+   - 解決: `os.chmod` 自体を mock し、引数 `0o600` で呼ばれたことを検証する方式に変更
+
+### うまくいった点
+
+- design.md の仕様が明確で、4段フォールバック (`credentials.toml` → サービス別環境変数 → `GFO_TOKEN` → `AuthError`) の実装がスムーズ
+- T-06 の retro で学んだ「Windows 環境変数全クリアで `Path.home()` が失敗する」問題を回避できた（`monkeypatch.delenv` で必要変数のみ操作）
+- 16テスト全パス、既存152テストにも影響なし（計168テスト）
