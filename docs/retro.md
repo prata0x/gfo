@@ -375,3 +375,20 @@
 - T-21/T-22 で確立した `_patch_all` コンテキストマネージャパターンをそのまま流用し、ボイラープレートを最小化
 - `handle_create` / `handle_clone` のテストでは `_resolve_host_without_repo` 自体をモックすることで、ホスト解決ロジックと切り離した独立テストを構成できた
 - 19テスト全パス（TestHandleList 2件 + TestResolveHostWithoutRepo 5件 + TestHandleCreate 2件 + TestHandleClone 7件 + TestHandleView 3件）
+
+---
+
+## T-24: commands/init.py — init コマンドハンドラ
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- 対話モードと `--non-interactive` モードを `getattr(args, "non_interactive", False)` で切り替える設計がシンプルかつテストしやすかった
+- 対話モードで `DetectionError` 発生時に手動入力へフォールバックする分岐を `try/except` で自然に表現できた
+- `_handle_non_interactive` での api_url 解決順 (`args.api_url` → `get_host_config` → `_build_default_api_url`) が config.py の `resolve_project_config` と一貫したパターンになった
+- `builtins.input` を `patch` でモックすることで、対話モードの各入力シナリオを `side_effect=iter([...])` で簡潔にテストできた
+- T-21〜T-23 で確立したコマンドテストパターン（`patch` + `make_args`）をそのまま流用し、ボイラープレートを最小化
+- 11テスト全パス（TestHandleInteractive 5件 + TestHandleNonInteractive 6件）
