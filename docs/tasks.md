@@ -207,7 +207,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-10, T-06
 - **検証**: `pytest tests/test_commands/test_issue.py`
 
-### T-23: commands/repo.py
+### T-23: commands/repo.py ✅
 - **参照**: design.md L1759-1831 (repo ハンドラ)
 - **成果物**:
   - `src/gfo/commands/repo.py` — handle_list, handle_create, handle_clone, handle_view, _resolve_host_without_repo
