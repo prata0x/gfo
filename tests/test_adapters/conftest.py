@@ -9,11 +9,13 @@ from gfo.http import HttpClient
 from gfo.adapter.github import GitHubAdapter
 from gfo.adapter.gitlab import GitLabAdapter
 from gfo.adapter.bitbucket import BitbucketAdapter
+from gfo.adapter.azure_devops import AzureDevOpsAdapter
 
 
 BASE_URL = "https://api.github.com"
 GITLAB_BASE_URL = "https://gitlab.com/api/v4"
 BITBUCKET_BASE_URL = "https://api.bitbucket.org/2.0"
+AZURE_DEVOPS_BASE_URL = "https://dev.azure.com/test-org/test-project/_apis"
 
 
 @pytest.fixture
@@ -50,3 +52,20 @@ def bitbucket_client():
 @pytest.fixture
 def bitbucket_adapter(bitbucket_client):
     return BitbucketAdapter(bitbucket_client, "test-workspace", "test-repo")
+
+
+@pytest.fixture
+def azure_devops_client():
+    return HttpClient(
+        AZURE_DEVOPS_BASE_URL,
+        basic_auth=("", "test-pat"),
+        default_params={"api-version": "7.1"},
+    )
+
+
+@pytest.fixture
+def azure_devops_adapter(azure_devops_client):
+    return AzureDevOpsAdapter(
+        azure_devops_client, "test-owner", "test-repo",
+        organization="test-org", project_key="test-project",
+    )
