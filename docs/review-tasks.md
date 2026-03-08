@@ -55,7 +55,7 @@
   - `tests/test_adapters/test_forgejo.py` — service_name 確認、Gitea API との互換性テスト、エラーケース追加
 - **検証**: `pytest tests/test_adapters/test_forgejo.py -v`
 
-### R-05: adapter/gitbucket.py のテスト強化
+### R-05: adapter/gitbucket.py のテスト強化 ✅
 
 - **問題**: 7テストのみ。GitHubAdapter 継承だが差分メソッドのテストが不足の可能性
 - **参照**: @docs/design.md L1536-1548 (GitBucket アダプター設計), L1861 (継承関係), L1881 (継承共有ロジック), L2156-2164 (adapter テスト方針)
