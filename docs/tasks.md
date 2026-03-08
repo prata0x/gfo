@@ -163,7 +163,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-15 (Gitea)
 - **検証**: `pytest tests/test_adapters/test_gogs.py`
 
-### T-18: GitBucket アダプター
+### ✅ T-18: GitBucket アダプター
 - **参照**: design.md L1536-1548 (GitBucket アダプター)
 - **成果物**:
   - `src/gfo/adapter/gitbucket.py` — GitBucketAdapter (GitHub 継承、base_url 変更)

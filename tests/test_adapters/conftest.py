@@ -13,6 +13,7 @@ from gfo.adapter.azure_devops import AzureDevOpsAdapter
 from gfo.adapter.gitea import GiteaAdapter
 from gfo.adapter.forgejo import ForgejoAdapter
 from gfo.adapter.gogs import GogsAdapter
+from gfo.adapter.gitbucket import GitBucketAdapter
 
 
 BASE_URL = "https://api.github.com"
@@ -22,6 +23,7 @@ AZURE_DEVOPS_BASE_URL = "https://dev.azure.com/test-org/test-project/_apis"
 GITEA_BASE_URL = "https://gitea.example.com/api/v1"
 FORGEJO_BASE_URL = "https://forgejo.example.com/api/v1"
 GOGS_BASE_URL = "https://gogs.example.com/api/v1"
+GITBUCKET_BASE_URL = "https://gitbucket.example.com/api/v3"
 
 
 @pytest.fixture
@@ -105,3 +107,13 @@ def gogs_client():
 @pytest.fixture
 def gogs_adapter(gogs_client):
     return GogsAdapter(gogs_client, "test-owner", "test-repo")
+
+
+@pytest.fixture
+def gitbucket_client():
+    return HttpClient(GITBUCKET_BASE_URL, auth_header={"Authorization": "Bearer test-token"})
+
+
+@pytest.fixture
+def gitbucket_adapter(gitbucket_client):
+    return GitBucketAdapter(gitbucket_client, "test-owner", "test-repo")
