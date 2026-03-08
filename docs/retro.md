@@ -408,3 +408,19 @@
 - `handle_status` のテーブル出力は `output.py` の `output()` 関数が dataclass 専用のため自前で組んだが、列幅を動的に計算するシンプルな実装で対応できた
 - T-21〜T-24 で確立したコマンドテストパターン（`patch` + `make_args` + `capsys`）をそのまま流用でき、ボイラープレートを最小化
 - 6テスト全パス（TestHandleLogin 4件 + TestHandleStatus 2件）
+
+---
+
+## T-26: commands/release.py — release コマンドハンドラ
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- T-21〜T-25 で確立したコマンドハンドラ実装・テストパターンをそのまま適用でき、スムーズに完了
+- `handle_create` の `title = args.title or args.tag` フォールバックがシンプルかつ直感的に表現できた
+- `adapter.create_release` のシグネチャ (`tag`, `title`, `notes`, `draft`, `prerelease`) が `base.py` の ABC と完全に一致しており、実装に迷いがなかった
+- `_patch_all` コンテキストマネージャ + `setup_method` フィクスチャ初期化パターンにより、8テストが全て独立した状態で実行される構造を維持できた
+- 8テスト全パス（TestHandleList 3件 + TestHandleCreate 5件）
