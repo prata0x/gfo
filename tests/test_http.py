@@ -311,6 +311,26 @@ class TestPaginateLinkHeader:
         result = paginate_link_header(c, "/items", limit=10)
         assert result == []
 
+    @responses.activate
+    def test_limit_zero_unlimited(self):
+        import json as json_mod
+
+        next_url = f"{BASE}/items?page=2&per_page=30"
+        call_count = {"n": 0}
+
+        def callback(request):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                headers = {"Link": f'<{next_url}>; rel="next"'}
+                return (200, headers, json_mod.dumps([{"id": 1}, {"id": 2}]))
+            return (200, {}, json_mod.dumps([{"id": 3}, {"id": 4}]))
+
+        responses.add_callback(responses.GET, f"{BASE}/items", callback=callback)
+        c = HttpClient(BASE)
+        result = paginate_link_header(c, "/items", limit=0)
+        assert len(result) == 4
+        assert call_count["n"] == 2
+
 
 # ── paginate_page_param ──
 
@@ -346,6 +366,30 @@ class TestPaginatePageParam:
         c = HttpClient(BASE)
         result = paginate_page_param(c, "/items", limit=2)
         assert len(result) == 2
+
+    @responses.activate
+    def test_empty_response(self):
+        responses.add(responses.GET, f"{BASE}/items", json=[])
+        c = HttpClient(BASE)
+        result = paginate_page_param(c, "/items", limit=10)
+        assert result == []
+
+    @responses.activate
+    def test_limit_zero_unlimited(self):
+        responses.add(
+            responses.GET,
+            f"{BASE}/items",
+            json=[{"id": 1}, {"id": 2}],
+            headers={"X-Next-Page": "2"},
+        )
+        responses.add(
+            responses.GET,
+            f"{BASE}/items",
+            json=[{"id": 3}, {"id": 4}],
+        )
+        c = HttpClient(BASE)
+        result = paginate_page_param(c, "/items", limit=0)
+        assert len(result) == 4
 
 
 # ── paginate_response_body ──
@@ -387,6 +431,23 @@ class TestPaginateResponseBody:
         result = paginate_response_body(c, "/items", limit=10)
         assert result == []
 
+    @responses.activate
+    def test_limit_zero_unlimited(self):
+        next_url = f"{BASE}/items?page=2"
+        responses.add(
+            responses.GET,
+            f"{BASE}/items",
+            json={"values": [{"id": 1}, {"id": 2}], "next": next_url},
+        )
+        responses.add(
+            responses.GET,
+            next_url,
+            json={"values": [{"id": 3}, {"id": 4}]},
+        )
+        c = HttpClient(BASE)
+        result = paginate_response_body(c, "/items", limit=0)
+        assert len(result) == 4
+
 
 # ── paginate_offset ──
 
@@ -413,6 +474,13 @@ class TestPaginateOffset:
         c = HttpClient(BASE)
         result = paginate_offset(c, "/items", count=20, limit=5)
         assert len(result) == 5
+
+    @responses.activate
+    def test_empty_response(self):
+        responses.add(responses.GET, f"{BASE}/items", json=[])
+        c = HttpClient(BASE)
+        result = paginate_offset(c, "/items", count=20, limit=10)
+        assert result == []
 
 
 # ── paginate_top_skip ──

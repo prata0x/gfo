@@ -114,3 +114,21 @@ class TestInheritedOperations:
         assert len(issues) == 1
         assert issues[0].number == 1
         assert issues[0].state == "open"
+
+    def test_list_issues_pagination(self, mock_responses, gogs_adapter):
+        import json as json_mod
+
+        next_url = f"{REPOS}/issues?page=2&limit=30"
+        call_count = {"n": 0}
+
+        def callback(request):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                headers = {"Link": f'<{next_url}>; rel="next"'}
+                return (200, headers, json_mod.dumps([_issue_data(number=1), _issue_data(number=2)]))
+            return (200, {}, json_mod.dumps([_issue_data(number=3)]))
+
+        mock_responses.add_callback(responses.GET, f"{REPOS}/issues", callback=callback)
+        issues = gogs_adapter.list_issues(limit=0)
+        assert len(issues) == 3
+        assert call_count["n"] == 2

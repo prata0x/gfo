@@ -166,6 +166,29 @@ def test_save_token_windows_icacls(tmp_path, monkeypatch):
     assert "testuser:R" in calls[0]
 
 
+def test_save_token_windows_icacls_oserror_ignored(tmp_path, monkeypatch):
+    """Windows icacls が OSError を投げても伝播しない。"""
+    config_dir = tmp_path / "config"
+    monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
+    monkeypatch.setattr(
+        "gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml"
+    )
+    monkeypatch.setattr("gfo.auth.sys.platform", "win32")
+
+    def mock_run_raises(cmd, **kwargs):
+        raise OSError("icacls not found")
+
+    monkeypatch.setattr("gfo.auth.subprocess.run", mock_run_raises)
+    monkeypatch.setattr("gfo.auth.os.getlogin", lambda: "testuser")
+
+    # OSError が伝播せず、トークンは保存される
+    save_token("github.com", "ghp_test")
+
+    assert (config_dir / "credentials.toml").exists()
+    tokens = _load_raw_tokens(config_dir / "credentials.toml")
+    assert tokens["github.com"] == "ghp_test"
+
+
 # ── load_tokens ──
 
 

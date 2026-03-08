@@ -43,6 +43,18 @@ class TestInheritance:
         assert forgejo_adapter.service_name == "Forgejo"
 
 
+class TestToPullRequest:
+    def test_closed(self):
+        pr = ForgejoAdapter._to_pull_request(_pr_data(state="closed", merged_at=None))
+        assert pr.state == "closed"
+
+    def test_merged(self):
+        pr = ForgejoAdapter._to_pull_request(
+            _pr_data(state="closed", merged_at="2025-01-01T00:00:00Z")
+        )
+        assert pr.state == "merged"
+
+
 class TestListPullRequests:
     def test_open(self, mock_responses, forgejo_adapter):
         mock_responses.add(
@@ -53,3 +65,21 @@ class TestListPullRequests:
         assert len(prs) == 1
         assert prs[0].state == "open"
         assert prs[0].number == 1
+
+    def test_pagination(self, mock_responses, forgejo_adapter):
+        import json as json_mod
+
+        next_url = f"{REPOS}/pulls?page=2&limit=30"
+        call_count = {"n": 0}
+
+        def callback(request):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                headers = {"Link": f'<{next_url}>; rel="next"'}
+                return (200, headers, json_mod.dumps([_pr_data(number=1), _pr_data(number=2)]))
+            return (200, {}, json_mod.dumps([_pr_data(number=3)]))
+
+        mock_responses.add_callback(responses.GET, f"{REPOS}/pulls", callback=callback)
+        prs = forgejo_adapter.list_pull_requests(limit=0)
+        assert len(prs) == 3
+        assert call_count["n"] == 2

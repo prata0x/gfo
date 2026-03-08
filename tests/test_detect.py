@@ -89,6 +89,75 @@ class TestDetectFromUrl:
         assert r.service_type == "forgejo"
         assert r.host == "codeberg.org"
 
+    # Bitbucket SSH
+    def test_bitbucket_ssh_scp(self):
+        r = detect_from_url("git@bitbucket.org:workspace/repo.git")
+        assert r.service_type == "bitbucket"
+        assert r.owner == "workspace"
+        assert r.repo == "repo"
+
+    def test_bitbucket_ssh_url(self):
+        r = detect_from_url("ssh://git@bitbucket.org/workspace/repo.git")
+        assert r.service_type == "bitbucket"
+        assert r.owner == "workspace"
+        assert r.repo == "repo"
+
+    # GitLab SSH
+    def test_gitlab_ssh_scp(self):
+        r = detect_from_url("git@gitlab.com:owner/repo.git")
+        assert r.service_type == "gitlab"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+
+    def test_gitlab_ssh_url(self):
+        r = detect_from_url("ssh://git@gitlab.com/owner/repo.git")
+        assert r.service_type == "gitlab"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+
+    def test_gitlab_subgroup_ssh(self):
+        r = detect_from_url("git@gitlab.com:group/sub1/sub2/project.git")
+        assert r.service_type == "gitlab"
+        assert r.owner == "group/sub1/sub2"
+        assert r.repo == "project"
+
+    # 未知ホスト HTTPS
+    def test_gitea_unknown_host_https(self):
+        r = detect_from_url("https://gitea.example.com/owner/repo.git")
+        assert r.service_type is None
+        assert r.host == "gitea.example.com"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+
+    def test_gitbucket_unknown_host_https(self):
+        r = detect_from_url("https://gitbucket.example.com/owner/repo.git")
+        assert r.service_type is None
+        assert r.host == "gitbucket.example.com"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+
+    # .git サフィックスなし
+    def test_gitlab_no_git_suffix(self):
+        r = detect_from_url("https://gitlab.com/owner/repo")
+        assert r.service_type == "gitlab"
+        assert r.repo == "repo"
+
+    def test_bitbucket_no_git_suffix(self):
+        r = detect_from_url("https://bitbucket.org/workspace/repo")
+        assert r.service_type == "bitbucket"
+        assert r.repo == "repo"
+
+    def test_codeberg_no_git_suffix(self):
+        r = detect_from_url("https://codeberg.org/owner/repo")
+        assert r.service_type == "forgejo"
+        assert r.repo == "repo"
+
+    def test_backlog_no_git_suffix(self):
+        r = detect_from_url("https://space.backlog.com/git/PROJECT/repo")
+        assert r.service_type == "backlog"
+        assert r.project == "PROJECT"
+        assert r.repo == "repo"
+
     # Backlog
     def test_backlog_https(self):
         r = detect_from_url("https://space.backlog.com/git/PROJECT/repo.git")

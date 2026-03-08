@@ -180,6 +180,24 @@ class TestListPullRequests:
         prs = backlog_adapter.list_pull_requests(state="merged")
         assert prs == []
 
+    def test_pagination(self, mock_responses, backlog_adapter):
+        """offset ベースのページネーションで2ページ取得。"""
+        mock_responses.add(
+            responses.GET, PR_PATH,
+            json=[_pr_data(number=i) for i in range(1, 21)], status=200,
+        )
+        mock_responses.add(
+            responses.GET, PR_PATH,
+            json=[_pr_data(number=21)], status=200,
+        )
+        prs = backlog_adapter.list_pull_requests(state="all", limit=0)
+        assert len(prs) == 21
+        req1 = mock_responses.calls[0].request
+        req2 = mock_responses.calls[1].request
+        assert "count=20" in req1.url
+        assert "offset=0" in req1.url
+        assert "offset=20" in req2.url
+
 
 class TestCreatePullRequest:
     def test_create(self, mock_responses, backlog_adapter):

@@ -187,6 +187,53 @@ class TestListPullRequests:
         req = mock_responses.calls[0].request
         assert "searchCriteria.status=completed" in req.url
 
+    def test_pagination(self, mock_responses, azure_devops_adapter):
+        """$top/$skip ベースのページネーションで2ページ取得。"""
+        mock_responses.add(
+            responses.GET, f"{GIT}/pullrequests",
+            json={"value": [_pr_data(pull_request_id=i) for i in range(1, 31)]}, status=200,
+        )
+        mock_responses.add(
+            responses.GET, f"{GIT}/pullrequests",
+            json={"value": [_pr_data(pull_request_id=31)]}, status=200,
+        )
+        prs = azure_devops_adapter.list_pull_requests(limit=0)
+        assert len(prs) == 31
+        req1 = mock_responses.calls[0].request
+        req2 = mock_responses.calls[1].request
+        assert "%24top=30" in req1.url or "$top=30" in req1.url
+        assert "%24skip=0" in req1.url or "$skip=0" in req1.url
+        assert "%24skip=30" in req2.url or "$skip=30" in req2.url
+
+
+class TestBasicAuth:
+    @responses.activate
+    def test_basic_auth_header_encoding(self):
+        import base64
+        from gfo.http import HttpClient
+        from gfo.adapter.azure_devops import AzureDevOpsAdapter
+
+        client = HttpClient(
+            BASE,
+            basic_auth=("", "test-pat"),
+            default_params={"api-version": "7.1"},
+        )
+        adapter = AzureDevOpsAdapter(
+            client, "test-owner", "test-repo",
+            organization="test-org", project_key="test-project",
+        )
+        responses.add(
+            responses.GET, f"{GIT}/pullrequests",
+            json={"value": [_pr_data()], "count": 1}, status=200,
+        )
+        adapter.list_pull_requests()
+        req = responses.calls[0].request
+        auth_header = req.headers.get("Authorization", "")
+        assert auth_header.startswith("Basic ")
+        encoded = auth_header[len("Basic "):]
+        decoded = base64.b64decode(encoded).decode("ascii")
+        assert decoded == ":test-pat"
+
 
 class TestCreatePullRequest:
     def test_create(self, mock_responses, azure_devops_adapter):
