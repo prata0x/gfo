@@ -1,4 +1,4 @@
-# gfo 詳細設計書
+# gfo 詳細設計
 
 ## 1. モジュール間依存関係図
 
@@ -51,13 +51,15 @@
 | `cli.py` | `commands/*`, `config.py`, `output.py` |
 | `commands/*.py` | `adapter/registry.py`, `config.py`, `auth.py`, `output.py`, `git_util.py` |
 | `adapter/*.py`（各実装） | `adapter/base.py`, `http.py` |
-| `adapter/registry.py` | `adapter/*.py`（各実装クラス） |
-| `config.py` | `detect.py`, `git_util.py` |
-| `detect.py` | `git_util.py`, `http.py`（API プローブ時） |
+| `adapter/registry.py` | `adapter/*.py`（各実装クラス）, `auth.py`, `config.py` |
+| `config.py` | `git_util.py` |
+| `detect.py` | `git_util.py`, `http.py`（API プローブ時）, `config.py`（hosts セクション参照のみ） |
 | `auth.py` | `config.py` |
-| `http.py` | `auth.py` |
+| `http.py` | （外部ライブラリ `requests` のみ） |
 | `output.py` | `adapter/base.py`（データクラス参照） |
 | `git_util.py` | （外部依存なし、subprocess のみ） |
+
+**注記**: `config.py` → `detect.py` の依存は `resolve_project_config()` 内で `detect_service()` を呼び出す形だが、これは関数呼び出しレベルであり、モジュールのトップレベル import としては `config.py` は `detect.py` を import しない。実行時の呼び出しは `import gfo.detect` を関数内で行うことで循環を回避する。
 
 ---
 
@@ -129,7 +131,11 @@ def git_checkout_new_branch(branch: str, start: str = "FETCH_HEAD",
     """git checkout -b {branch} {start} を実行。"""
 
 def git_clone(url: str, dest: str | None = None, cwd: str | None = None) -> None:
-    """git clone {url} [{dest}] を実行。"""
+    """git clone {url} [{dest}] を実行。
+
+    `git_clone` のみ timeout を指定しない（`timeout=None`）。
+    大規模リポジトリのクローンは長時間かかる可能性があるため。
+    """
 ```
 
 #### subprocess 呼び出し方針
@@ -155,8 +161,9 @@ git remote URL からサービス種別・ホスト名・owner/repo 情報を検
 @dataclass
 class DetectResult:
     """検出結果。"""
-    service_type: str       # "github", "gitlab", "bitbucket", "azure-devops",
-                            # "gitea", "forgejo", "gogs", "gitbucket", "backlog"
+    service_type: str | None  # "github", "gitlab", "bitbucket", "azure-devops",
+                              # "gitea", "forgejo", "gogs", "gitbucket", "backlog"
+                              # 未知ホストの場合は None
     host: str               # "github.com", "gitlab.example.com" 等
     owner: str              # owner / workspace / org
     repo: str               # リポジトリ名
@@ -403,6 +410,8 @@ def _write_credentials_toml(path: Path, tokens: dict[str, str]) -> None:
     - バックスラッシュ: \\ → \\\\
     - ダブルクォート: " → \\"
     - 改行・タブ等の制御文字: \\n, \\t 等にエスケープ
+    ホスト名（TOML キー部分）は常にダブルクォートで囲む。
+    ホスト名自体にダブルクォートが含まれるケースは想定しない（ホスト名として不正）。
     既存ファイルは全体を上書きする（部分更新ではない）。
     """
 ```
@@ -537,7 +546,13 @@ class HttpClient:
         2. default_params → auth_params → params の順でクエリパラメータをマージ（後勝ち: 同キーは後段の値で上書き）
         3. requests.Session.request() を呼び出し
         4. _handle_response() でステータスコードを検査
+           - 429 の場合: Retry-After ヘッダー（なければデフォルト 60 秒）待機後に
+             同一リクエストを 1 回だけ再送する。再送も 429 なら RateLimitError
         5. Response を返す
+
+        `requests.ConnectionError` は `NetworkError` に変換する。
+        `requests.Timeout` は `NetworkError` に変換する。
+        いずれもリトライしない。
         """
 
     def get(self, path: str, **kwargs) -> requests.Response:
@@ -558,8 +573,7 @@ class HttpClient:
         200-299: 正常（何もしない）
         401/403: AuthenticationError（トークン再設定を案内するメッセージ付き）
         404:     NotFoundError（リソースが見つからない旨のメッセージ）
-        429:     Retry-After ヘッダーを読み取り time.sleep() 後に 1 回リトライ
-                 リトライも 429 なら RateLimitError を送出
+        429:     RateLimitError を送出（リトライ判断は request() 側で行う）
         5xx:     ServerError
         その他:  HttpError(status_code, response.text)
         """
@@ -591,6 +605,8 @@ def paginate_link_header(client: HttpClient, path: str, *,
     3. レスポンスの Link ヘッダーから rel="next" URL を抽出
     4. limit に達するか、next URL がなくなるまで繰り返す
     5. limit=0 の場合は全件取得
+       - limit=0（全件取得）の場合、per_page を API の最大値（GitHub: 100）に設定して
+         リクエスト回数を最小化する
 
     返り値: JSON レスポンス（list[dict]）の結合リスト
 
@@ -680,7 +696,7 @@ def paginate_response_body(client: HttpClient, path: str, *,
 #### 公開関数
 
 ```python
-def output(data: Any, *, format: str = "table", fields: list[str] | None = None) -> None:
+def output(data: Any, *, fmt: str = "table", fields: list[str] | None = None) -> None:
     """データを指定フォーマットで stdout に出力する。
     
     data がリスト → 一覧表示
@@ -896,9 +912,9 @@ def main(argv: list[str] | None = None) -> int:
 
     1. create_parser() でパーサー構築
     2. args = parser.parse_args(argv)
-    3. resolved_format = args.format or get_default_output_format()
+    3. resolved_fmt = args.format or get_default_output_format()
     4. command + subcommand でディスパッチテーブルを参照
-    5. handler(args, format=resolved_format) でコマンドハンドラを呼び出し
+    5. handler(args, fmt=resolved_fmt) でコマンドハンドラを呼び出し
     6. GfoError をキャッチして stderr 出力 + exit(1)
        - NotSupportedError の場合:
          a. stderr に str(err) を出力
@@ -1022,7 +1038,7 @@ class Milestone:
     due_date: str | None
 ```
 
-**注意**: `frozen=True` の場合 `list[str]` フィールド（`Issue.assignees`, `Issue.labels`）のミュータブル性は保証されない。しかし、生成後に変更しない設計方針なので問題ない。
+**注意**: `frozen=True` の場合 `list[str]` フィールド（`Issue.assignees`, `Issue.labels`）は参照経由でミュータブルだが、生成後に変更しない設計方針とする。`tuple[str, ...]` への変更は将来の最適化として検討するが、v1 では `list[str]` を維持する。
 
 #### ABC 定義
 
@@ -1039,6 +1055,10 @@ class GitServiceAdapter(ABC):
             **kwargs: サービス固有パラメータ
                       Azure DevOps: organization, project
                       Backlog: project_key
+
+        `**kwargs` は型安全でないが、各サブクラスの `__init__` で明示的なキーワード引数として
+        再定義することで型安全性を確保する（例: AzureDevOpsAdapter は `*, organization, project`
+        を明示的に受け取る）。
         """
         self._client = client
         self._owner = owner
@@ -1109,7 +1129,12 @@ class GitServiceAdapter(ABC):
 
     @abstractmethod
     def get_repository(self, owner: str | None = None,
-                       name: str | None = None) -> Repository: ...
+                       name: str | None = None) -> Repository:
+        """リポジトリ情報を取得する。
+
+        owner, name が None の場合は self._owner, self._repo を使用する。
+        """
+        ...
 
     # --- Release ---
     @abstractmethod
@@ -1137,12 +1162,11 @@ class GitServiceAdapter(ABC):
                          description: str | None = None,
                          due_date: str | None = None) -> Milestone: ...
 
-    # --- プロパティ ---
-    @property
-    @abstractmethod
-    def service_name(self) -> str:
-        """サービス名を返す（エラーメッセージ用）。"""
-        ...
+    # --- クラス変数 ---
+    service_name: str  # 各サブクラスでクラス変数としてオーバーライド: service_name = "GitHub"
+    # ABC の `@property @abstractmethod` ではなくクラス変数として定義する。
+    # 子クラスでのクラス変数オーバーライドと一貫性を持たせるため。
+    # mypy はクラス変数の存在をチェックしないが、全サブクラスで定義を必須とする規約とする。
 ```
 
 ---
@@ -1196,6 +1220,11 @@ def create_adapter(config: ProjectConfig) -> GitServiceAdapter:
         if stype == "backlog":
             client = HttpClient(config.api_url, auth_params={"apiKey": token})
         elif stype == "bitbucket":
+            if ":" not in token:
+                raise ConfigError(
+                    "Bitbucket token must be in 'username:app-password' format. "
+                    "Run 'gfo auth login --host bitbucket.org' to reconfigure."
+                )
             user, pw = token.split(":", 1)
             client = HttpClient(config.api_url, basic_auth=(user, pw))
         elif stype == "azure-devops":
@@ -1285,6 +1314,11 @@ class GitHubAdapter(GitServiceAdapter):
     
     def list_pull_requests(self, *, state="open", limit=30):
         # state="merged" → API には state="closed" で問い合わせ、結果をフィルタ
+        # 注意: limit 件の closed PR を取得後にフィルタするため、
+        # closed だが merged でない PR が多い場合、返る merged PR 数が
+        # limit より少なくなる可能性がある。これは GitHub API の制約であり、
+        # 正確に limit 件の merged PR を取得するにはページングの追加実装が必要。
+        # v1 ではこの制約を許容する。
         api_state = "closed" if state == "merged" else state
         params = {"state": api_state}
         results = paginate_link_header(self._client, f"{self._repos_path()}/pulls",
@@ -1397,9 +1431,14 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     # issue list は WIQL 2段階
     def list_issues(self, *, state="open", assignee=None, label=None, limit=30):
         """
-        1. WIQL クエリ構築
+        1. WIQL クエリ構築（$top で limit を指定、最大 200）
         2. POST _apis/wit/wiql で ID リスト取得
-        3. GET _apis/wit/workitems?ids=1,2,3 でバッチ取得
+        3. ID リストを 200 件ずつバッチ分割
+        4. 各バッチで GET _apis/wit/workitems?ids=... を実行
+        5. limit に達するまで結果を結合
+
+        注意: WIQL のデフォルト上限は 200 件。--limit が 200 を超える場合、
+        WIQL の $top を指定しても 200 が上限となる。この制約は v1 で許容する。
         """
         ...
     
@@ -1461,11 +1500,11 @@ class GogsAdapter(GiteaAdapter):
         parsed = urllib.parse.urlparse(self._client.base_url)
         return f"{parsed.scheme}://{parsed.hostname}" + (f":{parsed.port}" if parsed.port else "")
 
-    def list_pull_requests(self, **kwargs):
+    def list_pull_requests(self, *, state="open", limit=30):
         raise NotSupportedError("Gogs", "pull request operations",
                                 web_url=f"{self._web_url()}/{self._owner}/{self._repo}/pulls")
 
-    def create_pull_request(self, **kwargs):
+    def create_pull_request(self, *, title, body="", base, head, draft=False):
         raise NotSupportedError("Gogs", "pull request operations",
                                 web_url=f"{self._web_url()}/{self._owner}/{self._repo}/compare")
 
@@ -1473,24 +1512,24 @@ class GogsAdapter(GiteaAdapter):
         raise NotSupportedError("Gogs", "pull request operations",
                                 web_url=f"{self._web_url()}/{self._owner}/{self._repo}/pulls/{number}")
 
-    def merge_pull_request(self, number, **kwargs):
+    def merge_pull_request(self, number, *, method="merge"):
         raise NotSupportedError("Gogs", "pull request operations",
                                 web_url=f"{self._web_url()}/{self._owner}/{self._repo}/pulls/{number}")
 
     def close_pull_request(self, number):
         raise NotSupportedError("Gogs", "pull request operations",
                                 web_url=f"{self._web_url()}/{self._owner}/{self._repo}/pulls/{number}")
-    
+
     def list_labels(self):
         raise NotSupportedError("Gogs", "label operations")
-    
-    def create_label(self, **kwargs):
+
+    def create_label(self, *, name, color=None, description=None):
         raise NotSupportedError("Gogs", "label operations")
-    
+
     def list_milestones(self):
         raise NotSupportedError("Gogs", "milestone operations")
-    
-    def create_milestone(self, **kwargs):
+
+    def create_milestone(self, *, title, description=None, due_date=None):
         raise NotSupportedError("Gogs", "milestone operations")
 ```
 
@@ -1555,6 +1594,9 @@ class BacklogAdapter(GitServiceAdapter):
                 params["statusId[]"] = merged_id
         elif state == "open":
             # Backlog のデフォルトステータス: 1=未対応, 2=処理中, 3=処理済み
+            # これはデフォルトステータスのみ対応。カスタムステータスが追加されている
+            # プロジェクトでは、GET /projects/{key}/statuses で動的に取得すべきだが、
+            # v1 ではデフォルトステータスのみをサポートする。
             params["statusId[]"] = [1, 2, 3]
         elif state == "closed":
             # 4=完了
@@ -1612,18 +1654,18 @@ class BacklogAdapter(GitServiceAdapter):
 ```python
 # commands/pr.py の例
 
-def handle_list(args: argparse.Namespace, *, format: str) -> None:
+def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo pr list のハンドラ。
-    
+
     1. config = resolve_project_config()
     2. adapter = create_adapter(config)
     3. prs = adapter.list_pull_requests(state=args.state, limit=args.limit)
-    4. output(prs, format=format, fields=["number", "title", "state", "author"])
+    4. output(prs, fmt=fmt, fields=["number", "title", "state", "author"])
     """
 
-def handle_create(args: argparse.Namespace, *, format: str) -> None:
+def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo pr create のハンドラ。
-    
+
     1. config = resolve_project_config()
     2. adapter = create_adapter(config)
     3. head = args.head or get_current_branch()
@@ -1631,19 +1673,19 @@ def handle_create(args: argparse.Namespace, *, format: str) -> None:
     5. title = args.title or get_last_commit_subject()
     6. pr = adapter.create_pull_request(title=title, body=args.body or "",
                                         base=base, head=head, draft=args.draft)
-    7. output(pr, format=format)
+    7. output(pr, fmt=fmt)
     """
 
-def handle_view(args: argparse.Namespace, *, format: str) -> None:
+def handle_view(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo pr view <number> のハンドラ。"""
 
-def handle_merge(args: argparse.Namespace, *, format: str) -> None:
+def handle_merge(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo pr merge <number> のハンドラ。"""
 
-def handle_close(args: argparse.Namespace, *, format: str) -> None:
+def handle_close(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo pr close <number> のハンドラ。"""
 
-def handle_checkout(args: argparse.Namespace, *, format: str) -> None:
+def handle_checkout(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo pr checkout <number> のハンドラ。
 
     1. config = resolve_project_config()
@@ -1656,10 +1698,48 @@ def handle_checkout(args: argparse.Namespace, *, format: str) -> None:
     """
 ```
 
+#### commands/issue.py
+
+```python
+def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
+    """gfo issue list のハンドラ。
+
+    1. config = resolve_project_config()
+    2. adapter = create_adapter(config)
+    3. issues = adapter.list_issues(state=args.state, assignee=args.assignee,
+                                    label=args.label, limit=args.limit)
+    4. output(issues, fmt=fmt, fields=["number", "title", "state", "author"])
+    """
+
+def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
+    """gfo issue create のハンドラ。
+
+    1. config = resolve_project_config()
+    2. adapter = create_adapter(config)
+    3. kwargs = {}
+       - args.type が指定されている場合:
+         Azure DevOps: kwargs["work_item_type"] = args.type
+         Backlog: kwargs["issue_type"] = args.type
+       - args.priority が指定されている場合:
+         Backlog: kwargs["priority"] = args.priority
+       - サービス種別の判定は config.service_type を参照
+    4. issue = adapter.create_issue(title=args.title, body=args.body or "",
+                                    assignee=args.assignee, label=args.label,
+                                    **kwargs)
+    5. output(issue, fmt=fmt)
+    """
+
+def handle_view(args: argparse.Namespace, *, fmt: str) -> None:
+    """gfo issue view <number> のハンドラ。"""
+
+def handle_close(args: argparse.Namespace, *, fmt: str) -> None:
+    """gfo issue close <number> のハンドラ。"""
+```
+
 #### commands/init.py
 
 ```python
-def handle(args: argparse.Namespace, *, format: str) -> None:
+def handle(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo init のハンドラ。
 
     対話モード:
@@ -1679,13 +1759,13 @@ def handle(args: argparse.Namespace, *, format: str) -> None:
 #### commands/repo.py
 
 ```python
-def handle_list(args: argparse.Namespace, *, format: str) -> None:
+def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo repo list のハンドラ。
 
     1. config = resolve_project_config()
     2. adapter = create_adapter(config)
     3. repos = adapter.list_repositories(owner=args.owner, limit=args.limit)
-    4. output(repos, format=format, fields=["full_name", "description", "private"])
+    4. output(repos, fmt=fmt, fields=["full_name", "description", "private"])
     """
 
 def _resolve_host_without_repo(args_host: str | None) -> tuple[str, str]:
@@ -1706,7 +1786,7 @@ def _resolve_host_without_repo(args_host: str | None) -> tuple[str, str]:
     戻り値: (host, service_type) のタプル
     """
 
-def handle_create(args: argparse.Namespace, *, format: str) -> None:
+def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo repo create <name> のハンドラ。
 
     1. host, service_type = _resolve_host_without_repo(args.host)
@@ -1714,10 +1794,10 @@ def handle_create(args: argparse.Namespace, *, format: str) -> None:
     3. HttpClient + adapter を構築
     4. repo = adapter.create_repository(name=args.name, private=args.private,
                                         description=args.description or "")
-    5. output(repo, format=format)
+    5. output(repo, fmt=fmt)
     """
 
-def handle_clone(args: argparse.Namespace, *, format: str) -> None:
+def handle_clone(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo repo clone <owner/name> のハンドラ。
 
     ホスト解決フロー:
@@ -1739,21 +1819,21 @@ def handle_clone(args: argparse.Namespace, *, format: str) -> None:
     3. git_clone(url)
     """
 
-def handle_view(args: argparse.Namespace, *, format: str) -> None:
+def handle_view(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo repo view [<owner/name>] のハンドラ。
 
     1. config = resolve_project_config()
     2. adapter = create_adapter(config)
     3. owner, name = args の owner/name をパース（省略時は config から取得）
     4. repo = adapter.get_repository(owner, name)
-    5. output(repo, format=format)
+    5. output(repo, fmt=fmt)
     """
 ```
 
 #### commands/auth_cmd.py
 
 ```python
-def handle_login(args: argparse.Namespace, *, format: str) -> None:
+def handle_login(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo auth login のハンドラ。
 
     1. host = args.host or detect_service().host（リポジトリ外ならエラー）
@@ -1764,7 +1844,7 @@ def handle_login(args: argparse.Namespace, *, format: str) -> None:
     4. "Token saved for {host}" を表示
     """
 
-def handle_status(args: argparse.Namespace, *, format: str) -> None:
+def handle_status(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo auth status のハンドラ。
 
     get_auth_status() の結果を table 形式で表示。
@@ -1881,6 +1961,11 @@ class ServerError(HttpError):
         super().__init__(status_code, "Server error. Please try again later.", url)
 
 
+class NetworkError(GfoError):
+    """ネットワーク接続エラー（ConnectionError, Timeout）。"""
+    pass
+
+
 class NotSupportedError(GfoError):
     """サービスが対応していない操作。"""
     def __init__(self, service: str, operation: str, web_url: str | None = None):
@@ -1912,6 +1997,7 @@ GfoError
 │   ├── NotFoundError          (404)
 │   ├── RateLimitError         (429)
 │   └── ServerError            (5xx)
+├── NetworkError
 ├── NotSupportedError
 └── UnsupportedServiceError
 ```
@@ -2091,6 +2177,11 @@ def gitlab_client() -> HttpClient:
 - 空の結果（0 件）
 - limit が 1 ページ分より少ない場合
 - limit=0（全件取得）
+
+#### config.py / auth.py テスト（Windows 対応）
+
+- `sys.platform` をモックし、Windows パス（`%APPDATA%`）の解決ロジックを検証する
+- icacls コマンドの実行は subprocess モックで検証する
 
 ### 5.5 開発依存
 
