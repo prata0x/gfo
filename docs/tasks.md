@@ -179,7 +179,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-09, T-04
 - **検証**: `pytest tests/test_adapters/test_backlog.py`
 
-### T-20: adapter/__init__.py — 全アダプター登録
+### ✅ T-20: adapter/__init__.py — 全アダプター登録
 - **参照**: design.md L1251-1278 (各アダプターファイルでの登録, インポート時登録の仕組み)
 - **成果物**:
   - `src/gfo/adapter/__init__.py` — 全9アダプターの import による登録
