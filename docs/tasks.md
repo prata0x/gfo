@@ -155,7 +155,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-15 (Gitea)
 - **検証**: `pytest tests/test_adapters/test_forgejo.py`
 
-### ✅ T-17: Gogs アダプター
+### T-17: Gogs アダプター ✅
 - **参照**: design.md L1489-1534 (Gogs アダプター)
 - **成果物**:
   - `src/gfo/adapter/gogs.py` — GogsAdapter (Gitea 継承、PR/Label/Milestone を NotSupportedError)
@@ -163,7 +163,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-15 (Gitea)
 - **検証**: `pytest tests/test_adapters/test_gogs.py`
 
-### ✅ T-18: GitBucket アダプター
+### T-18: GitBucket アダプター ✅
 - **参照**: design.md L1536-1548 (GitBucket アダプター)
 - **成果物**:
   - `src/gfo/adapter/gitbucket.py` — GitBucketAdapter (GitHub 継承、base_url 変更)
@@ -171,7 +171,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-11 (GitHub)
 - **検証**: `pytest tests/test_adapters/test_gitbucket.py`
 
-### ✅ T-19: Backlog アダプター
+### T-19: Backlog アダプター ✅
 - **参照**: design.md L1550-1644 (Backlog アダプター)
 - **成果物**:
   - `src/gfo/adapter/backlog.py` — BacklogAdapter (独立実装)
@@ -179,7 +179,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-09, T-04
 - **検証**: `pytest tests/test_adapters/test_backlog.py`
 
-### ✅ T-20: adapter/__init__.py — 全アダプター登録
+### T-20: adapter/__init__.py — 全アダプター登録 ✅
 - **参照**: design.md L1251-1278 (各アダプターファイルでの登録, インポート時登録の仕組み)
 - **成果物**:
   - `src/gfo/adapter/__init__.py` — 全9アダプターの import による登録
@@ -190,7 +190,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 
 ## Phase 5: コマンド実装
 
-### ✅ T-21: commands/pr.py
+### T-21: commands/pr.py ✅
 - **参照**: design.md L1648-1699 (commands 共通パターン + PR ハンドラ)
 - **成果物**:
   - `src/gfo/commands/pr.py` — handle_list, handle_create, handle_view, handle_merge, handle_close, handle_checkout
@@ -199,7 +199,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-10 (registry, output), T-03 (git_util), T-06 (config)
 - **検証**: `pytest tests/test_commands/test_pr.py`
 
-### T-22: commands/issue.py
+### T-22: commands/issue.py ✅
 - **参照**: design.md L1701-1737 (issue ハンドラ)
 - **成果物**:
   - `src/gfo/commands/issue.py` — handle_list, handle_create, handle_view, handle_close
