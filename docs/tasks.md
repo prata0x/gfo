@@ -240,7 +240,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **検証**: `pytest tests/test_commands/test_release.py`
 - **注記**: design.md 2.11 に個別設計なし。共通パターンに従い、adapter.list_releases / adapter.create_release を呼び出す
 
-### ✅ T-27: commands/label.py
+### T-27: commands/label.py ✅
 - **参照**: design.md L885-894 (CLI パーサー), L950-951 (ディスパッチ), L1648-1665 (共通パターン)
 - **成果物**:
   - `src/gfo/commands/label.py` — handle_list, handle_create
@@ -249,7 +249,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **検証**: `pytest tests/test_commands/test_label.py`
 - **注記**: design.md 2.11 に個別設計なし。共通パターンに従う
 
-### ✅ T-28: commands/milestone.py
+### T-28: commands/milestone.py ✅
 - **参照**: design.md L896-905 (CLI パーサー), L952-953 (ディスパッチ), L1648-1665 (共通パターン)
 - **成果物**:
   - `src/gfo/commands/milestone.py` — handle_list, handle_create
@@ -262,7 +262,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 
 ## Phase 6: CLI 統合
 
-### ✅ T-29: cli.py
+### T-29: cli.py ✅
 - **参照**: design.md L759-957 (セクション 2.7)
 - **成果物**:
   - `src/gfo/cli.py` — create_parser, main, _DISPATCH テーブル
@@ -274,7 +274,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 
 ## Phase 7: テスト整備
 
-### T-30: conftest.py 整理統合
+### T-30: conftest.py 整理統合 ✅
 - **参照**: design.md L2059-2141 (セクション 5.3)
 - **成果物**:
   - `tests/conftest.py` — 共通フィクスチャ整理 (config_dir, mock_git_config, mock_remote_url)

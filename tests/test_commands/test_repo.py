@@ -13,18 +13,6 @@ from tests.test_commands.conftest import make_args
 
 
 @pytest.fixture
-def mock_config():
-    from gfo.config import ProjectConfig
-    return ProjectConfig(
-        service_type="github",
-        host="github.com",
-        api_url="https://api.github.com",
-        owner="test-owner",
-        repo="test-repo",
-    )
-
-
-@pytest.fixture
 def sample_repo():
     return Repository(
         name="test-repo",
@@ -46,13 +34,13 @@ def mock_adapter(sample_repo):
     return adapter
 
 
-def _patch_all(mock_config, mock_adapter):
+def _patch_all(sample_config, mock_adapter):
     """resolve_project_config と create_adapter をまとめてパッチするコンテキスト。"""
     import contextlib
 
     @contextlib.contextmanager
     def _ctx():
-        with patch("gfo.commands.repo.resolve_project_config", return_value=mock_config), \
+        with patch("gfo.commands.repo.resolve_project_config", return_value=sample_config), \
              patch("gfo.commands.repo.create_adapter", return_value=mock_adapter):
             yield
 
@@ -60,16 +48,16 @@ def _patch_all(mock_config, mock_adapter):
 
 
 class TestHandleList:
-    def test_calls_list_repositories(self, mock_config, mock_adapter, capsys):
+    def test_calls_list_repositories(self, sample_config, mock_adapter, capsys):
         args = make_args(limit=30)
-        with _patch_all(mock_config, mock_adapter):
+        with _patch_all(sample_config, mock_adapter):
             repo_cmd.handle_list(args, fmt="table")
 
         mock_adapter.list_repositories.assert_called_once_with(limit=30)
 
-    def test_outputs_results(self, mock_config, mock_adapter, capsys):
+    def test_outputs_results(self, sample_config, mock_adapter, capsys):
         args = make_args(limit=30)
-        with _patch_all(mock_config, mock_adapter):
+        with _patch_all(sample_config, mock_adapter):
             repo_cmd.handle_list(args, fmt="table")
 
         out = capsys.readouterr().out
@@ -232,23 +220,23 @@ class TestHandleClone:
 
 
 class TestHandleView:
-    def test_calls_get_repository_without_args(self, mock_config, mock_adapter, capsys):
+    def test_calls_get_repository_without_args(self, sample_config, mock_adapter, capsys):
         args = make_args(repo=None)
-        with _patch_all(mock_config, mock_adapter):
+        with _patch_all(sample_config, mock_adapter):
             repo_cmd.handle_view(args, fmt="table")
 
         mock_adapter.get_repository.assert_called_once_with(None, None)
 
-    def test_calls_get_repository_with_owner_name(self, mock_config, mock_adapter, capsys):
+    def test_calls_get_repository_with_owner_name(self, sample_config, mock_adapter, capsys):
         args = make_args(repo="other-owner/other-repo")
-        with _patch_all(mock_config, mock_adapter):
+        with _patch_all(sample_config, mock_adapter):
             repo_cmd.handle_view(args, fmt="table")
 
         mock_adapter.get_repository.assert_called_once_with("other-owner", "other-repo")
 
-    def test_outputs_repository(self, mock_config, mock_adapter, capsys):
+    def test_outputs_repository(self, sample_config, mock_adapter, capsys):
         args = make_args(repo=None)
-        with _patch_all(mock_config, mock_adapter):
+        with _patch_all(sample_config, mock_adapter):
             repo_cmd.handle_view(args, fmt="table")
 
         out = capsys.readouterr().out
