@@ -244,3 +244,18 @@
 - Gitea 固有の検証として、ページネーション4箇所 (`list_pull_requests`, `list_issues`, `list_repositories`, `list_releases`) で `limit` パラメータが使われ `per_page` が使われないことを明示的にテスト
 - 後続の T-16 (Forgejo) と T-17 (Gogs) が継承する基底クラスとして安定した実装を提供
 - 41テスト全パス (変換8 + PR7 + Issue7 + Repo5 + Release3 + Label3 + Milestone3 + Registry1 + Checkout1 + limit検証4)、全418テストにも影響なし
+
+---
+
+## T-16: adapter/forgejo.py — ForgejoAdapter
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- T-15 (Gitea) の継承設計通り、`GiteaAdapter` を継承し `service_name = "Forgejo"` のみオーバーライドする最小実装で完了
+- `forgejo.py` 本体は9行 (docstring・import・クラス定義含む) と非常にシンプル
+- テストは Registry・継承確認・service_name・PR list の4件で継承の意図を明確に検証
+- 4テスト全パス、全既存テストにも影響なし
