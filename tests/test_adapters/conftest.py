@@ -12,6 +12,7 @@ from gfo.adapter.bitbucket import BitbucketAdapter
 from gfo.adapter.azure_devops import AzureDevOpsAdapter
 from gfo.adapter.gitea import GiteaAdapter
 from gfo.adapter.forgejo import ForgejoAdapter
+from gfo.adapter.gogs import GogsAdapter
 
 
 BASE_URL = "https://api.github.com"
@@ -20,6 +21,7 @@ BITBUCKET_BASE_URL = "https://api.bitbucket.org/2.0"
 AZURE_DEVOPS_BASE_URL = "https://dev.azure.com/test-org/test-project/_apis"
 GITEA_BASE_URL = "https://gitea.example.com/api/v1"
 FORGEJO_BASE_URL = "https://forgejo.example.com/api/v1"
+GOGS_BASE_URL = "https://gogs.example.com/api/v1"
 
 
 @pytest.fixture
@@ -93,3 +95,13 @@ def forgejo_client():
 @pytest.fixture
 def forgejo_adapter(forgejo_client):
     return ForgejoAdapter(forgejo_client, "test-owner", "test-repo")
+
+
+@pytest.fixture
+def gogs_client():
+    return HttpClient(GOGS_BASE_URL, auth_header={"Authorization": "token test-token"})
+
+
+@pytest.fixture
+def gogs_adapter(gogs_client):
+    return GogsAdapter(gogs_client, "test-owner", "test-repo")

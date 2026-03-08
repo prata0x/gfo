@@ -155,7 +155,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-15 (Gitea)
 - **検証**: `pytest tests/test_adapters/test_forgejo.py`
 
-### T-17: Gogs アダプター
+### ✅ T-17: Gogs アダプター
 - **参照**: design.md L1489-1534 (Gogs アダプター)
 - **成果物**:
   - `src/gfo/adapter/gogs.py` — GogsAdapter (Gitea 継承、PR/Label/Milestone を NotSupportedError)
