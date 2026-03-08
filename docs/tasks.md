@@ -262,7 +262,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 
 ## Phase 6: CLI 統合
 
-### T-29: cli.py
+### ✅ T-29: cli.py
 - **参照**: design.md L759-957 (セクション 2.7)
 - **成果物**:
   - `src/gfo/cli.py` — create_parser, main, _DISPATCH テーブル
