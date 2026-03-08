@@ -79,14 +79,14 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 
 ## Phase 3: アダプター基盤
 
-### T-08: adapter/base.py — データクラス
+### T-08: adapter/base.py — データクラス ✅
 - **参照**: design.md L959-1042 (セクション 2.8 データクラス実装方針)
 - **成果物**:
   - `src/gfo/adapter/base.py` (前半) — frozen dataclass: PullRequest, Issue, Repository, Release, Label, Milestone
 - **依存**: なし (データクラスのみ)
 - **検証**: import テスト、フィールドの不変性確認
 
-### T-09: adapter/base.py — ABC 定義
+### T-09: adapter/base.py — ABC 定義 ✅
 - **参照**: design.md L1043-1173 (セクション 2.8 ABC 定義)
 - **成果物**:
   - `src/gfo/adapter/base.py` (後半) — GitServiceAdapter ABC (全抽象メソッド定義)
