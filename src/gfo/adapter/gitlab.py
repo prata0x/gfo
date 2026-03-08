@@ -1,0 +1,279 @@
+"""GitLab アダプター。GitServiceAdapter の全メソッドを GitLab REST API v4 で実装する。"""
+
+from __future__ import annotations
+
+from urllib.parse import quote
+
+from .base import (
+    GitServiceAdapter,
+    Issue,
+    Label,
+    Milestone,
+    PullRequest,
+    Release,
+    Repository,
+)
+from .registry import register
+from gfo.http import paginate_page_param
+
+
+@register("gitlab")
+class GitLabAdapter(GitServiceAdapter):
+    service_name = "GitLab"
+
+    def _project_path(self) -> str:
+        return f"/projects/{quote(self._owner + '/' + self._repo, safe='')}"
+
+    # --- 変換ヘルパー ---
+
+    @staticmethod
+    def _to_pull_request(data: dict) -> PullRequest:
+        state = data["state"]
+        if state == "opened":
+            state = "open"
+
+        return PullRequest(
+            number=data["iid"],
+            title=data["title"],
+            body=data.get("description"),
+            state=state,
+            author=data["author"]["username"],
+            source_branch=data["source_branch"],
+            target_branch=data["target_branch"],
+            draft=data.get("draft", False),
+            url=data["web_url"],
+            created_at=data["created_at"],
+            updated_at=data.get("updated_at"),
+        )
+
+    @staticmethod
+    def _to_issue(data: dict) -> Issue:
+        state = data["state"]
+        if state == "opened":
+            state = "open"
+        if state == "closed":
+            state = "closed"
+
+        return Issue(
+            number=data["iid"],
+            title=data["title"],
+            body=data.get("description"),
+            state=state,
+            author=data["author"]["username"],
+            assignees=[a["username"] for a in data.get("assignees", [])],
+            labels=data.get("labels", []),
+            url=data["web_url"],
+            created_at=data["created_at"],
+        )
+
+    @staticmethod
+    def _to_repository(data: dict) -> Repository:
+        return Repository(
+            name=data["name"],
+            full_name=data["path_with_namespace"],
+            description=data.get("description"),
+            private=data.get("visibility") == "private",
+            default_branch=data.get("default_branch"),
+            clone_url=data["http_url_to_repo"],
+            url=data["web_url"],
+        )
+
+    @staticmethod
+    def _to_release(data: dict) -> Release:
+        return Release(
+            tag=data["tag_name"],
+            title=data.get("name") or "",
+            body=data.get("description"),
+            draft=data.get("upcoming_release", False),
+            prerelease=data.get("upcoming_release", False),
+            url=data["_links"]["self"] if "_links" in data else data.get("web_url", ""),
+            created_at=data["created_at"],
+        )
+
+    @staticmethod
+    def _to_label(data: dict) -> Label:
+        color = data.get("color")
+        if color and color.startswith("#"):
+            color = color[1:]
+        return Label(
+            name=data["name"],
+            color=color,
+            description=data.get("description"),
+        )
+
+    @staticmethod
+    def _to_milestone(data: dict) -> Milestone:
+        return Milestone(
+            number=data["iid"],
+            title=data["title"],
+            description=data.get("description"),
+            state=data["state"],
+            due_date=data.get("due_date"),
+        )
+
+    # --- PR (Merge Request) ---
+
+    def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]:
+        api_state = "opened" if state == "open" else state
+        params = {"state": api_state}
+        results = paginate_page_param(
+            self._client, f"{self._project_path()}/merge_requests",
+            params=params, limit=limit,
+        )
+        return [self._to_pull_request(r) for r in results]
+
+    def create_pull_request(self, *, title: str, body: str = "",
+                            base: str, head: str,
+                            draft: bool = False) -> PullRequest:
+        payload = {
+            "title": title,
+            "description": body,
+            "target_branch": base,
+            "source_branch": head,
+            "draft": draft,
+        }
+        resp = self._client.post(f"{self._project_path()}/merge_requests", json=payload)
+        return self._to_pull_request(resp.json())
+
+    def get_pull_request(self, number: int) -> PullRequest:
+        resp = self._client.get(f"{self._project_path()}/merge_requests/{number}")
+        return self._to_pull_request(resp.json())
+
+    def merge_pull_request(self, number: int, *, method: str = "merge") -> None:
+        payload = {}
+        if method != "merge":
+            payload["merge_method"] = method
+        self._client.put(
+            f"{self._project_path()}/merge_requests/{number}/merge",
+            json=payload,
+        )
+
+    def close_pull_request(self, number: int) -> None:
+        self._client.put(
+            f"{self._project_path()}/merge_requests/{number}",
+            json={"state_event": "close"},
+        )
+
+    def get_pr_checkout_refspec(self, number: int, *,
+                                pr: PullRequest | None = None) -> str:
+        return f"merge-requests/{number}/head"
+
+    # --- Issue ---
+
+    def list_issues(self, *, state: str = "open",
+                    assignee: str | None = None,
+                    label: str | None = None,
+                    limit: int = 30) -> list[Issue]:
+        api_state = "opened" if state == "open" else state
+        params: dict = {"state": api_state}
+        if assignee is not None:
+            params["assignee_username"] = assignee
+        if label is not None:
+            params["labels"] = label
+        results = paginate_page_param(
+            self._client, f"{self._project_path()}/issues",
+            params=params, limit=limit,
+        )
+        return [self._to_issue(r) for r in results]
+
+    def create_issue(self, *, title: str, body: str = "",
+                     assignee: str | None = None,
+                     label: str | None = None, **kwargs) -> Issue:
+        payload: dict = {"title": title, "description": body}
+        if assignee is not None:
+            payload["assignee_username"] = assignee
+        if label is not None:
+            payload["labels"] = label
+        resp = self._client.post(f"{self._project_path()}/issues", json=payload)
+        return self._to_issue(resp.json())
+
+    def get_issue(self, number: int) -> Issue:
+        resp = self._client.get(f"{self._project_path()}/issues/{number}")
+        return self._to_issue(resp.json())
+
+    def close_issue(self, number: int) -> None:
+        self._client.put(
+            f"{self._project_path()}/issues/{number}",
+            json={"state_event": "close"},
+        )
+
+    # --- Repository ---
+
+    def list_repositories(self, *, owner: str | None = None,
+                          limit: int = 30) -> list[Repository]:
+        if owner is not None:
+            path = f"/users/{owner}/projects"
+        else:
+            path = "/projects?owned=true&membership=true"
+        results = paginate_page_param(self._client, path, limit=limit)
+        return [self._to_repository(r) for r in results]
+
+    def create_repository(self, *, name: str, private: bool = False,
+                          description: str = "") -> Repository:
+        visibility = "private" if private else "public"
+        payload = {"name": name, "visibility": visibility, "description": description}
+        resp = self._client.post("/projects", json=payload)
+        return self._to_repository(resp.json())
+
+    def get_repository(self, owner: str | None = None,
+                       name: str | None = None) -> Repository:
+        o = owner if owner is not None else self._owner
+        n = name if name is not None else self._repo
+        resp = self._client.get(f"/projects/{quote(o + '/' + n, safe='')}")
+        return self._to_repository(resp.json())
+
+    # --- Release ---
+
+    def list_releases(self, *, limit: int = 30) -> list[Release]:
+        results = paginate_page_param(
+            self._client, f"{self._project_path()}/releases", limit=limit,
+        )
+        return [self._to_release(r) for r in results]
+
+    def create_release(self, *, tag: str, title: str = "",
+                       notes: str = "", draft: bool = False,
+                       prerelease: bool = False) -> Release:
+        payload = {
+            "tag_name": tag,
+            "name": title,
+            "description": notes,
+        }
+        resp = self._client.post(f"{self._project_path()}/releases", json=payload)
+        return self._to_release(resp.json())
+
+    # --- Label ---
+
+    def list_labels(self) -> list[Label]:
+        results = paginate_page_param(
+            self._client, f"{self._project_path()}/labels",
+        )
+        return [self._to_label(r) for r in results]
+
+    def create_label(self, *, name: str, color: str | None = None,
+                     description: str | None = None) -> Label:
+        payload: dict = {"name": name}
+        if color is not None:
+            payload["color"] = f"#{color}"
+        if description is not None:
+            payload["description"] = description
+        resp = self._client.post(f"{self._project_path()}/labels", json=payload)
+        return self._to_label(resp.json())
+
+    # --- Milestone ---
+
+    def list_milestones(self) -> list[Milestone]:
+        results = paginate_page_param(
+            self._client, f"{self._project_path()}/milestones",
+        )
+        return [self._to_milestone(r) for r in results]
+
+    def create_milestone(self, *, title: str,
+                         description: str | None = None,
+                         due_date: str | None = None) -> Milestone:
+        payload: dict = {"title": title}
+        if description is not None:
+            payload["description"] = description
+        if due_date is not None:
+            payload["due_date"] = due_date
+        resp = self._client.post(f"{self._project_path()}/milestones", json=payload)
+        return self._to_milestone(resp.json())
