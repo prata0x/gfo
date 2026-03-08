@@ -152,3 +152,18 @@
 - design.md L1043-1170 に ABC の完全な定義があり、そのまま移植するだけで完了
 - 抽象メソッド18個 + 具象メソッド `get_pr_checkout_refspec` のデフォルト実装を追加
 - 4テスト全パス、既存テストにも影響なし
+
+---
+
+## T-10: adapter/registry.py + output.py
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- design.md の擬似コードがほぼそのまま実装に使えた
+- output.py: table/json/plain の3フォーマッタ + output 関数を実装。dataclasses.asdict/fields を活用しシンプルに
+- registry.py: register デコレータ + get_adapter_class + create_adapter ファクトリを実装。9サービスの認証方式を網羅
+- 29テスト全パス、既存テストにも影響なし

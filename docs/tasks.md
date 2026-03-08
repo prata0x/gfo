@@ -93,7 +93,7 @@ design.md に基づく実装タスク。1タスク = 1コミット単位。
 - **依存**: T-08
 - **検証**: ABC の抽象メソッド一覧確認テスト
 
-### T-10: adapter/registry.py + output.py
+### T-10: adapter/registry.py + output.py ✅
 - **参照**: design.md L1174-1278 (セクション 2.9), L691-757 (セクション 2.6)
 - **成果物**:
   - `src/gfo/adapter/registry.py` — register_adapter, create_adapter, インポート時登録の仕組み
