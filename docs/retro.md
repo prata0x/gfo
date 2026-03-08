@@ -424,3 +424,19 @@
 - `adapter.create_release` のシグネチャ (`tag`, `title`, `notes`, `draft`, `prerelease`) が `base.py` の ABC と完全に一致しており、実装に迷いがなかった
 - `_patch_all` コンテキストマネージャ + `setup_method` フィクスチャ初期化パターンにより、8テストが全て独立した状態で実行される構造を維持できた
 - 8テスト全パス（TestHandleList 3件 + TestHandleCreate 5件）
+
+---
+
+## T-27: commands/label.py — label コマンドハンドラ
+
+### 発生した問題
+
+- 特になし
+
+### うまくいった点
+
+- T-26 (release.py) のパターンをそのまま踏襲し、`handle_list` / `handle_create` を最小限のコードで実装できた
+- `Label` データクラスが `name`, `color`, `description` の3フィールドのみで、release と異なり `limit` 引数が不要なためさらにシンプルな実装になった
+- `handle_list` のテストで `list_labels.assert_called_once_with()` (引数なし) を明示的に検証し、limit 引数が渡らないことを確認できた
+- `test_create_without_color` で `color=None`, `description=None` のケースを明示的にカバーし、オプション引数の None 伝播を検証した
+- 5テスト全パス（TestHandleList 3件 + TestHandleCreate 2件）
