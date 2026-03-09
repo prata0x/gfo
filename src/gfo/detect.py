@@ -39,11 +39,11 @@ _HTTPS_RE = re.compile(
 )
 
 _SSH_URL_RE = re.compile(
-    r"^ssh://(?:\w+@)?(?P<host>[^/:]+)(?::(?P<port>\d+))?/(?P<path>.+?)(?:\.git)?/?$"
+    r"^ssh://(?:[^\s@]+@)?(?P<host>[^/:]+)(?::(?P<port>\d+))?/(?P<path>.+?)(?:\.git)?/?$"
 )
 
 _SSH_SCP_RE = re.compile(
-    r"^(?:\w+@)?(?P<host>[^:]+):(?P<path>.+?)(?:\.git)?/?$"
+    r"^(?:[^\s@]+@)?(?P<host>[^:]+):(?P<path>.+?)(?:\.git)?/?$"
 )
 
 

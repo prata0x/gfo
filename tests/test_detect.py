@@ -27,9 +27,25 @@ class TestDetectFromUrl:
         assert r.owner == "owner"
         assert r.repo == "repo"
 
+    def test_ssh_scp_hyphenated_username(self):
+        """ハイフン入りユーザー名の SSH SCP URL がパースできる。"""
+        r = detect_from_url("my-user@github.com:owner/repo.git")
+        assert r.service_type == "github"
+        assert r.host == "github.com"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+
     def test_github_ssh_url(self):
         r = detect_from_url("ssh://git@github.com/owner/repo.git")
         assert r.service_type == "github"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+
+    def test_ssh_url_hyphenated_username(self):
+        """ハイフン入りユーザー名の SSH URL がパースできる。"""
+        r = detect_from_url("ssh://my-user@github.com/owner/repo.git")
+        assert r.service_type == "github"
+        assert r.host == "github.com"
         assert r.owner == "owner"
         assert r.repo == "repo"
 
