@@ -44,8 +44,10 @@ def output(data: Any, *, fmt: str = "table", fields: list[str] | None = None) ->
     if not items:
         if fmt == "json":
             print("[]")
+        elif fmt == "plain":
+            pass  # plain は空行なしで終了
         else:
-            print("No results found.", file=sys.stderr)
+            print("No results found.")
         return
 
     if fields is None:

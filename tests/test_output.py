@@ -199,11 +199,11 @@ class TestOutput:
         assert "Fix typo" in captured.out
 
     def test_empty_list_no_output(self, capsys):
-        """空リストは stdout 空、table/plain は stderr にメッセージ出力。"""
+        """空リストは table 形式で stdout に 'No results found.' を出力する。"""
         output([])
         captured = capsys.readouterr()
-        assert captured.out == ""
-        assert "No results found." in captured.err
+        assert "No results found." in captured.out
+        assert captured.err == ""
 
     def test_empty_list_json_outputs_brackets(self, capsys):
         """空リストを json フォーマットで出力すると '[]' が stdout に出る。"""

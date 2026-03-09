@@ -190,6 +190,10 @@ def save_project_config(config: ProjectConfig, cwd: str | None = None) -> None:
 
 def build_clone_url(service_type: str, host: str, owner: str, name: str) -> str:
     """サービス種別・ホスト・owner/name から clone 用 HTTPS URL を構築する。"""
+    if not owner or not name:
+        raise ConfigError(
+            f"Invalid repo format. Both owner and name must be non-empty, got owner={owner!r}, name={name!r}."
+        )
     if service_type == "github":
         return f"https://github.com/{owner}/{name}.git"
     if service_type == "bitbucket":
