@@ -230,8 +230,10 @@ class GiteaAdapter(GitServiceAdapter):
     # --- Label ---
 
     def list_labels(self) -> list[Label]:
-        resp = self._client.get(f"{self._repos_path()}/labels")
-        return [self._to_label(r) for r in resp.json()]
+        results = paginate_link_header(
+            self._client, f"{self._repos_path()}/labels", per_page_key="limit",
+        )
+        return [self._to_label(r) for r in results]
 
     def create_label(self, *, name: str, color: str | None = None,
                      description: str | None = None) -> Label:
@@ -246,8 +248,10 @@ class GiteaAdapter(GitServiceAdapter):
     # --- Milestone ---
 
     def list_milestones(self) -> list[Milestone]:
-        resp = self._client.get(f"{self._repos_path()}/milestones")
-        return [self._to_milestone(r) for r in resp.json()]
+        results = paginate_link_header(
+            self._client, f"{self._repos_path()}/milestones", per_page_key="limit",
+        )
+        return [self._to_milestone(r) for r in results]
 
     def create_milestone(self, *, title: str,
                          description: str | None = None,
