@@ -28,7 +28,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     # --- PR ---
 
     def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]:
-        api_state = "closed" if state == "merged" else state
+        api_state = "closed" if state == "merged" else state  # GitHub API に merged パラメータはなく closed で代用
         params = {"state": api_state}
         results = paginate_link_header(
             self._client, f"{self._repos_path()}/pulls",

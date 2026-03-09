@@ -253,9 +253,12 @@ class BacklogAdapter(GitServiceAdapter):
 
     def list_repositories(self, *, owner: str | None = None,
                           limit: int = 30) -> list[Repository]:
-        resp = self._client.get(f"/projects/{self._project_key}/git/repositories")
-        items = resp.json()
-        return [self._to_repository(r) for r in items[:limit]]
+        results = paginate_offset(
+            self._client,
+            f"/projects/{self._project_key}/git/repositories",
+            limit=limit,
+        )
+        return [self._to_repository(r) for r in results]
 
     def create_repository(self, *, name: str, private: bool = False,
                           description: str = "") -> Repository:

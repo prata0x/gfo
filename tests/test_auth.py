@@ -181,7 +181,7 @@ def test_save_token_windows_icacls_oserror_ignored(tmp_path, monkeypatch):
         raise OSError("icacls not found")
 
     monkeypatch.setattr("gfo.auth.subprocess.run", mock_run_raises)
-    monkeypatch.setattr("gfo.auth.os.getlogin", lambda: "testuser")
+    monkeypatch.setattr("gfo.auth.getpass.getuser", lambda: "testuser")
 
     # OSError が伝播せず、トークンは保存される
     save_token("github.com", "ghp_test")
