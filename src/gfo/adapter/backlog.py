@@ -260,6 +260,12 @@ class BacklogAdapter(GitServiceAdapter):
 
     def list_repositories(self, *, owner: str | None = None,
                           limit: int = 30) -> list[Repository]:
+        if owner is not None:
+            raise NotSupportedError(
+                self.service_name,
+                "filtering repositories by owner "
+                "(repositories are scoped to the configured project)",
+            )
         results = paginate_offset(
             self._client,
             f"/projects/{self._project_key}/git/repositories",

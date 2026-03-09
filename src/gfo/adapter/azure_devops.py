@@ -267,6 +267,12 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     def list_repositories(self, *, owner: str | None = None,
                           limit: int = 30) -> list[Repository]:
+        if owner is not None:
+            raise NotSupportedError(
+                self.service_name,
+                "filtering repositories by owner "
+                "(repositories are scoped to the configured project)",
+            )
         results = paginate_top_skip(
             self._client, "/git/repositories",
             limit=limit, result_key="value",

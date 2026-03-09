@@ -531,6 +531,11 @@ class TestListRepositories:
         repos = azure_devops_adapter.list_repositories()
         assert len(repos) == 1
 
+    def test_owner_raises_not_supported(self, azure_devops_adapter):
+        """Azure DevOps は owner によるフィルタを未サポート → NotSupportedError。"""
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.list_repositories(owner="someone")
+
 
 class TestCreateRepository:
     def test_create(self, mock_responses, azure_devops_adapter):

@@ -532,6 +532,11 @@ class TestListRepositories:
         assert len(repos) == 1
         assert isinstance(repos[0], Repository)
 
+    def test_owner_raises_not_supported(self, backlog_adapter):
+        """Backlog は owner によるフィルタを未サポート → NotSupportedError。"""
+        with pytest.raises(NotSupportedError):
+            backlog_adapter.list_repositories(owner="someone")
+
 
 class TestCreateRepository:
     def test_create(self, mock_responses, backlog_adapter):
