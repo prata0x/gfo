@@ -7,12 +7,12 @@ import argparse
 from gfo.adapter.registry import create_adapter, create_http_client, get_adapter_class
 from gfo.auth import resolve_token
 from gfo.config import (
-    _build_default_api_url,
+    build_default_api_url,
     get_default_host,
     get_host_config,
     resolve_project_config,
 )
-from gfo.detect import detect_service, probe_unknown_host
+from gfo.detect import detect_service, get_known_service_type, probe_unknown_host
 from gfo.exceptions import ConfigError, DetectionError
 from gfo.git_util import git_clone
 from gfo.output import output
@@ -58,9 +58,7 @@ def _resolve_host_without_repo(args_host: str | None) -> tuple[str, str]:
     else:
         service_type = probe_unknown_host(host)
         if not service_type:
-            # 既知ホストテーブルから解決を試みる
-            from gfo.detect import _KNOWN_HOSTS
-            service_type = _KNOWN_HOSTS.get(host)
+            service_type = get_known_service_type(host)
         if not service_type:
             raise ConfigError(
                 f"Could not determine service type for host '{host}'. "
@@ -75,7 +73,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     host, service_type = _resolve_host_without_repo(getattr(args, "host", None))
 
     token = resolve_token(host, service_type)
-    api_url = _build_default_api_url(service_type, host)
+    api_url = build_default_api_url(service_type, host)
 
     client = create_http_client(service_type, api_url, token)
     adapter_cls = get_adapter_class(service_type)

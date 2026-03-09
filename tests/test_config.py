@@ -9,7 +9,7 @@ import pytest
 
 from gfo.config import (
     ProjectConfig,
-    _build_default_api_url,
+    build_default_api_url,
     get_config_dir,
     get_config_path,
     get_credentials_path,
@@ -171,87 +171,87 @@ def test_get_hosts_config():
         }
 
 
-# ── _build_default_api_url ──
+# ── build_default_api_url ──
 
 
 def test_build_github_com():
-    assert _build_default_api_url("github", "github.com") == "https://api.github.com"
+    assert build_default_api_url("github", "github.com") == "https://api.github.com"
 
 
 def test_build_github_enterprise():
     assert (
-        _build_default_api_url("github", "ghe.example.com")
+        build_default_api_url("github", "ghe.example.com")
         == "https://ghe.example.com/api/v3"
     )
 
 
 def test_build_gitlab():
     assert (
-        _build_default_api_url("gitlab", "gitlab.com") == "https://gitlab.com/api/v4"
+        build_default_api_url("gitlab", "gitlab.com") == "https://gitlab.com/api/v4"
     )
 
 
 def test_build_bitbucket():
     assert (
-        _build_default_api_url("bitbucket", "bitbucket.org")
+        build_default_api_url("bitbucket", "bitbucket.org")
         == "https://api.bitbucket.org/2.0"
     )
 
 
 def test_build_azure_devops():
     assert (
-        _build_default_api_url("azure-devops", "dev.azure.com", "myorg", "myproj")
+        build_default_api_url("azure-devops", "dev.azure.com", "myorg", "myproj")
         == "https://dev.azure.com/myorg/myproj/_apis"
     )
 
 
 def test_build_azure_devops_missing_org():
     with pytest.raises(ConfigError, match="organization"):
-        _build_default_api_url("azure-devops", "dev.azure.com")
+        build_default_api_url("azure-devops", "dev.azure.com")
 
 
 def test_build_azure_devops_missing_project():
     """organization あり・project なしの場合も ConfigError。"""
     with pytest.raises(ConfigError, match="organization"):
-        _build_default_api_url("azure-devops", "dev.azure.com", organization="myorg")
+        build_default_api_url("azure-devops", "dev.azure.com", organization="myorg")
 
 
 def test_build_gitea():
     assert (
-        _build_default_api_url("gitea", "gitea.local") == "https://gitea.local/api/v1"
+        build_default_api_url("gitea", "gitea.local") == "https://gitea.local/api/v1"
     )
 
 
 def test_build_forgejo():
     assert (
-        _build_default_api_url("forgejo", "codeberg.org")
+        build_default_api_url("forgejo", "codeberg.org")
         == "https://codeberg.org/api/v1"
     )
 
 
 def test_build_gogs():
     assert (
-        _build_default_api_url("gogs", "gogs.local") == "https://gogs.local/api/v1"
+        build_default_api_url("gogs", "gogs.local") == "https://gogs.local/api/v1"
     )
 
 
 def test_build_gitbucket():
     assert (
-        _build_default_api_url("gitbucket", "gb.local")
+        build_default_api_url("gitbucket", "gb.local")
         == "https://gb.local/api/v3"
     )
 
 
 def test_build_backlog():
     assert (
-        _build_default_api_url("backlog", "space.backlog.com")
+        build_default_api_url("backlog", "space.backlog.com")
         == "https://space.backlog.com/api/v2"
     )
 
 
 def test_build_unknown_service():
     with pytest.raises(ConfigError, match="Unknown service type"):
-        _build_default_api_url("unknown", "example.com")
+        build_default_api_url("unknown", "example.com")
 
 
 # ── resolve_project_config ──

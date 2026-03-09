@@ -6,7 +6,7 @@ import argparse
 
 from gfo.config import (
     ProjectConfig,
-    _build_default_api_url,
+    build_default_api_url,
     get_host_config,
     save_project_config,
 )
@@ -54,7 +54,7 @@ def _handle_non_interactive(args: argparse.Namespace) -> None:
             "or use --owner/--repo options."
         ) from e
 
-    # api_url の解決: args.api_url → get_host_config → _build_default_api_url
+    # api_url の解決: args.api_url → get_host_config → build_default_api_url
     api_url = getattr(args, "api_url", None)
     if not api_url:
         host_cfg = get_host_config(host)
@@ -62,7 +62,7 @@ def _handle_non_interactive(args: argparse.Namespace) -> None:
             api_url = host_cfg["api_url"]
     if not api_url:
         project_key = getattr(args, "project_key", None)
-        api_url = _build_default_api_url(service_type, host, organization=detect_result.organization, project=project_key)
+        api_url = build_default_api_url(service_type, host, organization=detect_result.organization, project=project_key)
 
     project_key = getattr(args, "project_key", None) or detect_result.project
 
@@ -105,7 +105,7 @@ def _handle_interactive(args: argparse.Namespace) -> None:
         project_key = detect_result.project
 
         try:
-            api_url = _build_default_api_url(service_type, host, organization, project_key)
+            api_url = build_default_api_url(service_type, host, organization, project_key)
         except ConfigError:
             # organization / project_key が未解決の場合（Azure DevOps 等）に手動入力へフォールバック
             print(
@@ -116,7 +116,7 @@ def _handle_interactive(args: argparse.Namespace) -> None:
                 organization = input("Organization: ").strip() or None
             if project_key is None:
                 project_key = input("Project key: ").strip() or None
-            api_url = _build_default_api_url(service_type, host, organization, project_key)
+            api_url = build_default_api_url(service_type, host, organization, project_key)
     else:
         # 手動入力
         service_type = input("Service type (github/gitlab/bitbucket/...): ").strip()
@@ -143,7 +143,7 @@ def _handle_interactive(args: argparse.Namespace) -> None:
         if api_url_input:
             api_url = api_url_input
         else:
-            api_url = _build_default_api_url(service_type, host, organization, project_key)
+            api_url = build_default_api_url(service_type, host, organization, project_key)
 
     config = ProjectConfig(
         service_type=service_type,

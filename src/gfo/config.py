@@ -159,7 +159,7 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
         if host_cfg and "api_url" in host_cfg:
             api_url = host_cfg["api_url"]
     if not api_url:
-        api_url = _build_default_api_url(stype, shost, organization, project_key)
+        api_url = build_default_api_url(stype, shost, organization, project_key)
 
     return ProjectConfig(
         service_type=stype,
@@ -188,7 +188,7 @@ def save_project_config(config: ProjectConfig, cwd: str | None = None) -> None:
 # ── デフォルト API URL 構築 ──
 
 
-def _build_default_api_url(
+def build_default_api_url(
     service_type: str,
     host: str,
     organization: str | None = None,
