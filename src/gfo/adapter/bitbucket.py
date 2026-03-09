@@ -164,7 +164,7 @@ class BitbucketAdapter(GitServiceAdapter):
     def close_issue(self, number: int) -> None:
         self._client.put(
             f"{self._repos_path()}/issues/{number}",
-            json={"state": "closed"},
+            json={"state": "resolved"},
         )
 
     # --- Repository ---

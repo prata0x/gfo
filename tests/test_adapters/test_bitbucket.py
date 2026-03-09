@@ -275,11 +275,11 @@ class TestCloseIssue:
     def test_close(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
             responses.PUT, f"{REPOS}/issues/3",
-            json=_issue_data(id=3, state="closed"), status=200,
+            json=_issue_data(id=3, state="resolved"), status=200,
         )
         bitbucket_adapter.close_issue(3)
         req_body = json.loads(mock_responses.calls[0].request.body)
-        assert req_body["state"] == "closed"
+        assert req_body["state"] == "resolved"
 
 
 # --- Repository 系 ---
