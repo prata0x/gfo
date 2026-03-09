@@ -300,6 +300,27 @@ class TestHandleCreate:
         assert call_kwargs["organization"] == "my-org"
         assert call_kwargs["project_key"] == "my-project"
 
+    def test_azure_devops_no_org_raises_config_error(self):
+        """Azure DevOps で organization が取得できない場合 ConfigError を送出する。"""
+        from gfo.config import ProjectConfig
+        mock_cfg = MagicMock(spec=ProjectConfig)
+        mock_cfg.service_type = "azure-devops"
+        mock_cfg.organization = None
+        mock_cfg.project_key = "my-project"
+
+        args = make_args(host="dev.azure.com", name="new-repo", private=False, description="")
+
+        with patch("gfo.commands.repo._resolve_host_without_repo",
+                   return_value=("dev.azure.com", "azure-devops")), \
+             patch("gfo.commands.repo.resolve_project_config", return_value=mock_cfg), \
+             patch("gfo.commands.repo.resolve_token", return_value="pat-token"), \
+             patch("gfo.commands.repo.build_default_api_url",
+                   return_value="https://dev.azure.com/None/my-project/_apis"), \
+             patch("gfo.commands.repo.create_http_client"), \
+             patch("gfo.commands.repo.get_adapter_class"):
+            with pytest.raises(ConfigError, match="organization"):
+                repo_cmd.handle_create(args, fmt="table")
+
 
 class TestHandleClone:
     def test_github_url(self):

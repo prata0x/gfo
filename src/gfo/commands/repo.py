@@ -105,6 +105,11 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
             )
         extra_kwargs["project_key"] = project_key
     elif service_type == "azure-devops":
+        if not organization or not project_key:
+            raise ConfigError(
+                "Azure DevOps requires an organization and a project. "
+                "Run 'gfo init' first to configure."
+            )
         extra_kwargs["organization"] = organization
         extra_kwargs["project_key"] = project_key
 

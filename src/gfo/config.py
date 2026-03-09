@@ -240,11 +240,13 @@ def build_default_api_url(
     if service_type == "azure-devops":
         if not organization:
             raise ConfigError(
-                "Azure DevOps requires organization."
+                "Azure DevOps requires an organization. "
+                "Run 'gfo init' first to configure."
             )
         if not project:
             raise ConfigError(
-                "Azure DevOps requires project."
+                "Azure DevOps requires a project. "
+                "Run 'gfo init' first to configure."
             )
         return f"https://dev.azure.com/{organization}/{project}/_apis"
     if service_type in ("gitea", "forgejo", "gogs"):
