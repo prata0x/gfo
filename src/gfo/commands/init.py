@@ -157,7 +157,13 @@ def _handle_interactive(args: argparse.Namespace) -> None:
                     organization = input("Organization: ").strip() or None
                 if project_key is None:
                     project_key = input("Project key: ").strip() or None
-                api_url = build_default_api_url(service_type, host, organization, project_key)
+                try:
+                    api_url = build_default_api_url(service_type, host, organization, project_key)
+                except ConfigError as e:
+                    raise ConfigError(
+                        f"Could not build API URL for {service_type}: {e}. "
+                        "Use --api-url to specify the URL manually."
+                    ) from e
 
     config = ProjectConfig(
         service_type=service_type,

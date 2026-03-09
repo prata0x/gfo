@@ -227,6 +227,18 @@ class TestHandleInteractive:
             with pytest.raises(ConfigError, match="Could not build API URL"):
                 init_cmd.handle(args, fmt="table")
 
+    def test_detect_failure_manual_azure_devops_second_build_url_fails(self):
+        """手動入力 else ブランチで 2 回目の build_default_api_url も失敗 → ConfigError（R51修正確認）。"""
+        args = make_args(non_interactive=False)
+        # inputs: service_type, host, api_url(空), project_key(空), organization(空), project_key(空)
+        inputs = iter(["azure-devops", "dev.azure.com", "", "", "", ""])
+
+        with patch("gfo.commands.init.detect_service", side_effect=DetectionError()), \
+             patch("gfo.commands.init.get_remote_url", side_effect=GitCommandError("no remote")), \
+             patch("builtins.input", side_effect=inputs):
+            with pytest.raises(ConfigError, match="Could not build API URL"):
+                init_cmd.handle(args, fmt="table")
+
     def test_detect_failure_manual_uses_default_api_url(self):
         """検出失敗 → 手動入力で api_url 空白 → デフォルト URL が使われる。"""
         args = make_args(non_interactive=False)
