@@ -83,7 +83,7 @@ _KNOWN_HOSTS: dict[str, str] = {
 
 def get_known_service_type(host: str) -> str | None:
     """既知ホストテーブルからサービス種別を返す。未知ホストの場合は None。"""
-    return _KNOWN_HOSTS.get(host)
+    return _KNOWN_HOSTS.get(host.lower())
 
 
 # ── URL パース ──

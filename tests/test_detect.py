@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 import responses
 
-from gfo.detect import DetectResult, detect_from_url, detect_service, probe_unknown_host
+from gfo.detect import DetectResult, detect_from_url, detect_service, get_known_service_type, probe_unknown_host
 from gfo.exceptions import DetectionError
 
 
@@ -230,6 +230,22 @@ class TestDetectFromUrl:
         """未知ホスト + パース不可パスで DetectionError が 'Cannot parse path' を含む（R38-01）。"""
         with pytest.raises(DetectionError, match="Cannot parse path"):
             detect_from_url("https://git.example.com/singlepart")
+
+
+# ── get_known_service_type テスト ──
+
+
+class TestGetKnownServiceType:
+    def test_lowercase_known_host(self):
+        assert get_known_service_type("github.com") == "github"
+
+    def test_uppercase_host_normalized(self):
+        """大文字ホストも小文字に正規化して既知テーブルを参照する。"""
+        assert get_known_service_type("GitHub.COM") == "github"
+        assert get_known_service_type("GITLAB.COM") == "gitlab"
+
+    def test_unknown_host_returns_none(self):
+        assert get_known_service_type("unknown.example.com") is None
 
 
 # ── API プローブテスト ──

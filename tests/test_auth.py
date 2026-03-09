@@ -70,6 +70,30 @@ def test_resolve_token_credentials_takes_priority(tmp_path, monkeypatch):
     assert resolve_token("github.com", "github") == "from_file"
 
 
+def test_resolve_token_uppercase_host_normalized(tmp_path, monkeypatch):
+    """ホスト名が大文字で渡されても小文字に正規化して検索する。"""
+    creds = tmp_path / "credentials.toml"
+    creds.write_text('[tokens]\n"github.com" = "my-token"\n', encoding="utf-8")
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+
+    # 大文字ホストで検索しても見つかる
+    assert resolve_token("GitHub.COM", "github") == "my-token"
+
+
+def test_save_token_uppercase_host_normalized(tmp_path, monkeypatch):
+    """save_token はホスト名を小文字に正規化して保存する。"""
+    config_dir = tmp_path / "config"
+    monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
+    creds = config_dir / "credentials.toml"
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+
+    save_token("GitHub.COM", "my-token")
+
+    tokens = load_tokens()
+    assert "github.com" in tokens
+    assert "GitHub.COM" not in tokens
+
+
 # ── save_token ──
 
 

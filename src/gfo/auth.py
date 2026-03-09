@@ -44,6 +44,7 @@ def resolve_token(host: str, service_type: str) -> str:
     3. GFO_TOKEN 環境変数
     4. すべて未設定なら AuthError
     """
+    host = host.lower()
     # 1. credentials.toml
     tokens = load_tokens()
     token_val = tokens.get(host, "")
@@ -70,6 +71,7 @@ def save_token(host: str, token: str) -> None:
     """credentials.toml にトークンを保存する。"""
     if not token.strip():
         raise AuthError(host, "Token must not be empty.")
+    host = host.lower()
     config_dir = get_config_dir()
     config_dir.mkdir(parents=True, exist_ok=True)
 
