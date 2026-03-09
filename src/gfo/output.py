@@ -95,8 +95,7 @@ def format_table(items: list, fields: list[str]) -> str:
 def format_json(items: list) -> str:
     """JSON 形式にフォーマットする。"""
     dicts = [dataclasses.asdict(item) for item in items]
-    data = dicts
-    return json.dumps(data, indent=2, ensure_ascii=False, default=str)
+    return json.dumps(dicts, indent=2, ensure_ascii=False, default=str)
 
 
 def format_plain(items: list, fields: list[str]) -> str:

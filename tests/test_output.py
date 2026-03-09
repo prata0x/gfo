@@ -235,12 +235,18 @@ class TestOutput:
         captured = capsys.readouterr()
         assert captured.out.strip() == "[]"
 
+    def test_empty_list_plain_no_output(self, capsys):
+        """空リストを plain フォーマットで出力すると stdout は空になる（R43-02）。"""
+        output([], fmt="plain")
+        captured = capsys.readouterr()
+        assert captured.out == ""
+
     def test_json_fmt(self, capsys):
         output(SampleItem(1, "Fix typo", "open", "alice"), fmt="json")
         captured = capsys.readouterr()
         parsed = json.loads(captured.out)
-        item = parsed[0] if isinstance(parsed, list) else parsed
-        assert item["number"] == 1
+        assert isinstance(parsed, list)
+        assert parsed[0]["number"] == 1
 
     def test_plain_fmt(self, capsys):
         output(SampleItem(1, "Fix typo", "open", "alice"), fmt="plain")

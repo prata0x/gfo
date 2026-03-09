@@ -77,10 +77,8 @@ class TestHandleList:
 
         out = capsys.readouterr().out
         data = json.loads(out)
-        if isinstance(data, list):
-            assert data[0]["tag"] == "v1.0.0"
-        else:
-            assert data["tag"] == "v1.0.0"
+        assert isinstance(data, list)
+        assert data[0]["tag"] == "v1.0.0"
 
 
 class TestHandleCreate:
