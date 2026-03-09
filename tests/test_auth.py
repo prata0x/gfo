@@ -155,15 +155,17 @@ def test_save_token_windows_icacls(tmp_path, monkeypatch):
 
     def mock_run(cmd, **kwargs):
         calls.append(cmd)
+        result = type("CP", (), {"returncode": 0})()
+        return result
 
     monkeypatch.setattr("gfo.auth.subprocess.run", mock_run)
-    monkeypatch.setattr("gfo.auth.os.getlogin", lambda: "testuser")
+    monkeypatch.setattr("gfo.auth.getpass.getuser", lambda: "testuser")
 
     save_token("github.com", "ghp_test")
 
     assert len(calls) == 1
     assert calls[0][0] == "icacls"
-    assert "testuser:R" in calls[0]
+    assert "testuser:F" in calls[0]
 
 
 def test_save_token_windows_icacls_oserror_ignored(tmp_path, monkeypatch):

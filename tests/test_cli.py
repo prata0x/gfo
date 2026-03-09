@@ -14,7 +14,7 @@ from gfo.exceptions import GfoError, NotSupportedError
 
 
 def test_parser_version(capsys):
-    parser = create_parser()
+    parser, _ = create_parser()
     with pytest.raises(SystemExit) as exc:
         parser.parse_args(["--version"])
     assert exc.value.code == 0
@@ -23,7 +23,7 @@ def test_parser_version(capsys):
 
 
 def test_parser_init_defaults():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["init"])
     assert args.command == "init"
     assert args.non_interactive is False
@@ -32,7 +32,7 @@ def test_parser_init_defaults():
 
 
 def test_parser_init_non_interactive():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["init", "--non-interactive", "--type", "github", "--host", "github.com"])
     assert args.non_interactive is True
     assert args.type == "github"
@@ -40,7 +40,7 @@ def test_parser_init_non_interactive():
 
 
 def test_parser_auth_login():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["auth", "login", "--host", "github.com", "--token", "tok"])
     assert args.command == "auth"
     assert args.subcommand == "login"
@@ -49,14 +49,14 @@ def test_parser_auth_login():
 
 
 def test_parser_auth_status():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["auth", "status"])
     assert args.command == "auth"
     assert args.subcommand == "status"
 
 
 def test_parser_pr_list_defaults():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["pr", "list"])
     assert args.command == "pr"
     assert args.subcommand == "list"
@@ -65,101 +65,101 @@ def test_parser_pr_list_defaults():
 
 
 def test_parser_pr_create():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["pr", "create", "--title", "My PR", "--draft"])
     assert args.title == "My PR"
     assert args.draft is True
 
 
 def test_parser_pr_view():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["pr", "view", "42"])
     assert args.number == 42
 
 
 def test_parser_pr_merge():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["pr", "merge", "5", "--method", "squash"])
     assert args.number == 5
     assert args.method == "squash"
 
 
 def test_parser_pr_close():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["pr", "close", "3"])
     assert args.number == 3
 
 
 def test_parser_pr_checkout():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["pr", "checkout", "7"])
     assert args.number == 7
 
 
 def test_parser_issue_list():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["issue", "list", "--state", "closed", "--assignee", "alice"])
     assert args.state == "closed"
     assert args.assignee == "alice"
 
 
 def test_parser_issue_create():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["issue", "create", "--title", "Bug"])
     assert args.title == "Bug"
 
 
 def test_parser_issue_view():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["issue", "view", "10"])
     assert args.number == 10
 
 
 def test_parser_issue_close():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["issue", "close", "10"])
     assert args.number == 10
 
 
 def test_parser_repo_list():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["repo", "list", "--limit", "10"])
     assert args.limit == 10
 
 
 def test_parser_repo_create():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["repo", "create", "my-repo", "--private"])
     assert args.name == "my-repo"
     assert args.private is True
 
 
 def test_parser_repo_clone_dest_repo():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["repo", "clone", "owner/repo"])
     assert args.repo == "owner/repo"
 
 
 def test_parser_repo_view_dest_repo():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["repo", "view", "owner/repo"])
     assert args.repo == "owner/repo"
 
 
 def test_parser_repo_view_optional():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["repo", "view"])
     assert args.repo is None
 
 
 def test_parser_release_list():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["release", "list"])
     assert args.limit == 30
 
 
 def test_parser_release_create():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["release", "create", "v1.0.0", "--draft", "--prerelease"])
     assert args.tag == "v1.0.0"
     assert args.draft is True
@@ -167,33 +167,33 @@ def test_parser_release_create():
 
 
 def test_parser_label_list():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["label", "list"])
     assert args.subcommand == "list"
 
 
 def test_parser_label_create():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["label", "create", "bug", "--color", "red"])
     assert args.name == "bug"
     assert args.color == "red"
 
 
 def test_parser_milestone_list():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["milestone", "list"])
     assert args.subcommand == "list"
 
 
 def test_parser_milestone_create():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["milestone", "create", "v2.0", "--due", "2026-12-31"])
     assert args.title == "v2.0"
     assert args.due == "2026-12-31"
 
 
 def test_parser_format_option():
-    parser = create_parser()
+    parser, _ = create_parser()
     args = parser.parse_args(["--format", "json", "pr", "list"])
     assert args.format == "json"
 

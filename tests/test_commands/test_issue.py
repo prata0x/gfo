@@ -123,7 +123,7 @@ class TestHandleCreate:
         )
 
     def test_azure_devops_work_item_type(self):
-        config = _make_config("azure_devops")
+        config = _make_config("azure-devops")
         adapter = _make_adapter(self.issue)
         args = make_args(
             title="My Task",
