@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import getpass
 import os
+import re
 import subprocess
 import sys
 import tomllib
@@ -73,21 +75,28 @@ def save_token(host: str, token: str) -> None:
         os.chmod(path, 0o600)
     else:
         try:
-            subprocess.run(
+            username = getpass.getuser()
+            result = subprocess.run(
                 [
                     "icacls",
                     str(path),
                     "/inheritance:r",
                     "/grant:r",
-                    f"{os.getlogin()}:R",
+                    f"{username}:F",
                 ],
                 capture_output=True,
                 check=False,
             )
+            if result.returncode != 0:
+                warnings.warn(
+                    "Could not set file permissions on credentials file "
+                    f"(icacls exited with code {result.returncode}).",
+                    stacklevel=2,
+                )
         except OSError:
             warnings.warn(
                 "Could not set file permissions on credentials file "
-                "(os.getlogin() failed, possibly in CI/Docker environment).",
+                "(getpass.getuser() failed, possibly in CI/Docker environment).",
                 stacklevel=2,
             )
 
@@ -144,7 +153,14 @@ def _write_credentials_toml(path: Path, tokens: dict[str, str]) -> None:
             value.replace("\\", "\\\\")
             .replace('"', '\\"')
             .replace("\n", "\\n")
+            .replace("\r", "\\r")
             .replace("\t", "\\t")
+        )
+        # \x00-\x1f のうち上記以外の制御文字をユニコードエスケープに変換
+        escaped = re.sub(
+            r"[\x00-\x08\x0b\x0c\x0e-\x1f]",
+            lambda m: f"\\u{ord(m.group()):04x}",
+            escaped,
         )
         lines.append(f'"{key}" = "{escaped}"')
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
