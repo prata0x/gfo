@@ -58,15 +58,11 @@ _AZURE_V3_PATH_RE = re.compile(
     r"^v3/(?P<org>[^/]+)/(?P<project>[^/]+)/(?P<repo>[^/]+)$"
 )
 
-# Backlog / GitBucket 両サービスで同一パターン（`git/{owner}/{repo}`）。
-# キャプチャグループ名のみ異なるため、共通パターンをマッチ後に使い分ける。
+# Backlog HTTPS の URL パス（`git/{owner}/{repo}`）用パターン。
 _GIT_PATH_RE = re.compile(
     r"^git/(?P<owner>[^/]+)/(?P<repo>[^/]+)$"
 )
-
-# 後方互換エイリアス（パターンは同一、グループ名は owner で統一済み）
 _BACKLOG_PATH_RE = _GIT_PATH_RE
-_GITBUCKET_PATH_RE = _GIT_PATH_RE
 
 _GENERIC_PATH_RE = re.compile(
     r"^(?P<owner>.+)/(?P<repo>[^/]+)$"
