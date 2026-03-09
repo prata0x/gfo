@@ -33,6 +33,10 @@ def _handle_non_interactive(args: argparse.Namespace) -> None:
     if not host:
         raise ConfigError("--host is required in non-interactive mode.")
 
+    # owner/repo/organization は detect_from_url() で取得
+    remote_url = get_remote_url()
+    detect_result = detect_from_url(remote_url)
+
     # api_url の解決: args.api_url → get_host_config → _build_default_api_url
     api_url = getattr(args, "api_url", None)
     if not api_url:
@@ -41,11 +45,7 @@ def _handle_non_interactive(args: argparse.Namespace) -> None:
             api_url = host_cfg["api_url"]
     if not api_url:
         project_key = getattr(args, "project_key", None)
-        api_url = _build_default_api_url(service_type, host, project=project_key)
-
-    # owner/repo は detect_from_url() で取得
-    remote_url = get_remote_url()
-    detect_result = detect_from_url(remote_url)
+        api_url = _build_default_api_url(service_type, host, organization=detect_result.organization, project=project_key)
 
     project_key = getattr(args, "project_key", None) or detect_result.project
 
