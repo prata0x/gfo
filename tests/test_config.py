@@ -280,6 +280,12 @@ def test_build_clone_url_github():
     assert url == "https://github.com/owner/repo.git"
 
 
+def test_build_clone_url_github_enterprise():
+    """GHE ホストで clone URL にホスト名が使われる（R36修正確認）。"""
+    url = build_clone_url("github", "ghe.example.com", "owner", "repo")
+    assert url == "https://ghe.example.com/owner/repo.git"
+
+
 def test_build_clone_url_bitbucket():
     url = build_clone_url("bitbucket", "bitbucket.org", "owner", "repo")
     assert url == "https://bitbucket.org/owner/repo.git"

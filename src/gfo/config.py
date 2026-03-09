@@ -206,10 +206,8 @@ def build_clone_url(service_type: str, host: str, owner: str, name: str) -> str:
         raise ConfigError(
             f"Invalid repo format. Both owner and name must be non-empty, got owner={owner!r}, name={name!r}."
         )
-    if service_type == "github":
-        return f"https://github.com/{owner}/{name}.git"
-    if service_type == "bitbucket":
-        return f"https://bitbucket.org/{owner}/{name}.git"
+    if service_type in ("github", "bitbucket"):
+        return f"https://{host}/{owner}/{name}.git"
     if service_type == "azure-devops":
         # owner = org。project は owner と同一と仮定（単一プロジェクト構成）
         return f"https://dev.azure.com/{owner}/{owner}/_git/{name}"
