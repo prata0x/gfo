@@ -149,7 +149,7 @@ class GiteaAdapter(GitServiceAdapter):
                     assignee: str | None = None,
                     label: str | None = None,
                     limit: int = 30) -> list[Issue]:
-        params: dict = {"state": state}
+        params: dict = {"state": state, "type": "issues"}
         if assignee is not None:
             params["assignee"] = assignee
         if label is not None:
