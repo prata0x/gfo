@@ -368,6 +368,18 @@ class TestMergePullRequest:
         with pytest.raises(GfoError, match="lastMergeSourceCommit not found"):
             azure_devops_adapter.merge_pull_request(1)
 
+    def test_merge_non_dict_response_raises_gfo_error(
+        self, mock_responses, azure_devops_adapter
+    ):
+        """pullrequests エンドポイントが dict 以外を返した場合 GfoError になる。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{GIT}/pullrequests/1",
+            json=[], status=200,
+        )
+        with pytest.raises(GfoError, match="Unexpected API response from pullrequests"):
+            azure_devops_adapter.merge_pull_request(1)
+
 
 class TestClosePullRequest:
     def test_close(self, mock_responses, azure_devops_adapter):

@@ -162,6 +162,8 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         strategy = strategy_map.get(method, "noFastForward")
         pr_resp = self._client.get(f"{self._git_path()}/pullrequests/{number}")
         pr_data = pr_resp.json()
+        if not isinstance(pr_data, dict):
+            raise GfoError(f"Unexpected API response from pullrequests endpoint: {type(pr_data)}")
         last_merge_commit = pr_data.get("lastMergeSourceCommit")
         if not last_merge_commit:
             raise GfoError(
