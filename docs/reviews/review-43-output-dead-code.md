@@ -117,9 +117,9 @@
 
 | ID | 重大度 | ファイル | 概要 | 状態 |
 |----|--------|---------|------|------|
-| **R43-01** | 🟢 軽微 | `output.py` L97-98 | `format_json` 内の不要な中間変数 `data = dicts` | 未修正 |
-| **R43-02** | 🟢 軽微 | `test_output.py` | empty list + plain フォーマットのテスト欠落・dead branch | 未修正 |
-| **R43-03** | 🟢 軽微 | `test_release.py` | JSON format テストの dead branch | 未修正 |
+| **R43-01** | 🟢 軽微 | `output.py` L97-98 | `format_json` 内の不要な中間変数 `data = dicts` | ✅ 修正済み |
+| **R43-02** | 🟢 軽微 | `test_output.py` | empty list + plain フォーマットのテスト欠落・dead branch | ✅ 修正済み |
+| **R43-03** | 🟢 軽微 | `test_release.py` | JSON format テストの dead branch | ✅ 修正済み |
 
 ---
 
@@ -133,4 +133,4 @@
 
 | コミット | 修正内容 |
 |---------|---------|
-| （次のコミット） | R43-01〜03 — output.py dead assignment 除去・テスト dead branch 整理・テスト追加 |
+| 64d6cd8 | R43-01〜03 — output.py dead assignment 除去・テスト dead branch 整理・テスト追加 |
