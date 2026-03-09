@@ -14,7 +14,7 @@ from .base import (
     Repository,
 )
 from .registry import register
-from gfo.exceptions import NotSupportedError
+from gfo.exceptions import GfoError, NotSupportedError
 from gfo.http import paginate_offset
 
 
@@ -195,6 +195,17 @@ class BacklogAdapter(GitServiceAdapter):
             priority = next(
                 (p["id"] for p in priorities if "中" in p["name"] or p["name"].lower() == "normal"),
                 priorities[0]["id"] if priorities else None,
+            )
+
+        if issue_type is None:
+            raise GfoError(
+                "Cannot create issue: no issue types found for project "
+                f"'{self._project_key}'. Configure issue types in Backlog."
+            )
+        if priority is None:
+            raise GfoError(
+                "Cannot create issue: no priorities found. "
+                "Configure priorities in Backlog."
             )
 
         payload: dict = {

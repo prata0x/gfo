@@ -111,7 +111,7 @@ class TestToIssue:
 
     def test_issue_number_from_key(self):
         issue = BacklogAdapter._to_issue(_issue_data(issue_key="TEST-42"))
-        assert issue.number == "42"
+        assert issue.number == 42
 
 
 class TestToRepository:
