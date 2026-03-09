@@ -50,8 +50,7 @@ def _handle_non_interactive(args: argparse.Namespace) -> None:
     except (GitCommandError, DetectionError) as e:
         raise ConfigError(
             f"Could not detect repository from remote URL: {e} "
-            "Please ensure you're in a git repository with an origin remote configured, "
-            "or use --owner/--repo options."
+            "Please ensure you're in a git repository with an origin remote configured."
         ) from e
 
     # api_url の解決: args.api_url → get_host_config → build_default_api_url

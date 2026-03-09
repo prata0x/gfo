@@ -229,3 +229,21 @@ class TestHandleNonInteractive:
 
         saved: ProjectConfig = mock_save.call_args[0][0]
         assert saved.api_url == "https://gitlab.com/api/v4"
+
+    def test_remote_url_detection_failure_error_message(self):
+        """リモート URL 取得失敗時のエラーメッセージに --owner/--repo を含まない（R40-01）。"""
+        args = make_args(
+            non_interactive=True,
+            type="github",
+            host="github.com",
+            api_url=None,
+            project_key=None,
+        )
+
+        with patch("gfo.commands.init.get_remote_url", side_effect=GitCommandError("not a git repo")):
+            with pytest.raises(ConfigError) as exc_info:
+                init_cmd.handle(args, fmt="table")
+
+        assert "--owner" not in str(exc_info.value)
+        assert "--repo" not in str(exc_info.value)
+        assert "origin remote" in str(exc_info.value)

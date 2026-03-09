@@ -6,8 +6,11 @@ import contextlib
 import json
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from gfo.adapter.base import Label
 from gfo.commands import label as label_cmd
+from gfo.exceptions import ConfigError
 from tests.test_commands.conftest import make_args
 
 
@@ -188,8 +191,6 @@ class TestHandleCreate:
 
     def test_invalid_color_raises_config_error(self, sample_config):
         """不正なカラーコードは ConfigError を送出する。"""
-        from gfo.exceptions import ConfigError
-        import pytest
         args = make_args(name="bug", color="xyz123", description=None)
         with _patch_all(sample_config, self.adapter), \
              pytest.raises(ConfigError, match="Invalid color"):
@@ -197,8 +198,6 @@ class TestHandleCreate:
 
     def test_double_hash_color_raises_config_error(self, sample_config):
         """複数の `#` を持つカラーは ConfigError を送出する（lstrip→removeprefix 修正の確認）。"""
-        from gfo.exceptions import ConfigError
-        import pytest
         args = make_args(name="bug", color="##ff0000", description=None)
         with _patch_all(sample_config, self.adapter), \
              pytest.raises(ConfigError, match="Invalid color"):
