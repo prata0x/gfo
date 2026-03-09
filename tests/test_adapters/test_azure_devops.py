@@ -333,6 +333,21 @@ class TestMergePullRequest:
         assert req_body["lastMergeSourceCommit"]["commitId"] == "abc123"
 
 
+    def test_merge_missing_last_merge_commit_raises_gfo_error(
+        self, mock_responses, azure_devops_adapter
+    ):
+        """lastMergeSourceCommit が欠落している PR をマージしようとすると GfoError。"""
+        from gfo.exceptions import GfoError
+        pr_data_no_commit = _pr_data()
+        del pr_data_no_commit["lastMergeSourceCommit"]
+        mock_responses.add(
+            responses.GET, f"{GIT}/pullrequests/1",
+            json=pr_data_no_commit, status=200,
+        )
+        with pytest.raises(GfoError, match="lastMergeSourceCommit not found"):
+            azure_devops_adapter.merge_pull_request(1)
+
+
 class TestClosePullRequest:
     def test_close(self, mock_responses, azure_devops_adapter):
         mock_responses.add(

@@ -162,9 +162,15 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         strategy = strategy_map.get(method, "noFastForward")
         pr_resp = self._client.get(f"{self._git_path()}/pullrequests/{number}")
         pr_data = pr_resp.json()
+        last_merge_commit = pr_data.get("lastMergeSourceCommit")
+        if not last_merge_commit:
+            raise GfoError(
+                f"Cannot merge pull request #{number}: lastMergeSourceCommit not found. "
+                "The pull request may have no commits or may be in an invalid state."
+            )
         payload = {
             "status": "completed",
-            "lastMergeSourceCommit": pr_data["lastMergeSourceCommit"],
+            "lastMergeSourceCommit": last_merge_commit,
             "completionOptions": {"mergeStrategy": strategy},
         }
         self._client.patch(f"{self._git_path()}/pullrequests/{number}", json=payload)
