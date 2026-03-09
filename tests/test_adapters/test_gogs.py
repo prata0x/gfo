@@ -103,6 +103,19 @@ class TestWebUrl:
         adapter = GogsAdapter(client, "owner", "repo")
         assert adapter._web_url() == "http://gogs.local:3000"
 
+    def test_web_url_owner_repo_with_special_chars_is_encoded(self, gogs_client):
+        """owner/repo に特殊文字が含まれる場合に web_url が URL エンコードされる（R34-01）。"""
+        from gfo.http import HttpClient
+        client = HttpClient(
+            "https://gogs.example.com/api/v1",
+            auth_header={"Authorization": "token test-token"},
+        )
+        adapter = GogsAdapter(client, "my owner", "my repo")
+        with pytest.raises(NotSupportedError) as exc_info:
+            adapter.list_pull_requests()
+        assert "my%20owner" in exc_info.value.web_url
+        assert "my%20repo" in exc_info.value.web_url
+
 
 class TestInheritedOperations:
     def test_create_issue(self, mock_responses, gogs_adapter):

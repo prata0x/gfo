@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import urllib.parse
+from urllib.parse import quote
 
 from gfo.exceptions import NotSupportedError
 
@@ -26,28 +27,28 @@ class GogsAdapter(GiteaAdapter):
 
     def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]:
         raise NotSupportedError("Gogs", "pull request operations",
-                                web_url=f"{self._web_url()}/{self._owner}/{self._repo}/pulls")
+                                web_url=f"{self._web_url()}/{quote(self._owner, safe='')}/{quote(self._repo, safe='')}/pulls")
 
     def create_pull_request(self, *, title: str, body: str = "",
                             base: str, head: str, draft: bool = False) -> PullRequest:
         raise NotSupportedError("Gogs", "pull request operations",
-                                web_url=f"{self._web_url()}/{self._owner}/{self._repo}/compare")
+                                web_url=f"{self._web_url()}/{quote(self._owner, safe='')}/{quote(self._repo, safe='')}/compare")
 
     def get_pull_request(self, number: int) -> PullRequest:
         raise NotSupportedError("Gogs", "pull request operations",
-                                web_url=f"{self._web_url()}/{self._owner}/{self._repo}/pulls/{number}")
+                                web_url=f"{self._web_url()}/{quote(self._owner, safe='')}/{quote(self._repo, safe='')}/pulls/{number}")
 
     def merge_pull_request(self, number: int, *, method: str = "merge") -> None:
         raise NotSupportedError("Gogs", "pull request operations",
-                                web_url=f"{self._web_url()}/{self._owner}/{self._repo}/pulls/{number}")
+                                web_url=f"{self._web_url()}/{quote(self._owner, safe='')}/{quote(self._repo, safe='')}/pulls/{number}")
 
     def close_pull_request(self, number: int) -> None:
         raise NotSupportedError("Gogs", "pull request operations",
-                                web_url=f"{self._web_url()}/{self._owner}/{self._repo}/pulls/{number}")
+                                web_url=f"{self._web_url()}/{quote(self._owner, safe='')}/{quote(self._repo, safe='')}/pulls/{number}")
 
     def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         raise NotSupportedError("Gogs", "pull request operations",
-                                web_url=f"{self._web_url()}/{self._owner}/{self._repo}/pulls/{number}")
+                                web_url=f"{self._web_url()}/{quote(self._owner, safe='')}/{quote(self._repo, safe='')}/pulls/{number}")
 
     # --- Label（非サポート）---
 

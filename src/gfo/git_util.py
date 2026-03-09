@@ -100,8 +100,11 @@ def git_checkout_branch(
     """ブランチが存在しなければ新規作成、存在すれば既存ブランチにスイッチする。"""
     try:
         run_git("checkout", "-b", branch, start, cwd=cwd)
-    except GitCommandError:
-        run_git("checkout", branch, cwd=cwd)
+    except GitCommandError as e:
+        if "already exists" in str(e).lower():
+            run_git("checkout", branch, cwd=cwd)
+        else:
+            raise
 
 
 def git_clone(url: str, dest: str | None = None, cwd: str | None = None) -> None:

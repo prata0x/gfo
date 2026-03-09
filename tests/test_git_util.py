@@ -159,6 +159,42 @@ class TestGitFetch:
         )
 
 
+class TestGitCheckoutBranch:
+    @patch("gfo.git_util.subprocess.run")
+    def test_new_branch_created_when_not_exists(self, mock_run):
+        """`checkout -b` が成功した場合はそのまま終了する。"""
+        mock_run.return_value = _mock_result()
+        git_util.git_checkout_branch("pr-42")
+        mock_run.assert_called_once_with(
+            ["git", "checkout", "-b", "pr-42", "FETCH_HEAD"],
+            capture_output=True, text=True, check=False,
+            timeout=30, cwd=None, shell=False,
+        )
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_falls_back_to_checkout_when_branch_already_exists(self, mock_run):
+        """`checkout -b` が "already exists" エラーの場合は `checkout branch` にフォールバック。"""
+        mock_run.side_effect = [
+            _mock_result(stderr="fatal: A branch named 'pr-42' already exists.", returncode=128),
+            _mock_result(),
+        ]
+        git_util.git_checkout_branch("pr-42")
+        assert mock_run.call_count == 2
+        second_call_args = mock_run.call_args_list[1]
+        assert second_call_args.args[0] == ["git", "checkout", "pr-42"]
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_reraises_other_git_errors(self, mock_run):
+        """`checkout -b` が "already exists" 以外のエラーの場合は再送出する（R34-02）。"""
+        mock_run.return_value = _mock_result(
+            stderr="error: Your local changes to the following files would be overwritten",
+            returncode=1,
+        )
+        with pytest.raises(GitCommandError):
+            git_util.git_checkout_branch("pr-42")
+        assert mock_run.call_count == 1
+
+
 class TestGitCheckoutNewBranch:
     @patch("gfo.git_util.subprocess.run")
     def test_default_start(self, mock_run):
