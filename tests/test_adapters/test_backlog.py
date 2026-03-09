@@ -656,6 +656,25 @@ class TestResolveMergedStatusId:
         assert id2 == 5
         assert len(mock_responses.calls) == 1  # キャッシュにより1回のみ
 
+    def test_non_list_response_raises_gfo_error(self, mock_responses, backlog_adapter):
+        """API が list 以外を返したとき GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST/statuses",
+            json={"error": "unexpected"}, status=200,
+        )
+        with pytest.raises(GfoError):
+            backlog_adapter._resolve_merged_status_id()
+
+    def test_malformed_status_item_is_skipped(self, mock_responses, backlog_adapter):
+        """name キーを持たない status アイテムはスキップされる。"""
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 99}, {"id": 5, "name": "Merged"}], status=200,
+        )
+        result = backlog_adapter._resolve_merged_status_id()
+        assert result == 5
+
 
 # --- Registry ---
 

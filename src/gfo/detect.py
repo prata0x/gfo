@@ -209,19 +209,20 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
         resp = requests.get(f"{base}/api/v1/version", timeout=5, verify=_VERIFY_SSL)
         if resp.status_code == 200:
             data = resp.json()
-            # Forgejo >= 1.20 は "forgejo" キーを持つ
-            if "forgejo" in data:
-                return "forgejo"
-            # 旧版 Forgejo は source_url に "forgejo" を含む場合がある
-            source_url = data.get("source_url", "")
-            if isinstance(source_url, str) and "forgejo" in source_url.lower():
-                return "forgejo"
-            # Gitea は go_version / go-version キーを持つ（Gogs は持たない）
-            if "go-version" in data or "go_version" in data:
-                return "gitea"
-            # Gogs は version のみ持ち、go_version/forgejo を持たない
-            if "version" in data and "go-version" not in data and "go_version" not in data and "forgejo" not in data:
-                return "gogs"
+            if isinstance(data, dict):
+                # Forgejo >= 1.20 は "forgejo" キーを持つ
+                if "forgejo" in data:
+                    return "forgejo"
+                # 旧版 Forgejo は source_url に "forgejo" を含む場合がある
+                source_url = data.get("source_url", "")
+                if isinstance(source_url, str) and "forgejo" in source_url.lower():
+                    return "forgejo"
+                # Gitea は go_version / go-version キーを持つ（Gogs は持たない）
+                if "go-version" in data or "go_version" in data:
+                    return "gitea"
+                # Gogs は version のみ持ち、go_version/forgejo を持たない
+                if "version" in data and "go-version" not in data and "go_version" not in data and "forgejo" not in data:
+                    return "gogs"
     except (requests.RequestException, ValueError):
         # ValueError: resp.json() が非 JSON レスポンスを受け取った場合
         pass

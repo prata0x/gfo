@@ -361,6 +361,17 @@ class TestProbeUnknownHost:
         assert probe_unknown_host("git.example.com") is None
 
     @responses.activate
+    def test_non_dict_json_response_returns_none(self):
+        """API が dict 以外の JSON を返したとき None を返す（TypeError 等が起きない）。"""
+        responses.add(
+            responses.GET, "https://git.example.com/api/v1/version",
+            json=[{"version": "1.0"}], status=200,
+        )
+        responses.add(responses.GET, "https://git.example.com/api/v4/version", status=404)
+        responses.add(responses.GET, "https://git.example.com/api/v3/", status=404)
+        assert probe_unknown_host("git.example.com") is None
+
+    @responses.activate
     def test_custom_scheme(self):
         responses.add(
             responses.GET,

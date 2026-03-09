@@ -51,10 +51,16 @@ class BacklogAdapter(GitServiceAdapter):
         if self._merged_status_id is not None:
             return self._merged_status_id
         resp = self._client.get(f"/projects/{self._project_key}/statuses")
-        for status in resp.json():
-            if "merged" in status["name"].lower():
-                self._merged_status_id = status["id"]
-                return self._merged_status_id
+        statuses = resp.json()
+        if not isinstance(statuses, list):
+            raise GfoError(f"Unexpected API response from statuses endpoint: {type(statuses)}")
+        for status in statuses:
+            try:
+                if "merged" in status["name"].lower():
+                    self._merged_status_id = status["id"]
+                    return self._merged_status_id
+            except (KeyError, TypeError, AttributeError):
+                continue
         return None
 
     # --- 変換ヘルパー ---
