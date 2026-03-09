@@ -28,9 +28,8 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_pull_request(data: dict) -> PullRequest:
-        state = data["state"]
-        if state == "opened":
-            state = "open"
+        state_map = {"opened": "open", "closed": "closed", "merged": "merged", "locked": "closed"}
+        state = state_map.get(data["state"], data["state"])
 
         return PullRequest(
             number=data["iid"],
