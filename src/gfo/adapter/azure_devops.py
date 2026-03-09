@@ -59,7 +59,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             number=data["pullRequestId"],
             title=data["title"],
             body=data.get("description"),
-            state=_PR_STATE_FROM_API[data["status"]],
+            state=_PR_STATE_FROM_API.get(data["status"], "open"),
             author=data["createdBy"]["uniqueName"],
             source_branch=_strip_refs_prefix(data["sourceRefName"]),
             target_branch=_strip_refs_prefix(data["targetRefName"]),
@@ -109,7 +109,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]:
         params: dict = {}
         if state != "all":
-            params["searchCriteria.status"] = _PR_STATE_TO_API[state]
+            params["searchCriteria.status"] = _PR_STATE_TO_API.get(state, "active")
         results = paginate_top_skip(
             self._client, f"{self._git_path()}/pullrequests",
             params=params, limit=limit, result_key="value",
