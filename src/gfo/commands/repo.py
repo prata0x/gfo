@@ -62,7 +62,7 @@ def _resolve_host_without_repo(args_host: str | None) -> tuple[str, str]:
         if not service_type:
             raise ConfigError(
                 f"Could not determine service type for host '{host}'. "
-                "Configure it in config.toml: [hosts.{host}] type = \"...\""
+                f"Configure it in config.toml: [hosts.{host}] type = \"...\""
             )
 
     return host, service_type

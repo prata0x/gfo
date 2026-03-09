@@ -255,11 +255,13 @@ class GitLabAdapter(GitServiceAdapter):
     def create_release(self, *, tag: str, title: str = "",
                        notes: str = "", draft: bool = False,
                        prerelease: bool = False) -> Release:
-        payload = {
+        payload: dict = {
             "tag_name": tag,
             "name": title,
             "description": notes,
         }
+        if prerelease:
+            payload["upcoming_release"] = True
         resp = self._client.post(f"{self._project_path()}/releases", json=payload)
         return self._to_release(resp.json())
 

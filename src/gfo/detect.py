@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import dataclasses
 import re
-import sys
+import warnings
 from dataclasses import dataclass
 
 from gfo.exceptions import DetectionError
+from gfo.git_util import get_remote_url, git_config_get
 
 
 def _mask_credentials(text: str) -> str:
     """URL 内の認証情報（`://user:pass@` 形式）をマスクする。"""
     return re.sub(r"://[^@\s]+@", "://***@", text)
-from gfo.git_util import get_remote_url, git_config_get
 
 
 # ── データクラス ──
@@ -228,7 +228,7 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
             # Gogs は version のみ持ち、go_version/forgejo を持たない
             if "version" in data and "go-version" not in data and "go_version" not in data and "forgejo" not in data:
                 return "gogs"
-    except (requests.ConnectionError, requests.Timeout, requests.RequestException):
+    except requests.RequestException:
         pass
 
     # 2. GitLab (v4)
@@ -236,7 +236,7 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
         resp = requests.get(f"{base}/api/v4/version", timeout=5, verify=True)
         if resp.status_code == 200:
             return "gitlab"
-    except (requests.ConnectionError, requests.Timeout, requests.RequestException):
+    except requests.RequestException:
         pass
 
     # 3. GitBucket (v3)
@@ -244,7 +244,7 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
         resp = requests.get(f"{base}/api/v3/", timeout=5, verify=True)
         if resp.status_code == 200:
             return "gitbucket"
-    except (requests.ConnectionError, requests.Timeout, requests.RequestException):
+    except requests.RequestException:
         pass
 
     return None
@@ -263,10 +263,10 @@ def detect_service(cwd: str | None = None) -> DetectResult:
         result = detect_from_url(remote_url)
         # URL パース結果と git config 設定が食い違う場合に警告
         if result.service_type is not None and result.service_type != saved_type:
-            print(
-                f"warning: gfo.type={saved_type!r} but URL suggests {result.service_type!r}; "
+            warnings.warn(
+                f"gfo.type={saved_type!r} but URL suggests {result.service_type!r}; "
                 "using git config value.",
-                file=sys.stderr,
+                stacklevel=2,
             )
         # service_type と host を git config の値で統一する
         result = dataclasses.replace(result, service_type=saved_type, host=saved_host)

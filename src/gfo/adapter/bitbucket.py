@@ -12,7 +12,7 @@ from .base import (
     Repository,
 )
 from .registry import register
-from gfo.exceptions import NotSupportedError
+from gfo.exceptions import GfoError, NotSupportedError
 from gfo.http import paginate_response_body
 
 

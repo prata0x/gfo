@@ -415,7 +415,7 @@ class TestGetIssue:
 class TestCloseIssue:
     def test_close(self, mock_responses, backlog_adapter):
         mock_responses.add(
-            responses.PATCH, f"{ISSUES_PATH}/3",
+            responses.PATCH, f"{BASE}/issues/TEST-3",
             json=_issue_data(id=3, status_id=4), status=200,
         )
         backlog_adapter.close_issue(3)

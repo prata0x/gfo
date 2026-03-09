@@ -93,7 +93,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_create.add_argument("--assignee")
     issue_create.add_argument("--label")
     issue_create.add_argument("--type")
-    issue_create.add_argument("--priority")
+    issue_create.add_argument("--priority", type=int)
     issue_view = issue_sub.add_parser("view")
     issue_view.add_argument("number", type=int)
     issue_close = issue_sub.add_parser("close")

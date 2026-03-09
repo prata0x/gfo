@@ -107,7 +107,7 @@ class BacklogAdapter(GitServiceAdapter):
                 url=data.get("url", ""),
                 created_at=data.get("created", ""),
             )
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError, ValueError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod
@@ -247,7 +247,7 @@ class BacklogAdapter(GitServiceAdapter):
         return self._to_issue(resp.json())
 
     def close_issue(self, number: int) -> None:
-        self._client.patch(f"/issues/{number}", json={"statusId": _STATUS_CLOSED_ID})
+        self._client.patch(f"/issues/{self._project_key}-{number}", json={"statusId": _STATUS_CLOSED_ID})
 
     # --- Repository ---
 
