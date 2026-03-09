@@ -161,6 +161,14 @@ def get_auth_status() -> list[dict[str, str]]:
                 )
                 seen_hosts.add(display_host)
 
+    # GFO_TOKEN 汎用フォールバック（resolve_token の最終手段）
+    if os.environ.get("GFO_TOKEN"):
+        host_key = "(all services)"
+        if host_key not in seen_hosts:
+            result.append(
+                {"host": host_key, "status": "configured", "source": "env:GFO_TOKEN"}
+            )
+
     return result
 
 

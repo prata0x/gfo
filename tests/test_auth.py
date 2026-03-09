@@ -308,6 +308,7 @@ def _clear_service_env_vars(monkeypatch, keep: str | None = None) -> None:
     for env_var in _SERVICE_ENV_MAP.values():
         if keep is None or env_var != keep:
             monkeypatch.delenv(env_var, raising=False)
+    monkeypatch.delenv("GFO_TOKEN", raising=False)
 
 
 def test_get_auth_status_credentials_and_env(tmp_path, monkeypatch):
@@ -374,6 +375,32 @@ def test_get_auth_status_no_token_values(tmp_path, monkeypatch):
     for entry in status:
         assert "ghp_secret" not in str(entry.values())
         assert "token" not in entry  # トークン値のキーがない
+
+
+def test_get_auth_status_gfo_token_shown(tmp_path, monkeypatch):
+    """GFO_TOKEN が設定されている場合、auth status に表示される（resolve_token との整合）。"""
+    creds = tmp_path / "credentials.toml"
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+    _clear_service_env_vars(monkeypatch)
+    monkeypatch.setenv("GFO_TOKEN", "universal-token")
+
+    status = get_auth_status()
+
+    assert any(s["source"] == "env:GFO_TOKEN" for s in status)
+    entry = next(s for s in status if s["source"] == "env:GFO_TOKEN")
+    assert entry["status"] == "configured"
+    assert entry["host"] == "(all services)"
+
+
+def test_get_auth_status_gfo_token_not_shown_when_unset(tmp_path, monkeypatch):
+    """GFO_TOKEN が未設定の場合、auth status に表示されない。"""
+    creds = tmp_path / "credentials.toml"
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+    _clear_service_env_vars(monkeypatch)
+
+    status = get_auth_status()
+
+    assert not any(s["source"] == "env:GFO_TOKEN" for s in status)
 
 
 # ── _write_credentials_toml ──
