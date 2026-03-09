@@ -152,6 +152,22 @@ class TestToRelease:
         assert rel.tag == "v1.0.0"
         assert rel.title == "Release v1.0.0"
 
+    def test_links_without_self_falls_back_to_web_url(self):
+        """_links に self キーがない場合は web_url にフォールバックする。"""
+        data = _release_data()
+        data["_links"] = {}  # self キーなし
+        data["web_url"] = "https://gitlab.com/test-owner/test-repo/-/releases/v1.0.0"
+        rel = GitLabAdapter._to_release(data)
+        assert rel.url == "https://gitlab.com/test-owner/test-repo/-/releases/v1.0.0"
+
+    def test_no_links_field_falls_back_to_web_url(self):
+        """_links フィールド自体がない場合は web_url にフォールバックする。"""
+        data = _release_data()
+        del data["_links"]
+        data["web_url"] = "https://gitlab.com/test-owner/test-repo/-/releases/v1.0.0"
+        rel = GitLabAdapter._to_release(data)
+        assert rel.url == "https://gitlab.com/test-owner/test-repo/-/releases/v1.0.0"
+
 
 class TestToLabel:
     def test_basic(self):

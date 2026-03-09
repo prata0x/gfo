@@ -380,6 +380,16 @@ class TestListIssues:
         assert "keyword" in req.url
         assert "bug" in req.url
 
+    def test_ensure_project_id_malformed_response_raises_gfo_error(self, mock_responses, backlog_adapter):
+        """project エンドポイントが id を返さない場合 GfoError を送出する。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST",
+            json={"projectKey": "TEST"}, status=200,  # id フィールドなし
+        )
+        with pytest.raises(GfoError, match="Unexpected API response"):
+            backlog_adapter.list_issues()
+
     def test_project_id_cached(self, mock_responses, backlog_adapter):
         """project_id は2回目以降キャッシュされる。"""
         mock_responses.add(

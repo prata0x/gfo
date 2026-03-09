@@ -40,7 +40,10 @@ class BacklogAdapter(GitServiceAdapter):
         """プロジェクト ID を取得してキャッシュする。"""
         if self._project_id is None:
             resp = self._client.get(f"/projects/{self._project_key}")
-            self._project_id = resp.json()["id"]
+            try:
+                self._project_id = resp.json()["id"]
+            except (KeyError, TypeError) as e:
+                raise GfoError(f"Unexpected API response from project endpoint: {e}") from e
         return self._project_id
 
     def _resolve_merged_status_id(self) -> int | None:
