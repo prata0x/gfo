@@ -131,9 +131,7 @@ class GitLabAdapter(GitServiceAdapter):
     # --- PR (Merge Request) ---
 
     def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]:
-        params: dict = {}
-        if state != "all":
-            params["state"] = "opened" if state == "open" else state
+        params: dict = {"state": "opened" if state == "open" else state}
         results = paginate_page_param(
             self._client, f"{self._project_path()}/merge_requests",
             params=params, limit=limit,
@@ -193,9 +191,7 @@ class GitLabAdapter(GitServiceAdapter):
                     assignee: str | None = None,
                     label: str | None = None,
                     limit: int = 30) -> list[Issue]:
-        params: dict = {}
-        if state != "all":
-            params["state"] = "opened" if state == "open" else state
+        params: dict = {"state": "opened" if state == "open" else state}
         if assignee is not None:
             params["assignee_username"] = assignee
         if label is not None:
