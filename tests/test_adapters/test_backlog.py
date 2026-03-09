@@ -170,6 +170,21 @@ class TestListPullRequests:
         prs = backlog_adapter.list_pull_requests(state="merged")
         assert prs[0].state == "merged"
 
+    def test_merged_status_id_sent_as_list(self, mock_responses, backlog_adapter):
+        """state='merged' のとき statusId[] がリストとして送信されること（#143 型不一致修正確認）。"""
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 5, "name": "Merged"}], status=200,
+        )
+        mock_responses.add(
+            responses.GET, PR_PATH,
+            json=[_pr_data(status_id=5)], status=200,
+        )
+        backlog_adapter.list_pull_requests(state="merged")
+        pr_req = mock_responses.calls[1].request
+        # statusId[]=5 がクエリパラメータとして含まれること
+        assert "statusId%5B%5D=5" in pr_req.url or "statusId[]=5" in pr_req.url
+
     def test_all(self, mock_responses, backlog_adapter):
         mock_responses.add(
             responses.GET, f"{BASE}/projects/TEST/statuses",

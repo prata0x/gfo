@@ -140,7 +140,7 @@ class BacklogAdapter(GitServiceAdapter):
         if state == "merged":
             merged_id = self._resolve_merged_status_id()
             if merged_id is not None:
-                params["statusId[]"] = merged_id
+                params["statusId[]"] = [merged_id]
         elif state == "open":
             params["statusId[]"] = _STATUS_OPEN_IDS
         elif state == "closed":
