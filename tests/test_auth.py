@@ -233,13 +233,13 @@ def test_get_auth_status_credentials_and_env(tmp_path, monkeypatch):
 
     hosts = [s["host"] for s in status]
     assert "github.com" in hosts
-    assert "gitlab" in hosts
+    assert "env:gitlab" in hosts
 
     cred_entry = next(s for s in status if s["host"] == "github.com")
     assert cred_entry["source"] == "credentials.toml"
     assert cred_entry["status"] == "configured"
 
-    env_entry = next(s for s in status if s["host"] == "gitlab")
+    env_entry = next(s for s in status if s["host"] == "env:gitlab")
     assert env_entry["source"] == "env:GITLAB_TOKEN"
 
 

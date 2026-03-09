@@ -127,13 +127,17 @@ def get_auth_status() -> list[dict[str, str]]:
         )
         seen_hosts.add(host)
 
-    # 環境変数で設定されているトークン
+    # 環境変数で設定されているトークン（env_var ごとに 1 エントリ、重複を避ける）
+    seen_env_vars: set[str] = set()
     for service_type, env_var in _SERVICE_ENV_MAP.items():
+        if env_var in seen_env_vars:
+            continue
         val = os.environ.get(env_var)
         if val:
+            seen_env_vars.add(env_var)
             result.append(
                 {
-                    "host": service_type,
+                    "host": f"env:{service_type}",
                     "status": "configured",
                     "source": f"env:{env_var}",
                 }
