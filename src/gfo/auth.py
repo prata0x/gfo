@@ -26,6 +26,14 @@ _SERVICE_ENV_MAP: dict[str, str] = {
     "azure-devops": "AZURE_DEVOPS_PAT",
 }
 
+# 固定ホスト名を持つクラウドサービスのデフォルトホスト
+_SERVICE_DEFAULT_HOSTS: dict[str, str] = {
+    "github": "github.com",
+    "gitlab": "gitlab.com",
+    "bitbucket": "bitbucket.org",
+    "azure-devops": "dev.azure.com",
+}
+
 
 def resolve_token(host: str, service_type: str) -> str:
     """トークンを解決する。
@@ -136,9 +144,11 @@ def get_auth_status() -> list[dict[str, str]]:
         val = os.environ.get(env_var)
         if val:
             seen_env_vars.add(env_var)
+            # クラウドサービスは実ホスト名を使用、自己ホスト型は "(env) service" 形式
+            display_host = _SERVICE_DEFAULT_HOSTS.get(service_type, f"(env) {service_type}")
             result.append(
                 {
-                    "host": f"env:{service_type}",
+                    "host": display_host,
                     "status": "configured",
                     "source": f"env:{env_var}",
                 }
