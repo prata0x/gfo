@@ -214,6 +214,13 @@ class TestToRepository:
         repo = azure_devops_adapter._to_repository(data, "test-project")
         assert repo.default_branch == ""
 
+    def test_null_default_branch_yields_empty_string(self, azure_devops_adapter):
+        """defaultBranch フィールドが null でも GfoError にならず default_branch が "" になる。"""
+        data = _repo_data()
+        data["defaultBranch"] = None
+        repo = azure_devops_adapter._to_repository(data, "test-project")
+        assert repo.default_branch == ""
+
     def test_null_project_yields_none_description(self, azure_devops_adapter):
         """project フィールドが null でも AttributeError にならず description が None になる。"""
         data = _repo_data()

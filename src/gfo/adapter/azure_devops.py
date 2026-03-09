@@ -117,7 +117,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 full_name=f"{project}/{data['name']}",
                 description=(data.get("project") or {}).get("description"),
                 private=True,
-                default_branch=_strip_refs_prefix(data.get("defaultBranch", "")),
+                default_branch=_strip_refs_prefix(data.get("defaultBranch") or ""),
                 clone_url=data.get("remoteUrl", ""),
                 url=data.get("webUrl", ""),
             )
