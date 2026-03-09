@@ -213,7 +213,7 @@ def paginate_link_header(
             break
 
         link = resp.headers.get("Link", "")
-        match = re.search(r'<([^>]+)>;\s*rel="next"', link)
+        match = re.search(r'<([^>]+)>;\s*rel="next"', link, re.IGNORECASE)
         if not match:
             break
         next_url = match.group(1)
