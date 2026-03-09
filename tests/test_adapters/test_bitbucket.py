@@ -137,6 +137,14 @@ class TestToRepository:
         repo = BitbucketAdapter._to_repository(data)
         assert repo.default_branch is None
 
+    def test_null_links_raises_gfo_error_not_attribute_error(self):
+        """links フィールドが null のとき AttributeError でなく GfoError が発生する。"""
+        from gfo.exceptions import GfoError
+        data = _repo_data()
+        data["links"] = None
+        with pytest.raises(GfoError):
+            BitbucketAdapter._to_repository(data)
+
 
 # --- PR 系 ---
 

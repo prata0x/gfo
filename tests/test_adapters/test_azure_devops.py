@@ -116,6 +116,13 @@ class TestToPullRequest:
         pr = AzureDevOpsAdapter._to_pull_request(data)
         assert pr.url == data["url"]
 
+    def test_url_fallback_when_repository_is_null(self):
+        """repository フィールドが null のとき AttributeError にならず url にフォールバックする。"""
+        data = _pr_data(pull_request_id=42)
+        data["repository"] = None
+        pr = AzureDevOpsAdapter._to_pull_request(data)
+        assert pr.url == data["url"]
+
 
 class TestToIssue:
     def test_new(self):
@@ -176,6 +183,13 @@ class TestToIssue:
         issue = AzureDevOpsAdapter._to_issue(data)
         assert issue.updated_at is None
 
+    def test_null_created_by_yields_empty_author(self):
+        """System.CreatedBy が null でも AttributeError にならず author が空文字になる。"""
+        data = _issue_data()
+        data["fields"]["System.CreatedBy"] = None
+        issue = AzureDevOpsAdapter._to_issue(data)
+        assert issue.author == ""
+
 
 class TestToRepository:
     def test_basic(self, azure_devops_adapter):
@@ -191,6 +205,13 @@ class TestToRepository:
         data["defaultBranch"] = ""
         repo = azure_devops_adapter._to_repository(data, "test-project")
         assert repo.default_branch == ""
+
+    def test_null_project_yields_none_description(self, azure_devops_adapter):
+        """project フィールドが null でも AttributeError にならず description が None になる。"""
+        data = _repo_data()
+        data["project"] = None
+        repo = azure_devops_adapter._to_repository(data, "test-project")
+        assert repo.description is None
 
 
 # --- PR 系 ---

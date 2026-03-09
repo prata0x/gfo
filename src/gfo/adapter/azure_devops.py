@@ -73,7 +73,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 target_branch=_strip_refs_prefix(data["targetRefName"]),
                 draft=data.get("isDraft", False),
                 url=(f"{data['repository']['webUrl']}/pullrequest/{data['pullRequestId']}"
-                     if data.get("repository", {}).get("webUrl") else data.get("url", "")),
+                     if (data.get("repository") or {}).get("webUrl") else data.get("url", "")),
                 created_at=data["creationDate"],
                 updated_at=data.get("closedDate"),
             )
@@ -99,7 +99,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 title=fields["System.Title"],
                 body=fields.get("System.Description"),
                 state=state,
-                author=fields.get("System.CreatedBy", {}).get("uniqueName", ""),
+                author=(fields.get("System.CreatedBy") or {}).get("uniqueName", ""),
                 assignees=assignees,
                 labels=labels,
                 url=data.get("url", ""),
@@ -115,7 +115,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             return Repository(
                 name=data["name"],
                 full_name=f"{project}/{data['name']}",
-                description=data.get("project", {}).get("description"),
+                description=(data.get("project") or {}).get("description"),
                 private=True,
                 default_branch=_strip_refs_prefix(data.get("defaultBranch", "")),
                 clone_url=data.get("remoteUrl", ""),

@@ -87,7 +87,7 @@ class BitbucketAdapter(GitServiceAdapter):
     def _to_repository(data: dict) -> Repository:
         try:
             clone_url = ""
-            for link in data.get("links", {}).get("clone", []):
+            for link in (data.get("links") or {}).get("clone", []):
                 if link.get("name") == "https":
                     clone_url = link["href"]
                     break
