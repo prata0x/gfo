@@ -30,7 +30,7 @@ class ProjectConfig:
 def get_config_dir() -> Path:
     """プラットフォーム別の設定ディレクトリパスを返す。"""
     if sys.platform == "win32":
-        appdata = os.environ.get("APPDATA")
+        appdata = os.environ.get("APPDATA", "").strip()
         if appdata:
             return Path(appdata) / "gfo"
         return Path.home() / "AppData" / "Roaming" / "gfo"

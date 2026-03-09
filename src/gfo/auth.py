@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import tomllib
+import warnings
 from pathlib import Path
 
 from gfo.config import get_config_dir, get_credentials_path
@@ -84,7 +85,11 @@ def save_token(host: str, token: str) -> None:
                 check=False,
             )
         except OSError:
-            pass
+            warnings.warn(
+                "Could not set file permissions on credentials file "
+                "(os.getlogin() failed, possibly in CI/Docker environment).",
+                stacklevel=2,
+            )
 
 
 def load_tokens() -> dict[str, str]:
