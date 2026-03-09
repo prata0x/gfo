@@ -124,6 +124,23 @@ class TestResolveHostWithoutRepo:
         assert host == "github.com"
         assert stype == "github"
 
+    def test_falls_back_to_probe_for_unknown_host(self):
+        """known_service_type が None のときは probe_unknown_host でサービスを特定する。"""
+        with patch("gfo.commands.repo.get_host_config", return_value=None), \
+             patch("gfo.commands.repo.get_known_service_type", return_value=None), \
+             patch("gfo.commands.repo.probe_unknown_host", return_value="gitea"):
+            host, stype = repo_cmd._resolve_host_without_repo("gitea.example.com")
+
+        assert stype == "gitea"
+
+    def test_raises_when_probe_returns_none(self):
+        """probe_unknown_host も None のとき ConfigError。"""
+        with patch("gfo.commands.repo.get_host_config", return_value=None), \
+             patch("gfo.commands.repo.get_known_service_type", return_value=None), \
+             patch("gfo.commands.repo.probe_unknown_host", return_value=None):
+            with pytest.raises(ConfigError, match="Could not determine service type"):
+                repo_cmd._resolve_host_without_repo("unknown.example.com")
+
 
 class TestHandleCreate:
     def test_calls_create_repository(self, capsys):

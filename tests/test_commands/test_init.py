@@ -110,6 +110,63 @@ class TestHandleInteractive:
         assert saved.owner == ""
         assert saved.repo == ""
 
+    def test_detect_success_azure_devops_needs_org_input(self):
+        """Azure DevOps 検出 → organization 不足 → 手動入力してから保存。"""
+        from gfo.detect import DetectResult
+        detect_result = DetectResult(
+            service_type="azure-devops",
+            host="dev.azure.com",
+            owner="",
+            repo="test-repo",
+            organization=None,
+            project=None,
+        )
+        args = make_args(non_interactive=False)
+        # 入力: [Y/n] 確認 → organization → project_key
+        inputs = iter(["y", "my-org", "my-project"])
+
+        with patch("gfo.commands.init.detect_service", return_value=detect_result), \
+             patch("gfo.commands.init.save_project_config") as mock_save, \
+             patch("builtins.input", side_effect=inputs):
+            init_cmd.handle(args, fmt="table")
+
+        mock_save.assert_called_once()
+        saved: ProjectConfig = mock_save.call_args[0][0]
+        assert saved.service_type == "azure-devops"
+        assert "my-org" in saved.api_url
+        assert "my-project" in saved.api_url
+
+    def test_detect_failure_manual_empty_service_type_raises(self):
+        """手動入力で service_type が空 → ConfigError。"""
+        args = make_args(non_interactive=False)
+        inputs = iter(["", "github", "github.com", "", ""])
+
+        with patch("gfo.commands.init.detect_service", side_effect=DetectionError()), \
+             patch("gfo.commands.init.get_remote_url", return_value="https://github.com/o/r.git"), \
+             patch("builtins.input", side_effect=inputs):
+            with pytest.raises(ConfigError, match="service_type cannot be empty"):
+                init_cmd.handle(args, fmt="table")
+
+    def test_detect_failure_manual_invalid_service_type_raises(self):
+        """手動入力で無効な service_type → ConfigError。"""
+        args = make_args(non_interactive=False)
+        inputs = iter(["unknown-svc", "github.com", "", ""])
+
+        with patch("gfo.commands.init.detect_service", side_effect=DetectionError()), \
+             patch("builtins.input", side_effect=inputs):
+            with pytest.raises(ConfigError, match="Unknown service type"):
+                init_cmd.handle(args, fmt="table")
+
+    def test_detect_failure_manual_empty_host_raises(self):
+        """手動入力で host が空 → ConfigError。"""
+        args = make_args(non_interactive=False)
+        inputs = iter(["github", "", "", ""])
+
+        with patch("gfo.commands.init.detect_service", side_effect=DetectionError()), \
+             patch("builtins.input", side_effect=inputs):
+            with pytest.raises(ConfigError, match="host cannot be empty"):
+                init_cmd.handle(args, fmt="table")
+
     def test_detect_failure_manual_uses_default_api_url(self):
         """検出失敗 → 手動入力で api_url 空白 → デフォルト URL が使われる。"""
         args = make_args(non_interactive=False)
