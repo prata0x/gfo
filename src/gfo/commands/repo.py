@@ -15,7 +15,7 @@ from gfo.config import (
     resolve_project_config,
 )
 from gfo.detect import detect_service, get_known_service_type, probe_unknown_host
-from gfo.exceptions import ConfigError, DetectionError
+from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 from gfo.git_util import git_clone
 from gfo.output import output
 
@@ -47,7 +47,7 @@ def _resolve_host_without_repo(args_host: str | None) -> tuple[str, str]:
         try:
             result = detect_service()
             host = result.host
-        except DetectionError:
+        except (DetectionError, GitCommandError):
             host = get_default_host()
 
     if not host:

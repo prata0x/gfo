@@ -109,6 +109,17 @@ class TestResolveHostWithoutRepo:
         assert host == "github.com"
         assert stype == "github"
 
+    def test_falls_back_to_default_host_when_git_command_fails(self):
+        """git リポジトリ外で GitCommandError が発生した場合もデフォルトホストにフォールバックする（R30修正確認）。"""
+        from gfo.exceptions import GitCommandError
+        with patch("gfo.commands.repo.detect_service", side_effect=GitCommandError("not a git repo")), \
+             patch("gfo.commands.repo.get_default_host", return_value="github.com"), \
+             patch("gfo.commands.repo.get_host_config", return_value={"type": "github"}):
+            host, stype = repo_cmd._resolve_host_without_repo(None)
+
+        assert host == "github.com"
+        assert stype == "github"
+
     def test_raises_config_error_when_no_host(self):
         from gfo.exceptions import DetectionError
         with patch("gfo.commands.repo.detect_service", side_effect=DetectionError("no git")), \
