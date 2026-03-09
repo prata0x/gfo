@@ -78,13 +78,28 @@ def _handle_interactive(args: argparse.Namespace) -> None:
     if detect_result is not None:
         # 検出結果を使用
         service_type = detect_result.service_type
+        # detect_service() は service_type が None のまま返さないが型注釈上は str | None のため絞り込む
+        if service_type is None:
+            service_type = input("Service type (github/gitlab/bitbucket/...): ").strip()
         host = detect_result.host
         owner = detect_result.owner
         repo = detect_result.repo
         organization = detect_result.organization
         project_key = detect_result.project
 
-        api_url = _build_default_api_url(service_type, host, organization, project_key)
+        try:
+            api_url = _build_default_api_url(service_type, host, organization, project_key)
+        except ConfigError:
+            # organization / project_key が未解決の場合（Azure DevOps 等）に手動入力へフォールバック
+            print(
+                "Could not build API URL automatically "
+                "(organization or project key may be missing)."
+            )
+            if organization is None:
+                organization = input("Organization: ").strip() or None
+            if project_key is None:
+                project_key = input("Project key: ").strip() or None
+            api_url = _build_default_api_url(service_type, host, organization, project_key)
     else:
         # 手動入力
         service_type = input("Service type (github/gitlab/bitbucket/...): ").strip()
