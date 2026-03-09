@@ -365,6 +365,52 @@
 
 ---
 
+## 修正記録（2026-03-09）
+
+本ラウンド（review-08-code-quality.md）の推奨アクションに対して以下の修正を実施した。
+
+| ID | 対応状況 | コミット概要 |
+|----|----------|-------------|
+| R7-01 | ✅ 修正済み（前回） | `paginate_link_header` の `url` → `next_url` 代入バグ修正 |
+| R7-02 | ✅ 修正済み（前回） | `HttpClient.get_absolute()` 追加でプライベートAPI参照を解消 |
+| R7-03 | ✅ 修正済み | `base.py` に `GitHubLikeAdapter` を追加。GitHub/Gitea の重複 `_to_*` 6メソッドを集約 |
+| R7-04 | ✅ 修正済み | `DetectResult` を `frozen=True` に変更。`detect_service()` を `dataclasses.replace()` に更新 |
+| R7-05 | ✅ 修正済み | `GogsAdapter` 全メソッドに親クラスと一致する型ヒントを追加 |
+| R7-06 | ✅ 修正済み（前回） | `issue.py` の `"azure_devops"` → `"azure-devops"` タイポ修正 |
+| R7-07 | ✅ 前回対応 | `get_absolute()` 導入で主な DRY 違反を解消 |
+| R7-08 | ✅ 修正済み | `commands/__init__.py` に `get_adapter()` ヘルパーを追加し全ハンドラの定型2行を削減 |
+| R7-09 | ✅ 修正済み | `config.py` に `build_clone_url()` を追加し `handle_clone` の 8 分岐を集約 |
+| R7-10 | ✅ 修正済み | `detect.py` に `get_known_service_type()` 公開関数を追加。`repo.py` の `_KNOWN_HOSTS` 直接参照を解消 |
+| R7-11 | ✅ 修正済み | `backlog.py` に `_STATUS_CLOSED_ID` 等の定数を追加し 9 箇所のマジックナンバーを置換 |
+| R7-12 | ✅ 修正済み（前回） | GitLab `_to_issue` のデッドコード `if state == "closed": state = "closed"` を削除 |
+| R7-13 | ✅ 修正済み（前回） | GitLab `_to_release` を `draft=False, prerelease=upcoming_release` に修正 |
+| R7-14 | ✅ 修正済み | `AzureDevOpsAdapter._to_repository` を `@staticmethod` に変更し `project` を引数化 |
+| R7-15 | ✅ 修正済み（前回） | `HttpClient.request` を retry ループ構造に統一し重複 try/except を解消 |
+| R7-16 | ✅ 修正済み（前回） | GitHub/Gitea の `list_labels`/`list_milestones` に `paginate_link_header` を適用 |
+| R7-17 | ✅ 修正済み | `stype`/`shost` → `saved_type`/`saved_host`（detect.py, config.py, registry.py）に変更 |
+| R7-18 | ✅ 修正済み | `_build_default_api_url` → `build_default_api_url` にパブリック化。repo.py/init.py も追従 |
+| R7-19 | ✅ 修正済み（前回） | `cli.py` を `subparser_map[args.command].print_help()` に変更し argparse 内部属性参照を解消 |
+| R7-20 | ✅ 修正済み | `get_auth_status()` の env var エントリ host を `"env:service_type"` 形式に変更し重複排除 |
+| R7-21 | ✅ 対応済み | `registry.py` の `create_adapter` に設計意図コメントを追記 |
+| R7-22 | ✅ 修正済み | `_BACKLOG_PATH_RE`/`_GITBUCKET_PATH_RE` を `_GIT_PATH_RE` に統合 |
+| R7-23 | ✅ 修正済み | R7-04 対応時に `hosts.get(result.host)` を使用するよう変更済み |
+
+### 主な変更ファイル
+
+- `src/gfo/adapter/base.py` — `GitHubLikeAdapter` 追加
+- `src/gfo/adapter/github.py`, `gitea.py` — `GitHubLikeAdapter` を継承、重複 `_to_*` 削除
+- `src/gfo/adapter/gogs.py` — 型ヒント追加
+- `src/gfo/adapter/backlog.py` — ステータス ID 定数化
+- `src/gfo/adapter/azure_devops.py` — `_to_repository` を `@staticmethod` に変更
+- `src/gfo/adapter/registry.py` — `stype` → `service_type`、設計コメント追記
+- `src/gfo/detect.py` — `DetectResult` frozen 化、`get_known_service_type()` 追加、正規表現統合、`saved_type`/`saved_host` 変数名変更
+- `src/gfo/config.py` — `build_default_api_url`（パブリック化）、`build_clone_url()` 追加、`saved_type`/`saved_host` 変数名変更
+- `src/gfo/auth.py` — `get_auth_status()` の env var エントリ形式統一・重複排除
+- `src/gfo/commands/__init__.py` — `get_adapter()` ヘルパー追加
+- `src/gfo/commands/pr.py`, `issue.py`, `label.py`, `milestone.py`, `release.py`, `repo.py`, `init.py` — `get_adapter()` 使用、プライベート関数参照の解消
+
+---
+
 ## 次ラウンドへの申し送り
 
 - **[R7-01] 修正後テスト追加**: `paginate_link_header` の修正後、`limit > per_page` のシナリオ（例: `limit=100`, `per_page=30`）で複数ページにわたる応答を正しく集約できることを確認する回帰テストを追加すること。`paginate_response_body` も同様のパターンがないか調査する。
