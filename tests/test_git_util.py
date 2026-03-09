@@ -41,6 +41,30 @@ class TestRunGit:
         with pytest.raises(GitCommandError, match="fatal: bad"):
             git_util.run_git("status")
 
+    @patch("gfo.git_util.subprocess.run")
+    def test_not_a_git_repository_friendly_message(self, mock_run):
+        """'not a git repository' を含む stderr はユーザーフレンドリーなメッセージに変換。"""
+        mock_run.return_value = _mock_result(
+            stderr="fatal: not a git repository (or any parent up to mount point /)",
+            returncode=128,
+        )
+        with pytest.raises(GitCommandError, match="Not inside a git repository"):
+            git_util.run_git("status")
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_file_not_found_raises_git_command_error(self, mock_run):
+        """git コマンドが存在しない場合 FileNotFoundError → GitCommandError。"""
+        mock_run.side_effect = FileNotFoundError("No such file: git")
+        with pytest.raises(GitCommandError, match="not found or not executable"):
+            git_util.run_git("status")
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_timeout_expired_raises_git_command_error(self, mock_run):
+        """subprocess.TimeoutExpired → GitCommandError。"""
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd=["git"], timeout=30)
+        with pytest.raises(GitCommandError, match="timed out"):
+            git_util.run_git("status")
+
 
 class TestGetRemoteUrl:
     @patch("gfo.git_util.subprocess.run")
@@ -175,7 +199,7 @@ class TestGitClone:
             capture_output=True,
             text=True,
             check=False,
-            timeout=None,
+            timeout=600,
             cwd=None,
             shell=False,
         )
@@ -189,14 +213,29 @@ class TestGitClone:
             capture_output=True,
             text=True,
             check=False,
-            timeout=None,
+            timeout=600,
             cwd=None,
             shell=False,
         )
 
     @patch("gfo.git_util.subprocess.run")
-    def test_timeout_is_none(self, mock_run):
+    def test_timeout_is_600(self, mock_run):
+        """git clone のタイムアウトは 600 秒。"""
         mock_run.return_value = _mock_result()
         git_util.git_clone("https://github.com/user/repo.git")
         call_kwargs = mock_run.call_args
-        assert call_kwargs.kwargs["timeout"] is None
+        assert call_kwargs.kwargs["timeout"] == 600
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_clone_file_not_found_raises(self, mock_run):
+        """git clone で FileNotFoundError → GitCommandError。"""
+        mock_run.side_effect = FileNotFoundError("No such file: git")
+        with pytest.raises(GitCommandError, match="not found or not executable"):
+            git_util.git_clone("https://github.com/user/repo.git")
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_clone_timeout_expired_raises(self, mock_run):
+        """git clone で TimeoutExpired → GitCommandError。"""
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd=["git", "clone"], timeout=600)
+        with pytest.raises(GitCommandError, match="timed out"):
+            git_util.git_clone("https://github.com/user/repo.git")

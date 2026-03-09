@@ -8,6 +8,7 @@ import subprocess
 from gfo.exceptions import GitCommandError
 
 _DEFAULT_TIMEOUT = 30
+_CLONE_TIMEOUT = 600
 
 
 def _mask_credentials(text: str) -> str:
@@ -17,17 +18,27 @@ def _mask_credentials(text: str) -> str:
 
 def run_git(*args: str, cwd: str | None = None) -> str:
     """git コマンドを実行し stdout を返す。失敗時は GitCommandError。"""
-    result = subprocess.run(
-        ["git", *args],
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=_DEFAULT_TIMEOUT,
-        cwd=cwd,
-        shell=False,
-    )
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=_DEFAULT_TIMEOUT,
+            cwd=cwd,
+            shell=False,
+        )
+    except (FileNotFoundError, PermissionError) as e:
+        raise GitCommandError(f"git command not found or not executable: {e}") from e
+    except subprocess.TimeoutExpired as e:
+        raise GitCommandError(f"git command timed out after {_DEFAULT_TIMEOUT}s") from e
     if result.returncode != 0:
-        raise GitCommandError(_mask_credentials(result.stderr.strip()))
+        stderr_text = result.stderr.strip()
+        if "not a git repository" in stderr_text.lower():
+            raise GitCommandError(
+                "Not inside a git repository. Run 'git init' or change to a git directory."
+            )
+        raise GitCommandError(_mask_credentials(stderr_text))
     return result.stdout.strip()
 
 
@@ -84,18 +95,23 @@ def git_checkout_new_branch(
 
 
 def git_clone(url: str, dest: str | None = None, cwd: str | None = None) -> None:
-    """git clone を実行する。timeout=None。"""
+    """git clone を実行する。timeout=600。"""
     cmd = ["git", "clone", url]
     if dest is not None:
         cmd.append(dest)
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=None,
-        cwd=cwd,
-        shell=False,
-    )
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=_CLONE_TIMEOUT,
+            cwd=cwd,
+            shell=False,
+        )
+    except (FileNotFoundError, PermissionError) as e:
+        raise GitCommandError(f"git command not found or not executable: {e}") from e
+    except subprocess.TimeoutExpired as e:
+        raise GitCommandError(f"git clone timed out after {_CLONE_TIMEOUT}s") from e
     if result.returncode != 0:
         raise GitCommandError(_mask_credentials(result.stderr.strip()))
