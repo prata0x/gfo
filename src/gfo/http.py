@@ -117,6 +117,31 @@ class HttpClient:
         """DELETE リクエスト。"""
         return self.request("DELETE", path, **kwargs)
 
+    def get_absolute(self, url: str, *, timeout: int = 30) -> requests.Response:
+        """絶対 URL に対して GET リクエストを実行する。認証パラメータ・リトライを適用する。"""
+        merged_params = {**self._default_params, **self._auth_params}
+        try:
+            resp = self._session.get(url, params=merged_params, timeout=timeout)
+        except requests.ConnectionError as e:
+            raise gfo.exceptions.NetworkError(str(e)) from e
+        except requests.Timeout as e:
+            raise gfo.exceptions.NetworkError(str(e)) from e
+
+        try:
+            self._handle_response(resp)
+        except gfo.exceptions.RateLimitError:
+            wait = int(resp.headers.get("Retry-After", 60))
+            time.sleep(wait)
+            try:
+                resp = self._session.get(url, params=merged_params, timeout=timeout)
+            except requests.ConnectionError as e:
+                raise gfo.exceptions.NetworkError(str(e)) from e
+            except requests.Timeout as e:
+                raise gfo.exceptions.NetworkError(str(e)) from e
+            self._handle_response(resp)
+
+        return resp
+
     def _handle_response(self, response: requests.Response) -> None:
         """ステータスコードを検査し、適切なエラーを送出する。"""
         code = response.status_code
@@ -161,14 +186,7 @@ def paginate_link_header(
         if next_url is None:
             resp = client.get(path, params=params)
         else:
-            try:
-                raw_resp = client._session.get(next_url, timeout=30)
-            except requests.ConnectionError as e:
-                raise gfo.exceptions.NetworkError(str(e)) from e
-            except requests.Timeout as e:
-                raise gfo.exceptions.NetworkError(str(e)) from e
-            client._handle_response(raw_resp)
-            resp = raw_resp
+            resp = client.get_absolute(next_url)
 
         page_data = resp.json()
         if not isinstance(page_data, list) or not page_data:
@@ -239,14 +257,7 @@ def paginate_response_body(
             resp = client.get(path, params=params)
             first = False
         else:
-            try:
-                raw_resp = client._session.get(next_url, timeout=30)
-            except requests.ConnectionError as e:
-                raise gfo.exceptions.NetworkError(str(e)) from e
-            except requests.Timeout as e:
-                raise gfo.exceptions.NetworkError(str(e)) from e
-            client._handle_response(raw_resp)
-            resp = raw_resp
+            resp = client.get_absolute(next_url)
 
         body = resp.json()
         page_data = body.get(values_key, [])
