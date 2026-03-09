@@ -614,6 +614,15 @@ class TestPaginatePageParam:
         result = paginate_page_param(c, "/items", limit=10)
         assert result == [{"id": 1}]
 
+    @responses.activate
+    def test_non_json_response_stops_pagination(self):
+        """200 で非 JSON レスポンスが返ったときページネーションを停止して空リストを返す。"""
+        responses.add(responses.GET, f"{BASE}/items", body="<html>not json</html>",
+                      content_type="text/html", status=200)
+        c = HttpClient(BASE)
+        result = paginate_page_param(c, "/items", limit=10)
+        assert result == []
+
 
 # ── paginate_response_body ──
 
@@ -705,6 +714,15 @@ class TestPaginateResponseBody:
         result = paginate_response_body(c, "/items", limit=10)
         assert result == [{"id": 1}]
 
+    @responses.activate
+    def test_non_json_response_stops_pagination(self):
+        """200 で非 JSON レスポンスが返ったときページネーションを停止して空リストを返す。"""
+        responses.add(responses.GET, f"{BASE}/items", body="<html>not json</html>",
+                      content_type="text/html", status=200)
+        c = HttpClient(BASE)
+        result = paginate_response_body(c, "/items", limit=10)
+        assert result == []
+
 
 # ── paginate_offset ──
 
@@ -735,6 +753,15 @@ class TestPaginateOffset:
     @responses.activate
     def test_empty_response(self):
         responses.add(responses.GET, f"{BASE}/items", json=[])
+        c = HttpClient(BASE)
+        result = paginate_offset(c, "/items", count=20, limit=10)
+        assert result == []
+
+    @responses.activate
+    def test_non_json_response_stops_pagination(self):
+        """200 で非 JSON レスポンスが返ったときページネーションを停止して空リストを返す。"""
+        responses.add(responses.GET, f"{BASE}/items", body="<html>not json</html>",
+                      content_type="text/html", status=200)
         c = HttpClient(BASE)
         result = paginate_offset(c, "/items", count=20, limit=10)
         assert result == []
@@ -791,6 +818,15 @@ class TestPaginateTopSkip:
     def test_non_dict_body_stops_pagination(self):
         """レスポンスボディが dict でない場合はページネーションを停止する。"""
         responses.add(responses.GET, f"{BASE}/items", json=[1, 2, 3])
+        c = HttpClient(BASE)
+        result = paginate_top_skip(c, "/items", top=30, limit=10)
+        assert result == []
+
+    @responses.activate
+    def test_non_json_response_stops_pagination(self):
+        """200 で非 JSON レスポンスが返ったときページネーションを停止して空リストを返す。"""
+        responses.add(responses.GET, f"{BASE}/items", body="<html>not json</html>",
+                      content_type="text/html", status=200)
         c = HttpClient(BASE)
         result = paginate_top_skip(c, "/items", top=30, limit=10)
         assert result == []

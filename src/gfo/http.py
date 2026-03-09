@@ -278,7 +278,10 @@ def paginate_page_param(
 
     while True:
         resp = client.get(path, params=params)
-        page_data = resp.json()
+        try:
+            page_data = resp.json()
+        except ValueError:
+            break
         if not isinstance(page_data, list) or not page_data:
             break
         results.extend(page_data)
@@ -320,7 +323,10 @@ def paginate_response_body(
         else:
             resp = client.get_absolute(next_url)
 
-        body = resp.json()
+        try:
+            body = resp.json()
+        except ValueError:
+            break
         if not isinstance(body, dict):
             break
         page_data = body.get(values_key, [])
@@ -363,7 +369,10 @@ def paginate_offset(
     while True:
         params[offset_key] = offset
         resp = client.get(path, params=params)
-        page_data = resp.json()
+        try:
+            page_data = resp.json()
+        except ValueError:
+            break
         if not isinstance(page_data, list) or not page_data:
             break
         results.extend(page_data)
@@ -399,7 +408,10 @@ def paginate_top_skip(
     while True:
         params["$skip"] = skip
         resp = client.get(path, params=params)
-        body = resp.json()
+        try:
+            body = resp.json()
+        except ValueError:
+            break
         if not isinstance(body, dict):
             break
         page_data = body.get(result_key, [])
