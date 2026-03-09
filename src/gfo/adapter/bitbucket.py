@@ -131,7 +131,16 @@ class BitbucketAdapter(GitServiceAdapter):
         return self._to_pull_request(resp.json())
 
     def merge_pull_request(self, number: int, *, method: str = "merge") -> None:
-        self._client.post(f"{self._repos_path()}/pullrequests/{number}/merge", json={})
+        _METHOD_MAP = {
+            "merge": "merge_commit",
+            "squash": "squash",
+            "rebase": "fast_forward",
+        }
+        merge_strategy = _METHOD_MAP.get(method, "merge_commit")
+        self._client.post(
+            f"{self._repos_path()}/pullrequests/{number}/merge",
+            json={"merge_strategy": merge_strategy},
+        )
 
     def close_pull_request(self, number: int) -> None:
         self._client.put(

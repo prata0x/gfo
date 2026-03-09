@@ -196,6 +196,75 @@ class TestHandleCreate:
         out = capsys.readouterr().out
         assert "new-repo" in out
 
+    def test_backlog_uses_project_key_from_config(self):
+        """Backlog の handle_create は resolve_project_config から project_key を取得してアダプターに渡す。"""
+        from gfo.config import ProjectConfig
+        mock_cfg = MagicMock(spec=ProjectConfig)
+        mock_cfg.service_type = "backlog"
+        mock_cfg.organization = None
+        mock_cfg.project_key = "MY_PROJECT"
+
+        mock_repo = Repository(
+            name="new-repo", full_name="MY_PROJECT/new-repo", description="",
+            private=False, default_branch="main",
+            clone_url="https://example.backlog.com/git/MY_PROJECT/new-repo.git",
+            url="https://example.backlog.com/git/MY_PROJECT/new-repo",
+        )
+        mock_adapter = MagicMock()
+        mock_adapter.create_repository.return_value = mock_repo
+        mock_adapter_cls = MagicMock(return_value=mock_adapter)
+
+        args = make_args(host="example.backlog.com", name="new-repo", private=False, description="")
+
+        with patch("gfo.commands.repo._resolve_host_without_repo",
+                   return_value=("example.backlog.com", "backlog")), \
+             patch("gfo.commands.repo.resolve_project_config", return_value=mock_cfg), \
+             patch("gfo.commands.repo.resolve_token", return_value="api-key"), \
+             patch("gfo.commands.repo.build_default_api_url",
+                   return_value="https://example.backlog.com/api/v2"), \
+             patch("gfo.commands.repo.create_http_client"), \
+             patch("gfo.commands.repo.get_adapter_class", return_value=mock_adapter_cls):
+            repo_cmd.handle_create(args, fmt="table")
+
+        # アダプターが project_key="MY_PROJECT" で構築されたことを確認
+        mock_adapter_cls.assert_called_once_with(
+            mock_adapter_cls.call_args[0][0], "", "", project_key="MY_PROJECT"
+        )
+
+    def test_backlog_no_project_key_raises_config_error(self):
+        """Backlog で project_key が取得できない場合 ConfigError を送出する。"""
+        from gfo.config import ProjectConfig
+        mock_cfg = MagicMock(spec=ProjectConfig)
+        mock_cfg.service_type = "backlog"
+        mock_cfg.project_key = None
+
+        args = make_args(host="example.backlog.com", name="new-repo", private=False, description="")
+
+        with patch("gfo.commands.repo._resolve_host_without_repo",
+                   return_value=("example.backlog.com", "backlog")), \
+             patch("gfo.commands.repo.resolve_project_config", return_value=mock_cfg), \
+             patch("gfo.commands.repo.resolve_token", return_value="api-key"), \
+             patch("gfo.commands.repo.build_default_api_url",
+                   return_value="https://example.backlog.com/api/v2"), \
+             patch("gfo.commands.repo.create_http_client"):
+            with pytest.raises(ConfigError, match="project key"):
+                repo_cmd.handle_create(args, fmt="table")
+
+    def test_backlog_config_error_on_resolve_raises_helpful_message(self):
+        """プロジェクト設定取得が失敗かつ project_key が取得できない場合 ConfigError。"""
+        args = make_args(host="example.backlog.com", name="new-repo", private=False, description="")
+
+        with patch("gfo.commands.repo._resolve_host_without_repo",
+                   return_value=("example.backlog.com", "backlog")), \
+             patch("gfo.commands.repo.resolve_project_config",
+                   side_effect=ConfigError("not in a repo")), \
+             patch("gfo.commands.repo.resolve_token", return_value="api-key"), \
+             patch("gfo.commands.repo.build_default_api_url",
+                   return_value="https://example.backlog.com/api/v2"), \
+             patch("gfo.commands.repo.create_http_client"):
+            with pytest.raises(ConfigError, match="project key"):
+                repo_cmd.handle_create(args, fmt="table")
+
 
 class TestHandleClone:
     def test_github_url(self):

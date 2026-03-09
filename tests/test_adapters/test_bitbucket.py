@@ -245,6 +245,28 @@ class TestMergePullRequest:
             json={"state": "MERGED"}, status=200,
         )
         bitbucket_adapter.merge_pull_request(1)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["merge_strategy"] == "merge_commit"
+
+    def test_squash_method(self, mock_responses, bitbucket_adapter):
+        """method='squash' → merge_strategy='squash' がリクエストに含まれる。"""
+        mock_responses.add(
+            responses.POST, f"{REPOS}/pullrequests/1/merge",
+            json={"state": "MERGED"}, status=200,
+        )
+        bitbucket_adapter.merge_pull_request(1, method="squash")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["merge_strategy"] == "squash"
+
+    def test_rebase_method(self, mock_responses, bitbucket_adapter):
+        """method='rebase' → merge_strategy='fast_forward' がリクエストに含まれる。"""
+        mock_responses.add(
+            responses.POST, f"{REPOS}/pullrequests/1/merge",
+            json={"state": "MERGED"}, status=200,
+        )
+        bitbucket_adapter.merge_pull_request(1, method="rebase")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["merge_strategy"] == "fast_forward"
 
 
 class TestClosePullRequest:

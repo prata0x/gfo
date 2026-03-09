@@ -12,6 +12,7 @@ from gfo.config import (
     build_default_api_url,
     get_default_host,
     get_host_config,
+    resolve_project_config,
 )
 from gfo.detect import detect_service, get_known_service_type, probe_unknown_host
 from gfo.exceptions import ConfigError, DetectionError
@@ -75,12 +76,39 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo repo create のハンドラ。"""
     host, service_type = _resolve_host_without_repo(getattr(args, "host", None))
 
+    # Azure DevOps と Backlog は API URL 構築・アダプター生成に organization/project_key が必要。
+    # 現在のプロジェクト設定から取得を試みる（git リポジトリ外では ConfigError が発生する）。
+    organization: str | None = None
+    project_key: str | None = None
+    if service_type in ("azure-devops", "backlog"):
+        try:
+            cfg = resolve_project_config()
+            if cfg.service_type == service_type:
+                organization = cfg.organization
+                project_key = cfg.project_key
+        except ConfigError:
+            pass
+
     token = resolve_token(host, service_type)
-    api_url = build_default_api_url(service_type, host)
+    api_url = build_default_api_url(service_type, host, organization, project_key)
 
     client = create_http_client(service_type, api_url, token)
     adapter_cls = get_adapter_class(service_type)
-    adapter = adapter_cls(client, "", "")  # create_repository は owner/repo 不要のため空文字を渡す
+
+    # サービスによってはコンストラクタに追加引数が必要
+    extra_kwargs: dict = {}
+    if service_type == "backlog":
+        if not project_key:
+            raise ConfigError(
+                "Backlog requires a project key. "
+                "Run 'gfo init' first to configure the project."
+            )
+        extra_kwargs["project_key"] = project_key
+    elif service_type == "azure-devops":
+        extra_kwargs["organization"] = organization
+        extra_kwargs["project_key"] = project_key
+
+    adapter = adapter_cls(client, "", "", **extra_kwargs)
     repo = adapter.create_repository(
         name=args.name,
         private=getattr(args, "private", False),
