@@ -98,6 +98,24 @@ class TestToPullRequest:
         pr = AzureDevOpsAdapter._to_pull_request(data)
         assert pr.source_branch == "feat/xyz"
 
+    def test_url_uses_web_url(self):
+        data = _pr_data(pull_request_id=42)
+        data["repository"] = {"webUrl": "https://dev.azure.com/org/proj/_git/repo"}
+        pr = AzureDevOpsAdapter._to_pull_request(data)
+        assert pr.url == "https://dev.azure.com/org/proj/_git/repo/pullrequest/42"
+
+    def test_url_fallback_when_no_web_url(self):
+        data = _pr_data(pull_request_id=42)
+        data["repository"] = {}  # webUrl なし
+        pr = AzureDevOpsAdapter._to_pull_request(data)
+        assert pr.url == data["url"]  # API URL にフォールバック
+
+    def test_url_fallback_when_no_repository(self):
+        data = _pr_data(pull_request_id=42)
+        data.pop("repository", None)  # repository フィールドなし
+        pr = AzureDevOpsAdapter._to_pull_request(data)
+        assert pr.url == data["url"]
+
 
 class TestToIssue:
     def test_new(self):

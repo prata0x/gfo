@@ -19,6 +19,8 @@ def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
 
 def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo label create のハンドラ。"""
+    if not args.name.strip():
+        raise ConfigError("name must not be empty.")
     color = args.color
     if color is not None:
         color = color.lstrip("#")

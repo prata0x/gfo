@@ -183,6 +183,9 @@ class GitServiceAdapter(ABC):
     service_name: str
 
     def __init__(self, client, owner: str, repo: str, **kwargs):
+        # **kwargs はサービス固有パラメータ（BacklogAdapter の project_key、
+        # AzureDevOpsAdapter の organization 等）をサブクラスが super().__init__() で
+        # 受け渡す際に吸収するためのもの。基底クラスでは使用しない。
         self._client = client
         self._owner = owner
         self._repo = repo

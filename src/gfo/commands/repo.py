@@ -77,7 +77,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
 
     client = create_http_client(service_type, api_url, token)
     adapter_cls = get_adapter_class(service_type)
-    adapter = adapter_cls(client, "", "")
+    adapter = adapter_cls(client, "", "")  # create_repository は owner/repo 不要のため空文字を渡す
     repo = adapter.create_repository(
         name=args.name,
         private=getattr(args, "private", False),
