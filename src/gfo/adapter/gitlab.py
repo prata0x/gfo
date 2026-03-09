@@ -50,8 +50,6 @@ class GitLabAdapter(GitServiceAdapter):
         state = data["state"]
         if state == "opened":
             state = "open"
-        if state == "closed":
-            state = "closed"
 
         return Issue(
             number=data["iid"],
