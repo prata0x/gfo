@@ -32,7 +32,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
             kwargs["work_item_type"] = args.type
         elif config.service_type == "backlog":
             kwargs["issue_type"] = args.type
-    if args.priority and config.service_type == "backlog":
+    if args.priority is not None and config.service_type == "backlog":
         kwargs["priority"] = args.priority
     issue = adapter.create_issue(
         title=args.title,
