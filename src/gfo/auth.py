@@ -35,7 +35,7 @@ def resolve_token(host: str, service_type: str) -> str:
     """
     # 1. credentials.toml
     tokens = load_tokens()
-    if host in tokens:
+    if tokens.get(host):
         return tokens[host]
 
     # 2. サービス別環境変数
@@ -56,6 +56,8 @@ def resolve_token(host: str, service_type: str) -> str:
 
 def save_token(host: str, token: str) -> None:
     """credentials.toml にトークンを保存する。"""
+    if not token or not token.strip():
+        raise AuthError(host, "Token must not be empty.")
     config_dir = get_config_dir()
     config_dir.mkdir(parents=True, exist_ok=True)
 
