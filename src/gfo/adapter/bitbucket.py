@@ -186,21 +186,21 @@ class BitbucketAdapter(GitServiceAdapter):
                           limit: int = 30) -> list[Repository]:
         o = owner if owner is not None else self._owner
         results = paginate_response_body(
-            self._client, f"/repositories/{o}", limit=limit,
+            self._client, f"/repositories/{quote(o, safe='')}", limit=limit,
         )
         return [self._to_repository(r) for r in results]
 
     def create_repository(self, *, name: str, private: bool = False,
                           description: str = "") -> Repository:
         payload = {"scm": "git", "is_private": private, "description": description}
-        resp = self._client.post(f"/repositories/{self._owner}/{name}", json=payload)
+        resp = self._client.post(f"/repositories/{quote(self._owner, safe='')}/{quote(name, safe='')}", json=payload)
         return self._to_repository(resp.json())
 
     def get_repository(self, owner: str | None = None,
                        name: str | None = None) -> Repository:
         o = owner if owner is not None else self._owner
         n = name if name is not None else self._repo
-        resp = self._client.get(f"/repositories/{o}/{n}")
+        resp = self._client.get(f"/repositories/{quote(o, safe='')}/{quote(n, safe='')}")
         return self._to_repository(resp.json())
 
     # --- NotSupported ---

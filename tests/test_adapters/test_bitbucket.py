@@ -333,6 +333,15 @@ class TestListRepositories:
         repos = bitbucket_adapter.list_repositories()
         assert len(repos) == 1
 
+    def test_owner_with_slash_is_encoded(self, mock_responses, bitbucket_adapter):
+        """list_repositories(owner="org/sub") でスラッシュが URL エンコードされる（R42-01）。"""
+        mock_responses.add(
+            responses.GET, f"{BASE}/repositories/org%2Fsub",
+            json={"values": [_repo_data()]}, status=200,
+        )
+        bitbucket_adapter.list_repositories(owner="org/sub")
+        assert "%2F" in mock_responses.calls[0].request.url
+
 
 class TestCreateRepository:
     def test_create(self, mock_responses, bitbucket_adapter):
@@ -346,6 +355,16 @@ class TestCreateRepository:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["scm"] == "git"
         assert req_body["is_private"] is False
+
+    def test_name_with_slash_is_encoded(self, mock_responses, bitbucket_adapter):
+        """create_repository で name のスラッシュが URL エンコードされる（R42-01）。"""
+        mock_responses.add(
+            responses.POST, f"{BASE}/repositories/test-workspace/my%2Frepo",
+            json=_repo_data(slug="my/repo", full_name="test-workspace/my/repo"),
+            status=201,
+        )
+        bitbucket_adapter.create_repository(name="my/repo")
+        assert "%2F" in mock_responses.calls[0].request.url
 
 
 class TestGetRepository:
@@ -365,6 +384,16 @@ class TestGetRepository:
         )
         repo = bitbucket_adapter.get_repository()
         assert repo.full_name == "test-workspace/test-repo"
+
+    def test_get_owner_with_slash_is_encoded(self, mock_responses, bitbucket_adapter):
+        """get_repository(owner="org/sub") でスラッシュが URL エンコードされる（R42-01）。"""
+        mock_responses.add(
+            responses.GET, f"{BASE}/repositories/org%2Fsub/test-repo",
+            json=_repo_data(slug="test-repo", full_name="org/sub/test-repo"),
+            status=200,
+        )
+        bitbucket_adapter.get_repository(owner="org/sub", name="test-repo")
+        assert "%2F" in mock_responses.calls[0].request.url
 
     def test_repos_path_is_url_encoded(self, mock_responses):
         """owner/repo に特殊文字が含まれる場合に URL エンコードされる（R33-03）。"""
