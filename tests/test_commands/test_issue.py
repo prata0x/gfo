@@ -6,9 +6,12 @@ import contextlib
 import json
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from gfo.adapter.base import Issue
 from gfo.commands import issue as issue_cmd
 from gfo.config import ProjectConfig
+from gfo.exceptions import ConfigError
 from tests.test_commands.conftest import make_args
 
 
@@ -220,6 +223,32 @@ class TestHandleCreate:
 
         call_kwargs = adapter.create_issue.call_args.kwargs
         assert call_kwargs["body"] == ""
+
+
+class TestHandleCreateTitleValidation:
+    def test_none_title_raises_config_error(self):
+        """title=None は ConfigError を送出する。"""
+        config = _make_config("github")
+        adapter = _make_adapter(_make_issue())
+        args = make_args(title=None, body=None, assignee=None, label=None, type=None, priority=None)
+        with _patch_all(config, adapter), pytest.raises(ConfigError, match="--title must not be empty"):
+            issue_cmd.handle_create(args, fmt="table")
+
+    def test_empty_title_raises_config_error(self):
+        """title="" は ConfigError を送出する。"""
+        config = _make_config("github")
+        adapter = _make_adapter(_make_issue())
+        args = make_args(title="", body=None, assignee=None, label=None, type=None, priority=None)
+        with _patch_all(config, adapter), pytest.raises(ConfigError, match="--title must not be empty"):
+            issue_cmd.handle_create(args, fmt="table")
+
+    def test_whitespace_title_raises_config_error(self):
+        """title="   " は ConfigError を送出する。"""
+        config = _make_config("github")
+        adapter = _make_adapter(_make_issue())
+        args = make_args(title="   ", body=None, assignee=None, label=None, type=None, priority=None)
+        with _patch_all(config, adapter), pytest.raises(ConfigError, match="--title must not be empty"):
+            issue_cmd.handle_create(args, fmt="table")
 
 
 class TestHandleView:

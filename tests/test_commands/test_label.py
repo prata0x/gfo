@@ -176,3 +176,30 @@ class TestHandleCreate:
         assert call_kwargs["name"] == "wontfix"
         assert call_kwargs["color"] == "ffffff"
         assert call_kwargs["description"] == "Will not fix"
+
+    def test_color_without_hash_accepted(self, sample_config):
+        """`#` なしの有効 hex カラーはそのまま受け入れる。"""
+        args = make_args(name="bug", color="ff0000", description=None)
+        with _patch_all(sample_config, self.adapter):
+            label_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = self.adapter.create_label.call_args.kwargs
+        assert call_kwargs["color"] == "ff0000"
+
+    def test_invalid_color_raises_config_error(self, sample_config):
+        """不正なカラーコードは ConfigError を送出する。"""
+        from gfo.exceptions import ConfigError
+        import pytest
+        args = make_args(name="bug", color="xyz123", description=None)
+        with _patch_all(sample_config, self.adapter), \
+             pytest.raises(ConfigError, match="Invalid color"):
+            label_cmd.handle_create(args, fmt="table")
+
+    def test_double_hash_color_raises_config_error(self, sample_config):
+        """複数の `#` を持つカラーは ConfigError を送出する（lstrip→removeprefix 修正の確認）。"""
+        from gfo.exceptions import ConfigError
+        import pytest
+        args = make_args(name="bug", color="##ff0000", description=None)
+        with _patch_all(sample_config, self.adapter), \
+             pytest.raises(ConfigError, match="Invalid color"):
+            label_cmd.handle_create(args, fmt="table")

@@ -102,6 +102,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 labels=labels,
                 url=data.get("url", ""),
                 created_at=fields.get("System.CreatedDate", ""),
+                updated_at=fields.get("System.ChangedDate"),
             )
         except (KeyError, TypeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e

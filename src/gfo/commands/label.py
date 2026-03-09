@@ -23,7 +23,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
         raise ConfigError("name must not be empty.")
     color = args.color
     if color is not None:
-        color = color.lstrip("#")
+        color = color.removeprefix("#")
         if not re.fullmatch(r"[0-9a-fA-F]{6}", color):
             raise ConfigError(
                 f"Invalid color '{args.color}'. Expected 6-digit hex color (e.g. ff0000)."

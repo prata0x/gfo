@@ -132,6 +132,23 @@ class TestHandleCreate:
         assert call_kwargs["draft"] is True
 
 
+class TestHandleCreateTitleValidation:
+    def test_no_title_and_no_commit_raises_config_error(self, sample_config, mock_adapter):
+        """title=None かつ git から取得もできない場合は ConfigError を送出する。"""
+        args = make_args(head="feature/x", base="main", title=None, body="", draft=False)
+        with _patch_all(sample_config, mock_adapter), \
+             patch("gfo.commands.pr.gfo.git_util.get_last_commit_subject", return_value=""), \
+             pytest.raises(ConfigError, match="Could not determine PR title"):
+            pr_cmd.handle_create(args, fmt="table")
+
+    def test_whitespace_title_raises_config_error(self, sample_config, mock_adapter):
+        """title が空白のみの場合は ConfigError を送出する。"""
+        args = make_args(head="feature/x", base="main", title="   ", body="", draft=False)
+        with _patch_all(sample_config, mock_adapter), \
+             pytest.raises(ConfigError, match="Could not determine PR title"):
+            pr_cmd.handle_create(args, fmt="table")
+
+
 class TestHandleView:
     def test_calls_get_pull_request(self, sample_config, mock_adapter, capsys):
         args = make_args(number=1)

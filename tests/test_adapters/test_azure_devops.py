@@ -162,6 +162,20 @@ class TestToIssue:
         issue = AzureDevOpsAdapter._to_issue(data)
         assert issue.labels == []
 
+    def test_updated_at_mapped_from_changed_date(self):
+        """System.ChangedDate が updated_at に正しくマッピングされる。"""
+        data = _issue_data()
+        data["fields"]["System.ChangedDate"] = "2025-06-01T12:00:00Z"
+        issue = AzureDevOpsAdapter._to_issue(data)
+        assert issue.updated_at == "2025-06-01T12:00:00Z"
+
+    def test_updated_at_is_none_when_missing(self):
+        """System.ChangedDate がない場合、updated_at は None になる。"""
+        data = _issue_data()
+        data["fields"].pop("System.ChangedDate", None)
+        issue = AzureDevOpsAdapter._to_issue(data)
+        assert issue.updated_at is None
+
 
 class TestToRepository:
     def test_basic(self, azure_devops_adapter):
