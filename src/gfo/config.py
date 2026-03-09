@@ -189,10 +189,8 @@ def save_project_config(config: ProjectConfig, cwd: str | None = None) -> None:
     gfo.git_util.git_config_set("gfo.type", config.service_type, cwd=cwd)
     gfo.git_util.git_config_set("gfo.host", config.host, cwd=cwd)
     gfo.git_util.git_config_set("gfo.api-url", config.api_url, cwd=cwd)
-    if config.owner:
-        gfo.git_util.git_config_set("gfo.owner", config.owner, cwd=cwd)
-    if config.repo:
-        gfo.git_util.git_config_set("gfo.repo", config.repo, cwd=cwd)
+    gfo.git_util.git_config_set("gfo.owner", config.owner, cwd=cwd)
+    gfo.git_util.git_config_set("gfo.repo", config.repo, cwd=cwd)
     if config.organization:
         gfo.git_util.git_config_set("gfo.organization", config.organization, cwd=cwd)
     if config.project_key:

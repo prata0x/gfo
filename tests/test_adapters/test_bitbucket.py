@@ -352,6 +352,17 @@ class TestListIssues:
         assert 'assignee.nickname="bob"' in decoded_url
         assert 'state="' not in decoded_url
 
+    def test_label_filter(self, mock_responses, bitbucket_adapter):
+        """label を指定すると q に component.name フィルタが追加される。"""
+        mock_responses.add(
+            responses.GET, f"{REPOS}/issues",
+            json={"values": [_issue_data()]}, status=200,
+        )
+        bitbucket_adapter.list_issues(state="all", label="bug")
+        req = mock_responses.calls[0].request
+        decoded_url = unquote(req.url)
+        assert 'component.name="bug"' in decoded_url
+
 
 class TestCreateIssue:
     def test_create(self, mock_responses, bitbucket_adapter):

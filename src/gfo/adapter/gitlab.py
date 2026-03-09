@@ -160,7 +160,7 @@ class GitLabAdapter(GitServiceAdapter):
     def merge_pull_request(self, number: int, *, method: str = "merge") -> None:
         allowed_methods = {"merge", "squash", "rebase"}
         if method not in allowed_methods:
-            raise ValueError(f"method must be one of {sorted(allowed_methods)}, got {method!r}")
+            raise GfoError(f"method must be one of {sorted(allowed_methods)}, got {method!r}")
         if method == "rebase":
             # GitLab rebase は /merge ではなく専用の /rebase エンドポイントを使用
             self._client.put(

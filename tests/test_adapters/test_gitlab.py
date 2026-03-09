@@ -330,7 +330,8 @@ class TestMergePullRequest:
         assert "/rebase" in mock_responses.calls[0].request.url
 
     def test_merge_invalid_method_raises(self, gitlab_adapter):
-        with pytest.raises(ValueError, match="method must be one of"):
+        from gfo.exceptions import GfoError
+        with pytest.raises(GfoError, match="method must be one of"):
             gitlab_adapter.merge_pull_request(1, method="fast-forward")
 
 

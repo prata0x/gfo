@@ -168,6 +168,9 @@ class BitbucketAdapter(GitServiceAdapter):
         if assignee is not None:
             escaped = assignee.replace('"', '\\"')
             conditions.append(f'assignee.nickname="{escaped}"')
+        if label is not None:
+            escaped_label = label.replace('"', '\\"')
+            conditions.append(f'component.name="{escaped_label}"')
         params: dict = {}
         if conditions:
             params["q"] = " AND ".join(conditions)

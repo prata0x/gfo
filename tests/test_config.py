@@ -592,6 +592,21 @@ def test_save_project_config_with_org():
         mock_set.assert_any_call("gfo.project-key", "proj", cwd=None)
 
 
+def test_save_project_config_empty_owner_repo():
+    """owner/repo が空文字列でも git_config_set が呼ばれる（既存値を上書きする）。"""
+    cfg = ProjectConfig(
+        service_type="github",
+        host="github.com",
+        api_url="https://api.github.com",
+        owner="",
+        repo="",
+    )
+    with patch("gfo.git_util.git_config_set") as mock_set:
+        save_project_config(cfg)
+        mock_set.assert_any_call("gfo.owner", "", cwd=None)
+        mock_set.assert_any_call("gfo.repo", "", cwd=None)
+
+
 def test_resolve_remote_url_failure_falls_back_to_git_config_owner_repo():
     """remote URL が取れない場合、git config の gfo.owner / gfo.repo を使う。"""
     from gfo.exceptions import GitCommandError
