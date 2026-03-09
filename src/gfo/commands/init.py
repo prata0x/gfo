@@ -11,7 +11,7 @@ from gfo.config import (
     save_project_config,
 )
 from gfo.detect import DetectResult, detect_from_url, detect_service
-from gfo.exceptions import ConfigError, DetectionError
+from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 from gfo.git_util import get_remote_url
 
 
@@ -34,8 +34,15 @@ def _handle_non_interactive(args: argparse.Namespace) -> None:
         raise ConfigError("--host is required in non-interactive mode.")
 
     # owner/repo/organization は detect_from_url() で取得
-    remote_url = get_remote_url()
-    detect_result = detect_from_url(remote_url)
+    try:
+        remote_url = get_remote_url()
+        detect_result = detect_from_url(remote_url)
+    except (GitCommandError, DetectionError) as e:
+        raise ConfigError(
+            f"Could not detect repository from remote URL: {e} "
+            "Please ensure you're in a git repository with an origin remote configured, "
+            "or use --owner/--repo options."
+        ) from e
 
     # api_url の解決: args.api_url → get_host_config → _build_default_api_url
     api_url = getattr(args, "api_url", None)
