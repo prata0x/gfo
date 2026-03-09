@@ -231,16 +231,20 @@ def test_load_tokens_success(tmp_path, monkeypatch):
 # ── get_auth_status ──
 
 
+def _clear_service_env_vars(monkeypatch, keep: str | None = None) -> None:
+    """全サービス env var をクリアする（keep で指定した env var は残す）。"""
+    for env_var in _SERVICE_ENV_MAP.values():
+        if keep is None or env_var != keep:
+            monkeypatch.delenv(env_var, raising=False)
+
+
 def test_get_auth_status_credentials_and_env(tmp_path, monkeypatch):
     """credentials.toml + 環境変数の両方を列挙。"""
     creds = tmp_path / "credentials.toml"
     creds.write_text('[tokens]\n"github.com" = "ghp_abc"\n', encoding="utf-8")
     monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
     monkeypatch.setenv("GITLAB_TOKEN", "glpat_env")
-    # 他のサービス環境変数をクリア
-    for env_var in _SERVICE_ENV_MAP.values():
-        if env_var != "GITLAB_TOKEN":
-            monkeypatch.delenv(env_var, raising=False)
+    _clear_service_env_vars(monkeypatch, keep="GITLAB_TOKEN")
 
     status = get_auth_status()
 
@@ -263,10 +267,7 @@ def test_get_auth_status_no_duplicate_when_env_and_file_overlap(tmp_path, monkey
     creds.write_text('[tokens]\n"github.com" = "ghp_from_file"\n', encoding="utf-8")
     monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
     monkeypatch.setenv("GITHUB_TOKEN", "ghp_from_env")
-    # 他のサービス環境変数をクリア
-    for env_var in _SERVICE_ENV_MAP.values():
-        if env_var != "GITHUB_TOKEN":
-            monkeypatch.delenv(env_var, raising=False)
+    _clear_service_env_vars(monkeypatch, keep="GITHUB_TOKEN")
 
     status = get_auth_status()
 
@@ -280,8 +281,7 @@ def test_get_auth_status_no_token_values(tmp_path, monkeypatch):
     creds = tmp_path / "credentials.toml"
     creds.write_text('[tokens]\n"github.com" = "ghp_secret"\n', encoding="utf-8")
     monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
-    for env_var in _SERVICE_ENV_MAP.values():
-        monkeypatch.delenv(env_var, raising=False)
+    _clear_service_env_vars(monkeypatch)
 
     status = get_auth_status()
 

@@ -157,6 +157,7 @@ def get_auth_status() -> list[dict[str, str]]:
                         "source": f"env:{env_var}",
                     }
                 )
+                seen_hosts.add(display_host)
 
     return result
 
