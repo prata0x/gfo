@@ -62,10 +62,8 @@ class TestHandleList:
 
         out = capsys.readouterr().out
         data = json.loads(out)
-        if isinstance(data, list):
-            assert data[0]["name"] == "bug"
-        else:
-            assert data["name"] == "bug"
+        assert isinstance(data, list)
+        assert data[0]["name"] == "bug"
 
     def test_table_output_includes_color(self, sample_config, capsys):
         args = make_args()
@@ -99,7 +97,7 @@ class TestHandleList:
 
         out = capsys.readouterr().out
         data = json.loads(out)
-        item = data[0] if isinstance(data, list) else data
+        item = data[0]
         assert "name" in item
         assert "color" in item
         assert "description" in item
@@ -157,7 +155,7 @@ class TestHandleCreate:
 
         out = capsys.readouterr().out
         data = json.loads(out)
-        item = data[0] if isinstance(data, list) else data
+        item = data[0]
         assert item["name"] == "bug"
 
     def test_create_adapter_error_propagates(self, sample_config):

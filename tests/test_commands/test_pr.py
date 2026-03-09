@@ -59,11 +59,8 @@ class TestHandleList:
         import json
         out = capsys.readouterr().out
         data = json.loads(out)
-        # 1件リストは output.py が単一オブジェクトとして出力する
-        if isinstance(data, list):
-            assert data[0]["title"] == "Test PR"
-        else:
-            assert data["title"] == "Test PR"
+        assert isinstance(data, list)
+        assert data[0]["title"] == "Test PR"
 
     def test_plain_format(self, sample_config, mock_adapter, capsys):
         args = make_args(state="open", limit=30)

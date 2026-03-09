@@ -94,10 +94,8 @@ class TestHandleList:
 
         out = capsys.readouterr().out
         data = json.loads(out)
-        if isinstance(data, list):
-            assert data[0]["title"] == "Test Issue"
-        else:
-            assert data["title"] == "Test Issue"
+        assert isinstance(data, list)
+        assert data[0]["title"] == "Test Issue"
 
     def test_plain_format(self, capsys):
         args = make_args(state="open", assignee=None, label=None, limit=30)

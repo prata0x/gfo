@@ -64,10 +64,8 @@ class TestHandleList:
 
         out = capsys.readouterr().out
         data = json.loads(out)
-        if isinstance(data, list):
-            assert data[0]["title"] == "v1.0"
-        else:
-            assert data["title"] == "v1.0"
+        assert isinstance(data, list)
+        assert data[0]["title"] == "v1.0"
 
     def test_table_output_includes_state(self, sample_config, capsys):
         args = make_args()
@@ -101,7 +99,7 @@ class TestHandleList:
 
         out = capsys.readouterr().out
         data = json.loads(out)
-        item = data[0] if isinstance(data, list) else data
+        item = data[0]
         assert "title" in item
         assert "state" in item
         assert "number" in item
@@ -169,7 +167,7 @@ class TestHandleCreate:
 
         out = capsys.readouterr().out
         data = json.loads(out)
-        item = data[0] if isinstance(data, list) else data
+        item = data[0]
         assert item["title"] == "v1.0"
 
     def test_create_adapter_error_propagates(self, sample_config):
