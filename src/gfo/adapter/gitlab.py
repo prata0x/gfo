@@ -256,7 +256,7 @@ class GitLabAdapter(GitServiceAdapter):
                      description: str | None = None) -> Label:
         payload: dict = {"name": name}
         if color is not None:
-            payload["color"] = f"#{color}"
+            payload["color"] = f"#{color.lstrip('#')}"
         if description is not None:
             payload["description"] = description
         resp = self._client.post(f"{self._project_path()}/labels", json=payload)
