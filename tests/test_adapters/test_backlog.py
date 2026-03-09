@@ -667,6 +667,10 @@ class TestErrorHandling:
         """_to_pull_request で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError
         mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 5, "name": "Merged"}], status=200,
+        )
+        mock_responses.add(
             responses.GET, f"{PR_PATH}/1",
             json={"incomplete": True}, status=200,
         )

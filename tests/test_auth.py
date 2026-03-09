@@ -182,6 +182,30 @@ def test_save_token_windows_icacls(tmp_path, monkeypatch):
     assert "testuser:F" in calls[0]
 
 
+def test_save_token_windows_icacls_nonzero_warns(tmp_path, monkeypatch):
+    """Windows icacls が非ゼロ終了コードを返しても警告のみで伝播しない。"""
+    import warnings
+    config_dir = tmp_path / "config"
+    monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
+    monkeypatch.setattr(
+        "gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml"
+    )
+    monkeypatch.setattr("gfo.auth.sys.platform", "win32")
+
+    def mock_run(cmd, **kwargs):
+        return type("CP", (), {"returncode": 5})()
+
+    monkeypatch.setattr("gfo.auth.subprocess.run", mock_run)
+    monkeypatch.setattr("gfo.auth.getpass.getuser", lambda: "testuser")
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        save_token("github.com", "ghp_test")
+
+    assert any("icacls exited with code" in str(warning.message) for warning in w)
+    assert (config_dir / "credentials.toml").exists()
+
+
 def test_save_token_windows_icacls_oserror_ignored(tmp_path, monkeypatch):
     """Windows icacls が OSError を投げても伝播しない。"""
     config_dir = tmp_path / "config"
@@ -206,6 +230,16 @@ def test_save_token_windows_icacls_oserror_ignored(tmp_path, monkeypatch):
 
 
 # ── load_tokens ──
+
+
+def test_load_tokens_toml_decode_error(tmp_path, monkeypatch):
+    """不正な TOML → ConfigError。"""
+    creds = tmp_path / "credentials.toml"
+    creds.write_text("invalid toml content [[[\n", encoding="utf-8")
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+
+    with pytest.raises(ConfigError, match="Failed to parse credentials file"):
+        load_tokens()
 
 
 def test_load_tokens_no_file(tmp_path, monkeypatch):
@@ -288,6 +322,20 @@ def test_get_auth_status_no_duplicate_when_env_and_file_overlap(tmp_path, monkey
     github_entries = [s for s in status if s["host"] == "github.com"]
     assert len(github_entries) == 1
     assert github_entries[0]["source"] == "credentials.toml"
+
+
+def test_get_auth_status_shared_env_var_no_duplicate(tmp_path, monkeypatch):
+    """GITEA_TOKEN など複数サービスが共有する env_var はエントリが重複しない（R44-01 seen_env_vars）。"""
+    creds = tmp_path / "credentials.toml"
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+    _clear_service_env_vars(monkeypatch, keep="GITEA_TOKEN")
+    monkeypatch.setenv("GITEA_TOKEN", "token_gitea")
+
+    status = get_auth_status()
+
+    # gitea/forgejo/gogs は同じ GITEA_TOKEN を使うが、エントリは1件のみ
+    gitea_entries = [s for s in status if s["source"] == "env:GITEA_TOKEN"]
+    assert len(gitea_entries) == 1
 
 
 def test_get_auth_status_no_token_values(tmp_path, monkeypatch):

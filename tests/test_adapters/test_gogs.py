@@ -69,6 +69,11 @@ class TestNotSupportedOperations:
             gogs_adapter.close_pull_request(1)
         assert exc_info.value.web_url == f"{WEB_BASE}/test-owner/test-repo/pulls/1"
 
+    def test_get_pr_checkout_refspec(self, gogs_adapter):
+        with pytest.raises(NotSupportedError) as exc_info:
+            gogs_adapter.get_pr_checkout_refspec(1)
+        assert exc_info.value.web_url == f"{WEB_BASE}/test-owner/test-repo/pulls/1"
+
     def test_list_labels(self, gogs_adapter):
         with pytest.raises(NotSupportedError) as exc_info:
             gogs_adapter.list_labels()
