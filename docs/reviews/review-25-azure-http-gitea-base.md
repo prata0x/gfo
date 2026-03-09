@@ -113,22 +113,30 @@
 
 | ID | 重大度 | ファイル | 概要 | 状態 |
 |----|--------|---------|------|------|
-| **R25-01** | 🟡 中 | `azure_devops.py` L89 | `_to_issue` assignee `uniqueName` KeyError リスク | |
-| **R25-02** | 🔴 重大 | `azure_devops.py` L198,216 | `list_issues` の `limit=0` バグ（空リスト返却） | |
-| **R25-03** | 🟡 中 | `http.py` L240 | `paginate_link_header` の `resp.json()` 例外処理なし | |
-| **R25-04** | 🟡 中 | `azure_devops.py` L206-214 | バッチループの早期終了なし | |
-| **R25-05** | 🟢 軽微 | `http.py` L241 | 空リストの設計意図コメント不足 | |
-| **R25-07** | 🟢 軽微 | `git_util.py` | `_mask_credentials` URL エンコードケースのテスト不足 | |
+| **R25-01** | 🟡 中 | `azure_devops.py` L89 | `_to_issue` assignee `uniqueName` KeyError リスク | ✅ 修正済み |
+| **R25-02** | 🔴 重大 | `azure_devops.py` L198,216 | `list_issues` の `limit=0` バグ（空リスト返却） | ✅ 修正済み |
+| **R25-03** | 🟡 中 | `http.py` L240 | `paginate_link_header` の `resp.json()` 例外処理なし | ✅ 修正済み |
+| **R25-04** | 🟡 中 | `azure_devops.py` L206-214 | バッチループの早期終了なし | ✅ 修正済み |
+| **R25-05** | 🟢 軽微 | `http.py` L241 | 空リストの設計意図コメント不足 | 保留 |
+| **R25-07** | 🟢 軽微 | `git_util.py` | `_mask_credentials` URL エンコードケースのテスト不足 | 保留 |
 | **R25-08** | 🟢 軽微 | `gitea.py`/`github.py` | `merged` フィルタ後 limit 不足（R13-03 継続） | 継続中 |
 | R13-03 | 🟡 中 | `gitea.py` | フィルタ後 limit 未満（継続） | 継続中 |
-| R24-06 | 🟡 中 | `http.py` | `paginate_link_header` JSON 例外処理（R25-03 と重複） | |
+| R24-06 | 🟡 中 | `http.py` | `paginate_link_header` JSON 例外処理（R25-03 で修正済み） | ✅ 修正済み |
+
+---
+
+## 修正コミット（R25）
+
+| コミット | 修正内容 |
+|---------|---------|
+| `b20a068` | R25-01/02/03/04 — azure_devops limit=0 バグ・assignee 安全アクセス・paginate JSON 例外処理 |
 
 ---
 
 ## 推奨アクション（優先度順）
 
-1. **[R25-02]** `azure_devops.py` — `list_issues` の `limit=0` バグを修正
-2. **[R25-01]** `azure_devops.py` — `_to_issue` assignee を `get()` で安全アクセスに変更
-3. **[R25-03/R24-06]** `http.py` — `paginate_link_header` の `resp.json()` に try-except を追加
-4. **[R25-04]** `azure_devops.py` — バッチループに早期終了を追加
-5. **[R25-05/07]** 軽微な問題（低優先度）
+1. ~~**[R25-02]**~~ ✅ 修正済み
+2. ~~**[R25-01]**~~ ✅ 修正済み
+3. ~~**[R25-03/R24-06]**~~ ✅ 修正済み
+4. ~~**[R25-04]**~~ ✅ 修正済み
+5. **[R25-05/07]** 軽微な問題（保留）
