@@ -43,6 +43,10 @@ class GogsAdapter(GiteaAdapter):
         raise NotSupportedError("Gogs", "pull request operations",
                                 web_url=f"{self._web_url()}/{self._owner}/{self._repo}/pulls/{number}")
 
+    def get_pr_checkout_refspec(self, number, *, pr=None):
+        raise NotSupportedError("Gogs", "pull request operations",
+                                web_url=f"{self._web_url()}/{self._owner}/{self._repo}/pulls/{number}")
+
     # --- Label（非サポート）---
 
     def list_labels(self):
