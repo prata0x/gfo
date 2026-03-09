@@ -98,7 +98,7 @@ class GitLabAdapter(GitServiceAdapter):
                 url=(data.get("_links") or {}).get("self") or data.get("web_url", ""),
                 created_at=data["created_at"],
             )
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError, AttributeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod

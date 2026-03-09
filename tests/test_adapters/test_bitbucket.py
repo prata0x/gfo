@@ -121,6 +121,14 @@ class TestToIssue:
         issue = BitbucketAdapter._to_issue(data)
         assert issue.assignees == []
 
+    def test_non_dict_content_raises_gfo_error(self):
+        """content が dict 以外の truthy 値のとき AttributeError でなく GfoError になる。"""
+        from gfo.exceptions import GfoError
+        data = _issue_data()
+        data["content"] = "not a dict"
+        with pytest.raises(GfoError):
+            BitbucketAdapter._to_issue(data)
+
 
 class TestToRepository:
     def test_basic(self):

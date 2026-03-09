@@ -52,7 +52,7 @@ class BitbucketAdapter(GitServiceAdapter):
                 created_at=data["created_on"],
                 updated_at=data.get("updated_on"),
             )
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError, AttributeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod
@@ -80,7 +80,7 @@ class BitbucketAdapter(GitServiceAdapter):
                 created_at=data["created_on"],
                 updated_at=data.get("updated_on"),
             )
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError, AttributeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod
@@ -101,7 +101,7 @@ class BitbucketAdapter(GitServiceAdapter):
                 clone_url=clone_url,
                 url=data["links"]["html"]["href"],
             )
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError, AttributeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- PR ---

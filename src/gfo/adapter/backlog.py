@@ -92,7 +92,7 @@ class BacklogAdapter(GitServiceAdapter):
                 created_at=data.get("created", ""),
                 updated_at=data.get("updated"),
             )
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError, AttributeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod
@@ -123,7 +123,7 @@ class BacklogAdapter(GitServiceAdapter):
                 created_at=data.get("created", ""),
                 updated_at=data.get("updated"),
             )
-        except (KeyError, TypeError, ValueError) as e:
+        except (KeyError, TypeError, ValueError, AttributeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod

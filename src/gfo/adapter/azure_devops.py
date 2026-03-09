@@ -77,7 +77,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 created_at=data["creationDate"],
                 updated_at=data.get("closedDate"),
             )
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError, AttributeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod
@@ -106,7 +106,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 created_at=fields.get("System.CreatedDate", ""),
                 updated_at=fields.get("System.ChangedDate"),
             )
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError, AttributeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod
@@ -121,7 +121,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 clone_url=data.get("remoteUrl", ""),
                 url=data.get("webUrl", ""),
             )
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError, AttributeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- PR ---

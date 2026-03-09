@@ -190,6 +190,14 @@ class TestToIssue:
         issue = AzureDevOpsAdapter._to_issue(data)
         assert issue.author == ""
 
+    def test_non_dict_created_by_raises_gfo_error(self):
+        """System.CreatedBy が dict 以外の truthy 値のとき AttributeError でなく GfoError になる。"""
+        from gfo.exceptions import GfoError
+        data = _issue_data()
+        data["fields"]["System.CreatedBy"] = "not a dict"
+        with pytest.raises(GfoError):
+            AzureDevOpsAdapter._to_issue(data)
+
 
 class TestToRepository:
     def test_basic(self, azure_devops_adapter):

@@ -103,6 +103,14 @@ class TestToPullRequest:
         pr = BacklogAdapter._to_pull_request(data)
         assert pr.author == ""
 
+    def test_non_dict_status_raises_gfo_error(self):
+        """status が dict 以外の truthy 値（整数等）のとき GfoError になる。"""
+        from gfo.exceptions import GfoError
+        data = _pr_data()
+        data["status"] = 5
+        with pytest.raises(GfoError):
+            BacklogAdapter._to_pull_request(data)
+
 
 class TestToIssue:
     def test_open(self):
@@ -153,6 +161,14 @@ class TestToIssue:
         data["createdUser"] = None
         issue = BacklogAdapter._to_issue(data)
         assert issue.author == ""
+
+    def test_non_dict_status_raises_gfo_error(self):
+        """status が dict 以外の truthy 値（整数等）のとき GfoError になる。"""
+        from gfo.exceptions import GfoError
+        data = _issue_data()
+        data["status"] = 5
+        with pytest.raises(GfoError):
+            BacklogAdapter._to_issue(data)
 
 
 class TestToRepository:

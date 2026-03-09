@@ -176,6 +176,14 @@ class TestToRelease:
         rel = GitLabAdapter._to_release(data)
         assert rel.url == "https://gitlab.com/test-owner/test-repo/-/releases/v1.0.0"
 
+    def test_non_dict_links_raises_gfo_error(self):
+        """_links が dict 以外の truthy 値のとき AttributeError でなく GfoError になる。"""
+        from gfo.exceptions import GfoError
+        data = _release_data()
+        data["_links"] = "not a dict"
+        with pytest.raises(GfoError):
+            GitLabAdapter._to_release(data)
+
 
 class TestToLabel:
     def test_basic(self):
