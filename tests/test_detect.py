@@ -242,6 +242,21 @@ class TestDetectFromUrl:
         with pytest.raises(DetectionError, match="Cannot parse path"):
             detect_from_url("https://git.example.com/singlepart")
 
+    def test_https_userinfo_host_extracted_correctly(self):
+        """HTTPS URL に userinfo (user:pass@host) が含まれてもホストを正しく抽出する（R45修正確認）。"""
+        r = detect_from_url("https://oauth2:token@github.com/owner/repo.git")
+        assert r.host == "github.com"
+        assert r.service_type == "github"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+
+    def test_https_userinfo_only_user_host_extracted_correctly(self):
+        """HTTPS URL に user@ 形式の userinfo が含まれてもホストを正しく抽出する。"""
+        r = detect_from_url("https://mytoken@gitea.example.com/owner/repo.git")
+        assert r.host == "gitea.example.com"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+
 
 # ── get_known_service_type テスト ──
 

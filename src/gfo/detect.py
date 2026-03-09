@@ -36,7 +36,7 @@ class DetectResult:
 # ── URL パース正規表現 ──
 
 _HTTPS_RE = re.compile(
-    r"^https?://(?P<host>[^/:]+)(?::(?P<port>\d+))?/(?P<path>.+?)(?:\.git)?/?$"
+    r"^https?://(?:[^\s@]+@)?(?P<host>[^/:]+)(?::(?P<port>\d+))?/(?P<path>.+?)(?:\.git)?/?$"
 )
 
 _SSH_URL_RE = re.compile(
