@@ -99,8 +99,8 @@
 
 | ID | 重大度 | ファイル | 概要 | 状態 |
 |----|--------|---------|------|------|
-| **R42-01** | 🟡 中 | `bitbucket.py` L189/196/203 | `list_repositories` / `create_repository` / `get_repository` の owner/name に `quote()` 欠落 | 未修正 |
-| **R42-02** | 🟢 軽微 | `test_bitbucket.py` | スラッシュ含む owner/name の URL エンコードテスト欠落 | 未修正 |
+| **R42-01** | 🟡 中 | `bitbucket.py` L189/196/203 | `list_repositories` / `create_repository` / `get_repository` の owner/name に `quote()` 欠落 | ✅ 修正済み |
+| **R42-02** | 🟢 軽微 | `test_bitbucket.py` | スラッシュ含む owner/name の URL エンコードテスト欠落 | ✅ 修正済み |
 
 ---
 
@@ -113,4 +113,4 @@
 
 | コミット | 修正内容 |
 |---------|---------|
-| （次のコミット） | R42-01〜02 — Bitbucket repository メソッドの URL エンコード修正・テスト追加 |
+| f5d8e7d | R42-01〜02 — Bitbucket repository メソッドの URL エンコード修正・テスト追加 |
