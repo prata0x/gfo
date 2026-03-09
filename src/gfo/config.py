@@ -111,12 +111,19 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
 
     # 3. いずれも未設定なら detect_service() で自動検出
     if stype and shost:
-        remote_url = gfo.git_util.get_remote_url(cwd=cwd)
-        detect_result = gfo.detect.detect_from_url(remote_url)
-        owner = detect_result.owner
-        repo = detect_result.repo
-        organization = detect_result.organization
-        project_key = detect_result.project
+        # remote URL が存在しない環境でも失敗しないよう任意解析にする
+        try:
+            remote_url = gfo.git_util.get_remote_url(cwd=cwd)
+            detect_result = gfo.detect.detect_from_url(remote_url)
+            owner = detect_result.owner
+            repo = detect_result.repo
+            organization = detect_result.organization
+            project_key = detect_result.project
+        except Exception:
+            owner = ""
+            repo = ""
+            organization = None
+            project_key = None
     else:
         detect_result = gfo.detect.detect_service(cwd=cwd)
         stype = stype or detect_result.service_type
