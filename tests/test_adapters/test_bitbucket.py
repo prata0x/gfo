@@ -523,3 +523,33 @@ class TestErrorHandling:
         mock_responses.add(responses.GET, f"{REPOS}/issues", status=500)
         with pytest.raises(ServerError):
             bitbucket_adapter.list_issues()
+
+    def test_malformed_pr_raises_gfo_error(self, mock_responses, bitbucket_adapter):
+        """_to_pull_request で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{REPOS}/pullrequests/1",
+            json={"incomplete": True}, status=200,
+        )
+        with pytest.raises(GfoError):
+            bitbucket_adapter.get_pull_request(1)
+
+    def test_malformed_issue_raises_gfo_error(self, mock_responses, bitbucket_adapter):
+        """_to_issue で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{REPOS}/issues",
+            json={"values": [{"incomplete": True}], "next": None}, status=200,
+        )
+        with pytest.raises(GfoError):
+            bitbucket_adapter.list_issues()
+
+    def test_malformed_repository_raises_gfo_error(self, mock_responses, bitbucket_adapter):
+        """_to_repository で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{REPOS}",
+            json={"incomplete": True}, status=200,
+        )
+        with pytest.raises(GfoError):
+            bitbucket_adapter.get_repository()

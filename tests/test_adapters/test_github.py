@@ -559,3 +559,63 @@ class TestErrorHandling:
         mock_responses.add(responses.GET, f"{REPOS}/issues", status=500)
         with pytest.raises(ServerError):
             github_adapter.list_issues()
+
+    def test_malformed_pr_raises_gfo_error(self, mock_responses, github_adapter):
+        """_to_pull_request で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{REPOS}/pulls/1",
+            json={"incomplete": True}, status=200,
+        )
+        with pytest.raises(GfoError):
+            github_adapter.get_pull_request(1)
+
+    def test_malformed_issue_raises_gfo_error(self, mock_responses, github_adapter):
+        """_to_issue で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{REPOS}/issues/1",
+            json={"incomplete": True}, status=200,
+        )
+        with pytest.raises(GfoError):
+            github_adapter.get_issue(1)
+
+    def test_malformed_milestone_raises_gfo_error(self, mock_responses, github_adapter):
+        """_to_milestone で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{REPOS}/milestones",
+            json=[{"incomplete": True}], status=200,
+        )
+        with pytest.raises(GfoError):
+            github_adapter.list_milestones()
+
+    def test_malformed_repository_raises_gfo_error(self, mock_responses, github_adapter):
+        """_to_repository で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{REPOS}",
+            json={"incomplete": True}, status=200,
+        )
+        with pytest.raises(GfoError):
+            github_adapter.get_repository()
+
+    def test_malformed_release_raises_gfo_error(self, mock_responses, github_adapter):
+        """_to_release で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{REPOS}/releases",
+            json=[{"incomplete": True}], status=200,
+        )
+        with pytest.raises(GfoError):
+            github_adapter.list_releases()
+
+    def test_malformed_label_raises_gfo_error(self, mock_responses, github_adapter):
+        """_to_label で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{REPOS}/labels",
+            json=[{"incomplete": True}], status=200,
+        )
+        with pytest.raises(GfoError):
+            github_adapter.list_labels()

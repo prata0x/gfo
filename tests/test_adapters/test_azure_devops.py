@@ -611,3 +611,37 @@ class TestErrorHandling:
             azure_devops_adapter.create_pull_request(
                 title="PR", body="", base="main", head="feature"
             )
+
+    def test_malformed_pr_raises_gfo_error(self, mock_responses, azure_devops_adapter):
+        """_to_pull_request で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{GIT}/pullrequests/1",
+            json={"incomplete": True}, status=200,
+        )
+        with pytest.raises(GfoError):
+            azure_devops_adapter.get_pull_request(1)
+
+    def test_malformed_repository_raises_gfo_error(self, mock_responses, azure_devops_adapter):
+        """_to_repository で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{GIT}",
+            json={"incomplete": True}, status=200,
+        )
+        with pytest.raises(GfoError):
+            azure_devops_adapter.get_repository()
+
+    def test_malformed_issue_raises_gfo_error(self, mock_responses, azure_devops_adapter):
+        """_to_issue で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.POST, f"{WIT}/wiql",
+            json={"workItems": [{"id": 1}]}, status=200,
+        )
+        mock_responses.add(
+            responses.GET, f"{WIT}/workitems",
+            json={"value": [{"incomplete": True}]}, status=200,
+        )
+        with pytest.raises(GfoError):
+            azure_devops_adapter.list_issues()

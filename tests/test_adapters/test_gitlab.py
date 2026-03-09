@@ -493,6 +493,16 @@ class TestCreateRelease:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["tag_name"] == "v1.0.0"
 
+    def test_create_prerelease(self, mock_responses, gitlab_adapter):
+        """prerelease=True のとき upcoming_release がペイロードに含まれる。"""
+        mock_responses.add(
+            responses.POST, f"{PROJECT}/releases",
+            json=_release_data(), status=201,
+        )
+        gitlab_adapter.create_release(tag="v1.0.0-rc1", prerelease=True)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["upcoming_release"] is True
+
 
 # --- Label 系 ---
 
@@ -547,6 +557,16 @@ class TestCreateLabel:
         assert "color" not in req_body
         assert "description" not in req_body
 
+    def test_create_with_description(self, mock_responses, gitlab_adapter):
+        """description を渡すとペイロードに含まれる。"""
+        mock_responses.add(
+            responses.POST, f"{PROJECT}/labels",
+            json=_label_data(), status=201,
+        )
+        gitlab_adapter.create_label(name="bug", color="d73a4a", description="Bug report")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["description"] == "Bug report"
+
 
 # --- Milestone 系 ---
 
@@ -598,6 +618,16 @@ class TestCreateMilestone:
         assert "description" not in req_body
         assert "due_date" not in req_body
 
+    def test_create_with_description(self, mock_responses, gitlab_adapter):
+        """description を渡すとペイロードに含まれる。"""
+        mock_responses.add(
+            responses.POST, f"{PROJECT}/milestones",
+            json=_milestone_data(), status=201,
+        )
+        gitlab_adapter.create_milestone(title="v1.0", description="First stable release")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["description"] == "First stable release"
+
 
 # --- Registry ---
 
@@ -623,3 +653,63 @@ class TestErrorHandling:
         mock_responses.add(responses.GET, f"{PROJECT}/issues", status=500)
         with pytest.raises(ServerError):
             gitlab_adapter.list_issues()
+
+    def test_malformed_pr_raises_gfo_error(self, mock_responses, gitlab_adapter):
+        """_to_pull_request で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{PROJECT}/merge_requests/1",
+            json={"incomplete": True}, status=200,
+        )
+        with pytest.raises(GfoError):
+            gitlab_adapter.get_pull_request(1)
+
+    def test_malformed_issue_raises_gfo_error(self, mock_responses, gitlab_adapter):
+        """_to_issue で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{PROJECT}/issues/1",
+            json={"incomplete": True}, status=200,
+        )
+        with pytest.raises(GfoError):
+            gitlab_adapter.get_issue(1)
+
+    def test_malformed_milestone_raises_gfo_error(self, mock_responses, gitlab_adapter):
+        """_to_milestone で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{PROJECT}/milestones",
+            json=[{"incomplete": True}], status=200,
+        )
+        with pytest.raises(GfoError):
+            gitlab_adapter.list_milestones()
+
+    def test_malformed_repository_raises_gfo_error(self, mock_responses, gitlab_adapter):
+        """_to_repository で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{PROJECT}",
+            json={"incomplete": True}, status=200,
+        )
+        with pytest.raises(GfoError):
+            gitlab_adapter.get_repository()
+
+    def test_malformed_release_raises_gfo_error(self, mock_responses, gitlab_adapter):
+        """_to_release で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{PROJECT}/releases",
+            json=[{"incomplete": True}], status=200,
+        )
+        with pytest.raises(GfoError):
+            gitlab_adapter.list_releases()
+
+    def test_malformed_label_raises_gfo_error(self, mock_responses, gitlab_adapter):
+        """_to_label で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{PROJECT}/labels",
+            json=[{"incomplete": True}], status=200,
+        )
+        with pytest.raises(GfoError):
+            gitlab_adapter.list_labels()

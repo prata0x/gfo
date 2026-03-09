@@ -448,6 +448,56 @@ class TestCreateIssue:
         req_body = json.loads(mock_responses.calls[3].request.body)
         assert req_body["priorityId"] == 3
 
+    def test_create_raises_when_no_issue_types(self, mock_responses, backlog_adapter):
+        """issueTypes が空のとき GfoError を送出する。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST",
+            json={"id": 100, "projectKey": "TEST"}, status=200,
+        )
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST/issueTypes",
+            json=[], status=200,
+        )
+        mock_responses.add(
+            responses.GET, f"{BASE}/priorities",
+            json=[{"id": 3, "name": "中"}], status=200,
+        )
+        with pytest.raises(GfoError, match="no issue types"):
+            backlog_adapter.create_issue(title="Issue")
+
+    def test_create_raises_when_no_priorities(self, mock_responses, backlog_adapter):
+        """priorities が空のとき GfoError を送出する。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST",
+            json={"id": 100, "projectKey": "TEST"}, status=200,
+        )
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST/issueTypes",
+            json=[{"id": 2, "name": "Task"}], status=200,
+        )
+        mock_responses.add(
+            responses.GET, f"{BASE}/priorities",
+            json=[], status=200,
+        )
+        with pytest.raises(GfoError, match="no priorities"):
+            backlog_adapter.create_issue(title="Issue")
+
+    def test_create_with_assignee(self, mock_responses, backlog_adapter):
+        """assignee を渡すと assigneeUserId がペイロードに含まれる。"""
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST",
+            json={"id": 100, "projectKey": "TEST"}, status=200,
+        )
+        mock_responses.add(
+            responses.POST, ISSUES_PATH,
+            json=_issue_data(), status=201,
+        )
+        backlog_adapter.create_issue(title="Issue", issue_type=2, priority=3, assignee="alice")
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["assigneeUserId"] == "alice"
+
 
 class TestGetIssue:
     def test_get(self, mock_responses, backlog_adapter):
@@ -494,6 +544,16 @@ class TestCreateRepository:
         assert repo.name == "new-repo"
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["name"] == "new-repo"
+
+    def test_create_with_description(self, mock_responses, backlog_adapter):
+        """description を渡すとペイロードに含まれる。"""
+        mock_responses.add(
+            responses.POST, f"{BASE}/projects/TEST/git/repositories",
+            json=_repo_data(name="new-repo"), status=201,
+        )
+        backlog_adapter.create_repository(name="new-repo", description="My repo")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["description"] == "My repo"
 
 
 class TestGetRepository:
@@ -602,3 +662,37 @@ class TestErrorHandling:
         mock_responses.add(responses.GET, f"{BASE}/projects/TEST", status=500)
         with pytest.raises(ServerError):
             backlog_adapter.list_issues()
+
+    def test_malformed_pr_raises_gfo_error(self, mock_responses, backlog_adapter):
+        """_to_pull_request で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{PR_PATH}/1",
+            json={"incomplete": True}, status=200,
+        )
+        with pytest.raises(GfoError):
+            backlog_adapter.get_pull_request(1)
+
+    def test_malformed_issue_raises_gfo_error(self, mock_responses, backlog_adapter):
+        """_to_issue で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST",
+            json={"id": 100, "projectKey": "TEST"}, status=200,
+        )
+        mock_responses.add(
+            responses.GET, ISSUES_PATH,
+            json=[{"incomplete": True}], status=200,
+        )
+        with pytest.raises(GfoError):
+            backlog_adapter.list_issues()
+
+    def test_malformed_repository_raises_gfo_error(self, mock_responses, backlog_adapter):
+        """_to_repository で必須フィールド欠落 → GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST/git/repositories/test-repo",
+            json={"incomplete": True}, status=200,
+        )
+        with pytest.raises(GfoError):
+            backlog_adapter.get_repository()
