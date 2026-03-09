@@ -151,7 +151,15 @@ def _handle_interactive(args: argparse.Namespace) -> None:
         if api_url_input:
             api_url = api_url_input
         else:
-            api_url = build_default_api_url(service_type, host, organization, project_key)
+            try:
+                api_url = build_default_api_url(service_type, host, organization, project_key)
+            except ConfigError:
+                # organization / project_key が未解決（Azure DevOps 等）の場合は手動入力へ
+                if organization is None:
+                    organization = input("Organization: ").strip() or None
+                if project_key is None:
+                    project_key = input("Project key: ").strip() or None
+                api_url = build_default_api_url(service_type, host, organization, project_key)
 
     config = ProjectConfig(
         service_type=service_type,

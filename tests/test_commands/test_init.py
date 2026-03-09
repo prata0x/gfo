@@ -226,6 +226,26 @@ class TestHandleInteractive:
         saved: ProjectConfig = mock_save.call_args[0][0]
         assert saved.api_url == "https://gitlab.com/api/v4"
 
+    def test_detect_failure_manual_azure_devops_prompts_org(self):
+        """手動入力で azure-devops + リモートURL検出失敗のとき organization を追加入力させる。"""
+        args = make_args(non_interactive=False)
+
+        # inputs: service_type, host, api_url(空), project_key(空), organization, project_key再入力
+        # build_default_api_url が organization=None で失敗 → "Organization:" を追加入力
+        inputs = iter(["azure-devops", "dev.azure.com", "", "", "my-org", "my-project"])
+
+        with patch("gfo.commands.init.detect_service", side_effect=DetectionError()), \
+             patch("gfo.commands.init.save_project_config") as mock_save, \
+             patch("gfo.commands.init.get_remote_url", side_effect=GitCommandError("no remote")), \
+             patch("builtins.input", side_effect=inputs):
+            init_cmd.handle(args, fmt="table")
+
+        saved: ProjectConfig = mock_save.call_args[0][0]
+        assert saved.service_type == "azure-devops"
+        assert saved.organization == "my-org"
+        assert "my-org" in saved.api_url
+        assert "my-project" in saved.api_url
+
 
 class TestHandleNonInteractive:
     """--non-interactive モードのテスト。"""
