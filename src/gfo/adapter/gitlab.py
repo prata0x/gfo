@@ -118,11 +118,13 @@ class GitLabAdapter(GitServiceAdapter):
     @staticmethod
     def _to_milestone(data: dict) -> Milestone:
         try:
+            raw_state = data["state"]
+            state = "open" if raw_state == "active" else raw_state
             return Milestone(
                 number=data["iid"],
                 title=data["title"],
                 description=data.get("description"),
-                state=data["state"],
+                state=state,
                 due_date=data.get("due_date"),
             )
         except (KeyError, TypeError) as e:

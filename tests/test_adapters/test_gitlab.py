@@ -165,7 +165,13 @@ class TestToMilestone:
         ms = GitLabAdapter._to_milestone(_milestone_data())
         assert ms.number == 1
         assert ms.due_date == "2025-06-01"
-        assert ms.state == "active"
+        assert ms.state == "open"  # GitLab "active" → 内部表現 "open"
+
+    def test_closed_state(self):
+        data = _milestone_data().copy()
+        data["state"] = "closed"
+        ms = GitLabAdapter._to_milestone(data)
+        assert ms.state == "closed"
 
 
 # --- PR (MR) 系 ---
