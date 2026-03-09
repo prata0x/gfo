@@ -149,30 +149,39 @@
 
 ## 全問題サマリー（R24）
 
-| ID | 重大度 | ファイル | 概要 |
-|----|--------|---------|------|
-| **R24-01** | 🟡 中 | `commands/repo.py` | リポジトリパース処理の重複 |
-| **R24-02** | 🟡 中 | `commands/pr.py` | git_util 関数のエラーハンドリング（GitCommandError は GfoError サブクラスなら許容） |
-| **R24-03** | 🟡 中 | `commands/init.py` | 2 回目の API URL 構築失敗時の例外処理なし |
-| **R24-04** | 🟡 中 | `config.py` | `get_hosts_config` の型チェック不完全 |
-| **R24-05** | 🟡 中 | `detect.py` | `probe_unknown_host` の JSON パース例外処理なし |
-| **R24-06** | 🟡 中 | `http.py` | `paginate_link_header` の JSON 型チェック不備 |
-| **R24-07** | 🟡 中 | `auth.py` | `resolve_token` のトークン空文字チェック不備 |
-| **R24-08** | 🟢 軽微 | `adapter/gogs.py` | ポート番号の正確性（コメント不足） |
-| **R24-09** | 🟢 軽微 | `commands/label.py` | hex 色コードエラーメッセージの表示ずれ |
-| **R24-10** | 🟢 軽微 | 複数 | サービス種別定数の重複管理 |
-| R16-02 | 🟡 中 | `auth.py` | host 形式不統一（継続） |
-| R13-03 | 🟡 中 | `gitea.py` | フィルタ後 limit 未満（継続） |
+| ID | 重大度 | ファイル | 概要 | 状態 |
+|----|--------|---------|------|------|
+| **R24-01** | 🟡 中 | `commands/repo.py` | リポジトリパース処理の重複 | ✅ 修正済み |
+| **R24-02** | 🟡 中 | `commands/pr.py` | git_util 関数のエラーハンドリング | 許容（GitCommandError は GfoError のサブクラス） |
+| **R24-03** | 🟡 中 | `commands/init.py` | 2 回目の API URL 構築失敗時の例外処理なし | ✅ 修正済み |
+| **R24-04** | 🟡 中 | `config.py` | `get_hosts_config` の型チェック不完全 | ✅ 修正済み |
+| **R24-05** | 🟡 中 | `detect.py` | `probe_unknown_host` の JSON パース例外処理なし | ✅ 修正済み |
+| **R24-06** | 🟡 中 | `http.py` | `paginate_link_header` の JSON 型チェック不備 | 保留 |
+| **R24-07** | 🟡 中 | `auth.py` | `resolve_token` のトークン空文字チェック不備 | ✅ 修正済み |
+| **R24-08** | 🟢 軽微 | `adapter/gogs.py` | ポート番号の正確性（コメント不足） | 保留 |
+| **R24-09** | 🟢 軽微 | `commands/label.py` | hex 色コードエラーメッセージの表示ずれ | 保留 |
+| **R24-10** | 🟢 軽微 | 複数 | サービス種別定数の重複管理 | 保留 |
+| R16-02 | 🟡 中 | `auth.py` | host 形式不統一 | ✅ 修正済み |
+| R13-03 | 🟡 中 | `gitea.py` | フィルタ後 limit 未満（継続） | 継続中 |
+
+---
+
+## 修正コミット（R24）
+
+| コミット | 修正内容 |
+|---------|---------|
+| `4b909d3` | R24-01/03/04/05/07 — detect/config/auth/init/repo の堅牢性改善 |
+| `b271353` | R16-02/R23-02 — auth.py host 形式統一（_SERVICE_DEFAULT_HOSTS 追加） |
 
 ---
 
 ## 推奨アクション（優先度順）
 
-1. **[R24-05]** `detect.py` — `probe_unknown_host` の `except` に `ValueError` を追加
-2. **[R24-04]** `config.py` — `get_hosts_config` の `type` フィールド文字列チェックを追加
-3. **[R24-07]** `auth.py` — `resolve_token` の空白トークンチェックを追加
-4. **[R24-03]** `commands/init.py` — 2 回目の API URL 構築失敗時のエラーハンドリングを追加
-5. **[R24-01]** `commands/repo.py` — パース処理ヘルパー化（軽微なリファクタリング）
-6. **[R16-02]** `auth.py` — host 形式統一
-7. **[R24-06]** `http.py` — paginate_link_header の JSON 例外処理明確化
-8. **[R24-08/09/10]** 軽微な問題（低優先度）
+1. ~~**[R24-05]**~~ ✅ 修正済み
+2. ~~**[R24-04]**~~ ✅ 修正済み
+3. ~~**[R24-07]**~~ ✅ 修正済み
+4. ~~**[R24-03]**~~ ✅ 修正済み
+5. ~~**[R24-01]**~~ ✅ 修正済み
+6. ~~**[R16-02]**~~ ✅ 修正済み
+7. **[R24-06]** `http.py` — paginate_link_header の JSON 例外処理明確化（保留）
+8. **[R24-08/09/10]** 軽微な問題（保留）
