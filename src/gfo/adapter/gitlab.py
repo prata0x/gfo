@@ -206,9 +206,11 @@ class GitLabAdapter(GitServiceAdapter):
                           limit: int = 30) -> list[Repository]:
         if owner is not None:
             path = f"/users/{owner}/projects"
+            params: dict = {}
         else:
-            path = "/projects?owned=true&membership=true"
-        results = paginate_page_param(self._client, path, limit=limit)
+            path = "/projects"
+            params = {"owned": "true", "membership": "true"}
+        results = paginate_page_param(self._client, path, params=params, limit=limit)
         return [self._to_repository(r) for r in results]
 
     def create_repository(self, *, name: str, private: bool = False,
