@@ -81,7 +81,7 @@ class HttpClient:
                 wait = self._parse_retry_after(resp.headers.get("Retry-After"))
                 time.sleep(wait)
 
-        raise AssertionError("unreachable")
+        raise AssertionError("unreachable")  # pragma: no cover
 
     def request(
         self,

@@ -265,6 +265,41 @@ class TestHandleCreate:
             with pytest.raises(ConfigError, match="project key"):
                 repo_cmd.handle_create(args, fmt="table")
 
+    def test_azure_devops_uses_org_and_project_key_from_config(self):
+        """Azure DevOps の handle_create は organization/project_key をアダプターに渡す（lines 108-109）。"""
+        from gfo.config import ProjectConfig
+        mock_cfg = MagicMock(spec=ProjectConfig)
+        mock_cfg.service_type = "azure-devops"
+        mock_cfg.organization = "my-org"
+        mock_cfg.project_key = "my-project"
+
+        mock_repo = Repository(
+            name="new-repo", full_name="my-project/new-repo", description="",
+            private=True, default_branch="main",
+            clone_url="https://dev.azure.com/my-org/my-project/_git/new-repo",
+            url="https://dev.azure.com/my-org/my-project/_git/new-repo",
+        )
+        mock_adapter = MagicMock()
+        mock_adapter.create_repository.return_value = mock_repo
+        mock_adapter_cls = MagicMock(return_value=mock_adapter)
+
+        args = make_args(host="dev.azure.com", name="new-repo", private=False, description="")
+
+        with patch("gfo.commands.repo._resolve_host_without_repo",
+                   return_value=("dev.azure.com", "azure-devops")), \
+             patch("gfo.commands.repo.resolve_project_config", return_value=mock_cfg), \
+             patch("gfo.commands.repo.resolve_token", return_value="pat-token"), \
+             patch("gfo.commands.repo.build_default_api_url",
+                   return_value="https://dev.azure.com/my-org/my-project/_apis"), \
+             patch("gfo.commands.repo.create_http_client"), \
+             patch("gfo.commands.repo.get_adapter_class", return_value=mock_adapter_cls):
+            repo_cmd.handle_create(args, fmt="table")
+
+        # アダプターが organization/project_key 付きで構築されたことを確認
+        call_kwargs = mock_adapter_cls.call_args[1]
+        assert call_kwargs["organization"] == "my-org"
+        assert call_kwargs["project_key"] == "my-project"
+
 
 class TestHandleClone:
     def test_github_url(self):
