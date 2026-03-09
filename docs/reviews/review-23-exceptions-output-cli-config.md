@@ -142,26 +142,35 @@
 
 ## 全問題サマリー（R23）
 
-| ID | 重大度 | ファイル | 概要 |
-|----|--------|---------|------|
-| **R23-01** | 🔴 重大 | `config.py` L116 | `resolve_project_config` の except 時 owner="" フォールバック問題 |
-| **R23-02** | 🟡 中 | `auth.py` L140 | `get_auth_status` host 形式不統一（R16-02 継続） |
-| **R23-03** | 🟡 中 | `output.py` L44 | 空データ時の stdout/stderr 不統一 |
-| **R23-04** | 🟢 軽微 | `output.py` L68 | `dataclasses.asdict()` 非 dataclass 例外処理不備 |
-| **R23-05** | 🟡 中 | `cli.py` | テストカバレッジ 0%（統合テスト不在） |
-| **R23-06** | 🟡 中 | `config.py` L191 | `build_clone_url` 等に owner/name 空文字チェックなし |
-| **R23-07** | 🟢 軽微 | `release.py` L21 | 空タグ strip 処理が事前に行われない |
-| R16-02 | 🟡 中 | `auth.py` | host 形式不統一（継続） |
-| R13-03 | 🟡 中 | `gitea.py` | フィルタ後 limit 未満（継続） |
+| ID | 重大度 | ファイル | 概要 | 状態 |
+|----|--------|---------|------|------|
+| **R23-01** | 🔴 重大 | `config.py` L116 | `resolve_project_config` の except 時 owner="" フォールバック問題 | ✅ 修正済み |
+| **R23-02** | 🟡 中 | `auth.py` L140 | `get_auth_status` host 形式不統一（R16-02 継続） | 継続中 |
+| **R23-03** | 🟡 中 | `output.py` L44 | 空データ時の stdout/stderr 不統一 | ✅ 修正済み |
+| **R23-04** | 🟢 軽微 | `output.py` L68 | `dataclasses.asdict()` 非 dataclass 例外処理不備 | 保留 |
+| **R23-05** | 🟡 中 | `cli.py` | テストカバレッジ 0%（統合テスト不在） | ✅ 既存 test_cli.py で対応済み |
+| **R23-06** | 🟡 中 | `config.py` L191 | `build_clone_url` 等に owner/name 空文字チェックなし | ✅ 修正済み |
+| **R23-07** | 🟢 軽微 | `release.py` L21 | 空タグ strip 処理が事前に行われない | ✅ 修正済み |
+| R16-02 | 🟡 中 | `auth.py` | host 形式不統一（継続） | 継続中 |
+| R13-03 | 🟡 中 | `gitea.py` | フィルタ後 limit 未満（継続） | 継続中 |
+
+---
+
+## 修正コミット（R23）
+
+| コミット | 修正内容 |
+|---------|---------|
+| `a1618b2` | R23-03 output stdout 統一・R23-07 release タグ strip 事前化・R23-06 build_clone_url バリデーション |
+| `cfc5a48` | R23-01 resolve_project_config フォールバック・save_project_config owner/repo 保存 |
 
 ---
 
 ## 推奨アクション（優先度順）
 
-1. **[R23-01]** `config.py` L116 — except 時のフォールバック処理を改善（ConfigError 送出 or config.toml から owner/repo 読み込み）
-2. **[R23-05]** `test_cli.py` 新規作成 — CLI 統合テストを追加
-3. **[R23-03]** `output.py` L44 — 空データ時の stdout 統一
-4. **[R23-06]** `config.py` L191 — `build_clone_url` に空文字チェックを追加
+1. ~~**[R23-01]**~~ ✅ 修正済み
+2. ~~**[R23-05]**~~ ✅ 確認済み（test_cli.py 既存）
+3. ~~**[R23-03]**~~ ✅ 修正済み
+4. ~~**[R23-06]**~~ ✅ 修正済み
 5. **[R23-02]** `auth.py` — host 形式統一（R16-02 対応）
-6. **[R23-07]** `release.py` L21 — `args.tag.strip()` を事前実行
-7. **[R23-04]** `output.py` L68 — dataclass チェック追加
+6. ~~**[R23-07]**~~ ✅ 修正済み
+7. **[R23-04]** `output.py` L68 — dataclass チェック追加（保留）
