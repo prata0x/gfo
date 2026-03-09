@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import re
 import sys
 from dataclasses import dataclass
@@ -18,9 +19,9 @@ from gfo.git_util import get_remote_url, git_config_get
 # ── データクラス ──
 
 
-@dataclass
+@dataclass(frozen=True)
 class DetectResult:
-    """検出結果。"""
+    """検出結果。イミュータブル。フィールドの変更には dataclasses.replace() を使用する。"""
 
     service_type: str | None  # "github", "gitlab", "bitbucket", "azure-devops",
     #                           "gitea", "forgejo", "gogs", "gitbucket", "backlog"
@@ -260,8 +261,7 @@ def detect_service(cwd: str | None = None) -> DetectResult:
                 file=sys.stderr,
             )
         # service_type と host を git config の値で統一する
-        result.service_type = stype
-        result.host = shost
+        result = dataclasses.replace(result, service_type=stype, host=shost)
         return result
 
     # 2. URL パース
@@ -279,8 +279,9 @@ def detect_service(cwd: str | None = None) -> DetectResult:
             import gfo.config
 
             hosts = gfo.config.get_hosts_config()
-            if result.host in hosts:
-                result.service_type = hosts[result.host]
+            service_from_hosts = hosts.get(result.host)
+            if service_from_hosts is not None:
+                result = dataclasses.replace(result, service_type=service_from_hosts)
         except (ImportError, AttributeError):
             pass
 
@@ -289,7 +290,7 @@ def detect_service(cwd: str | None = None) -> DetectResult:
         scheme = "http" if remote_url.startswith("http://") else "https"
         probed = probe_unknown_host(result.host, scheme=scheme)
         if probed is not None:
-            result.service_type = probed
+            result = dataclasses.replace(result, service_type=probed)
 
     # 5. 全失敗
     if result.service_type is None:
