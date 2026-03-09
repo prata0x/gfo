@@ -58,13 +58,15 @@ _AZURE_V3_PATH_RE = re.compile(
     r"^v3/(?P<org>[^/]+)/(?P<project>[^/]+)/(?P<repo>[^/]+)$"
 )
 
-_BACKLOG_PATH_RE = re.compile(
-    r"^git/(?P<project>[^/]+)/(?P<repo>[^/]+)$"
-)
-
-_GITBUCKET_PATH_RE = re.compile(
+# Backlog / GitBucket 両サービスで同一パターン（`git/{owner}/{repo}`）。
+# キャプチャグループ名のみ異なるため、共通パターンをマッチ後に使い分ける。
+_GIT_PATH_RE = re.compile(
     r"^git/(?P<owner>[^/]+)/(?P<repo>[^/]+)$"
 )
+
+# 後方互換エイリアス（パターンは同一、グループ名は owner で統一済み）
+_BACKLOG_PATH_RE = _GIT_PATH_RE
+_GITBUCKET_PATH_RE = _GIT_PATH_RE
 
 _GENERIC_PATH_RE = re.compile(
     r"^(?P<owner>.+)/(?P<repo>[^/]+)$"
@@ -125,12 +127,13 @@ def detect_from_url(remote_url: str) -> DetectResult:
         # Backlog HTTPS: path = "git/{PROJECT}/{repo}"
         m = _BACKLOG_PATH_RE.match(path)
         if m:
+            project_key = m.group("owner")  # グループ名は owner に統一済み
             return DetectResult(
                 service_type="backlog",
                 host=host,
-                owner=m.group("project"),
+                owner=project_key,
                 repo=m.group("repo"),
-                project=m.group("project"),
+                project=project_key,
             )
         # Backlog SSH: path = "{PROJECT}/{repo}" (lstrip 済み)
         m = _GENERIC_PATH_RE.match(path)
