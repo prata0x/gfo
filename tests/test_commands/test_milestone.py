@@ -6,8 +6,11 @@ import contextlib
 import json
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from gfo.adapter.base import Milestone
 from gfo.commands import milestone as milestone_cmd
+from gfo.exceptions import ConfigError
 from tests.test_commands.conftest import make_args
 
 
@@ -188,3 +191,17 @@ class TestHandleCreate:
         assert call_kwargs["title"] == "v4.0"
         assert call_kwargs["description"] == "Major release"
         assert call_kwargs["due_date"] == "2026-12-31"
+
+    def test_title_with_surrounding_whitespace_is_stripped(self, sample_config):
+        args = make_args(title="  v1.0  ", description=None, due=None)
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = self.adapter.create_milestone.call_args.kwargs
+        assert call_kwargs["title"] == "v1.0"
+
+    def test_whitespace_only_title_raises_config_error(self, sample_config):
+        args = make_args(title="   ", description=None, due=None)
+        with _patch_all(sample_config, self.adapter):
+            with pytest.raises(ConfigError):
+                milestone_cmd.handle_create(args, fmt="table")

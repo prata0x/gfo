@@ -22,7 +22,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     if not tag:
         raise ConfigError("--tag is required. Use --tag <tag> to specify a release tag.")
     adapter = get_adapter()
-    title = args.title or tag
+    title = (args.title or "").strip() or tag
     release = adapter.create_release(
         tag=tag,
         title=title,

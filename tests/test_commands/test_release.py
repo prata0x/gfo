@@ -6,8 +6,11 @@ import contextlib
 import json
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from gfo.adapter.base import Release
 from gfo.commands import release as release_cmd
+from gfo.exceptions import ConfigError
 from tests.test_commands.conftest import make_args
 
 
@@ -131,3 +134,11 @@ class TestHandleCreate:
 
         call_kwargs = self.adapter.create_release.call_args.kwargs
         assert call_kwargs["notes"] == ""
+
+    def test_whitespace_only_title_falls_back_to_tag(self, sample_config):
+        args = make_args(tag="v1.0.0", title="   ", notes="", draft=False, prerelease=False)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = self.adapter.create_release.call_args.kwargs
+        assert call_kwargs["title"] == "v1.0.0"

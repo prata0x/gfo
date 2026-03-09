@@ -18,11 +18,12 @@ def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
 
 def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo milestone create のハンドラ。"""
-    if not args.title.strip():
+    title = args.title.strip()
+    if not title:
         raise ConfigError("title must not be empty.")
     adapter = get_adapter()
     milestone = adapter.create_milestone(
-        title=args.title,
+        title=title,
         description=args.description,
         due_date=args.due,
     )
