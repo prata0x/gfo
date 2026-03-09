@@ -7,6 +7,7 @@ import argparse
 from gfo.adapter.registry import create_adapter, create_http_client, get_adapter_class
 from gfo.auth import resolve_token
 from gfo.config import (
+    build_clone_url,
     build_default_api_url,
     get_default_host,
     get_host_config,
@@ -99,24 +100,7 @@ def handle_clone(args: argparse.Namespace, *, fmt: str) -> None:
             f"Invalid repo format '{repo_arg}'. Expected 'owner/name'."
         )
 
-    if service_type == "github":
-        url = f"https://github.com/{owner}/{name}.git"
-    elif service_type == "gitlab":
-        url = f"https://{host}/{owner}/{name}.git"
-    elif service_type == "bitbucket":
-        url = f"https://bitbucket.org/{owner}/{name}.git"
-    elif service_type == "azure-devops":
-        # owner = org, name = repo (project は owner と同じと仮定)
-        url = f"https://dev.azure.com/{owner}/{owner}/_git/{name}"
-    elif service_type in ("gitea", "forgejo", "gogs"):
-        url = f"https://{host}/{owner}/{name}.git"
-    elif service_type == "gitbucket":
-        url = f"https://{host}/git/{owner}/{name}.git"
-    elif service_type == "backlog":
-        url = f"https://{host}/git/{owner}/{name}.git"
-    else:
-        url = f"https://{host}/{owner}/{name}.git"
-
+    url = build_clone_url(service_type, host, owner, name)
     git_clone(url)
 
 

@@ -185,7 +185,23 @@ def save_project_config(config: ProjectConfig, cwd: str | None = None) -> None:
         gfo.git_util.git_config_set("gfo.project-key", config.project_key, cwd=cwd)
 
 
-# ── デフォルト API URL 構築 ──
+# ── URL 構築ヘルパー ──
+
+
+def build_clone_url(service_type: str, host: str, owner: str, name: str) -> str:
+    """サービス種別・ホスト・owner/name から clone 用 HTTPS URL を構築する。"""
+    if service_type == "github":
+        return f"https://github.com/{owner}/{name}.git"
+    if service_type == "bitbucket":
+        return f"https://bitbucket.org/{owner}/{name}.git"
+    if service_type == "azure-devops":
+        # owner = org。project は owner と同一と仮定（単一プロジェクト構成）
+        return f"https://dev.azure.com/{owner}/{owner}/_git/{name}"
+    if service_type in ("gitlab", "gitea", "forgejo", "gogs"):
+        return f"https://{host}/{owner}/{name}.git"
+    if service_type in ("gitbucket", "backlog"):
+        return f"https://{host}/git/{owner}/{name}.git"
+    return f"https://{host}/{owner}/{name}.git"
 
 
 def build_default_api_url(
