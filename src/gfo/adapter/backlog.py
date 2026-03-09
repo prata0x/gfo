@@ -112,6 +112,7 @@ class BacklogAdapter(GitServiceAdapter):
                 labels=[],
                 url=data.get("url", ""),
                 created_at=data.get("created", ""),
+                updated_at=data.get("updated"),
             )
         except (KeyError, TypeError, ValueError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e

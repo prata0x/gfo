@@ -75,6 +75,7 @@ class BitbucketAdapter(GitServiceAdapter):
                 labels=[],
                 url=data["links"]["html"]["href"],
                 created_at=data["created_on"],
+                updated_at=data.get("updated_on"),
             )
         except (KeyError, TypeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e

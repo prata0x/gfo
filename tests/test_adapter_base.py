@@ -4,7 +4,7 @@ import dataclasses
 
 import pytest
 
-from gfo.adapter.base import Issue, Label, Milestone, PullRequest, Release, Repository
+from gfo.adapter.base import GitHubLikeAdapter, Issue, Label, Milestone, PullRequest, Release, Repository
 
 
 class TestPullRequest:
@@ -91,6 +91,42 @@ class TestIssue:
         )
         with pytest.raises(dataclasses.FrozenInstanceError):
             issue.state = "closed"  # type: ignore[misc]
+
+
+class TestGitHubLikeAdapterToIssue:
+    """GitHubLikeAdapter._to_issue() の変換テスト。"""
+
+    _ISSUE_DATA = {
+        "number": 10,
+        "title": "Fix bug",
+        "body": "Details",
+        "state": "open",
+        "user": {"login": "alice"},
+        "assignees": [],
+        "labels": [],
+        "html_url": "https://github.com/org/repo/issues/10",
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-02-01T00:00:00Z",
+    }
+
+    def test_updated_at_is_set(self):
+        """_to_issue() が API レスポンスの updated_at を設定する（R37-01）。"""
+        issue = GitHubLikeAdapter._to_issue(self._ISSUE_DATA)
+        assert issue.updated_at == "2026-02-01T00:00:00Z"
+
+    def test_updated_at_missing_becomes_none(self):
+        """_to_issue() が updated_at なしのレスポンスで None を設定する（R37-01）。"""
+        data = {k: v for k, v in self._ISSUE_DATA.items() if k != "updated_at"}
+        issue = GitHubLikeAdapter._to_issue(data)
+        assert issue.updated_at is None
+
+    def test_basic_fields(self):
+        """_to_issue() が基本フィールドを正しく変換する。"""
+        issue = GitHubLikeAdapter._to_issue(self._ISSUE_DATA)
+        assert issue.number == 10
+        assert issue.title == "Fix bug"
+        assert issue.author == "alice"
+        assert issue.state == "open"
 
 
 class TestRepository:

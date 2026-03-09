@@ -119,6 +119,7 @@ class GitHubLikeAdapter(ABC):
                 labels=[lb["name"] for lb in data.get("labels", [])],
                 url=data["html_url"],
                 created_at=data["created_at"],
+                updated_at=data.get("updated_at"),
             )
         except (KeyError, TypeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
