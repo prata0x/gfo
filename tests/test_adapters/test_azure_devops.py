@@ -139,7 +139,7 @@ class TestToIssue:
 
 class TestToRepository:
     def test_basic(self, azure_devops_adapter):
-        repo = azure_devops_adapter._to_repository(_repo_data())
+        repo = azure_devops_adapter._to_repository(_repo_data(), "test-project")
         assert repo.name == "test-repo"
         assert repo.full_name == "test-project/test-repo"
         assert repo.private is True
@@ -149,7 +149,7 @@ class TestToRepository:
     def test_no_default_branch(self, azure_devops_adapter):
         data = _repo_data()
         data["defaultBranch"] = ""
-        repo = azure_devops_adapter._to_repository(data)
+        repo = azure_devops_adapter._to_repository(data, "test-project")
         assert repo.default_branch == ""
 
 

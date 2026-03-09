@@ -104,11 +104,12 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         except (KeyError, TypeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
-    def _to_repository(self, data: dict) -> Repository:
+    @staticmethod
+    def _to_repository(data: dict, project: str = "") -> Repository:
         try:
             return Repository(
                 name=data["name"],
-                full_name=f"{self._project}/{data['name']}",
+                full_name=f"{project}/{data['name']}",
                 description=data.get("project", {}).get("description"),
                 private=True,
                 default_branch=_strip_refs_prefix(data.get("defaultBranch", "")),
@@ -255,19 +256,19 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             self._client, "/git/repositories",
             limit=limit, result_key="value",
         )
-        return [self._to_repository(r) for r in results]
+        return [self._to_repository(r, self._project) for r in results]
 
     def create_repository(self, *, name: str, private: bool = False,
                           description: str = "") -> Repository:
         payload = {"name": name, "project": {"id": self._project}}
         resp = self._client.post("/git/repositories", json=payload)
-        return self._to_repository(resp.json())
+        return self._to_repository(resp.json(), self._project)
 
     def get_repository(self, owner: str | None = None,
                        name: str | None = None) -> Repository:
         n = name if name is not None else self._repo
         resp = self._client.get(f"/git/repositories/{n}")
-        return self._to_repository(resp.json())
+        return self._to_repository(resp.json(), self._project)
 
     # --- NotSupported ---
 
