@@ -142,3 +142,10 @@ class TestHandleCreate:
 
         call_kwargs = self.adapter.create_release.call_args.kwargs
         assert call_kwargs["title"] == "v1.0.0"
+
+    def test_empty_tag_raises_config_error_with_correct_message(self, sample_config):
+        """空文字 tag では正しいエラーメッセージが表示される（R39-02）。"""
+        args = make_args(tag="", title=None, notes="", draft=False, prerelease=False)
+        with _patch_all(sample_config, self.adapter):
+            with pytest.raises(ConfigError, match="gfo release create"):
+                release_cmd.handle_create(args, fmt="table")

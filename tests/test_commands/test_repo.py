@@ -52,7 +52,15 @@ class TestHandleList:
         with _patch_all(sample_config, mock_adapter):
             repo_cmd.handle_list(args, fmt="table")
 
-        mock_adapter.list_repositories.assert_called_once_with(limit=30)
+        mock_adapter.list_repositories.assert_called_once_with(owner=None, limit=30)
+
+    def test_passes_owner_to_adapter(self, sample_config, mock_adapter, capsys):
+        """--owner 引数が adapter.list_repositories() に渡される（R39-01）。"""
+        args = make_args(owner="other-user", limit=30)
+        with _patch_all(sample_config, mock_adapter):
+            repo_cmd.handle_list(args, fmt="table")
+
+        mock_adapter.list_repositories.assert_called_once_with(owner="other-user", limit=30)
 
     def test_outputs_results(self, sample_config, mock_adapter, capsys):
         args = make_args(limit=30)
