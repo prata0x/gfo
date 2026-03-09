@@ -54,14 +54,14 @@ def _resolve_host_without_repo(args_host: str | None) -> tuple[str, str]:
             "Could not resolve host. Use --host option or set defaults.host in config.toml."
         )
 
-    # service_type を解決
+    # service_type を解決（優先順位: ユーザー設定 > 既知ホスト > ネットワークプローブ）
     host_cfg = get_host_config(host)
     if host_cfg and "type" in host_cfg:
         service_type = host_cfg["type"]
     else:
-        service_type = probe_unknown_host(host)
+        service_type = get_known_service_type(host)
         if not service_type:
-            service_type = get_known_service_type(host)
+            service_type = probe_unknown_host(host)
         if not service_type:
             raise ConfigError(
                 f"Could not determine service type for host '{host}'. "
