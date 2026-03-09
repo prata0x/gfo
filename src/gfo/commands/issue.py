@@ -32,7 +32,12 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
         if config.service_type == "azure-devops":
             kwargs["work_item_type"] = args.type
         elif config.service_type == "backlog":
-            kwargs["issue_type"] = args.type
+            try:
+                kwargs["issue_type"] = int(args.type)
+            except (ValueError, TypeError):
+                raise ConfigError(
+                    f"--type must be a numeric issue type ID for Backlog, got {args.type!r}."
+                )
     if args.priority is not None and config.service_type == "backlog":
         kwargs["priority"] = args.priority
     issue = adapter.create_issue(

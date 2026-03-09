@@ -161,16 +161,32 @@ class TestHandleCreate:
             body="",
             assignee=None,
             label=None,
-            type=42,
+            type="42",  # CLI からは常に文字列で渡される
             priority=2,
         )
         with _patch_all(config, adapter):
             issue_cmd.handle_create(args, fmt="table")
 
         call_kwargs = adapter.create_issue.call_args.kwargs
-        assert call_kwargs["issue_type"] == 42
+        assert call_kwargs["issue_type"] == 42  # int に変換されていること
         assert call_kwargs["priority"] == 2
         assert "work_item_type" not in call_kwargs
+
+    def test_backlog_issue_type_non_numeric_raises(self):
+        """Backlog で --type に非数値を渡した場合 ConfigError になる。"""
+        config = _make_config("backlog")
+        adapter = _make_adapter(self.issue)
+        args = make_args(
+            title="Backlog Issue",
+            body="",
+            assignee=None,
+            label=None,
+            type="Bug",  # 非数値
+            priority=None,
+        )
+        with _patch_all(config, adapter):
+            with pytest.raises(ConfigError, match="numeric issue type ID"):
+                issue_cmd.handle_create(args, fmt="table")
 
     def test_backlog_no_priority_when_none(self):
         config = _make_config("backlog")
@@ -180,7 +196,7 @@ class TestHandleCreate:
             body="",
             assignee=None,
             label=None,
-            type=42,
+            type="42",  # CLI からは常に文字列で渡される
             priority=None,
         )
         with _patch_all(config, adapter):
