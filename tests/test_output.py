@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
-from gfo.output import format_json, format_plain, format_table, output
+from gfo.output import format_json, format_plain, format_table, output, _display_width
 
 
 @dataclass(frozen=True)
@@ -87,6 +87,39 @@ class TestFormatTable:
         for line in result.split("\n"):
             assert line == line.rstrip()
 
+    def test_newline_in_title_sanitized(self):
+        """タイトルに改行が含まれる場合、テーブル表示用にエスケープされる。"""
+        result = format_table(
+            [SampleItem(1, "line1\nline2", "open", "alice")],
+            ["number", "title"],
+        )
+        assert "\\n" in result
+        assert "\n" not in result.split("\n")[2]  # データ行に生の改行なし
+
+    def test_tab_in_title_replaced_with_space(self):
+        """タイトルにタブが含まれる場合、テーブル表示ではスペースに置換される。"""
+        result = format_table(
+            [SampleItem(1, "col1\tcol2", "open", "alice")],
+            ["number", "title"],
+        )
+        data_row = result.split("\n")[2]
+        assert "\t" not in data_row
+
+    def test_multibyte_title_width(self):
+        """日本語タイトルの表示幅は文字数の2倍として計算される。"""
+        assert _display_width("日本語") == 6
+
+    def test_multibyte_column_alignment(self):
+        """日本語タイトルを含む行が正しく整列される。"""
+        items = [
+            SampleItem(1, "日本語タイトル", "open", "alice"),
+            SampleItem(2, "English", "closed", "bob"),
+        ]
+        result = format_table(items, ["number", "title"])
+        lines = result.split("\n")
+        # セパレーター行の幅は日本語タイトルの表示幅(12)以上
+        assert len(lines[1].split("  ")[1]) >= 12
+
 
 class TestFormatJson:
     def test_single_item_is_object(self):
@@ -129,6 +162,16 @@ class TestFormatPlain:
         )
         assert result == "1\tFix typo\topen\talice"
 
+    def test_tab_in_value_escaped(self):
+        """値にタブが含まれる場合は \\t にエスケープされる。"""
+        result = format_plain(
+            [SampleItem(1, "col1\tcol2", "open", "alice")],
+            ["number", "title"],
+        )
+        fields = result.split("\t")
+        assert len(fields) == 2  # 区切りの \t のみ、値内の \t はエスケープ済み
+        assert "\\t" in fields[1]
+
     def test_no_header(self):
         result = format_plain(
             [SampleItem(1, "Fix typo", "open", "alice")],
@@ -153,9 +196,17 @@ class TestOutput:
         assert "Fix typo" in captured.out
 
     def test_empty_list_no_output(self, capsys):
+        """空リストは stdout 空、table/plain は stderr にメッセージ出力。"""
         output([])
         captured = capsys.readouterr()
         assert captured.out == ""
+        assert "No results found." in captured.err
+
+    def test_empty_list_json_outputs_brackets(self, capsys):
+        """空リストを json フォーマットで出力すると '[]' が stdout に出る。"""
+        output([], fmt="json")
+        captured = capsys.readouterr()
+        assert captured.out.strip() == "[]"
 
     def test_json_fmt(self, capsys):
         output(SampleItem(1, "Fix typo", "open", "alice"), fmt="json")
