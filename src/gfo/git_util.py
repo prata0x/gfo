@@ -13,7 +13,7 @@ _CLONE_TIMEOUT = 600
 
 def _mask_credentials(text: str) -> str:
     """URL 内の認証情報（`://user:pass@` 形式）をマスクする。"""
-    return re.sub(r"://[^@\s]+@", "://***@", text)
+    return re.sub(r"://[^/\s]*@", "://***@", text)
 
 
 def run_git(*args: str, cwd: str | None = None) -> str:
@@ -92,6 +92,16 @@ def git_checkout_new_branch(
 ) -> None:
     """新しいブランチを作成してチェックアウトする。"""
     run_git("checkout", "-b", branch, start, cwd=cwd)
+
+
+def git_checkout_branch(
+    branch: str, start: str = "FETCH_HEAD", cwd: str | None = None
+) -> None:
+    """ブランチが存在しなければ新規作成、存在すれば既存ブランチにスイッチする。"""
+    try:
+        run_git("checkout", "-b", branch, start, cwd=cwd)
+    except GitCommandError:
+        run_git("checkout", branch, cwd=cwd)
 
 
 def git_clone(url: str, dest: str | None = None, cwd: str | None = None) -> None:

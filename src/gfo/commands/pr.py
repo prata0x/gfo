@@ -60,4 +60,4 @@ def handle_checkout(args: argparse.Namespace, *, fmt: str) -> None:
     pr = adapter.get_pull_request(args.number)
     refspec = adapter.get_pr_checkout_refspec(args.number, pr=pr)
     gfo.git_util.git_fetch("origin", refspec)
-    gfo.git_util.git_checkout_new_branch(pr.source_branch)
+    gfo.git_util.git_checkout_branch(pr.source_branch)

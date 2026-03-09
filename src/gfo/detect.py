@@ -11,14 +11,9 @@ from dataclasses import dataclass
 import requests
 
 from gfo.exceptions import DetectionError
-from gfo.git_util import get_remote_url, git_config_get
+from gfo.git_util import _mask_credentials, get_remote_url, git_config_get
 
 _VERIFY_SSL = os.environ.get("GFO_INSECURE", "").lower() not in ("1", "true", "yes")
-
-
-def _mask_credentials(text: str) -> str:
-    """URL 内の認証情報（`://user:pass@` 形式）をマスクする。"""
-    return re.sub(r"://[^@\s]+@", "://***@", text)
 
 
 # ── データクラス ──

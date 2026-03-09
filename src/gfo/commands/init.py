@@ -122,6 +122,9 @@ def _handle_interactive(args: argparse.Namespace) -> None:
         service_type = input("Service type (github/gitlab/bitbucket/...): ").strip()
         if not service_type:
             raise ConfigError("service_type cannot be empty.")
+        if service_type not in _VALID_SERVICE_TYPES:
+            valid = ", ".join(sorted(_VALID_SERVICE_TYPES))
+            raise ConfigError(f"Unknown service type {service_type!r}. Valid: {valid}")
         host = input("Host: ").strip()
         if not host:
             raise ConfigError("host cannot be empty.")
