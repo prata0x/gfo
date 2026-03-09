@@ -22,7 +22,10 @@ from gfo.output import output
 def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo repo list のハンドラ。"""
     adapter = get_adapter()
-    repos = adapter.list_repositories(limit=args.limit)
+    repos = adapter.list_repositories(
+        owner=getattr(args, "owner", None),
+        limit=args.limit,
+    )
     output(repos, fmt=fmt, fields=["name", "full_name", "private", "description"])
 
 

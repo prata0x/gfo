@@ -20,7 +20,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo release create のハンドラ。"""
     tag = (args.tag or "").strip()
     if not tag:
-        raise ConfigError("--tag is required. Use --tag <tag> to specify a release tag.")
+        raise ConfigError("tag must not be empty. Use 'gfo release create <tag>'.")
     adapter = get_adapter()
     title = (args.title or "").strip() or tag
     release = adapter.create_release(
