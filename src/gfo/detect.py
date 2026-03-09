@@ -7,6 +7,11 @@ import sys
 from dataclasses import dataclass
 
 from gfo.exceptions import DetectionError
+
+
+def _mask_credentials(text: str) -> str:
+    """URL 内の認証情報（`://user:pass@` 形式）をマスクする。"""
+    return re.sub(r"://[^@\s]+@", "://***@", text)
 from gfo.git_util import get_remote_url, git_config_get
 
 
@@ -86,7 +91,7 @@ def _parse_url(remote_url: str) -> tuple[str, str]:
         m = pattern.match(remote_url)
         if m:
             return m.group("host"), m.group("path")
-    raise DetectionError(f"Cannot parse URL: {remote_url}")
+    raise DetectionError(f"Cannot parse URL: {_mask_credentials(remote_url)}")
 
 
 def detect_from_url(remote_url: str) -> DetectResult:
@@ -131,7 +136,7 @@ def detect_from_url(remote_url: str) -> DetectResult:
                 repo=m.group("repo"),
                 project=m.group("owner"),
             )
-        raise DetectionError(f"Cannot parse Backlog path: {path}")
+        raise DetectionError(f"Cannot parse Backlog path: {_mask_credentials(path)}")
 
     # 既知ホストテーブル照合
     service_type = _KNOWN_HOSTS.get(host)
@@ -156,7 +161,7 @@ def detect_from_url(remote_url: str) -> DetectResult:
                 organization=org,
                 project=m.group("project"),
             )
-        raise DetectionError(f"Cannot parse Azure DevOps path: {path}")
+        raise DetectionError(f"Cannot parse Azure DevOps path: {_mask_credentials(path)}")
 
     # 既知ホスト + 汎用パス
     if service_type is not None:
@@ -168,7 +173,7 @@ def detect_from_url(remote_url: str) -> DetectResult:
                 owner=m.group("owner"),
                 repo=m.group("repo"),
             )
-        raise DetectionError(f"Cannot parse path: {path}")
+        raise DetectionError(f"Cannot parse path: {_mask_credentials(path)}")
 
     # 未知ホスト → service_type=None
     m = _GENERIC_PATH_RE.match(path)
@@ -198,7 +203,7 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
     #   Forgejo {"version": "...", "forgejo": "...", "go_version": "..."}  (>= 1.20)
     #           {"version": "...", "go_version": "...", "source_url": "https://codeberg.org/forgejo/forgejo"}  (旧版)
     try:
-        resp = requests.get(f"{base}/api/v1/version", timeout=5)
+        resp = requests.get(f"{base}/api/v1/version", timeout=5, verify=True)
         if resp.status_code == 200:
             data = resp.json()
             # Forgejo >= 1.20 は "forgejo" キーを持つ
@@ -214,23 +219,23 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
             # Gogs は version のみ持ち、go_version/forgejo を持たない
             if "version" in data and "go-version" not in data and "go_version" not in data and "forgejo" not in data:
                 return "gogs"
-    except Exception:
+    except (requests.ConnectionError, requests.Timeout, requests.RequestException):
         pass
 
     # 2. GitLab (v4)
     try:
-        resp = requests.get(f"{base}/api/v4/version", timeout=5)
+        resp = requests.get(f"{base}/api/v4/version", timeout=5, verify=True)
         if resp.status_code == 200:
             return "gitlab"
-    except Exception:
+    except (requests.ConnectionError, requests.Timeout, requests.RequestException):
         pass
 
     # 3. GitBucket (v3)
     try:
-        resp = requests.get(f"{base}/api/v3/", timeout=5)
+        resp = requests.get(f"{base}/api/v3/", timeout=5, verify=True)
         if resp.status_code == 200:
             return "gitbucket"
-    except Exception:
+    except (requests.ConnectionError, requests.Timeout, requests.RequestException):
         pass
 
     return None
@@ -279,9 +284,9 @@ def detect_service(cwd: str | None = None) -> DetectResult:
         except (ImportError, AttributeError):
             pass
 
-    # 4. プローブ
+    # 4. プローブ（SSH URL も含め常に HTTPS を優先する）
     if result.service_type is None:
-        scheme = "https" if remote_url.startswith("https") else "http"
+        scheme = "http" if remote_url.startswith("http://") else "https"
         probed = probe_unknown_host(result.host, scheme=scheme)
         if probed is not None:
             result.service_type = probed
