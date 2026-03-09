@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import email.utils
 import os
 import re
 import time
+from collections.abc import Callable
+from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urlparse
 
@@ -59,6 +62,27 @@ class HttpClient:
         """API ベース URL（読み取り専用）。"""
         return self._base_url
 
+    def _retry_loop(self, resp_fn: Callable[[], requests.Response]) -> requests.Response:
+        """リトライループ共通実装。resp_fn を実行し 429 時は待機して再試行する。"""
+        for attempt in range(self._max_retries + 1):
+            try:
+                resp = resp_fn()
+            except requests.ConnectionError as e:
+                raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
+            except requests.Timeout as e:
+                raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
+
+            try:
+                self._handle_response(resp)
+                return resp
+            except gfo.exceptions.RateLimitError:
+                if attempt >= self._max_retries:
+                    raise
+                wait = self._parse_retry_after(resp.headers.get("Retry-After"))
+                time.sleep(wait)
+
+        raise AssertionError("unreachable")
+
     def request(
         self,
         method: str,
@@ -77,30 +101,11 @@ class HttpClient:
         """
         url = self._base_url + path
         merged_params = {**self._default_params, **self._auth_params, **(params or {})}
-        for attempt in range(self._max_retries + 1):
-            try:
-                resp = self._session.request(
-                    method,
-                    url,
-                    params=merged_params,
-                    json=json,
-                    data=data,
-                    headers=headers,
-                    timeout=timeout,
-                )
-            except requests.ConnectionError as e:
-                raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
-            except requests.Timeout as e:
-                raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
-
-            try:
-                self._handle_response(resp)
-                return resp
-            except gfo.exceptions.RateLimitError:
-                if attempt >= self._max_retries:
-                    raise
-                wait = self._parse_retry_after(resp.headers.get("Retry-After"))
-                time.sleep(wait)
+        return self._retry_loop(lambda: self._session.request(
+            method, url,
+            params=merged_params, json=json, data=data,
+            headers=headers, timeout=timeout,
+        ))
 
     def get(self, path: str, **kwargs: Any) -> requests.Response:
         """GET リクエスト。"""
@@ -129,22 +134,9 @@ class HttpClient:
         再送後も 429 が継続する場合は RateLimitError を呼び出し元に伝播する。
         """
         merged_params = {**self._default_params, **self._auth_params}
-        for attempt in range(self._max_retries + 1):
-            try:
-                resp = self._session.get(url, params=merged_params, timeout=timeout)
-            except requests.ConnectionError as e:
-                raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
-            except requests.Timeout as e:
-                raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
-
-            try:
-                self._handle_response(resp)
-                return resp
-            except gfo.exceptions.RateLimitError:
-                if attempt >= self._max_retries:
-                    raise
-                wait = self._parse_retry_after(resp.headers.get("Retry-After"))
-                time.sleep(wait)
+        return self._retry_loop(
+            lambda: self._session.get(url, params=merged_params, timeout=timeout)
+        )
 
     def _handle_response(self, response: requests.Response) -> None:
         """ステータスコードを検査し、適切なエラーを送出する。"""
@@ -169,17 +161,23 @@ class HttpClient:
     def _parse_retry_after(value: str | None, default: int = 60) -> int:
         """Retry-After ヘッダー値を秒数に変換する。
 
-        RFC 7231 では秒数整数と HTTP 日時形式の両方を許容しているため、
-        int() 変換が失敗した場合（日時形式等）は default 秒を返す。
-        値は 1 以上 _MAX_RETRY_AFTER 以下にクランプする。
+        RFC 7231 では秒数整数と HTTP 日時形式（例: Mon, 09 Mar 2026 15:30:00 GMT）の
+        両方を許容する。値は 1 以上 _MAX_RETRY_AFTER 以下にクランプする。
         """
         if value is None:
             return default
+        # 秒数形式
         try:
-            result = int(value)
+            return max(1, min(int(value), _MAX_RETRY_AFTER))
         except ValueError:
+            pass
+        # RFC 7231 HTTP-date 形式
+        try:
+            dt = email.utils.parsedate_to_datetime(value)
+            diff = int((dt - datetime.now(timezone.utc)).total_seconds())
+            return max(1, min(diff, _MAX_RETRY_AFTER))
+        except Exception:
             return default
-        return max(1, min(result, _MAX_RETRY_AFTER))
 
     @staticmethod
     def _mask_api_key(url: str) -> str:

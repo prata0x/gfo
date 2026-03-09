@@ -11,7 +11,7 @@ from pathlib import Path
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 
 
-@dataclass
+@dataclass(frozen=True)
 class ProjectConfig:
     """解決済みプロジェクト設定。"""
 
