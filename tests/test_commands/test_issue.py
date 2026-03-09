@@ -46,9 +46,8 @@ def _make_adapter(sample_issue: Issue) -> MagicMock:
 
 @contextlib.contextmanager
 def _patch_all(config: ProjectConfig, adapter: MagicMock):
-    with patch("gfo.commands.issue.resolve_project_config", return_value=config), \
-         patch("gfo.commands.issue.create_adapter", return_value=adapter), \
-         patch("gfo.commands.issue.get_adapter", return_value=adapter):
+    with patch("gfo.commands.issue.get_adapter", return_value=adapter), \
+         patch("gfo.commands.issue.get_adapter_with_config", return_value=(adapter, config)):
         yield
 
 

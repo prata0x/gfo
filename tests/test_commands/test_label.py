@@ -154,7 +154,8 @@ class TestHandleCreate:
 
         out = capsys.readouterr().out
         data = json.loads(out)
-        assert data["name"] == "bug"
+        item = data[0] if isinstance(data, list) else data
+        assert item["name"] == "bug"
 
     def test_create_adapter_error_propagates(self, sample_config):
         self.adapter.create_label.side_effect = RuntimeError("API error")

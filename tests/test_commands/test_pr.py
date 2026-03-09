@@ -179,7 +179,7 @@ class TestHandleCheckout:
         args = make_args(number=1)
         with _patch_all(sample_config, mock_adapter), \
              patch("gfo.commands.pr.gfo.git_util.git_fetch") as mock_fetch, \
-             patch("gfo.commands.pr.gfo.git_util.git_checkout_new_branch") as mock_checkout:
+             patch("gfo.commands.pr.gfo.git_util.git_checkout_branch") as mock_checkout:
             pr_cmd.handle_checkout(args, fmt="table")
 
         mock_adapter.get_pull_request.assert_called_once_with(1)

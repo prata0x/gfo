@@ -166,7 +166,8 @@ class TestHandleCreate:
 
         out = capsys.readouterr().out
         data = json.loads(out)
-        assert data["title"] == "v1.0"
+        item = data[0] if isinstance(data, list) else data
+        assert item["title"] == "v1.0"
 
     def test_create_adapter_error_propagates(self, sample_config):
         self.adapter.create_milestone.side_effect = RuntimeError("API error")

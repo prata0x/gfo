@@ -113,6 +113,19 @@ class TestToIssue:
         issue = BacklogAdapter._to_issue(_issue_data(issue_key="TEST-42"))
         assert issue.number == 42
 
+    def test_issue_key_without_hyphen_falls_back_to_id(self):
+        """issueKey に '-' がない場合、id にフォールバックする。"""
+        data = _issue_data(issue_key="INVALID")
+        issue = BacklogAdapter._to_issue(data)
+        assert issue.number == data["id"]
+
+    def test_empty_assignee_object(self):
+        """assignee が空オブジェクトの場合、assignees は空リストになる。"""
+        data = _issue_data()
+        data["assignee"] = {}
+        issue = BacklogAdapter._to_issue(data)
+        assert issue.assignees == []
+
 
 class TestToRepository:
     def test_basic(self):
@@ -212,6 +225,10 @@ class TestCreatePullRequest:
         mock_responses.add(
             responses.POST, PR_PATH,
             json=_pr_data(), status=201,
+        )
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 5, "name": "Merged"}], status=200,
         )
         pr = backlog_adapter.create_pull_request(
             title="PR #1", body="desc", base="main", head="feature",

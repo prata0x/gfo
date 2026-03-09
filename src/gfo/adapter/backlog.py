@@ -94,10 +94,16 @@ class BacklogAdapter(GitServiceAdapter):
 
             created_user = data.get("createdUser", {})
             assignee = data.get("assignee")
-            assignees = [assignee["userId"]] if assignee else []
+            assignees = [assignee["userId"]] if assignee and "userId" in assignee else []
+
+            issue_key = data.get("issueKey")
+            try:
+                number = int(issue_key.split("-")[-1]) if isinstance(issue_key, str) else data["id"]
+            except (ValueError, AttributeError):
+                number = data["id"]
 
             return Issue(
-                number=int(data["issueKey"].split("-")[-1]) if isinstance(data.get("issueKey"), str) else data["id"],
+                number=number,
                 title=data["summary"],
                 body=data.get("description"),
                 state=state,
@@ -154,7 +160,7 @@ class BacklogAdapter(GitServiceAdapter):
             "branch": head,
         }
         resp = self._client.post(self._pr_path(), json=payload)
-        return self._to_pull_request(resp.json())
+        return self._to_pull_request(resp.json(), self._resolve_merged_status_id())
 
     def get_pull_request(self, number: int) -> PullRequest:
         resp = self._client.get(f"{self._pr_path()}/{number}")

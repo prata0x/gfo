@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 from gfo.commands import init as init_cmd
 from gfo.config import ProjectConfig
 from gfo.detect import DetectResult
-from gfo.exceptions import ConfigError, DetectionError
+from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 from tests.test_commands.conftest import make_args
 
 
@@ -101,7 +101,7 @@ class TestHandleInteractive:
 
         with patch("gfo.commands.init.detect_service", side_effect=DetectionError()), \
              patch("gfo.commands.init.get_remote_url",
-                   side_effect=Exception("not a git repo")), \
+                   side_effect=GitCommandError("not a git repo")), \
              patch("gfo.commands.init.save_project_config") as mock_save, \
              patch("builtins.input", side_effect=inputs):
             init_cmd.handle(args, fmt="table")

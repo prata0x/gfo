@@ -86,6 +86,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def create_issue(self, *, title: str, body: str = "",
                      assignee: str | None = None,
                      label: str | None = None, **kwargs) -> Issue:
+        # **kwargs は base.py の抽象メソッドに合わせて受け取るが、GitHub では使用しない
         payload: dict = {"title": title, "body": body}
         if assignee is not None:
             payload["assignees"] = [assignee]

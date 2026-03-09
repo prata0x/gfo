@@ -122,11 +122,13 @@ class TestFormatTable:
 
 
 class TestFormatJson:
-    def test_single_item_is_object(self):
+    def test_single_item_is_array(self):
+        """単一アイテムでも JSON 配列として出力される。"""
         result = format_json([SampleItem(1, "Fix typo", "open", "alice")])
         parsed = json.loads(result)
-        assert isinstance(parsed, dict)
-        assert parsed["number"] == 1
+        assert isinstance(parsed, list)
+        assert len(parsed) == 1
+        assert parsed[0]["number"] == 1
 
     def test_multiple_items_is_array(self):
         items = [
@@ -151,7 +153,8 @@ class TestFormatJson:
 
         result = format_json([WithNone("test", None)])
         parsed = json.loads(result)
-        assert parsed["value"] is None
+        item = parsed[0] if isinstance(parsed, list) else parsed
+        assert item["value"] is None
 
 
 class TestFormatPlain:
@@ -212,7 +215,8 @@ class TestOutput:
         output(SampleItem(1, "Fix typo", "open", "alice"), fmt="json")
         captured = capsys.readouterr()
         parsed = json.loads(captured.out)
-        assert parsed["number"] == 1
+        item = parsed[0] if isinstance(parsed, list) else parsed
+        assert item["number"] == 1
 
     def test_plain_fmt(self, capsys):
         output(SampleItem(1, "Fix typo", "open", "alice"), fmt="plain")
