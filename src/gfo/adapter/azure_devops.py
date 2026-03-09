@@ -171,9 +171,11 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         elif state == "closed":
             conditions.append("[System.State] IN ('Closed', 'Done', 'Removed')")
         if assignee:
-            conditions.append(f"[System.AssignedTo] = '{assignee}'")
+            safe_assignee = assignee.replace("'", "''")
+            conditions.append(f"[System.AssignedTo] = '{safe_assignee}'")
         if label:
-            conditions.append(f"[System.Tags] CONTAINS '{label}'")
+            safe_label = label.replace("'", "''")
+            conditions.append(f"[System.Tags] CONTAINS '{safe_label}'")
 
         wiql = "SELECT [System.Id] FROM WorkItems WHERE " + " AND ".join(conditions)
         wiql_resp = self._client.post(
