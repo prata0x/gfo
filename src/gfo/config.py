@@ -55,11 +55,14 @@ def load_user_config() -> dict:
     path = get_config_path()
     if not path.exists():
         return {}
-    with open(path, "rb") as f:
-        try:
-            return tomllib.load(f)
-        except tomllib.TOMLDecodeError as e:
-            raise ConfigError(f"Failed to parse config file {path}: {e}") from e
+    try:
+        with open(path, "rb") as f:
+            try:
+                return tomllib.load(f)
+            except tomllib.TOMLDecodeError as e:
+                raise ConfigError(f"Failed to parse config file {path}: {e}") from e
+    except PermissionError as e:
+        raise ConfigError(f"Permission denied reading config file {path}: {e}") from e
 
 
 def get_default_output_format() -> str:
