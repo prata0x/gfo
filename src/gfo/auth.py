@@ -9,7 +9,7 @@ import tomllib
 from pathlib import Path
 
 from gfo.config import get_config_dir, get_credentials_path
-from gfo.exceptions import AuthError
+from gfo.exceptions import AuthError, ConfigError
 
 _SERVICE_ENV_MAP: dict[str, str] = {
     "github": "GITHUB_TOKEN",
@@ -91,7 +91,10 @@ def load_tokens() -> dict[str, str]:
     if not path.exists():
         return {}
     with open(path, "rb") as f:
-        data = tomllib.load(f)
+        try:
+            data = tomllib.load(f)
+        except tomllib.TOMLDecodeError as e:
+            raise ConfigError(f"Failed to parse credentials file {path}: {e}") from e
     return data.get("tokens", {})
 
 

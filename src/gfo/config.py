@@ -56,7 +56,10 @@ def load_user_config() -> dict:
     if not path.exists():
         return {}
     with open(path, "rb") as f:
-        return tomllib.load(f)
+        try:
+            return tomllib.load(f)
+        except tomllib.TOMLDecodeError as e:
+            raise ConfigError(f"Failed to parse config file {path}: {e}") from e
 
 
 def get_default_output_format() -> str:
