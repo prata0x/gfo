@@ -238,7 +238,8 @@ class TestMergePullRequest:
         )
         gitlab_adapter.merge_pull_request(1, method="squash")
         req_body = json.loads(mock_responses.calls[0].request.body)
-        assert req_body["merge_method"] == "squash"
+        assert req_body.get("squash") is True
+        assert "merge_method" not in req_body
 
 
 class TestClosePullRequest:

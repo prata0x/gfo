@@ -139,8 +139,12 @@ class GitLabAdapter(GitServiceAdapter):
         return self._to_pull_request(resp.json())
 
     def merge_pull_request(self, number: int, *, method: str = "merge") -> None:
-        payload = {}
-        if method != "merge":
+        payload: dict = {}
+        if method == "squash":
+            payload["squash"] = True
+        elif method == "rebase":
+            payload["merge_method"] = "rebase_merge"
+        elif method != "merge":
             payload["merge_method"] = method
         self._client.put(
             f"{self._project_path()}/merge_requests/{number}/merge",
