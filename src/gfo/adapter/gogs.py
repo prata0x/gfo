@@ -6,6 +6,7 @@ import urllib.parse
 
 from gfo.exceptions import NotSupportedError
 
+from .base import Label, Milestone, PullRequest
 from .gitea import GiteaAdapter
 from .registry import register
 
@@ -23,42 +24,45 @@ class GogsAdapter(GiteaAdapter):
 
     # --- PR（非サポート）---
 
-    def list_pull_requests(self, *, state="open", limit=30):
+    def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]:
         raise NotSupportedError("Gogs", "pull request operations",
                                 web_url=f"{self._web_url()}/{self._owner}/{self._repo}/pulls")
 
-    def create_pull_request(self, *, title, body="", base, head, draft=False):
+    def create_pull_request(self, *, title: str, body: str = "",
+                            base: str, head: str, draft: bool = False) -> PullRequest:
         raise NotSupportedError("Gogs", "pull request operations",
                                 web_url=f"{self._web_url()}/{self._owner}/{self._repo}/compare")
 
-    def get_pull_request(self, number):
+    def get_pull_request(self, number: int) -> PullRequest:
         raise NotSupportedError("Gogs", "pull request operations",
                                 web_url=f"{self._web_url()}/{self._owner}/{self._repo}/pulls/{number}")
 
-    def merge_pull_request(self, number, *, method="merge"):
+    def merge_pull_request(self, number: int, *, method: str = "merge") -> None:
         raise NotSupportedError("Gogs", "pull request operations",
                                 web_url=f"{self._web_url()}/{self._owner}/{self._repo}/pulls/{number}")
 
-    def close_pull_request(self, number):
+    def close_pull_request(self, number: int) -> None:
         raise NotSupportedError("Gogs", "pull request operations",
                                 web_url=f"{self._web_url()}/{self._owner}/{self._repo}/pulls/{number}")
 
-    def get_pr_checkout_refspec(self, number, *, pr=None):
+    def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         raise NotSupportedError("Gogs", "pull request operations",
                                 web_url=f"{self._web_url()}/{self._owner}/{self._repo}/pulls/{number}")
 
     # --- Label（非サポート）---
 
-    def list_labels(self):
+    def list_labels(self) -> list[Label]:
         raise NotSupportedError("Gogs", "label operations")
 
-    def create_label(self, *, name, color=None, description=None):
+    def create_label(self, *, name: str, color: str | None = None,
+                     description: str | None = None) -> Label:
         raise NotSupportedError("Gogs", "label operations")
 
     # --- Milestone（非サポート）---
 
-    def list_milestones(self):
+    def list_milestones(self) -> list[Milestone]:
         raise NotSupportedError("Gogs", "milestone operations")
 
-    def create_milestone(self, *, title, description=None, due_date=None):
+    def create_milestone(self, *, title: str, description: str | None = None,
+                         due_date: str | None = None) -> Milestone:
         raise NotSupportedError("Gogs", "milestone operations")
