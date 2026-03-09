@@ -102,6 +102,15 @@ def test_get_default_output_format_configured():
         assert get_default_output_format() == "json"
 
 
+def test_get_default_output_format_plain():
+    """output = "plain" に設定した場合 "plain" が返る。"""
+    with patch(
+        "gfo.config.load_user_config",
+        return_value={"defaults": {"output": "plain"}},
+    ):
+        assert get_default_output_format() == "plain"
+
+
 def test_get_default_host_none():
     with patch("gfo.config.load_user_config", return_value={}):
         assert get_default_host() is None
@@ -187,6 +196,12 @@ def test_build_azure_devops():
 def test_build_azure_devops_missing_org():
     with pytest.raises(ConfigError, match="organization"):
         _build_default_api_url("azure-devops", "dev.azure.com")
+
+
+def test_build_azure_devops_missing_project():
+    """organization あり・project なしの場合も ConfigError。"""
+    with pytest.raises(ConfigError, match="organization"):
+        _build_default_api_url("azure-devops", "dev.azure.com", organization="myorg")
 
 
 def test_build_gitea():
@@ -347,6 +362,22 @@ def test_resolve_azure_devops():
         assert cfg.organization == "myorg"
         assert cfg.project_key == "myproj"
         assert cfg.api_url == "https://dev.azure.com/myorg/myproj/_apis"
+
+
+def test_resolve_raises_when_service_type_unresolvable():
+    """detect_service が空の service_type を返した場合に ConfigError が発生する。"""
+    from gfo.detect import DetectResult
+
+    detect_result = DetectResult(service_type="", host="", owner="u", repo="r")
+    git_cfg = {k: None for k in [
+        "gfo.type", "gfo.host", "gfo.api-url", "gfo.organization", "gfo.project-key"
+    ]}
+    with (
+        patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
+        patch("gfo.detect.detect_service", return_value=detect_result),
+    ):
+        with pytest.raises(ConfigError, match="service type"):
+            resolve_project_config()
 
 
 def test_resolve_git_config_does_not_call_detect_service():

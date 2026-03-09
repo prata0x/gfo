@@ -59,6 +59,34 @@ class TestFormatTable:
         # separator width should match the longest value
         assert len(lines[1]) >= len("A much longer title here")
 
+    def test_header_width_dominates_when_value_shorter(self):
+        """ヘッダー名が値より長い場合、セパレーターはヘッダー幅に合わせる。"""
+        result = format_table(
+            [SampleItem(1, "X", "Y", "Z")],
+            ["number", "title", "state", "author"],
+        )
+        lines = result.split("\n")
+        # "NUMBER" は 6文字、値 "1" は 1文字 → セパレーターは "------" を含む
+        assert "------" in lines[1]
+
+    def test_empty_field_value_pads_to_header_width(self):
+        """空の値でもヘッダー幅でパディングされる。"""
+        result = format_table(
+            [SampleItem(1, "", "open", "alice")],
+            ["number", "title"],
+        )
+        assert "NUMBER" in result
+        assert "TITLE" in result
+
+    def test_table_trailing_whitespace_stripped(self):
+        """末尾に余分な空白が付かないことを確認する。"""
+        result = format_table(
+            [SampleItem(1, "Short", "x", "y")],
+            ["number", "title"],
+        )
+        for line in result.split("\n"):
+            assert line == line.rstrip()
+
 
 class TestFormatJson:
     def test_single_item_is_object(self):
@@ -139,6 +167,12 @@ class TestOutput:
         output(SampleItem(1, "Fix typo", "open", "alice"), fmt="plain")
         captured = capsys.readouterr()
         assert "1\tFix typo\topen\talice" in captured.out
+
+    def test_unknown_fmt_falls_back_to_table(self, capsys):
+        """未知の fmt 値はテーブルフォーマットにフォールバックする。"""
+        output(SampleItem(1, "Fix typo", "open", "alice"), fmt="csv")
+        captured = capsys.readouterr()
+        assert "NUMBER" in captured.out  # テーブルフォーマットにフォールバック
 
     def test_list_input(self, capsys):
         items = [

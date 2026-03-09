@@ -368,6 +368,15 @@ class TestPaginateLinkHeader:
         assert call_count["n"] == 2
 
     @responses.activate
+    def test_custom_per_page_key(self):
+        """per_page_key="limit" 指定時にリクエスト URL に limit= が使われる。"""
+        responses.add(responses.GET, f"{BASE}/items", json=[{"id": 1}])
+        c = HttpClient(BASE)
+        paginate_link_header(c, "/items", per_page_key="limit", per_page=20, limit=10)
+        assert "limit=20" in responses.calls[0].request.url
+        assert "per_page=" not in responses.calls[0].request.url
+
+    @responses.activate
     def test_second_page_connection_error(self):
         import json as json_mod
         import requests as req_lib
@@ -383,6 +392,31 @@ class TestPaginateLinkHeader:
         c = HttpClient(BASE)
         with pytest.raises(NetworkError):
             paginate_link_header(c, "/items", limit=10)
+
+    @responses.activate
+    def test_three_pages(self):
+        """3 ページ以上の連鎖ページネーションが正しく結合される。"""
+        import json as json_mod
+
+        page2_url = f"{BASE}/items?page=2"
+        page3_url = f"{BASE}/items?page=3"
+        call_count = {"n": 0}
+
+        def callback(request):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                headers = {"Link": f'<{page2_url}>; rel="next"'}
+                return (200, headers, json_mod.dumps([{"id": 1}]))
+            if call_count["n"] == 2:
+                headers = {"Link": f'<{page3_url}>; rel="next"'}
+                return (200, headers, json_mod.dumps([{"id": 2}]))
+            return (200, {}, json_mod.dumps([{"id": 3}]))
+
+        responses.add_callback(responses.GET, f"{BASE}/items", callback=callback)
+        c = HttpClient(BASE)
+        result = paginate_link_header(c, "/items", limit=0)
+        assert len(result) == 3
+        assert call_count["n"] == 3
 
 
 # ── paginate_page_param ──

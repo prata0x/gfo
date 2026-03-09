@@ -282,6 +282,27 @@ def test_main_format_override():
     assert kwargs["fmt"] == "json"
 
 
+def test_main_format_plain_override():
+    """--format plain が fmt に正しく伝搬する。"""
+    mock_handler = MagicMock()
+    with patch.dict(_DISPATCH, {("pr", "list"): mock_handler}):
+        result = main(["--format", "plain", "pr", "list"])
+    assert result == 0
+    _, kwargs = mock_handler.call_args
+    assert kwargs["fmt"] == "plain"
+
+
+def test_main_default_format_from_config_plain():
+    """config.toml の output = "plain" が fmt に伝搬する。"""
+    mock_handler = MagicMock()
+    with patch.dict(_DISPATCH, {("pr", "list"): mock_handler}), \
+         patch("gfo.cli.get_default_output_format", return_value="plain"):
+        result = main(["pr", "list"])
+    assert result == 0
+    _, kwargs = mock_handler.call_args
+    assert kwargs["fmt"] == "plain"
+
+
 def test_main_gfo_error_returns_1(capsys):
     def raise_gfo(args, *, fmt):
         raise GfoError("something went wrong")

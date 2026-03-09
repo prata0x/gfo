@@ -184,6 +184,19 @@ class TestCreatePullRequest:
         assert req_body["destination"]["branch"]["name"] == "main"
 
 
+class TestCreatePullRequestDescription:
+    def test_create_with_description(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST, f"{REPOS}/pullrequests",
+            json=_pr_data(), status=201,
+        )
+        bitbucket_adapter.create_pull_request(
+            title="PR", body="Description text", base="main", head="feature",
+        )
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["description"] == "Description text"
+
+
 class TestGetPullRequest:
     def test_get(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
