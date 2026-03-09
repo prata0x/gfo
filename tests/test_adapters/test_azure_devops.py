@@ -453,6 +453,41 @@ class TestListIssues:
         assert len(mock_responses.calls) == 2
 
 
+    def test_non_dict_wiql_response_raises_gfo_error(self, mock_responses, azure_devops_adapter):
+        """WIQL エンドポイントが dict 以外を返したとき GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.POST, f"{WIT}/wiql",
+            json=["unexpected", "list"], status=200,
+        )
+        with pytest.raises(GfoError, match="WIQL"):
+            azure_devops_adapter.list_issues()
+
+    def test_malformed_wiql_work_item_raises_gfo_error(self, mock_responses, azure_devops_adapter):
+        """WIQL レスポンスの workItems 要素に id がないとき GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.POST, f"{WIT}/wiql",
+            json={"workItems": [{"no_id": True}]}, status=200,
+        )
+        with pytest.raises(GfoError, match="WIQL"):
+            azure_devops_adapter.list_issues()
+
+    def test_non_dict_workitems_response_raises_gfo_error(self, mock_responses, azure_devops_adapter):
+        """workitems バッチエンドポイントが dict 以外を返したとき GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.POST, f"{WIT}/wiql",
+            json={"workItems": [{"id": 1}]}, status=200,
+        )
+        mock_responses.add(
+            responses.GET, f"{WIT}/workitems",
+            json=["unexpected"], status=200,
+        )
+        with pytest.raises(GfoError, match="workitems"):
+            azure_devops_adapter.list_issues()
+
+
 class TestCreateIssue:
     def test_create(self, mock_responses, azure_devops_adapter):
         mock_responses.add(

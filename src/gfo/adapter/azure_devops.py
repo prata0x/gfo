@@ -208,8 +208,13 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             json={"query": wiql},
             params=wiql_params,
         )
-        work_items = wiql_resp.json().get("workItems", [])
-        ids = [wi["id"] for wi in work_items]
+        wiql_body = wiql_resp.json()
+        if not isinstance(wiql_body, dict):
+            raise GfoError(f"Unexpected API response from WIQL endpoint: {type(wiql_body)}")
+        try:
+            ids = [wi["id"] for wi in wiql_body.get("workItems", [])]
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response from WIQL endpoint: {e}") from e
         if not ids:
             return []
 
@@ -224,7 +229,10 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 f"{self._wit_path()}/workitems",
                 params={"ids": ids_str, "$expand": "None"},
             )
-            for item in resp.json().get("value", []):
+            batch_body = resp.json()
+            if not isinstance(batch_body, dict):
+                raise GfoError(f"Unexpected API response from workitems endpoint: {type(batch_body)}")
+            for item in batch_body.get("value", []):
                 results.append(self._to_issue(item))
 
         return results[:limit] if limit > 0 else results
