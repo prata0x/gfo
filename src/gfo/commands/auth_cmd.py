@@ -8,7 +8,7 @@ import sys
 
 import gfo.auth
 import gfo.detect
-from gfo.exceptions import DetectionError
+from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 
 
 def handle_login(args: argparse.Namespace, *, fmt: str) -> None:
@@ -16,8 +16,13 @@ def handle_login(args: argparse.Namespace, *, fmt: str) -> None:
     if args.host:
         host = args.host
     else:
-        result = gfo.detect.detect_service()
-        host = result.host
+        try:
+            result = gfo.detect.detect_service()
+            host = result.host
+        except (DetectionError, GitCommandError):
+            raise ConfigError(
+                "Could not detect host. Use --host option: gfo auth login --host <host>"
+            )
 
     if args.token:
         print("Warning: passing tokens via --token is insecure.", file=sys.stderr)

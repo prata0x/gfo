@@ -7,7 +7,7 @@ from unittest.mock import patch, call
 
 from gfo.commands import auth_cmd
 from gfo.detect import DetectResult
-from gfo.exceptions import DetectionError
+from gfo.exceptions import ConfigError, DetectionError
 from tests.test_commands.conftest import make_args
 
 
@@ -61,12 +61,12 @@ class TestHandleLogin:
         mock_save.assert_called_once_with("github.com", "tok")
 
     def test_no_host_detect_service_raises(self):
-        """--host なし + detect_service が DetectionError → エラー raise。"""
+        """--host なし + detect_service が DetectionError → ConfigError に変換して raise。"""
         args = make_args(host=None, token="tok")
 
         with patch("gfo.commands.auth_cmd.gfo.detect.detect_service",
                    side_effect=DetectionError("no remote")):
-            with pytest.raises(DetectionError):
+            with pytest.raises(ConfigError, match="--host"):
                 auth_cmd.handle_login(args, fmt="table")
 
 
