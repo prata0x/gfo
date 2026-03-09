@@ -504,10 +504,12 @@ def test_save_project_config():
     )
     with patch("gfo.git_util.git_config_set") as mock_set:
         save_project_config(cfg)
-        assert mock_set.call_count == 3
+        assert mock_set.call_count == 5  # type, host, api-url, owner, repo
         mock_set.assert_any_call("gfo.type", "github", cwd=None)
         mock_set.assert_any_call("gfo.host", "github.com", cwd=None)
         mock_set.assert_any_call("gfo.api-url", "https://api.github.com", cwd=None)
+        mock_set.assert_any_call("gfo.owner", "owner", cwd=None)
+        mock_set.assert_any_call("gfo.repo", "repo", cwd=None)
 
 
 def test_save_project_config_with_org():
@@ -522,6 +524,54 @@ def test_save_project_config_with_org():
     )
     with patch("gfo.git_util.git_config_set") as mock_set:
         save_project_config(cfg)
-        assert mock_set.call_count == 5
+        assert mock_set.call_count == 7  # type, host, api-url, owner, repo, organization, project-key
         mock_set.assert_any_call("gfo.organization", "org", cwd=None)
         mock_set.assert_any_call("gfo.project-key", "proj", cwd=None)
+
+
+def test_resolve_remote_url_failure_falls_back_to_git_config_owner_repo():
+    """remote URL が取れない場合、git config の gfo.owner / gfo.repo を使う。"""
+    from gfo.exceptions import GitCommandError
+
+    git_cfg = {
+        "gfo.type": "github",
+        "gfo.host": "github.com",
+        "gfo.api-url": None,
+        "gfo.owner": "ci-owner",
+        "gfo.repo": "ci-repo",
+        "gfo.organization": None,
+        "gfo.project-key": None,
+    }
+    with (
+        patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
+        patch(
+            "gfo.git_util.get_remote_url",
+            side_effect=GitCommandError("no remote"),
+        ),
+    ):
+        cfg = resolve_project_config()
+    assert cfg.owner == "ci-owner"
+    assert cfg.repo == "ci-repo"
+
+
+def test_resolve_owner_repo_git_config_override():
+    """gfo.owner / gfo.repo の git config が remote URL 解析結果を上書きする。"""
+    git_cfg = {
+        "gfo.type": "github",
+        "gfo.host": "github.com",
+        "gfo.api-url": None,
+        "gfo.owner": "override-owner",
+        "gfo.repo": "override-repo",
+        "gfo.organization": None,
+        "gfo.project-key": None,
+    }
+    with (
+        patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
+        patch(
+            "gfo.git_util.get_remote_url",
+            return_value="https://github.com/original-owner/original-repo.git",
+        ),
+    ):
+        cfg = resolve_project_config()
+    assert cfg.owner == "override-owner"
+    assert cfg.repo == "override-repo"

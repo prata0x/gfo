@@ -126,8 +126,9 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
             organization = detect_result.organization
             project_key = detect_result.project
         except (DetectionError, ConfigError, GitCommandError, ValueError, OSError):
-            owner = ""
-            repo = ""
+            # bare リポジトリや CI 環境向け: git config の gfo.owner/gfo.repo を使用
+            owner = gfo.git_util.git_config_get("gfo.owner", cwd=cwd) or ""
+            repo = gfo.git_util.git_config_get("gfo.repo", cwd=cwd) or ""
             organization = None
             project_key = None
     else:
@@ -143,6 +144,14 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
         raise ConfigError("Could not resolve service type.")
     if not saved_host:
         raise ConfigError("Could not resolve host.")
+
+    # git config から owner / repo を上書き（bare リポジトリや CI 環境向け）
+    owner_override = gfo.git_util.git_config_get("gfo.owner", cwd=cwd)
+    if owner_override:
+        owner = owner_override
+    repo_override = gfo.git_util.git_config_get("gfo.repo", cwd=cwd)
+    if repo_override:
+        repo = repo_override
 
     # git config から organization / project_key を上書き
     org_override = gfo.git_util.git_config_get("gfo.organization", cwd=cwd)
@@ -179,6 +188,10 @@ def save_project_config(config: ProjectConfig, cwd: str | None = None) -> None:
     gfo.git_util.git_config_set("gfo.type", config.service_type, cwd=cwd)
     gfo.git_util.git_config_set("gfo.host", config.host, cwd=cwd)
     gfo.git_util.git_config_set("gfo.api-url", config.api_url, cwd=cwd)
+    if config.owner:
+        gfo.git_util.git_config_set("gfo.owner", config.owner, cwd=cwd)
+    if config.repo:
+        gfo.git_util.git_config_set("gfo.repo", config.repo, cwd=cwd)
     if config.organization:
         gfo.git_util.git_config_set("gfo.organization", config.organization, cwd=cwd)
     if config.project_key:
