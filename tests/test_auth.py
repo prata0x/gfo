@@ -257,6 +257,24 @@ def test_get_auth_status_credentials_and_env(tmp_path, monkeypatch):
     assert env_entry["source"] == "env:GITLAB_TOKEN"
 
 
+def test_get_auth_status_no_duplicate_when_env_and_file_overlap(tmp_path, monkeypatch):
+    """credentials.toml と env var に同一ホストがある場合、重複エントリが発生しない（R44-01）。"""
+    creds = tmp_path / "credentials.toml"
+    creds.write_text('[tokens]\n"github.com" = "ghp_from_file"\n', encoding="utf-8")
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+    monkeypatch.setenv("GITHUB_TOKEN", "ghp_from_env")
+    # 他のサービス環境変数をクリア
+    for env_var in _SERVICE_ENV_MAP.values():
+        if env_var != "GITHUB_TOKEN":
+            monkeypatch.delenv(env_var, raising=False)
+
+    status = get_auth_status()
+
+    github_entries = [s for s in status if s["host"] == "github.com"]
+    assert len(github_entries) == 1
+    assert github_entries[0]["source"] == "credentials.toml"
+
+
 def test_get_auth_status_no_token_values(tmp_path, monkeypatch):
     """トークン値が含まれないことを確認。"""
     creds = tmp_path / "credentials.toml"

@@ -68,7 +68,7 @@ def resolve_token(host: str, service_type: str) -> str:
 
 def save_token(host: str, token: str) -> None:
     """credentials.toml にトークンを保存する。"""
-    if not token or not token.strip():
+    if not token.strip():
         raise AuthError(host, "Token must not be empty.")
     config_dir = get_config_dir()
     config_dir.mkdir(parents=True, exist_ok=True)
@@ -149,13 +149,14 @@ def get_auth_status() -> list[dict[str, str]]:
             seen_env_vars.add(env_var)
             # クラウドサービスは実ホスト名を使用、自己ホスト型は "(env) service" 形式
             display_host = _SERVICE_DEFAULT_HOSTS.get(service_type, f"(env) {service_type}")
-            result.append(
-                {
-                    "host": display_host,
-                    "status": "configured",
-                    "source": f"env:{env_var}",
-                }
-            )
+            if display_host not in seen_hosts:
+                result.append(
+                    {
+                        "host": display_host,
+                        "status": "configured",
+                        "source": f"env:{env_var}",
+                    }
+                )
 
     return result
 

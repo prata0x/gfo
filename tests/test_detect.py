@@ -171,6 +171,7 @@ class TestDetectFromUrl:
     def test_backlog_no_git_suffix(self):
         r = detect_from_url("https://space.backlog.com/git/PROJECT/repo")
         assert r.service_type == "backlog"
+        assert r.owner == "PROJECT"
         assert r.project == "PROJECT"
         assert r.repo == "repo"
 
@@ -179,6 +180,7 @@ class TestDetectFromUrl:
         r = detect_from_url("https://space.backlog.com/git/PROJECT/repo.git")
         assert r.service_type == "backlog"
         assert r.host == "space.backlog.com"
+        assert r.owner == "PROJECT"
         assert r.project == "PROJECT"
         assert r.repo == "repo"
 
@@ -191,6 +193,7 @@ class TestDetectFromUrl:
         r = detect_from_url("space@space.git.backlog.com:/PROJECT/repo.git")
         assert r.service_type == "backlog"
         assert r.host == "space.backlog.com"
+        assert r.owner == "PROJECT"
         assert r.project == "PROJECT"
         assert r.repo == "repo"
 
