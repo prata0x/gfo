@@ -87,6 +87,27 @@ def _milestone_data(*, iid=1):
     }
 
 
+# --- _project_path テスト ---
+
+class TestProjectPath:
+    def test_basic_owner_repo(self):
+        """通常の owner/repo が URL エンコードされる。"""
+        from gfo.http import HttpClient
+        client = HttpClient(BASE)
+        adapter = GitLabAdapter(client, "test-owner", "test-repo")
+        path = adapter._project_path()
+        assert path == f"/projects/{quote('test-owner/test-repo', safe='')}"
+
+    def test_three_level_subgroup(self):
+        """3階層サブグループ owner/sub1/sub2 + repo が正しくエンコードされる。"""
+        from gfo.http import HttpClient
+        client = HttpClient(BASE)
+        adapter = GitLabAdapter(client, "group/sub1/sub2", "myrepo")
+        path = adapter._project_path()
+        assert path == f"/projects/{quote('group/sub1/sub2/myrepo', safe='')}"
+        assert path == "/projects/group%2Fsub1%2Fsub2%2Fmyrepo"
+
+
 # --- 変換メソッドのテスト ---
 
 class TestToPullRequest:
