@@ -229,7 +229,7 @@ class BacklogAdapter(GitServiceAdapter):
         return self._to_issue(resp.json())
 
     def get_issue(self, number: int) -> Issue:
-        resp = self._client.get(f"/issues/{number}")
+        resp = self._client.get(f"/issues/{self._project_key}-{number}")
         return self._to_issue(resp.json())
 
     def close_issue(self, number: int) -> None:

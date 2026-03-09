@@ -405,7 +405,7 @@ class TestCreateIssue:
 class TestGetIssue:
     def test_get(self, mock_responses, backlog_adapter):
         mock_responses.add(
-            responses.GET, f"{ISSUES_PATH}/5",
+            responses.GET, f"{ISSUES_PATH}/TEST-5",
             json=_issue_data(id=5, issue_key="TEST-5"), status=200,
         )
         issue = backlog_adapter.get_issue(5)
