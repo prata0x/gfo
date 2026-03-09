@@ -162,6 +162,17 @@ class TestListPullRequests:
         req = mock_responses.calls[0].request
         assert "state=MERGED" in req.url
 
+    def test_all_state_omits_filter(self, mock_responses, bitbucket_adapter):
+        """state='all' のとき state パラメータを送らない（Bitbucket API は 'ALL' を受け付けない）。"""
+        mock_responses.add(
+            responses.GET, f"{REPOS}/pullrequests",
+            json={"values": [_pr_data(), _pr_data(id=2, state="MERGED")]}, status=200,
+        )
+        prs = bitbucket_adapter.list_pull_requests(state="all")
+        assert len(prs) == 2
+        req = mock_responses.calls[0].request
+        assert "state=" not in req.url
+
     def test_pagination(self, mock_responses, bitbucket_adapter):
         page2_url = f"{REPOS}/pullrequests?state=OPEN&page=2"
         mock_responses.add(
@@ -269,6 +280,18 @@ class TestListIssues:
         )
         issues = bitbucket_adapter.list_issues()
         assert len(issues) == 2
+
+
+    def test_all_state_omits_filter(self, mock_responses, bitbucket_adapter):
+        """state='all' のとき q フィルタを送らない（'all' は Bitbucket の有効な state 値ではない）。"""
+        mock_responses.add(
+            responses.GET, f"{REPOS}/issues",
+            json={"values": [_issue_data(id=1), _issue_data(id=2)]}, status=200,
+        )
+        issues = bitbucket_adapter.list_issues(state="all")
+        assert len(issues) == 2
+        req = mock_responses.calls[0].request
+        assert "q=" not in req.url
 
 
 class TestCreateIssue:

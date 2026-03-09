@@ -105,8 +105,9 @@ class BitbucketAdapter(GitServiceAdapter):
 
     def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]:
         state_map = {"open": "OPEN", "closed": "DECLINED", "merged": "MERGED"}
-        api_state = state_map.get(state, state.upper())
-        params = {"state": api_state}
+        params: dict = {}
+        if state != "all":
+            params["state"] = state_map.get(state, state.upper())
         results = paginate_response_body(
             self._client, f"{self._repos_path()}/pullrequests",
             params=params, limit=limit,
@@ -153,7 +154,7 @@ class BitbucketAdapter(GitServiceAdapter):
         params: dict = {}
         if state == "open":
             params["q"] = '(state="new" OR state="open")'
-        else:
+        elif state != "all":
             params["q"] = f'state="{state}"'
         results = paginate_response_body(
             self._client, f"{self._repos_path()}/issues",
