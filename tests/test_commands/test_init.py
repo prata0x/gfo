@@ -163,6 +163,19 @@ class TestHandleNonInteractive:
         with pytest.raises(ConfigError, match="--type"):
             init_cmd.handle(args, fmt="table")
 
+    def test_invalid_type_raises_config_error(self):
+        """無効な service_type → ConfigError。"""
+        args = make_args(
+            non_interactive=True,
+            type="unknown-service",
+            host="example.com",
+            api_url=None,
+            project_key=None,
+        )
+
+        with pytest.raises(ConfigError, match="Unknown service type"):
+            init_cmd.handle(args, fmt="table")
+
     def test_missing_host_raises_config_error(self):
         """host 未指定 → ConfigError。"""
         args = make_args(
