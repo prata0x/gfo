@@ -7,6 +7,7 @@ import argparse
 import gfo.git_util
 from gfo.adapter.registry import create_adapter
 from gfo.config import resolve_project_config
+from gfo.exceptions import ConfigError
 from gfo.output import output
 
 
@@ -25,6 +26,8 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     head = args.head or gfo.git_util.get_current_branch()
     base = args.base or gfo.git_util.get_default_branch()
     title = args.title or gfo.git_util.get_last_commit_subject()
+    if not title or not title.strip():
+        raise ConfigError("Could not determine PR title. Use --title option.")
     pr = adapter.create_pull_request(
         title=title,
         body=args.body or "",

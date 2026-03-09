@@ -6,6 +6,7 @@ import argparse
 
 from gfo.adapter.registry import create_adapter
 from gfo.config import resolve_project_config
+from gfo.exceptions import ConfigError
 from gfo.output import output
 
 
@@ -24,6 +25,8 @@ def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
 
 def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo issue create のハンドラ。"""
+    if not args.title or not args.title.strip():
+        raise ConfigError("--title must not be empty.")
     config = resolve_project_config()
     adapter = create_adapter(config)
     kwargs: dict = {}
