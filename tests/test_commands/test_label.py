@@ -203,3 +203,12 @@ class TestHandleCreate:
         with _patch_all(sample_config, self.adapter), \
              pytest.raises(ConfigError, match="Invalid color"):
             label_cmd.handle_create(args, fmt="table")
+
+    def test_name_with_surrounding_whitespace_is_stripped(self, sample_config):
+        """前後に空白を持つ name は strip されてアダプターに渡される。"""
+        args = make_args(name="  bug  ", color=None, description=None)
+        with _patch_all(sample_config, self.adapter):
+            label_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = self.adapter.create_label.call_args.kwargs
+        assert call_kwargs["name"] == "bug"

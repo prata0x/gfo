@@ -89,11 +89,16 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
 def _parse_repo_arg(repo_arg: str) -> tuple[str, str]:
     """'owner/name' 形式の文字列をパースして (owner, name) を返す。"""
     parts = repo_arg.split("/", 1)
-    if len(parts) != 2 or not parts[0] or not parts[1]:
+    if len(parts) != 2:
         raise ConfigError(
             f"Invalid repo format '{repo_arg}'. Expected 'owner/name' with non-empty owner and name."
         )
-    return parts[0], parts[1]
+    owner, name = parts[0].strip(), parts[1].strip()
+    if not owner or not name:
+        raise ConfigError(
+            f"Invalid repo format '{repo_arg}'. Expected 'owner/name' with non-empty owner and name."
+        )
+    return owner, name
 
 
 def handle_clone(args: argparse.Namespace, *, fmt: str) -> None:

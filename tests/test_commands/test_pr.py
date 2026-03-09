@@ -131,6 +131,15 @@ class TestHandleCreate:
         call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
         assert call_kwargs["draft"] is True
 
+    def test_title_with_surrounding_whitespace_is_stripped(self, sample_config, mock_adapter):
+        """前後に空白を持つ title は strip されてアダプターに渡される。"""
+        args = make_args(head="feature/x", base="main", title="  My PR  ", body="", draft=False)
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
+        assert call_kwargs["title"] == "My PR"
+
 
 class TestHandleCreateTitleValidation:
     def test_no_title_and_no_commit_raises_config_error(self, sample_config, mock_adapter):

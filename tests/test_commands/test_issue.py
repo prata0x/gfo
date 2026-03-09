@@ -224,6 +224,24 @@ class TestHandleCreate:
         call_kwargs = adapter.create_issue.call_args.kwargs
         assert call_kwargs["body"] == ""
 
+    def test_title_with_surrounding_whitespace_is_stripped(self):
+        """前後に空白を持つ title は strip されてアダプターに渡される。"""
+        config = _make_config("github")
+        adapter = _make_adapter(self.issue)
+        args = make_args(
+            title="  Bug Report  ",
+            body="",
+            assignee=None,
+            label=None,
+            type=None,
+            priority=None,
+        )
+        with _patch_all(config, adapter):
+            issue_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = adapter.create_issue.call_args.kwargs
+        assert call_kwargs["title"] == "Bug Report"
+
 
 class TestHandleCreateTitleValidation:
     def test_none_title_raises_config_error(self):

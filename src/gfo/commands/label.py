@@ -19,7 +19,8 @@ def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
 
 def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo label create のハンドラ。"""
-    if not args.name.strip():
+    name = args.name.strip()
+    if not name:
         raise ConfigError("name must not be empty.")
     color = args.color
     if color is not None:
@@ -30,7 +31,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
             )
     adapter = get_adapter()
     label = adapter.create_label(
-        name=args.name,
+        name=name,
         color=color,
         description=args.description,
     )

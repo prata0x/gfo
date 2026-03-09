@@ -23,7 +23,8 @@ def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
 
 def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo issue create のハンドラ。"""
-    if not args.title or not args.title.strip():
+    title = (args.title or "").strip()
+    if not title:
         raise ConfigError("--title must not be empty.")
     adapter, config = get_adapter_with_config()
     kwargs: dict = {}
@@ -35,7 +36,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     if args.priority is not None and config.service_type == "backlog":
         kwargs["priority"] = args.priority
     issue = adapter.create_issue(
-        title=args.title,
+        title=title,
         body=args.body or "",
         assignee=args.assignee,
         label=args.label,

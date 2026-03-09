@@ -310,3 +310,18 @@ class TestParseRepoArg:
     def test_empty_name_raises(self):
         with pytest.raises(ConfigError):
             repo_cmd._parse_repo_arg("owner/")
+
+    def test_whitespace_owner_raises(self):
+        with pytest.raises(ConfigError):
+            repo_cmd._parse_repo_arg("   /repo")
+
+    def test_whitespace_name_raises(self):
+        with pytest.raises(ConfigError):
+            repo_cmd._parse_repo_arg("owner/   ")
+
+    def test_owner_and_name_are_stripped(self):
+        """前後の空白は strip されて返される（現在は strip してから空チェックするため、
+        空白を含む有効な owner/name は strip 後の値が返る）。"""
+        owner, name = repo_cmd._parse_repo_arg("my-org/my-repo")
+        assert owner == "my-org"
+        assert name == "my-repo"
