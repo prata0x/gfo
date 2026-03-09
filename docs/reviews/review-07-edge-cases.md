@@ -384,6 +384,57 @@
 
 ---
 
+---
+
+## 修正記録 (2026-03-09)
+
+review-07-edge-cases.md の 26 件を対象に修正を実施した。
+
+### 修正済み（スキップ）— レビュー前に既に対応完了
+
+| ID | 内容 | 修正済み理由 |
+|----|------|-------------|
+| R6-15 | `commands/issue.py` azure_devops タイポ | 既に `"azure-devops"` に修正済み |
+| R6-03 | 次ページ auth_params 消失 | `get_absolute()` メソッドで対応済み |
+| R6-04 | list_labels/list_milestones ページネーション | `paginate_link_header` 使用済み |
+| R6-10 | WIQL インジェクション | `_wiql_escape()` 関数で対応済み |
+| R6-11 | GitLab list_repositories クエリパラメータ | params 辞書に分離済み |
+| R6-07 | paginate_page_param ValueError | try/except 実装済み |
+| R6-18 | os.getlogin() | `getpass.getuser()` に変更済み |
+| R6-17 | credentials.toml \r エスケープ | `.replace("\r", "\\r")` 実装済み |
+
+### 今回実施した修正（13 タスク）
+
+| タスク | ID | 変更種別 | コミット概要 |
+|--------|-----|---------|------------|
+| Task 1 | R6-01 | コード+テスト | 5つのページネーション関数に `limit < 0` の ValueError ガード追加 |
+| Task 2 | R6-02 | コード+テスト | `_sanitize_for_table`/`_sanitize_for_plain` でタブ・改行をエスケープ |
+| Task 3 | R6-12 | コード+テスト | `run_git` で "not a git repository" → ユーザーフレンドリーメッセージ変換 |
+| Task 4 | R6-13 | テストのみ | `test_resolve_only_shost_in_git_config` で shost のみ部分設定ケースを検証 |
+| Task 5 | R6-06 | コード+テスト | `unicodedata.east_asian_width` による `_display_width`/`_pad_right` 追加 |
+| Task 6 | R6-05 | コード+テスト | 空リスト: json → `"[]"` 出力、table/plain → stderr にメッセージ |
+| Task 7 | R6-14 | コード+テスト | github/gitea `_repos_path()`、backlog `_pr_path()` に `urllib.parse.quote` 適用 |
+| Task 8 | R6-20 | コード+テスト | `load_user_config` の `open()` を `try/except PermissionError` でラップ |
+| Task 9 | R6-16 | コード+テスト | `run_git`/`git_clone` で `FileNotFoundError`/`PermissionError` → GitCommandError |
+| Task 10 | R6-09 | コード+テスト | `_SSH_SCP_RE`/`_SSH_URL_RE` の `\w+@` → `[^\s@]+@` でハイフン入りユーザー名対応 |
+| Task 11 | R6-21 | コード+テスト | `subprocess.TimeoutExpired` を GitCommandError に変換、`git_clone` timeout=600 |
+| Task 12 | R6-22 | コード+テスト | `if 0 < limit < per_page: per_page = limit` で不要な API 取得を削減 |
+| Task 13 | R6-08 | テストのみ | GitLab 3階層サブグループ `_project_path()` の URL エンコード検証テスト |
+
+### 対象外（今後の課題）
+
+| ID | 内容 | 理由 |
+|----|------|------|
+| R6-19 | シンボリックリンクへの書き込み | 影響範囲が限定的・複雑な対応が必要 |
+| R6-23 | probe_unknown_host HTTPS→HTTP フォールバック | 設計検討が必要 |
+| R6-24 | Windows Git Bash 設定ディレクトリ | `platformdirs` 採用検討が必要 |
+| R6-25 | 非データクラスを output() に渡した場合 | 内部用途のみで実用影響小 |
+| R6-26 | ラベル名特殊文字フィルター誤動作 | ドキュメント対応で十分と判断 |
+
+全 792 テストが green であることを確認した（`python -m pytest` 実行済み）。
+
+---
+
 ## 次ラウンドへの申し送り
 
 - **Round 7 候補: セキュリティ観点の深掘り**
