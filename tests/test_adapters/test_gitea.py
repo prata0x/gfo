@@ -263,7 +263,7 @@ class TestClosePullRequest:
 
 class TestCheckoutRefspec:
     def test_refspec(self, gitea_adapter):
-        assert gitea_adapter.get_pr_checkout_refspec(42) == "pull/42/head"
+        assert gitea_adapter.get_pr_checkout_refspec(42) == "refs/pull/42/head"
 
 
 # --- Issue 系 ---

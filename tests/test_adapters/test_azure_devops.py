@@ -402,7 +402,7 @@ class TestClosePullRequest:
 
 class TestCheckoutRefspec:
     def test_refspec(self, azure_devops_adapter):
-        assert azure_devops_adapter.get_pr_checkout_refspec(42) == "pull/42/head"
+        assert azure_devops_adapter.get_pr_checkout_refspec(42) == "refs/pull/42/head"
 
 
 # --- Issue (Work Item) 系 ---

@@ -356,7 +356,7 @@ class TestClosePullRequest:
 
 class TestCheckoutRefspec:
     def test_refspec(self, gitlab_adapter):
-        assert gitlab_adapter.get_pr_checkout_refspec(42) == "merge-requests/42/head"
+        assert gitlab_adapter.get_pr_checkout_refspec(42) == "refs/merge-requests/42/head"
 
 
 # --- Issue 系 ---

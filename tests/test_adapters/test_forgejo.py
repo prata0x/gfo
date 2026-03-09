@@ -136,8 +136,8 @@ class TestGiteaApiCompatibility:
         assert "per_page=" not in req_url
 
     def test_checkout_refspec_uses_gitea_format(self, forgejo_adapter):
-        """Gitea 互換: チェックアウト refspec は pull/{n}/head 形式。"""
-        assert forgejo_adapter.get_pr_checkout_refspec(7) == "pull/7/head"
+        """Gitea 互換: チェックアウト refspec は refs/pull/{n}/head 形式。"""
+        assert forgejo_adapter.get_pr_checkout_refspec(7) == "refs/pull/7/head"
 
 
 class TestListPullRequests:

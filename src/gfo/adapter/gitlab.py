@@ -185,7 +185,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     def get_pr_checkout_refspec(self, number: int, *,
                                 pr: PullRequest | None = None) -> str:
-        return f"merge-requests/{number}/head"
+        return f"refs/merge-requests/{number}/head"
 
     # --- Issue ---
 

@@ -258,7 +258,7 @@ class TestClosePullRequest:
 
 class TestCheckoutRefspec:
     def test_refspec(self, github_adapter):
-        assert github_adapter.get_pr_checkout_refspec(42) == "pull/42/head"
+        assert github_adapter.get_pr_checkout_refspec(42) == "refs/pull/42/head"
 
 
 # --- Issue 系 ---

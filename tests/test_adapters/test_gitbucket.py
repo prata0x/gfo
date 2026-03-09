@@ -125,8 +125,8 @@ class TestGitHubApiCompatibility:
         assert mock_responses.calls[0].request.url.startswith(f"{REPOS}/issues")
 
     def test_checkout_refspec_uses_github_format(self, gitbucket_adapter):
-        """GitHub 互換: チェックアウト refspec は pull/{n}/head 形式。"""
-        assert gitbucket_adapter.get_pr_checkout_refspec(7) == "pull/7/head"
+        """GitHub 互換: チェックアウト refspec は refs/pull/{n}/head 形式。"""
+        assert gitbucket_adapter.get_pr_checkout_refspec(7) == "refs/pull/7/head"
 
     def test_base_url_uses_api_v3_path(self, gitbucket_adapter):
         """GitBucket は /api/v3 パスを使用する（GitHub の api.github.com とは異なる）。"""

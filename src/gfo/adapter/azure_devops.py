@@ -185,7 +185,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     def get_pr_checkout_refspec(self, number: int, *,
                                 pr: PullRequest | None = None) -> str:
-        return f"pull/{number}/head"
+        return f"refs/pull/{number}/head"
 
     # --- Issue (Work Item) ---
 
