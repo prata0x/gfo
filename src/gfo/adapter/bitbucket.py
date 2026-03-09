@@ -12,6 +12,8 @@ from .base import (
     Repository,
 )
 from .registry import register
+from urllib.parse import quote
+
 from gfo.exceptions import GfoError, NotSupportedError
 from gfo.http import paginate_response_body
 
@@ -21,7 +23,7 @@ class BitbucketAdapter(GitServiceAdapter):
     service_name = "Bitbucket Cloud"
 
     def _repos_path(self) -> str:
-        return f"/repositories/{self._owner}/{self._repo}"
+        return f"/repositories/{quote(self._owner, safe='')}/{quote(self._repo, safe='')}"
 
     # --- 変換ヘルパー ---
 

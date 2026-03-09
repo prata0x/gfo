@@ -277,7 +277,9 @@ class BacklogAdapter(GitServiceAdapter):
     def get_repository(self, owner: str | None = None,
                        name: str | None = None) -> Repository:
         n = name if name is not None else self._repo
-        resp = self._client.get(f"/projects/{self._project_key}/git/repositories/{n}")
+        resp = self._client.get(
+            f"/projects/{self._project_key}/git/repositories/{urllib.parse.quote(n, safe='')}"
+        )
         return self._to_repository(resp.json())
 
     # --- NotSupported ---

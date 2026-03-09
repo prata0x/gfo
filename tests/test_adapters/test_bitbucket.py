@@ -366,6 +366,21 @@ class TestGetRepository:
         repo = bitbucket_adapter.get_repository()
         assert repo.full_name == "test-workspace/test-repo"
 
+    def test_repos_path_is_url_encoded(self, mock_responses):
+        """owner/repo に特殊文字が含まれる場合に URL エンコードされる（R33-03）。"""
+        from gfo.adapter.bitbucket import BitbucketAdapter
+        from gfo.http import HttpClient
+        client = HttpClient("https://api.bitbucket.org/2.0", basic_auth=("u", "p"))
+        adapter = BitbucketAdapter(client, "my workspace", "my repo")
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/repositories/my%20workspace/my%20repo",
+            json=_repo_data(slug="my repo", full_name="my workspace/my repo"),
+            status=200,
+        )
+        repo = adapter.get_repository()
+        assert repo.name == "my repo"
+
 
 # --- NotSupportedError ---
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from urllib.parse import quote
+
 from .base import (
     GitServiceAdapter,
     Issue,
@@ -51,7 +53,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         self._project = project_key
 
     def _git_path(self) -> str:
-        return f"/git/repositories/{self._repo}"
+        return f"/git/repositories/{quote(self._repo, safe='')}"
 
     def _wit_path(self) -> str:
         return "/wit"
@@ -274,7 +276,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     def get_repository(self, owner: str | None = None,
                        name: str | None = None) -> Repository:
         n = name if name is not None else self._repo
-        resp = self._client.get(f"/git/repositories/{n}")
+        resp = self._client.get(f"/git/repositories/{quote(n, safe='')}")
         return self._to_repository(resp.json(), self._project)
 
     # --- NotSupported ---

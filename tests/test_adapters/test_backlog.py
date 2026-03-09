@@ -483,6 +483,16 @@ class TestGetRepository:
         repo = backlog_adapter.get_repository(name="other-repo")
         assert repo.name == "other-repo"
 
+    def test_get_repo_with_special_chars_is_encoded(self, mock_responses, backlog_adapter):
+        """非 ASCII 文字を含むリポジトリ名が URL エンコードされる（R33-01）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/git/repositories/%E6%97%A5%E6%9C%AC%E8%AA%9E",
+            json=_repo_data(name="日本語"), status=200,
+        )
+        repo = backlog_adapter.get_repository(name="日本語")
+        assert repo.name == "日本語"
+
 
 # --- NotSupportedError ---
 

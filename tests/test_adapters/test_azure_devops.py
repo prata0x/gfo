@@ -515,6 +515,15 @@ class TestGetRepository:
         repo = azure_devops_adapter.get_repository(name="other-repo")
         assert repo.name == "other-repo"
 
+    def test_get_repo_with_space_is_encoded(self, mock_responses, azure_devops_adapter):
+        """スペースを含むリポジトリ名が URL エンコードされる（R33-02）。"""
+        mock_responses.add(
+            responses.GET, f"{BASE}/git/repositories/My%20Repo",
+            json=_repo_data(name="My Repo"), status=200,
+        )
+        repo = azure_devops_adapter.get_repository(name="My Repo")
+        assert repo.name == "My Repo"
+
 
 # --- NotSupportedError ---
 
