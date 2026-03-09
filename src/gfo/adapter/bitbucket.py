@@ -60,7 +60,8 @@ class BitbucketAdapter(GitServiceAdapter):
             state = "open" if raw_state in ("new", "open") else "closed"
 
             assignee = data.get("assignee")
-            assignees = [assignee.get("nickname", "")] if assignee else []
+            nickname = assignee.get("nickname") if assignee else None
+            assignees = [nickname] if nickname else []
 
             return Issue(
                 number=data["id"],

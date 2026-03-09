@@ -113,6 +113,13 @@ class TestToIssue:
         issue = BitbucketAdapter._to_issue(data)
         assert issue.assignees == []
 
+    def test_assignee_without_nickname(self):
+        """assignee が nickname を持たない場合は空リストを返す。"""
+        data = _issue_data()
+        data["assignee"] = {"display_name": "User Name"}
+        issue = BitbucketAdapter._to_issue(data)
+        assert issue.assignees == []
+
 
 class TestToRepository:
     def test_basic(self):

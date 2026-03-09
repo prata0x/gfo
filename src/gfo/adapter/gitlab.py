@@ -159,11 +159,16 @@ class GitLabAdapter(GitServiceAdapter):
         allowed_methods = {"merge", "squash", "rebase"}
         if method not in allowed_methods:
             raise ValueError(f"method must be one of {sorted(allowed_methods)}, got {method!r}")
+        if method == "rebase":
+            # GitLab rebase は /merge ではなく専用の /rebase エンドポイントを使用
+            self._client.put(
+                f"{self._project_path()}/merge_requests/{number}/rebase",
+                json={},
+            )
+            return
         payload: dict = {}
         if method == "squash":
             payload["squash"] = True
-        elif method == "rebase":
-            payload["merge_method"] = "rebase_merge"
         # method == "merge" はデフォルト動作（追加 payload なし）
         self._client.put(
             f"{self._project_path()}/merge_requests/{number}/merge",

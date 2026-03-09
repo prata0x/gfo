@@ -264,6 +264,8 @@ class TestMergePullRequest:
             json={"state": "merged"}, status=200,
         )
         gitlab_adapter.merge_pull_request(1)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body == {}  # method="merge" は追加 payload なし
 
     def test_merge_squash(self, mock_responses, gitlab_adapter):
         mock_responses.add(
@@ -274,6 +276,20 @@ class TestMergePullRequest:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body.get("squash") is True
         assert "merge_method" not in req_body
+
+    def test_merge_rebase_calls_rebase_endpoint(self, mock_responses, gitlab_adapter):
+        """method="rebase" は /merge ではなく /rebase エンドポイントを呼ぶ。"""
+        mock_responses.add(
+            responses.PUT, f"{PROJECT}/merge_requests/2/rebase",
+            json={}, status=200,
+        )
+        gitlab_adapter.merge_pull_request(2, method="rebase")
+        assert len(mock_responses.calls) == 1
+        assert "/rebase" in mock_responses.calls[0].request.url
+
+    def test_merge_invalid_method_raises(self, gitlab_adapter):
+        with pytest.raises(ValueError, match="method must be one of"):
+            gitlab_adapter.merge_pull_request(1, method="fast-forward")
 
 
 class TestClosePullRequest:
