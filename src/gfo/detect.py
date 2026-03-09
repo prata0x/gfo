@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from dataclasses import dataclass
 
 from gfo.exceptions import DetectionError
@@ -246,7 +247,16 @@ def detect_service(cwd: str | None = None) -> DetectResult:
     if stype and shost:
         remote_url = get_remote_url(cwd=cwd)
         result = detect_from_url(remote_url)
+        # URL パース結果と git config 設定が食い違う場合に警告
+        if result.service_type is not None and result.service_type != stype:
+            print(
+                f"warning: gfo.type={stype!r} but URL suggests {result.service_type!r}; "
+                "using git config value.",
+                file=sys.stderr,
+            )
+        # service_type と host を git config の値で統一する
         result.service_type = stype
+        result.host = shost
         return result
 
     # 2. URL パース
