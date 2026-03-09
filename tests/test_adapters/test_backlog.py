@@ -96,6 +96,13 @@ class TestToPullRequest:
         pr = BacklogAdapter._to_pull_request(data)
         assert pr.state == "open"
 
+    def test_null_created_user_yields_empty_author(self):
+        """createdUser が null でも AttributeError にならず author が空文字になる。"""
+        data = _pr_data()
+        data["createdUser"] = None
+        pr = BacklogAdapter._to_pull_request(data)
+        assert pr.author == ""
+
 
 class TestToIssue:
     def test_open(self):
@@ -139,6 +146,13 @@ class TestToIssue:
         data["status"] = None
         issue = BacklogAdapter._to_issue(data)
         assert issue.state == "open"
+
+    def test_null_created_user_yields_empty_author(self):
+        """createdUser が null でも AttributeError にならず author が空文字になる。"""
+        data = _issue_data()
+        data["createdUser"] = None
+        issue = BacklogAdapter._to_issue(data)
+        assert issue.author == ""
 
 
 class TestToRepository:

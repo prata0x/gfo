@@ -78,7 +78,7 @@ class BacklogAdapter(GitServiceAdapter):
             else:
                 state = "open"
 
-            created_user = data.get("createdUser", {})
+            created_user = data.get("createdUser") or {}
             return PullRequest(
                 number=data["number"],
                 title=data["summary"],
@@ -101,7 +101,7 @@ class BacklogAdapter(GitServiceAdapter):
             status_id = (data.get("status") or {}).get("id", 1)
             state = "closed" if status_id == _STATUS_CLOSED_ID else "open"
 
-            created_user = data.get("createdUser", {})
+            created_user = data.get("createdUser") or {}
             assignee = data.get("assignee")
             assignees = [assignee["userId"]] if assignee and "userId" in assignee else []
 
