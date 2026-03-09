@@ -54,16 +54,14 @@ def _handle_non_interactive(args: argparse.Namespace) -> None:
         ) from e
 
     # api_url の解決: args.api_url → get_host_config → build_default_api_url
+    project_key = getattr(args, "project_key", None) or detect_result.project
     api_url = getattr(args, "api_url", None)
     if not api_url:
         host_cfg = get_host_config(host)
         if host_cfg and "api_url" in host_cfg:
             api_url = host_cfg["api_url"]
     if not api_url:
-        project_key = getattr(args, "project_key", None)
         api_url = build_default_api_url(service_type, host, organization=detect_result.organization, project=project_key)
-
-    project_key = getattr(args, "project_key", None) or detect_result.project
 
     config = ProjectConfig(
         service_type=service_type,

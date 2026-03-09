@@ -364,6 +364,28 @@ class TestHandleNonInteractive:
         saved: ProjectConfig = mock_save.call_args[0][0]
         assert saved.api_url == "https://gitlab.com/api/v4"
 
+    def test_azure_devops_project_key_from_url_when_arg_omitted(self):
+        """--project-key 未指定でも URL から検出した project_key で api_url が構築される（R27修正確認）。"""
+        args = make_args(
+            non_interactive=True,
+            type="azure-devops",
+            host="dev.azure.com",
+            api_url=None,
+            project_key=None,
+        )
+        remote_url = "https://dev.azure.com/MyOrg/MyProject/_git/MyRepo"
+
+        with patch("gfo.commands.init.get_remote_url", return_value=remote_url), \
+             patch("gfo.commands.init.get_host_config", return_value=None), \
+             patch("gfo.commands.init.save_project_config") as mock_save:
+            init_cmd.handle(args, fmt="table")
+
+        saved: ProjectConfig = mock_save.call_args[0][0]
+        assert saved.project_key == "MyProject"
+        assert saved.organization == "MyOrg"
+        assert "MyOrg" in saved.api_url
+        assert "MyProject" in saved.api_url
+
     def test_remote_url_detection_failure_error_message(self):
         """リモート URL 取得失敗時のエラーメッセージに --owner/--repo を含まない（R40-01）。"""
         args = make_args(
