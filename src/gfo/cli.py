@@ -19,6 +19,14 @@ from gfo.config import get_default_output_format
 from gfo.exceptions import GfoError, NotSupportedError
 
 
+def _positive_int(value: str) -> int:
+    """argparse type: 正の整数のみ受け付ける。"""
+    ivalue = int(value)
+    if ivalue <= 0:
+        raise argparse.ArgumentTypeError(f"{value} is not a positive integer")
+    return ivalue
+
+
 def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.ArgumentParser]]:
     """メインパーサーと全サブコマンドパーサーを構築して返す。
 
@@ -54,7 +62,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_sub = pr_parser.add_subparsers(dest="subcommand")
     pr_list = pr_sub.add_parser("list")
     pr_list.add_argument("--state", choices=["open", "closed", "merged", "all"], default="open")
-    pr_list.add_argument("--limit", type=int, default=30)
+    pr_list.add_argument("--limit", type=_positive_int, default=30)
     pr_create = pr_sub.add_parser("create")
     pr_create.add_argument("--title")
     pr_create.add_argument("--body", default="")
@@ -78,7 +86,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_list.add_argument("--state", choices=["open", "closed", "all"], default="open")
     issue_list.add_argument("--assignee")
     issue_list.add_argument("--label")
-    issue_list.add_argument("--limit", type=int, default=30)
+    issue_list.add_argument("--limit", type=_positive_int, default=30)
     issue_create = issue_sub.add_parser("create")
     issue_create.add_argument("--title", required=True)
     issue_create.add_argument("--body", default="")
@@ -96,7 +104,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_sub = repo_parser.add_subparsers(dest="subcommand")
     repo_list = repo_sub.add_parser("list")
     repo_list.add_argument("--owner")
-    repo_list.add_argument("--limit", type=int, default=30)
+    repo_list.add_argument("--limit", type=_positive_int, default=30)
     repo_create = repo_sub.add_parser("create")
     repo_create.add_argument("name")
     repo_create.add_argument("--private", action="store_true")
@@ -112,7 +120,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     release_parser = subparser_map["release"] = subparsers.add_parser("release")
     release_sub = release_parser.add_subparsers(dest="subcommand")
     release_list = release_sub.add_parser("list")
-    release_list.add_argument("--limit", type=int, default=30)
+    release_list.add_argument("--limit", type=_positive_int, default=30)
     release_create = release_sub.add_parser("create")
     release_create.add_argument("tag")
     release_create.add_argument("--title", default=None)
