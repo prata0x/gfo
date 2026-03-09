@@ -283,6 +283,18 @@ class TestListIssues:
         assert len(issues) == 2
 
 
+    def test_closed_state_filter(self, mock_responses, bitbucket_adapter):
+        """state='closed' のとき q に state フィルタが追加される。"""
+        mock_responses.add(
+            responses.GET, f"{REPOS}/issues",
+            json={"values": [_issue_data(state="closed")]}, status=200,
+        )
+        issues = bitbucket_adapter.list_issues(state="closed")
+        assert len(issues) == 1
+        req = mock_responses.calls[0].request
+        decoded_url = unquote(req.url)
+        assert 'state="closed"' in decoded_url
+
     def test_all_state_omits_filter(self, mock_responses, bitbucket_adapter):
         """state='all' のとき q フィルタを送らない（'all' は Bitbucket の有効な state 値ではない）。"""
         mock_responses.add(

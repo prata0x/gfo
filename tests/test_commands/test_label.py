@@ -211,3 +211,9 @@ class TestHandleCreate:
 
         call_kwargs = self.adapter.create_label.call_args.kwargs
         assert call_kwargs["name"] == "bug"
+
+    def test_whitespace_only_name_raises_config_error(self, sample_config):
+        """空白のみの name は ConfigError を送出する。"""
+        args = make_args(name="   ", color=None, description=None)
+        with _patch_all(sample_config, self.adapter), pytest.raises(ConfigError, match="name must not be empty"):
+            label_cmd.handle_create(args, fmt="table")

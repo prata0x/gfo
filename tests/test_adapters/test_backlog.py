@@ -335,6 +335,36 @@ class TestListIssues:
         req = mock_responses.calls[1].request
         assert "statusId" not in req.url
 
+    def test_assignee_filter(self, mock_responses, backlog_adapter):
+        """assignee を指定すると assigneeUserId[] パラメータが追加される。"""
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST",
+            json={"id": 100, "projectKey": "TEST"}, status=200,
+        )
+        mock_responses.add(
+            responses.GET, ISSUES_PATH,
+            json=[_issue_data()], status=200,
+        )
+        backlog_adapter.list_issues(assignee="12345")
+        req = mock_responses.calls[1].request
+        assert "assigneeUserId" in req.url
+        assert "12345" in req.url
+
+    def test_label_filter(self, mock_responses, backlog_adapter):
+        """label を指定すると keyword パラメータが追加される。"""
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST",
+            json={"id": 100, "projectKey": "TEST"}, status=200,
+        )
+        mock_responses.add(
+            responses.GET, ISSUES_PATH,
+            json=[_issue_data()], status=200,
+        )
+        backlog_adapter.list_issues(label="bug")
+        req = mock_responses.calls[1].request
+        assert "keyword" in req.url
+        assert "bug" in req.url
+
     def test_project_id_cached(self, mock_responses, backlog_adapter):
         """project_id は2回目以降キャッシュされる。"""
         mock_responses.add(
