@@ -103,7 +103,11 @@ def _handle_interactive(args: argparse.Namespace) -> None:
     else:
         # 手動入力
         service_type = input("Service type (github/gitlab/bitbucket/...): ").strip()
+        if not service_type:
+            raise ConfigError("service_type cannot be empty.")
         host = input("Host: ").strip()
+        if not host:
+            raise ConfigError("host cannot be empty.")
         api_url_input = input("API URL (leave blank for default): ").strip()
         project_key = input("Project key (leave blank if none): ").strip() or None
 
