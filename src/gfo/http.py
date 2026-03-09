@@ -5,10 +5,13 @@ from __future__ import annotations
 import re
 import time
 from typing import Any
+from urllib.parse import urlparse
 
 import requests
 
 import gfo.exceptions
+
+_MAX_RETRY_AFTER = 300
 
 
 class HttpClient:
@@ -41,6 +44,7 @@ class HttpClient:
         self._default_params: dict[str, str] = default_params or {}
         self._max_retries = max_retries
         self._session = requests.Session()
+        self._session.verify = True
         if auth_header:
             self._session.headers.update(auth_header)
         if basic_auth:
@@ -83,9 +87,9 @@ class HttpClient:
                     timeout=timeout,
                 )
             except requests.ConnectionError as e:
-                raise gfo.exceptions.NetworkError(str(e)) from e
+                raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
             except requests.Timeout as e:
-                raise gfo.exceptions.NetworkError(str(e)) from e
+                raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
 
             try:
                 self._handle_response(resp)
@@ -129,9 +133,9 @@ class HttpClient:
             try:
                 resp = self._session.get(url, params=merged_params, timeout=timeout)
             except requests.ConnectionError as e:
-                raise gfo.exceptions.NetworkError(str(e)) from e
+                raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
             except requests.Timeout as e:
-                raise gfo.exceptions.NetworkError(str(e)) from e
+                raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
 
             try:
                 self._handle_response(resp)
@@ -169,18 +173,27 @@ class HttpClient:
 
         RFC 7231 では秒数整数と HTTP 日時形式の両方を許容しているため、
         int() 変換が失敗した場合（日時形式等）は default 秒を返す。
+        値は 1 以上 _MAX_RETRY_AFTER 以下にクランプする。
         """
         if value is None:
             return default
         try:
-            return int(value)
+            result = int(value)
         except ValueError:
             return default
+        return max(1, min(result, _MAX_RETRY_AFTER))
 
     @staticmethod
     def _mask_api_key(url: str) -> str:
         """URL 内の apiKey=xxx を apiKey=*** に置換する。"""
         return re.sub(r"apiKey=[^&]+", "apiKey=***", url)
+
+
+def _validate_same_origin(base_url: str, next_url: str) -> bool:
+    """next_url が base_url と同一オリジン（scheme + host）であることを検証する。"""
+    base = urlparse(base_url)
+    target = urlparse(next_url)
+    return base.scheme == target.scheme and base.hostname == target.hostname
 
 
 def paginate_link_header(
@@ -217,6 +230,8 @@ def paginate_link_header(
         if not match:
             break
         next_url = match.group(1)
+        if not _validate_same_origin(client.base_url, next_url):
+            break
 
     return results
 
@@ -291,6 +306,8 @@ def paginate_response_body(
 
         next_url = body.get(next_key)
         if not next_url:
+            break
+        if not _validate_same_origin(client.base_url, next_url):
             break
 
     return results
