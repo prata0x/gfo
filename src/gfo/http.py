@@ -249,7 +249,10 @@ def paginate_page_param(
         next_page = resp.headers.get(next_page_header, "")
         if not next_page:
             break
-        params["page"] = int(next_page)
+        try:
+            params["page"] = int(next_page)
+        except ValueError:
+            break
 
     return results
 
