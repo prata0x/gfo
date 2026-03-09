@@ -52,11 +52,13 @@ class BacklogAdapter(GitServiceAdapter):
     # --- 変換ヘルパー ---
 
     @staticmethod
-    def _to_pull_request(data: dict) -> PullRequest:
+    def _to_pull_request(data: dict, merged_status_id: int | None = None) -> PullRequest:
         status_id = data.get("status", {}).get("id", 1)
         if status_id == 4:
             state = "closed"
-        elif status_id == 5:
+        elif merged_status_id is not None and status_id == merged_status_id:
+            state = "merged"
+        elif merged_status_id is None and status_id == 5:
             state = "merged"
         else:
             state = "open"
@@ -113,6 +115,7 @@ class BacklogAdapter(GitServiceAdapter):
 
     def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]:
         params: dict = {}
+        merged_id: int | None = None
         if state == "merged":
             merged_id = self._resolve_merged_status_id()
             if merged_id is not None:
@@ -121,8 +124,11 @@ class BacklogAdapter(GitServiceAdapter):
             params["statusId[]"] = [1, 2, 3]
         elif state == "closed":
             params["statusId[]"] = [4]
+        else:
+            # state="all": 動的 merged_status_id が必要
+            merged_id = self._resolve_merged_status_id()
         results = paginate_offset(self._client, self._pr_path(), params=params, limit=limit)
-        return [self._to_pull_request(r) for r in results]
+        return [self._to_pull_request(r, merged_id) for r in results]
 
     def create_pull_request(self, *, title: str, body: str = "",
                             base: str, head: str,
@@ -138,7 +144,7 @@ class BacklogAdapter(GitServiceAdapter):
 
     def get_pull_request(self, number: int) -> PullRequest:
         resp = self._client.get(f"{self._pr_path()}/{number}")
-        return self._to_pull_request(resp.json())
+        return self._to_pull_request(resp.json(), self._resolve_merged_status_id())
 
     def merge_pull_request(self, number: int, *, method: str = "merge") -> None:
         hostname = urllib.parse.urlparse(self._client.base_url).hostname

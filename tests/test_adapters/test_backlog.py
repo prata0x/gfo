@@ -159,12 +159,16 @@ class TestListPullRequests:
 
     def test_all(self, mock_responses, backlog_adapter):
         mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 5, "name": "Merged"}], status=200,
+        )
+        mock_responses.add(
             responses.GET, PR_PATH,
             json=[_pr_data()], status=200,
         )
         prs = backlog_adapter.list_pull_requests(state="all")
         assert len(prs) == 1
-        req = mock_responses.calls[0].request
+        req = mock_responses.calls[1].request
         assert "statusId" not in req.url
 
     def test_merged_no_status(self, mock_responses, backlog_adapter):
@@ -183,6 +187,10 @@ class TestListPullRequests:
     def test_pagination(self, mock_responses, backlog_adapter):
         """offset ベースのページネーションで2ページ取得。"""
         mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 5, "name": "Merged"}], status=200,
+        )
+        mock_responses.add(
             responses.GET, PR_PATH,
             json=[_pr_data(number=i) for i in range(1, 21)], status=200,
         )
@@ -192,8 +200,8 @@ class TestListPullRequests:
         )
         prs = backlog_adapter.list_pull_requests(state="all", limit=0)
         assert len(prs) == 21
-        req1 = mock_responses.calls[0].request
-        req2 = mock_responses.calls[1].request
+        req1 = mock_responses.calls[1].request
+        req2 = mock_responses.calls[2].request
         assert "count=20" in req1.url
         assert "offset=0" in req1.url
         assert "offset=20" in req2.url
@@ -217,6 +225,10 @@ class TestCreatePullRequest:
 
 class TestGetPullRequest:
     def test_get(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 5, "name": "Merged"}], status=200,
+        )
         mock_responses.add(
             responses.GET, f"{PR_PATH}/42",
             json=_pr_data(number=42), status=200,
@@ -253,6 +265,10 @@ class TestCheckoutRefspec:
         assert refspec == "feature"
 
     def test_without_pr(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 5, "name": "Merged"}], status=200,
+        )
         mock_responses.add(
             responses.GET, f"{PR_PATH}/1",
             json=_pr_data(), status=200,
