@@ -149,6 +149,13 @@ class TestToIssue:
         issue = AzureDevOpsAdapter._to_issue(data)
         assert issue.assignees == []
 
+    def test_assignee_without_unique_name(self):
+        """assignee が uniqueName を持たない場合は空リストを返す。"""
+        data = _issue_data()
+        data["fields"]["System.AssignedTo"] = {"displayName": "Dev User"}
+        issue = AzureDevOpsAdapter._to_issue(data)
+        assert issue.assignees == []
+
     def test_no_tags(self):
         data = _issue_data()
         data["fields"]["System.Tags"] = ""
@@ -381,6 +388,22 @@ class TestListIssues:
         )
         issues = azure_devops_adapter.list_issues()
         assert issues == []
+
+    def test_limit_zero_returns_all(self, mock_responses, azure_devops_adapter):
+        """limit=0 は全件取得を意味し、空リストを返さない。"""
+        mock_responses.add(
+            responses.POST, f"{WIT}/wiql",
+            json={"workItems": [{"id": 1}, {"id": 2}, {"id": 3}]}, status=200,
+        )
+        mock_responses.add(
+            responses.GET, f"{WIT}/workitems",
+            json={"value": [_issue_data(id=1), _issue_data(id=2), _issue_data(id=3)]}, status=200,
+        )
+        issues = azure_devops_adapter.list_issues(limit=0)
+        assert len(issues) == 3
+        # limit=0 の場合 $top パラメータを渡さない
+        qs = parse_qs(urlparse(mock_responses.calls[0].request.url).query)
+        assert "$top" not in qs
 
 
 class TestCreateIssue:

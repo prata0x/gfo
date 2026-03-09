@@ -237,7 +237,11 @@ def paginate_link_header(
         else:
             resp = client.get_absolute(next_url)
 
-        page_data = resp.json()
+        try:
+            page_data = resp.json()
+        except ValueError:
+            # 非 JSON レスポンス（200 で HTML 等を返すサーバー）の場合は終了
+            break
         if not isinstance(page_data, list) or not page_data:
             break
         results.extend(page_data)

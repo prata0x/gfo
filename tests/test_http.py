@@ -455,6 +455,19 @@ class TestPaginateLinkHeader:
         assert len(result) == 3
         assert call_count["n"] == 3
 
+    @responses.activate
+    def test_non_json_response_stops_pagination(self):
+        """200 で非 JSON レスポンスを返した場合、ループを終了して空リストを返す。"""
+        responses.add(
+            responses.GET, f"{BASE}/items",
+            body="<html>not json</html>",
+            status=200,
+            content_type="text/html",
+        )
+        c = HttpClient(BASE)
+        result = paginate_link_header(c, "/items", limit=10)
+        assert result == []
+
 
 # ── paginate_page_param ──
 

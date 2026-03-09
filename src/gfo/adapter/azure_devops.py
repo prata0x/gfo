@@ -86,7 +86,8 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             state = "closed" if raw_state in _CLOSED_STATES else "open"
 
             assigned_to = fields.get("System.AssignedTo")
-            assignees = [assigned_to["uniqueName"]] if assigned_to else []
+            unique_name = assigned_to.get("uniqueName") if assigned_to else None
+            assignees = [unique_name] if unique_name else []
 
             raw_tags = fields.get("System.Tags", "")
             labels = [t.strip() for t in raw_tags.split(";") if t.strip()] if raw_tags else []
@@ -192,10 +193,11 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             conditions.append(f"[System.Tags] CONTAINS '{_wiql_escape(label)}'")
 
         wiql = "SELECT [System.Id] FROM WorkItems WHERE " + " AND ".join(conditions)
+        wiql_params = {"$top": limit} if limit > 0 else {}
         wiql_resp = self._client.post(
             f"{self._wit_path()}/wiql",
             json={"query": wiql},
-            params={"$top": limit},
+            params=wiql_params,
         )
         work_items = wiql_resp.json().get("workItems", [])
         ids = [wi["id"] for wi in work_items]
@@ -204,6 +206,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
         results: list[Issue] = []
         for i in range(0, len(ids), 200):
+            # limit > 0 の場合、WIQL が $top で件数を制限済みだが念のため早期終了
+            if limit > 0 and len(results) >= limit:
+                break
             batch_ids = ids[i:i + 200]
             ids_str = ",".join(str(x) for x in batch_ids)
             resp = self._client.get(
@@ -213,7 +218,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             for item in resp.json().get("value", []):
                 results.append(self._to_issue(item))
 
-        return results[:limit]
+        return results[:limit] if limit > 0 else results
 
     def create_issue(self, *, title: str, body: str = "",
                      assignee: str | None = None,
