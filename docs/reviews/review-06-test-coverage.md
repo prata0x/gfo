@@ -619,6 +619,41 @@
 
 ---
 
+---
+
+## 修正記録 (2026-03-09)
+
+全 22 件のテスト追加が完了し、全テスト green を確認した。
+
+| ID | 修正内容 | コミット |
+|----|---------|---------|
+| R5-01 | `tests/test_main.py` 新規作成（2 テスト） | `8537d50` |
+| R5-02 | `TestRateLimit` に 429 リトライ後 ConnectionError/Timeout テスト追加 | `8537d50` |
+| R5-03 | `resolve_project_config` detect_service 非呼び出し・stype のみ・org 上書き テスト 3 件追加 | `8537d50` |
+| R5-04 | 全 6 コマンドテストに `fmt="plain"` テスト追加 | `8537d50` |
+| R5-05 | `issue.py` L34 は既に `"azure-devops"` (ハイフン) に修正済みを確認 | — |
+| R5-06 | `format_table` エッジケース 3 テスト追加（ヘッダー幅基準・空値・末尾空白） | `0aead80` |
+| R5-07 | Azure DevOps project 欠如テスト追加 | `0aead80` |
+| R5-08 | `GogsAdapter` に `create/close/get_issue` テスト 3 件追加 | `36e8d70` |
+| R5-09 | GitHub/GitLab/Gitea/Bitbucket/Backlog/AzureDevOps に `TestErrorHandling`(404/401/500) 追加 | `36e8d70` |
+| R5-10 | `test_pr_list_config_error` — ConfigError が CLI で exit 1 になることを確認 | `36e8d70` |
+| R5-11 | `test_detect_failure_manual_no_remote_url` — owner/repo 空文字フォールバック確認 | `36e8d70` |
+| R5-12 | TestHandleClone に azure-devops/forgejo/gogs clone URL テスト 3 件追加 | `36e8d70` |
+| R5-13 | TestHandleCheckout に PR 非存在テスト追加 | `36e8d70` |
+| R5-14 | `paginate_link_header` 2 ページ目 ConnectionError → NetworkError テスト追加 | `36e8d70` |
+| R5-15 | `per_page_key="limit"` カスタム値テスト追加 | `0aead80` |
+| R5-16 | 未知 `fmt` のテーブルフォールバックテスト追加 | `0aead80` |
+| R5-17 | `detect_service` が空 service_type を返した場合の ConfigError テスト追加 | `0aead80` |
+| R5-18 | `paginate_link_header` 3 ページ連鎖テスト追加 | `0aead80` |
+| R5-19 | Bitbucket `create_pull_request` の description フィールド検証テスト追加 | `0aead80` |
+| R5-20 | `get_default_output_format` の `"plain"` テスト追加 | `0aead80` |
+| R5-21 | `--format plain` の CLI レベルテスト追加 | `0aead80` |
+| R5-22 | TestHandleCheckout に `git_fetch` 失敗テスト追加（R5-13 と同コミット） | `36e8d70` |
+
+**最終結果**: 764 テスト全件 green（修正前 175 テスト → 764 テスト、+589 件）
+
+---
+
 ## 次ラウンドへの申し送り
 
 - **R5-05 の潜在的バグ優先確認**: `commands/issue.py` L31 の `"azure_devops"` がハイフン表記 `"azure-devops"` の誤りである可能性が高い。プロジェクト内の他すべての箇所がハイフン区切りを使用しているため、次ラウンドで実証・修正することを強く推奨する。
