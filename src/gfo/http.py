@@ -206,6 +206,10 @@ def paginate_link_header(
     limit: int = 30,
 ) -> list[dict]:
     """Link header ベースのページネーション（GitHub / Gitea / GitBucket 用）。"""
+    if limit < 0:
+        raise ValueError("limit must be non-negative")
+    if 0 < limit < per_page:
+        per_page = limit
     params = dict(params or {})
     params[per_page_key] = per_page
     results: list[dict] = []
@@ -246,6 +250,10 @@ def paginate_page_param(
     next_page_header: str = "X-Next-Page",
 ) -> list[dict]:
     """ページパラメータ + ヘッダーベースのページネーション（GitLab 用）。"""
+    if limit < 0:
+        raise ValueError("limit must be non-negative")
+    if 0 < limit < per_page:
+        per_page = limit
     params = dict(params or {})
     params["per_page"] = per_page
     params["page"] = 1
@@ -282,6 +290,8 @@ def paginate_response_body(
     next_key: str = "next",
 ) -> list[dict]:
     """レスポンスボディベースのページネーション（Bitbucket Cloud 用）。"""
+    if limit < 0:
+        raise ValueError("limit must be non-negative")
     results: list[dict] = []
     next_url: str | None = None
     first = True
@@ -324,6 +334,10 @@ def paginate_offset(
     offset_key: str = "offset",
 ) -> list[dict]:
     """オフセットベースのページネーション（Backlog 用）。"""
+    if limit < 0:
+        raise ValueError("limit must be non-negative")
+    if 0 < limit < count:
+        count = limit
     params = dict(params or {})
     params[count_key] = count
     offset = 0
@@ -356,6 +370,10 @@ def paginate_top_skip(
     result_key: str = "value",
 ) -> list[dict]:
     """$top+$skip ベースのページネーション（Azure DevOps 用）。"""
+    if limit < 0:
+        raise ValueError("limit must be non-negative")
+    if 0 < limit < top:
+        top = limit
     params = dict(params or {})
     params["$top"] = top
     skip = 0

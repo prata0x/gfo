@@ -301,6 +301,33 @@ class TestMaskApiKey:
 # ── paginate_link_header ──
 
 
+class TestPaginateNegativeLimit:
+    def test_link_header_negative_limit_raises(self):
+        c = HttpClient(BASE)
+        with pytest.raises(ValueError, match="non-negative"):
+            paginate_link_header(c, "/items", limit=-1)
+
+    def test_page_param_negative_limit_raises(self):
+        c = HttpClient(BASE)
+        with pytest.raises(ValueError, match="non-negative"):
+            paginate_page_param(c, "/items", limit=-1)
+
+    def test_response_body_negative_limit_raises(self):
+        c = HttpClient(BASE)
+        with pytest.raises(ValueError, match="non-negative"):
+            paginate_response_body(c, "/items", limit=-1)
+
+    def test_offset_negative_limit_raises(self):
+        c = HttpClient(BASE)
+        with pytest.raises(ValueError, match="non-negative"):
+            paginate_offset(c, "/items", limit=-1)
+
+    def test_top_skip_negative_limit_raises(self):
+        c = HttpClient(BASE)
+        with pytest.raises(ValueError, match="non-negative"):
+            paginate_top_skip(c, "/items", limit=-1)
+
+
 class TestPaginateLinkHeader:
     @responses.activate
     def test_single_page(self):
@@ -372,7 +399,7 @@ class TestPaginateLinkHeader:
         """per_page_key="limit" 指定時にリクエスト URL に limit= が使われる。"""
         responses.add(responses.GET, f"{BASE}/items", json=[{"id": 1}])
         c = HttpClient(BASE)
-        paginate_link_header(c, "/items", per_page_key="limit", per_page=20, limit=10)
+        paginate_link_header(c, "/items", per_page_key="limit", per_page=20, limit=30)
         assert "limit=20" in responses.calls[0].request.url
         assert "per_page=" not in responses.calls[0].request.url
 
@@ -392,6 +419,14 @@ class TestPaginateLinkHeader:
         c = HttpClient(BASE)
         with pytest.raises(NetworkError):
             paginate_link_header(c, "/items", limit=10)
+
+    @responses.activate
+    def test_per_page_limited_to_limit(self):
+        """limit=2 のとき per_page が 2 に切り詰められる。"""
+        responses.add(responses.GET, f"{BASE}/items", json=[{"id": 1}, {"id": 2}])
+        c = HttpClient(BASE)
+        paginate_link_header(c, "/items", per_page=30, limit=2)
+        assert "per_page=2" in responses.calls[0].request.url
 
     @responses.activate
     def test_three_pages(self):
@@ -477,6 +512,14 @@ class TestPaginatePageParam:
         c = HttpClient(BASE)
         result = paginate_page_param(c, "/items", limit=0)
         assert len(result) == 4
+
+    @responses.activate
+    def test_per_page_limited_to_limit(self):
+        """limit=2 のとき per_page が 2 に切り詰められる。"""
+        responses.add(responses.GET, f"{BASE}/items", json=[{"id": 1}, {"id": 2}])
+        c = HttpClient(BASE)
+        paginate_page_param(c, "/items", per_page=20, limit=2)
+        assert "per_page=2" in responses.calls[0].request.url
 
 
 # ── paginate_response_body ──
