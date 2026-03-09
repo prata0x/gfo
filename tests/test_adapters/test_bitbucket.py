@@ -168,6 +168,18 @@ class TestListPullRequests:
         prs = bitbucket_adapter.list_pull_requests(limit=10)
         assert len(prs) == 2
 
+    def test_pagination_stops_on_different_origin(self, mock_responses, bitbucket_adapter):
+        """next URL が別オリジンを指す場合はページネーションを中断する（SSRF 防止）。"""
+        other_origin_url = "https://evil.example.com/api/pullrequests?page=2"
+        mock_responses.add(
+            responses.GET, f"{REPOS}/pullrequests",
+            json={"values": [_pr_data(id=1)], "next": other_origin_url}, status=200,
+        )
+        prs = bitbucket_adapter.list_pull_requests(limit=10)
+        # 別オリジンへのリクエストは行われず、1件のみ返る
+        assert len(prs) == 1
+        assert len(mock_responses.calls) == 1
+
 
 class TestCreatePullRequest:
     def test_create(self, mock_responses, bitbucket_adapter):
