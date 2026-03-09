@@ -361,3 +361,31 @@
 - **`repo view` の設計判断**: `[R3-04]` で指摘した `repo view` の非対称バリデーションについて、設計として「owner を省略して現在の設定リポジトリを参照する」という意図がある可能性がある。設計意図を明確にし、ドキュメント化が必要。
 
 - **統合テストの不足**: 現在のテストスイートは各コマンドのモックベース単体テストが中心であり、実際の CLI 引数パース → ハンドラ → アダプター → HTTP の一気通貫テストが不足している。特に今回発見した重大度「重大」の 6 件（R3-01 〜 R3-06）はテスト追加を次スプリントの優先事項とすることを推奨する。
+
+---
+
+## 修正記録 (2026-03-09)
+
+全 20 件（R3-08・R3-09 はスキップ）を修正完了。
+
+| ID | 修正コミット | 変更ファイル |
+|----|------------|------------|
+| R3-05 | fix: R3-05 全アダプター _to_* メソッドに KeyError/TypeError ラッピングを追加 | adapter/github.py, gitlab.py, bitbucket.py, azure_devops.py, backlog.py, gitea.py, exceptions.py |
+| R3-06 | fix: R3-06 TOML パースエラーを ConfigError に変換 | auth.py, config.py |
+| R3-01 | fix: R3-01 --limit 引数に正数バリデーションを追加 | cli.py |
+| R3-11 | fix: R3-11 空トークンの保存・使用を防止 | auth.py |
+| R3-02/03/13 | fix: R3-02/03/13 issue/milestone/pr create で空タイトルを拒否 | commands/issue.py, milestone.py, pr.py |
+| R3-07 | fix: R3-07 paginate_page_param の X-Next-Page 非整数値で ValueError 防止 | http.py |
+| R3-08 | スキップ（R1-13 で修正済み） | — |
+| R3-04 | fix: R3-04 repo view の owner/repo 形式バリデーションを handle_clone と統一 | commands/repo.py |
+| R3-10 | fix: R3-10 auth login でホスト検出失敗時に --host オプションを案内 | commands/auth_cmd.py |
+| R3-15 | fix: R3-15 init 対話モードで空の service_type/host を拒否 | commands/init.py |
+| R3-09 | スキップ（R2-23 で修正済み） | — |
+| R3-16 | fix: R3-16 init --non-interactive でリモート URL 検出失敗時のエラーを改善 | commands/init.py |
+| R3-12 | fix: R3-12 paginate_top_skip/paginate_response_body の非 dict レスポンス対応 | http.py |
+| R3-14 | fix: R3-14 Link ヘッダーの rel="Next" 大文字小文字非感知マッチ | http.py |
+| R3-17 | fix: R3-17/18/19/20 (一括) release create で空タグを拒否 | commands/release.py |
+| R3-18 | fix: R3-17/18/19/20 (一括) label create で # 自動除去 + hex バリデーション | commands/label.py |
+| R3-19/20 | fix: R3-17/18/19/20 (一括) init --non-interactive でサービス種別の早期バリデーション | commands/init.py |
+| R3-21 | fix: R3-21/22 (一括) APPDATA に .strip() 追加 | config.py |
+| R3-22 | fix: R3-21/22 (一括) os.getlogin() 失敗時の警告追加 | auth.py |
