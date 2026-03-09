@@ -153,7 +153,7 @@ class TestFormatJson:
 
         result = format_json([WithNone("test", None)])
         parsed = json.loads(result)
-        item = parsed[0] if isinstance(parsed, list) else parsed
+        item = parsed[0]
         assert item["value"] is None
 
     def test_none_field_shown_as_empty_in_table(self):
