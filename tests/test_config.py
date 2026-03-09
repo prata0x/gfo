@@ -74,6 +74,18 @@ def test_load_user_config_no_file(tmp_path):
         assert load_user_config() == {}
 
 
+def test_load_user_config_permission_error(tmp_path):
+    """PermissionError が ConfigError に変換される。"""
+    config_file = tmp_path / "config.toml"
+    config_file.write_text("")
+    with (
+        patch("gfo.config.get_config_path", return_value=config_file),
+        patch("builtins.open", side_effect=PermissionError("Permission denied")),
+    ):
+        with pytest.raises(ConfigError, match="Permission denied"):
+            load_user_config()
+
+
 def test_load_user_config_valid(tmp_path):
     config_file = tmp_path / "config.toml"
     config_file.write_text(
@@ -399,6 +411,32 @@ def test_resolve_git_config_does_not_call_detect_service():
     ):
         resolve_project_config()
     mock_detect.assert_not_called()
+
+
+def test_resolve_only_shost_in_git_config():
+    """git config に host のみある場合 → detect_service() が呼ばれ stype が補完される。"""
+    from gfo.detect import DetectResult
+
+    detect_result = DetectResult(
+        service_type="github", host="github.com", owner="user", repo="repo"
+    )
+    git_cfg = {
+        "gfo.type": None,
+        "gfo.host": "github.com",
+        "gfo.api-url": None,
+        "gfo.organization": None,
+        "gfo.project-key": None,
+    }
+    with (
+        patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
+        patch(
+            "gfo.detect.detect_service", return_value=detect_result
+        ) as mock_detect,
+    ):
+        cfg = resolve_project_config()
+    mock_detect.assert_called_once()
+    assert cfg.host == "github.com"
+    assert cfg.service_type == "github"
 
 
 def test_resolve_only_stype_in_git_config():
