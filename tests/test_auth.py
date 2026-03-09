@@ -73,6 +73,20 @@ def test_resolve_token_credentials_takes_priority(tmp_path, monkeypatch):
 # ── save_token ──
 
 
+def test_save_token_empty_raises_auth_error(tmp_path, monkeypatch):
+    """空のトークンを渡すと AuthError を送出する。"""
+    config_dir = tmp_path / "config"
+    monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
+    monkeypatch.setattr(
+        "gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml"
+    )
+    with pytest.raises(AuthError, match="Token must not be empty"):
+        save_token("github.com", "")
+
+    with pytest.raises(AuthError, match="Token must not be empty"):
+        save_token("github.com", "   ")
+
+
 def test_save_token_new_file(tmp_path, monkeypatch):
     """新規ファイル作成。"""
     config_dir = tmp_path / "config"
