@@ -5,6 +5,7 @@ from __future__ import annotations
 from urllib.parse import quote
 
 from .base import (
+    GitHubLikeAdapter,
     GitServiceAdapter,
     Issue,
     Label,
@@ -14,114 +15,15 @@ from .base import (
     Repository,
 )
 from .registry import register
-from gfo.exceptions import GfoError
 from gfo.http import paginate_link_header
 
 
 @register("gitea")
-class GiteaAdapter(GitServiceAdapter):
+class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     service_name = "Gitea"
 
     def _repos_path(self) -> str:
         return f"/repos/{quote(self._owner, safe='')}/{quote(self._repo, safe='')}"
-
-    # --- 変換ヘルパー ---
-
-    @staticmethod
-    def _to_pull_request(data: dict) -> PullRequest:
-        try:
-            merged = data.get("merged_at") is not None
-            if data["state"] == "closed" and merged:
-                state = "merged"
-            else:
-                state = data["state"]
-
-            return PullRequest(
-                number=data["number"],
-                title=data["title"],
-                body=data.get("body"),
-                state=state,
-                author=data["user"]["login"],
-                source_branch=data["head"]["ref"],
-                target_branch=data["base"]["ref"],
-                draft=data.get("draft", False),
-                url=data["html_url"],
-                created_at=data["created_at"],
-                updated_at=data.get("updated_at"),
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
-
-    @staticmethod
-    def _to_issue(data: dict) -> Issue:
-        try:
-            return Issue(
-                number=data["number"],
-                title=data["title"],
-                body=data.get("body"),
-                state=data["state"],
-                author=data["user"]["login"],
-                assignees=[a["login"] for a in data.get("assignees", [])],
-                labels=[lb["name"] for lb in data.get("labels", [])],
-                url=data["html_url"],
-                created_at=data["created_at"],
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
-
-    @staticmethod
-    def _to_repository(data: dict) -> Repository:
-        try:
-            return Repository(
-                name=data["name"],
-                full_name=data["full_name"],
-                description=data.get("description"),
-                private=data["private"],
-                default_branch=data.get("default_branch"),
-                clone_url=data["clone_url"],
-                url=data["html_url"],
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
-
-    @staticmethod
-    def _to_release(data: dict) -> Release:
-        try:
-            return Release(
-                tag=data["tag_name"],
-                title=data.get("name") or "",
-                body=data.get("body"),
-                draft=data.get("draft", False),
-                prerelease=data.get("prerelease", False),
-                url=data["html_url"],
-                created_at=data["created_at"],
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
-
-    @staticmethod
-    def _to_label(data: dict) -> Label:
-        try:
-            return Label(
-                name=data["name"],
-                color=data.get("color"),
-                description=data.get("description"),
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
-
-    @staticmethod
-    def _to_milestone(data: dict) -> Milestone:
-        try:
-            return Milestone(
-                number=data["number"],
-                title=data["title"],
-                description=data.get("description"),
-                state=data["state"],
-                due_date=data.get("due_on"),
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- PR ---
 
