@@ -38,8 +38,9 @@ def resolve_token(host: str, service_type: str) -> str:
     """
     # 1. credentials.toml
     tokens = load_tokens()
-    if tokens.get(host):
-        return tokens[host]
+    token_val = tokens.get(host, "")
+    if token_val and token_val.strip():
+        return token_val
 
     # 2. サービス別環境変数
     env_var = _SERVICE_ENV_MAP.get(service_type)

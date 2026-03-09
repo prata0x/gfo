@@ -228,7 +228,8 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
             # Gogs は version のみ持ち、go_version/forgejo を持たない
             if "version" in data and "go-version" not in data and "go_version" not in data and "forgejo" not in data:
                 return "gogs"
-    except requests.RequestException:
+    except (requests.RequestException, ValueError):
+        # ValueError: resp.json() が非 JSON レスポンスを受け取った場合
         pass
 
     # 2. GitLab (v4)

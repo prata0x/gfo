@@ -279,3 +279,34 @@ class TestHandleView:
 
         out = capsys.readouterr().out
         assert "test-repo" in out
+
+    def test_invalid_repo_format_raises_config_error(self, sample_config, mock_adapter):
+        args = make_args(repo="noslash")
+        with _patch_all(sample_config, mock_adapter):
+            with pytest.raises(ConfigError):
+                repo_cmd.handle_view(args, fmt="table")
+
+    def test_empty_owner_raises_config_error(self, sample_config, mock_adapter):
+        args = make_args(repo="/name")
+        with _patch_all(sample_config, mock_adapter):
+            with pytest.raises(ConfigError):
+                repo_cmd.handle_view(args, fmt="table")
+
+
+class TestParseRepoArg:
+    def test_valid_format(self):
+        owner, name = repo_cmd._parse_repo_arg("owner/repo")
+        assert owner == "owner"
+        assert name == "repo"
+
+    def test_no_slash_raises(self):
+        with pytest.raises(ConfigError):
+            repo_cmd._parse_repo_arg("noslash")
+
+    def test_empty_owner_raises(self):
+        with pytest.raises(ConfigError):
+            repo_cmd._parse_repo_arg("/repo")
+
+    def test_empty_name_raises(self):
+        with pytest.raises(ConfigError):
+            repo_cmd._parse_repo_arg("owner/")

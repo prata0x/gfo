@@ -86,19 +86,20 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     output(repo, fmt=fmt)
 
 
+def _parse_repo_arg(repo_arg: str) -> tuple[str, str]:
+    """'owner/name' 形式の文字列をパースして (owner, name) を返す。"""
+    parts = repo_arg.split("/", 1)
+    if len(parts) != 2 or not parts[0] or not parts[1]:
+        raise ConfigError(
+            f"Invalid repo format '{repo_arg}'. Expected 'owner/name' with non-empty owner and name."
+        )
+    return parts[0], parts[1]
+
+
 def handle_clone(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo repo clone のハンドラ。"""
     host, service_type = _resolve_host_without_repo(getattr(args, "host", None))
-
-    repo_arg: str = args.repo
-    parts = repo_arg.split("/", 1)
-    if len(parts) == 2:
-        owner, name = parts
-    else:
-        raise ConfigError(
-            f"Invalid repo format '{repo_arg}'. Expected 'owner/name'."
-        )
-
+    owner, name = _parse_repo_arg(args.repo)
     url = build_clone_url(service_type, host, owner, name)
     git_clone(url)
 
@@ -109,17 +110,7 @@ def handle_view(args: argparse.Namespace, *, fmt: str) -> None:
 
     repo_arg = getattr(args, "repo", None)
     if repo_arg:
-        parts = repo_arg.split("/", 1)
-        if len(parts) == 2:
-            owner, name = parts
-        else:
-            raise ConfigError(
-                f"Invalid repo format '{repo_arg}'. Expected 'owner/name'."
-            )
-        if not owner or not name:
-            raise ConfigError(
-                f"Invalid repo format '{repo_arg}'. Both owner and name must be non-empty."
-            )
+        owner, name = _parse_repo_arg(repo_arg)
     else:
         owner, name = None, None
 

@@ -93,7 +93,7 @@ def get_hosts_config() -> dict[str, str]:
     hosts = cfg.get("hosts", {})
     result: dict[str, str] = {}
     for host_name, host_cfg in hosts.items():
-        if isinstance(host_cfg, dict) and "type" in host_cfg:
+        if isinstance(host_cfg, dict) and isinstance(host_cfg.get("type"), str):
             result[host_name] = host_cfg["type"]
     return result
 
