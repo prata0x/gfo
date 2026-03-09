@@ -453,6 +453,23 @@ class TestListLabels:
         labels = gitea_adapter.list_labels()
         assert len(labels) == 2
 
+    def test_list_fetches_all_pages(self, mock_responses, gitea_adapter):
+        """list_labels は limit=0 で全ページを取得する（30 件上限なし）。"""
+        page2_url = f"{REPOS}/labels?limit=50&page=2"
+        mock_responses.add(
+            responses.GET, f"{REPOS}/labels",
+            json=[_label_data(name=f"label-{i}") for i in range(50)],
+            headers={"Link": f'<{page2_url}>; rel="next"'},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET, page2_url,
+            json=[_label_data(name="last-label")],
+            status=200,
+        )
+        labels = gitea_adapter.list_labels()
+        assert len(labels) == 51
+
 
 class TestCreateLabel:
     def test_create(self, mock_responses, gitea_adapter):
@@ -486,6 +503,23 @@ class TestListMilestones:
         milestones = gitea_adapter.list_milestones()
         assert len(milestones) == 1
         assert milestones[0].title == "v1.0"
+
+    def test_list_fetches_all_pages(self, mock_responses, gitea_adapter):
+        """list_milestones は limit=0 で全ページを取得する（30 件上限なし）。"""
+        page2_url = f"{REPOS}/milestones?limit=50&page=2"
+        mock_responses.add(
+            responses.GET, f"{REPOS}/milestones",
+            json=[_milestone_data() for _ in range(50)],
+            headers={"Link": f'<{page2_url}>; rel="next"'},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET, page2_url,
+            json=[_milestone_data()],
+            status=200,
+        )
+        milestones = gitea_adapter.list_milestones()
+        assert len(milestones) == 51
 
 
 class TestCreateMilestone:

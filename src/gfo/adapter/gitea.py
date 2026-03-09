@@ -154,7 +154,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def list_labels(self) -> list[Label]:
         results = paginate_link_header(
-            self._client, f"{self._repos_path()}/labels", per_page_key="limit",
+            self._client, f"{self._repos_path()}/labels", per_page_key="limit", limit=0,
         )
         return [self._to_label(r) for r in results]
 
@@ -172,7 +172,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def list_milestones(self) -> list[Milestone]:
         results = paginate_link_header(
-            self._client, f"{self._repos_path()}/milestones", per_page_key="limit",
+            self._client, f"{self._repos_path()}/milestones", per_page_key="limit", limit=0,
         )
         return [self._to_milestone(r) for r in results]
 

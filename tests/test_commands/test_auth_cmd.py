@@ -96,8 +96,8 @@ class TestHandleLogin_ErrorCases:
         captured = capsys.readouterr()
         assert captured.err == ""
 
-    def test_empty_token_from_getpass_saved(self):
-        """getpass が空文字を返した場合、空トークンで save_token が呼ばれる。"""
+    def test_empty_token_delegates_to_save_token(self):
+        """handle_login はトークン検証を save_token に委譲する（空文字チェックは save_token 側）。"""
         args = make_args(host="github.com", token=None)
 
         with patch("gfo.commands.auth_cmd.gfo.auth.save_token") as mock_save, \

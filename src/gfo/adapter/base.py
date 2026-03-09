@@ -32,6 +32,7 @@ class Issue:
     labels: list[str]
     url: str
     created_at: str
+    updated_at: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -20,7 +20,7 @@ class GogsAdapter(GiteaAdapter):
     def _web_url(self) -> str:
         """Web UI のベース URL を構築する。"""
         parsed = urllib.parse.urlparse(self._client.base_url)
-        return f"{parsed.scheme}://{parsed.hostname}" + (f":{parsed.port}" if parsed.port else "")
+        return f"{parsed.scheme}://{parsed.hostname}" + (f":{parsed.port}" if parsed.port is not None else "")
 
     # --- PR（非サポート）---
 
