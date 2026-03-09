@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import argparse
 
-from gfo.adapter.registry import create_adapter, create_http_client, get_adapter_class
+from gfo.adapter.registry import create_http_client, get_adapter_class
 from gfo.auth import resolve_token
+from gfo.commands import get_adapter
 from gfo.config import (
     build_clone_url,
     build_default_api_url,
     get_default_host,
     get_host_config,
-    resolve_project_config,
 )
 from gfo.detect import detect_service, get_known_service_type, probe_unknown_host
 from gfo.exceptions import ConfigError, DetectionError
@@ -21,8 +21,7 @@ from gfo.output import output
 
 def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo repo list のハンドラ。"""
-    config = resolve_project_config()
-    adapter = create_adapter(config)
+    adapter = get_adapter()
     repos = adapter.list_repositories(limit=args.limit)
     output(repos, fmt=fmt, fields=["name", "full_name", "private", "description"])
 
@@ -106,8 +105,7 @@ def handle_clone(args: argparse.Namespace, *, fmt: str) -> None:
 
 def handle_view(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo repo view のハンドラ。"""
-    config = resolve_project_config()
-    adapter = create_adapter(config)
+    adapter = get_adapter()
 
     repo_arg = getattr(args, "repo", None)
     if repo_arg:

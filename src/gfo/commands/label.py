@@ -5,16 +5,14 @@ from __future__ import annotations
 import argparse
 import re
 
-from gfo.adapter.registry import create_adapter
-from gfo.config import resolve_project_config
+from gfo.commands import get_adapter
 from gfo.exceptions import ConfigError
 from gfo.output import output
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo label list のハンドラ。"""
-    config = resolve_project_config()
-    adapter = create_adapter(config)
+    adapter = get_adapter()
     labels = adapter.list_labels()
     output(labels, fmt=fmt, fields=["name", "color", "description"])
 
@@ -28,8 +26,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
             raise ConfigError(
                 f"Invalid color '{args.color}'. Expected 6-digit hex color (e.g. ff0000)."
             )
-    config = resolve_project_config()
-    adapter = create_adapter(config)
+    adapter = get_adapter()
     label = adapter.create_label(
         name=args.name,
         color=color,

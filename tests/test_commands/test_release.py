@@ -32,8 +32,7 @@ def _make_adapter(sample_release: Release) -> MagicMock:
 
 @contextlib.contextmanager
 def _patch_all(config, adapter: MagicMock):
-    with patch("gfo.commands.release.resolve_project_config", return_value=config), \
-         patch("gfo.commands.release.create_adapter", return_value=adapter):
+    with patch("gfo.commands.release.get_adapter", return_value=adapter):
         yield
 
 

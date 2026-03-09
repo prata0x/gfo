@@ -28,8 +28,7 @@ def _patch_all(sample_config, mock_adapter):
 
     @contextlib.contextmanager
     def _ctx():
-        with patch("gfo.commands.pr.resolve_project_config", return_value=sample_config), \
-             patch("gfo.commands.pr.create_adapter", return_value=mock_adapter):
+        with patch("gfo.commands.pr.get_adapter", return_value=mock_adapter):
             yield
 
     return _ctx()
@@ -210,7 +209,7 @@ def test_pr_list_config_error(capsys):
     """resolve_project_config が ConfigError を投げた場合に CLI で exit code 1 になる。"""
     from gfo.cli import main
 
-    with patch("gfo.commands.pr.resolve_project_config",
+    with patch("gfo.commands.pr.get_adapter",
                side_effect=ConfigError("not configured")):
         result = main(["pr", "list"])
 

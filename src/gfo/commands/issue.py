@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 
 from gfo.adapter.registry import create_adapter
+from gfo.commands import get_adapter
 from gfo.config import resolve_project_config
 from gfo.exceptions import ConfigError
 from gfo.output import output
@@ -12,8 +13,7 @@ from gfo.output import output
 
 def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo issue list のハンドラ。"""
-    config = resolve_project_config()
-    adapter = create_adapter(config)
+    adapter = get_adapter()
     issues = adapter.list_issues(
         state=args.state,
         assignee=args.assignee,
@@ -49,14 +49,12 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
 
 def handle_view(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo issue view <number> のハンドラ。"""
-    config = resolve_project_config()
-    adapter = create_adapter(config)
+    adapter = get_adapter()
     issue = adapter.get_issue(args.number)
     output(issue, fmt=fmt)
 
 
 def handle_close(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo issue close <number> のハンドラ。"""
-    config = resolve_project_config()
-    adapter = create_adapter(config)
+    adapter = get_adapter()
     adapter.close_issue(args.number)

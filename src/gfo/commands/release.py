@@ -4,16 +4,14 @@ from __future__ import annotations
 
 import argparse
 
-from gfo.adapter.registry import create_adapter
-from gfo.config import resolve_project_config
+from gfo.commands import get_adapter
 from gfo.exceptions import ConfigError
 from gfo.output import output
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo release list のハンドラ。"""
-    config = resolve_project_config()
-    adapter = create_adapter(config)
+    adapter = get_adapter()
     releases = adapter.list_releases(limit=args.limit)
     output(releases, fmt=fmt, fields=["tag", "title", "draft", "prerelease"])
 
@@ -22,8 +20,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo release create のハンドラ。"""
     if not args.tag or not args.tag.strip():
         raise ConfigError("tag must not be empty.")
-    config = resolve_project_config()
-    adapter = create_adapter(config)
+    adapter = get_adapter()
     title = args.title or args.tag
     release = adapter.create_release(
         tag=args.tag,

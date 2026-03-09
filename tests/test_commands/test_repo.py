@@ -40,8 +40,7 @@ def _patch_all(sample_config, mock_adapter):
 
     @contextlib.contextmanager
     def _ctx():
-        with patch("gfo.commands.repo.resolve_project_config", return_value=sample_config), \
-             patch("gfo.commands.repo.create_adapter", return_value=mock_adapter):
+        with patch("gfo.commands.repo.get_adapter", return_value=mock_adapter):
             yield
 
     return _ctx()
