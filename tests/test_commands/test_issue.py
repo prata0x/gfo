@@ -96,6 +96,16 @@ class TestHandleList:
         else:
             assert data["title"] == "Test Issue"
 
+    def test_plain_format(self, capsys):
+        args = make_args(state="open", assignee=None, label=None, limit=30)
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_list(args, fmt="plain")
+
+        out = capsys.readouterr().out
+        assert "\t" in out
+        assert "NUMBER" not in out
+        assert "Test Issue" in out
+
 
 class TestHandleCreate:
     def setup_method(self):

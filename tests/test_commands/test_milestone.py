@@ -104,6 +104,16 @@ class TestHandleList:
         assert "state" in item
         assert "number" in item
 
+    def test_plain_format(self, sample_config, capsys):
+        args = make_args()
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_list(args, fmt="plain")
+
+        out = capsys.readouterr().out
+        assert "\t" in out
+        assert "NUMBER" not in out
+        assert "v1.0" in out
+
 
 class TestHandleCreate:
     def setup_method(self):

@@ -102,6 +102,16 @@ class TestHandleList:
         assert "color" in item
         assert "description" in item
 
+    def test_plain_format(self, sample_config, capsys):
+        args = make_args()
+        with _patch_all(sample_config, self.adapter):
+            label_cmd.handle_list(args, fmt="plain")
+
+        out = capsys.readouterr().out
+        assert "\t" in out
+        assert "NAME" not in out
+        assert "bug" in out
+
 
 class TestHandleCreate:
     def setup_method(self):

@@ -349,6 +349,79 @@ def test_resolve_azure_devops():
         assert cfg.api_url == "https://dev.azure.com/myorg/myproj/_apis"
 
 
+def test_resolve_git_config_does_not_call_detect_service():
+    """git config に type/host があれば detect_service は呼ばれない。"""
+    git_cfg = {
+        "gfo.type": "github",
+        "gfo.host": "github.com",
+        "gfo.api-url": None,
+        "gfo.organization": None,
+        "gfo.project-key": None,
+    }
+    with (
+        patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
+        patch(
+            "gfo.git_util.get_remote_url",
+            return_value="https://github.com/owner/repo.git",
+        ),
+        patch("gfo.detect.detect_service") as mock_detect,
+    ):
+        resolve_project_config()
+    mock_detect.assert_not_called()
+
+
+def test_resolve_only_stype_in_git_config():
+    """git config に type のみある場合 → detect_service() が呼ばれる。"""
+    from gfo.detect import DetectResult
+
+    detect_result = DetectResult(
+        service_type="github", host="github.com", owner="user", repo="repo"
+    )
+    git_cfg = {
+        "gfo.type": "github",
+        "gfo.host": None,
+        "gfo.api-url": None,
+        "gfo.organization": None,
+        "gfo.project-key": None,
+    }
+    with (
+        patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
+        patch(
+            "gfo.detect.detect_service", return_value=detect_result
+        ) as mock_detect,
+    ):
+        cfg = resolve_project_config()
+    mock_detect.assert_called_once()
+    assert cfg.service_type == "github"
+
+
+def test_resolve_git_config_org_override():
+    """git config の gfo.organization が detect 結果を上書きする。"""
+    from gfo.detect import DetectResult
+
+    detect_result = DetectResult(
+        service_type="azure-devops",
+        host="dev.azure.com",
+        owner="org",
+        repo="repo",
+        organization="original-org",
+        project="proj",
+    )
+    git_cfg = {
+        "gfo.type": None,
+        "gfo.host": None,
+        "gfo.api-url": None,
+        "gfo.organization": "override-org",
+        "gfo.project-key": None,
+    }
+    with (
+        patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
+        patch("gfo.detect.detect_service", return_value=detect_result),
+    ):
+        cfg = resolve_project_config()
+    assert cfg.organization == "override-org"
+
+
 # ── save_project_config ──
 
 

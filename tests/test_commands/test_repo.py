@@ -63,6 +63,16 @@ class TestHandleList:
         out = capsys.readouterr().out
         assert "test-repo" in out
 
+    def test_plain_format(self, sample_config, mock_adapter, capsys):
+        args = make_args(limit=30)
+        with _patch_all(sample_config, mock_adapter):
+            repo_cmd.handle_list(args, fmt="plain")
+
+        out = capsys.readouterr().out
+        assert "\t" in out
+        assert "NAME" not in out
+        assert "test-repo" in out
+
 
 class TestResolveHostWithoutRepo:
     def test_uses_args_host_when_provided(self):

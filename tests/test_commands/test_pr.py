@@ -65,6 +65,16 @@ class TestHandleList:
         else:
             assert data["title"] == "Test PR"
 
+    def test_plain_format(self, sample_config, mock_adapter, capsys):
+        args = make_args(state="open", limit=30)
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_list(args, fmt="plain")
+
+        out = capsys.readouterr().out
+        assert "\t" in out
+        assert "NUMBER" not in out
+        assert "Test PR" in out
+
 
 class TestHandleCreate:
     def test_uses_provided_args(self, sample_config, mock_adapter, capsys):

@@ -58,6 +58,16 @@ class TestHandleList:
         assert "v1.0.0" in out
         assert "Version 1.0.0" in out
 
+    def test_plain_format(self, sample_config, capsys):
+        args = make_args(limit=30)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_list(args, fmt="plain")
+
+        out = capsys.readouterr().out
+        assert "\t" in out
+        assert "TAG" not in out
+        assert "v1.0.0" in out
+
     def test_json_format(self, sample_config, capsys):
         args = make_args(limit=10)
         with _patch_all(sample_config, self.adapter):

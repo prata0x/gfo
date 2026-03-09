@@ -246,6 +246,42 @@ class TestRateLimit:
         with pytest.raises(RateLimitError):
             c.get("/x")
 
+    @responses.activate
+    def test_429_retry_then_connection_error(self, monkeypatch):
+        import requests as req
+
+        monkeypatch.setattr("gfo.http.time.sleep", lambda _: None)
+        responses.add(
+            responses.GET,
+            f"{BASE}/x",
+            status=429,
+            headers={"Retry-After": "1"},
+        )
+        responses.add(
+            responses.GET,
+            f"{BASE}/x",
+            body=req.ConnectionError("disconnected"),
+        )
+        c = HttpClient(BASE)
+        with pytest.raises(NetworkError):
+            c.get("/x")
+
+    @responses.activate
+    def test_429_retry_then_timeout(self, monkeypatch):
+        from requests.exceptions import ReadTimeout
+
+        monkeypatch.setattr("gfo.http.time.sleep", lambda _: None)
+        responses.add(
+            responses.GET,
+            f"{BASE}/x",
+            status=429,
+            headers={"Retry-After": "1"},
+        )
+        responses.add(responses.GET, f"{BASE}/x", body=ReadTimeout("timeout"))
+        c = HttpClient(BASE)
+        with pytest.raises(NetworkError):
+            c.get("/x")
+
 
 # ── _mask_api_key ──
 
