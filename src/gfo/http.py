@@ -93,7 +93,7 @@ class HttpClient:
             except gfo.exceptions.RateLimitError:
                 if attempt >= self._max_retries:
                     raise
-                wait = int(resp.headers.get("Retry-After", 60))
+                wait = self._parse_retry_after(resp.headers.get("Retry-After"))
                 time.sleep(wait)
 
         return resp  # unreachable; ループは必ず return か raise で終了する
@@ -139,7 +139,7 @@ class HttpClient:
             except gfo.exceptions.RateLimitError:
                 if attempt >= self._max_retries:
                     raise
-                wait = int(resp.headers.get("Retry-After", 60))
+                wait = self._parse_retry_after(resp.headers.get("Retry-After"))
                 time.sleep(wait)
 
         return resp  # unreachable; ループは必ず return か raise で終了する
@@ -157,11 +157,25 @@ class HttpClient:
         if code == 429:
             retry_after = response.headers.get("Retry-After")
             raise gfo.exceptions.RateLimitError(
-                int(retry_after) if retry_after else None, url
+                self._parse_retry_after(retry_after) if retry_after else None, url
             )
         if 500 <= code < 600:
             raise gfo.exceptions.ServerError(code, url)
         raise gfo.exceptions.HttpError(code, response.text, url)
+
+    @staticmethod
+    def _parse_retry_after(value: str | None, default: int = 60) -> int:
+        """Retry-After ヘッダー値を秒数に変換する。
+
+        RFC 7231 では秒数整数と HTTP 日時形式の両方を許容しているため、
+        int() 変換が失敗した場合（日時形式等）は default 秒を返す。
+        """
+        if value is None:
+            return default
+        try:
+            return int(value)
+        except ValueError:
+            return default
 
     @staticmethod
     def _mask_api_key(url: str) -> str:
