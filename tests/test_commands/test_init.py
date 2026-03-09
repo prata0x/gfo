@@ -167,6 +167,50 @@ class TestHandleInteractive:
             with pytest.raises(ConfigError, match="host cannot be empty"):
                 init_cmd.handle(args, fmt="table")
 
+    def test_detect_success_none_service_type_prompts_for_type(self):
+        """detect_result.service_type が None のとき service_type の入力を促す（line 99）。"""
+        from gfo.detect import DetectResult
+        detect_result = DetectResult(
+            service_type=None,
+            host="github.com",
+            owner="owner",
+            repo="repo",
+        )
+        args = make_args(non_interactive=False)
+        # 入力: [Y/n] 確認 → service_type (line 99)
+        inputs = iter(["y", "github"])
+
+        with patch("gfo.commands.init.detect_service", return_value=detect_result), \
+             patch("gfo.commands.init.save_project_config") as mock_save, \
+             patch("builtins.input", side_effect=inputs):
+            init_cmd.handle(args, fmt="table")
+
+        mock_save.assert_called_once()
+        saved: ProjectConfig = mock_save.call_args[0][0]
+        assert saved.service_type == "github"
+
+    def test_detect_success_azure_devops_second_build_url_fails(self):
+        """Azure DevOps で 2 回目の build_default_api_url も失敗 → ConfigError（lines 120-121）。"""
+        from gfo.detect import DetectResult
+        detect_result = DetectResult(
+            service_type="azure-devops",
+            host="dev.azure.com",
+            owner="",
+            repo="test-repo",
+            organization=None,
+            project=None,
+        )
+        args = make_args(non_interactive=False)
+        # 入力: [Y/n] 確認 → organization → project_key
+        inputs = iter(["y", "my-org", "my-project"])
+
+        with patch("gfo.commands.init.detect_service", return_value=detect_result), \
+             patch("gfo.commands.init.build_default_api_url",
+                   side_effect=ConfigError("cannot build URL")), \
+             patch("builtins.input", side_effect=inputs):
+            with pytest.raises(ConfigError, match="Could not build API URL"):
+                init_cmd.handle(args, fmt="table")
+
     def test_detect_failure_manual_uses_default_api_url(self):
         """検出失敗 → 手動入力で api_url 空白 → デフォルト URL が使われる。"""
         args = make_args(non_interactive=False)

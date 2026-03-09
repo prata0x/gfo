@@ -419,6 +419,24 @@ class TestListIssues:
         qs = parse_qs(urlparse(mock_responses.calls[0].request.url).query)
         assert qs.get("$top") == ["20000"]
 
+    def test_batch_limit_guard_breaks_early(self, mock_responses, azure_devops_adapter):
+        """バッチ処理中に limit に達したら 2 回目のバッチを処理しない（早期 break）。"""
+        # 201 個の ID を返す → バッチが [0:200] と [200:201] の 2 回に分かれる
+        mock_responses.add(
+            responses.POST, f"{WIT}/wiql",
+            json={"workItems": [{"id": i} for i in range(1, 202)]}, status=200,
+        )
+        # 最初のバッチ (200 件) を処理
+        mock_responses.add(
+            responses.GET, f"{WIT}/workitems",
+            json={"value": [_issue_data(id=i) for i in range(1, 201)]}, status=200,
+        )
+        # limit=200: 1 回目のバッチ後に len(results)=200 >= 200 となるので break
+        issues = azure_devops_adapter.list_issues(limit=200)
+        assert len(issues) == 200
+        # WIQL + workitems 1 回のみ（2 回目のバッチは呼ばれない）
+        assert len(mock_responses.calls) == 2
+
 
 class TestCreateIssue:
     def test_create(self, mock_responses, azure_devops_adapter):
