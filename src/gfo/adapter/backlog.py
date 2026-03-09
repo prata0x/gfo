@@ -53,63 +53,72 @@ class BacklogAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_pull_request(data: dict, merged_status_id: int | None = None) -> PullRequest:
-        status_id = data.get("status", {}).get("id", 1)
-        if status_id == 4:
-            state = "closed"
-        elif merged_status_id is not None and status_id == merged_status_id:
-            state = "merged"
-        elif merged_status_id is None and status_id == 5:
-            state = "merged"
-        else:
-            state = "open"
+        try:
+            status_id = data.get("status", {}).get("id", 1)
+            if status_id == 4:
+                state = "closed"
+            elif merged_status_id is not None and status_id == merged_status_id:
+                state = "merged"
+            elif merged_status_id is None and status_id == 5:
+                state = "merged"
+            else:
+                state = "open"
 
-        created_user = data.get("createdUser", {})
-        return PullRequest(
-            number=data["number"],
-            title=data["summary"],
-            body=data.get("description"),
-            state=state,
-            author=created_user.get("userId", ""),
-            source_branch=data.get("branch", ""),
-            target_branch=data.get("base", ""),
-            draft=False,
-            url=data.get("url", ""),
-            created_at=data.get("created", ""),
-            updated_at=data.get("updated"),
-        )
+            created_user = data.get("createdUser", {})
+            return PullRequest(
+                number=data["number"],
+                title=data["summary"],
+                body=data.get("description"),
+                state=state,
+                author=created_user.get("userId", ""),
+                source_branch=data.get("branch", ""),
+                target_branch=data.get("base", ""),
+                draft=False,
+                url=data.get("url", ""),
+                created_at=data.get("created", ""),
+                updated_at=data.get("updated"),
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod
     def _to_issue(data: dict) -> Issue:
-        status_id = data.get("status", {}).get("id", 1)
-        state = "closed" if status_id == 4 else "open"
+        try:
+            status_id = data.get("status", {}).get("id", 1)
+            state = "closed" if status_id == 4 else "open"
 
-        created_user = data.get("createdUser", {})
-        assignee = data.get("assignee")
-        assignees = [assignee["userId"]] if assignee else []
+            created_user = data.get("createdUser", {})
+            assignee = data.get("assignee")
+            assignees = [assignee["userId"]] if assignee else []
 
-        return Issue(
-            number=int(data["issueKey"].split("-")[-1]) if isinstance(data.get("issueKey"), str) else data["id"],
-            title=data["summary"],
-            body=data.get("description"),
-            state=state,
-            author=created_user.get("userId", ""),
-            assignees=assignees,
-            labels=[],
-            url=data.get("url", ""),
-            created_at=data.get("created", ""),
-        )
+            return Issue(
+                number=int(data["issueKey"].split("-")[-1]) if isinstance(data.get("issueKey"), str) else data["id"],
+                title=data["summary"],
+                body=data.get("description"),
+                state=state,
+                author=created_user.get("userId", ""),
+                assignees=assignees,
+                labels=[],
+                url=data.get("url", ""),
+                created_at=data.get("created", ""),
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod
     def _to_repository(data: dict) -> Repository:
-        return Repository(
-            name=data["name"],
-            full_name=data.get("displayName", data["name"]),
-            description=data.get("description"),
-            private=True,
-            default_branch=None,
-            clone_url=data.get("httpUrl", ""),
-            url=data.get("httpUrl", ""),
-        )
+        try:
+            return Repository(
+                name=data["name"],
+                full_name=data.get("displayName", data["name"]),
+                description=data.get("description"),
+                private=True,
+                default_branch=None,
+                clone_url=data.get("httpUrl", ""),
+                url=data.get("httpUrl", ""),
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- PR ---
 

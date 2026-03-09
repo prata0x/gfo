@@ -29,11 +29,14 @@ class ConfigError(GfoError):
 
 class AuthError(GfoError):
     """認証情報の解決失敗。"""
-    def __init__(self, host: str):
-        super().__init__(
-            f"No token found for {host}. "
-            f"Run 'gfo auth login --host {host}' to configure."
-        )
+    def __init__(self, host: str, message: str | None = None):
+        if message:
+            super().__init__(message)
+        else:
+            super().__init__(
+                f"No token found for {host}. "
+                f"Run 'gfo auth login --host {host}' to configure."
+            )
 
 
 class HttpError(GfoError):

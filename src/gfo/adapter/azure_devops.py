@@ -12,7 +12,7 @@ from .base import (
     Repository,
 )
 from .registry import register
-from gfo.exceptions import NotSupportedError
+from gfo.exceptions import GfoError, NotSupportedError
 from gfo.http import paginate_top_skip
 
 import json as _json
@@ -55,54 +55,63 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_pull_request(data: dict) -> PullRequest:
-        return PullRequest(
-            number=data["pullRequestId"],
-            title=data["title"],
-            body=data.get("description"),
-            state=_PR_STATE_FROM_API.get(data["status"], "open"),
-            author=data["createdBy"]["uniqueName"],
-            source_branch=_strip_refs_prefix(data["sourceRefName"]),
-            target_branch=_strip_refs_prefix(data["targetRefName"]),
-            draft=data.get("isDraft", False),
-            url=data.get("url", ""),
-            created_at=data["creationDate"],
-            updated_at=data.get("closedDate"),
-        )
+        try:
+            return PullRequest(
+                number=data["pullRequestId"],
+                title=data["title"],
+                body=data.get("description"),
+                state=_PR_STATE_FROM_API.get(data["status"], "open"),
+                author=data["createdBy"]["uniqueName"],
+                source_branch=_strip_refs_prefix(data["sourceRefName"]),
+                target_branch=_strip_refs_prefix(data["targetRefName"]),
+                draft=data.get("isDraft", False),
+                url=data.get("url", ""),
+                created_at=data["creationDate"],
+                updated_at=data.get("closedDate"),
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod
     def _to_issue(data: dict) -> Issue:
-        fields = data["fields"]
-        raw_state = fields.get("System.State", "")
-        state = "closed" if raw_state in _CLOSED_STATES else "open"
+        try:
+            fields = data["fields"]
+            raw_state = fields.get("System.State", "")
+            state = "closed" if raw_state in _CLOSED_STATES else "open"
 
-        assigned_to = fields.get("System.AssignedTo")
-        assignees = [assigned_to["uniqueName"]] if assigned_to else []
+            assigned_to = fields.get("System.AssignedTo")
+            assignees = [assigned_to["uniqueName"]] if assigned_to else []
 
-        raw_tags = fields.get("System.Tags", "")
-        labels = [t.strip() for t in raw_tags.split(";") if t.strip()] if raw_tags else []
+            raw_tags = fields.get("System.Tags", "")
+            labels = [t.strip() for t in raw_tags.split(";") if t.strip()] if raw_tags else []
 
-        return Issue(
-            number=data["id"],
-            title=fields["System.Title"],
-            body=fields.get("System.Description"),
-            state=state,
-            author=fields.get("System.CreatedBy", {}).get("uniqueName", ""),
-            assignees=assignees,
-            labels=labels,
-            url=data.get("url", ""),
-            created_at=fields.get("System.CreatedDate", ""),
-        )
+            return Issue(
+                number=data["id"],
+                title=fields["System.Title"],
+                body=fields.get("System.Description"),
+                state=state,
+                author=fields.get("System.CreatedBy", {}).get("uniqueName", ""),
+                assignees=assignees,
+                labels=labels,
+                url=data.get("url", ""),
+                created_at=fields.get("System.CreatedDate", ""),
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     def _to_repository(self, data: dict) -> Repository:
-        return Repository(
-            name=data["name"],
-            full_name=f"{self._project}/{data['name']}",
-            description=data.get("project", {}).get("description"),
-            private=True,
-            default_branch=_strip_refs_prefix(data.get("defaultBranch", "")),
-            clone_url=data.get("remoteUrl", ""),
-            url=data.get("webUrl", ""),
-        )
+        try:
+            return Repository(
+                name=data["name"],
+                full_name=f"{self._project}/{data['name']}",
+                description=data.get("project", {}).get("description"),
+                private=True,
+                default_branch=_strip_refs_prefix(data.get("defaultBranch", "")),
+                clone_url=data.get("remoteUrl", ""),
+                url=data.get("webUrl", ""),
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- PR ---
 

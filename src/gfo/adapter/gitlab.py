@@ -14,6 +14,7 @@ from .base import (
     Repository,
 )
 from .registry import register
+from gfo.exceptions import GfoError
 from gfo.http import paginate_page_param
 
 
@@ -28,85 +29,103 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_pull_request(data: dict) -> PullRequest:
-        state_map = {"opened": "open", "closed": "closed", "merged": "merged", "locked": "closed"}
-        state = state_map.get(data["state"], data["state"])
+        try:
+            state_map = {"opened": "open", "closed": "closed", "merged": "merged", "locked": "closed"}
+            state = state_map.get(data["state"], data["state"])
 
-        return PullRequest(
-            number=data["iid"],
-            title=data["title"],
-            body=data.get("description"),
-            state=state,
-            author=data["author"]["username"],
-            source_branch=data["source_branch"],
-            target_branch=data["target_branch"],
-            draft=data.get("draft", False),
-            url=data["web_url"],
-            created_at=data["created_at"],
-            updated_at=data.get("updated_at"),
-        )
+            return PullRequest(
+                number=data["iid"],
+                title=data["title"],
+                body=data.get("description"),
+                state=state,
+                author=data["author"]["username"],
+                source_branch=data["source_branch"],
+                target_branch=data["target_branch"],
+                draft=data.get("draft", False),
+                url=data["web_url"],
+                created_at=data["created_at"],
+                updated_at=data.get("updated_at"),
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod
     def _to_issue(data: dict) -> Issue:
-        state = data["state"]
-        if state == "opened":
-            state = "open"
+        try:
+            state = data["state"]
+            if state == "opened":
+                state = "open"
 
-        return Issue(
-            number=data["iid"],
-            title=data["title"],
-            body=data.get("description"),
-            state=state,
-            author=data["author"]["username"],
-            assignees=[a["username"] for a in data.get("assignees", [])],
-            labels=data.get("labels", []),
-            url=data["web_url"],
-            created_at=data["created_at"],
-        )
+            return Issue(
+                number=data["iid"],
+                title=data["title"],
+                body=data.get("description"),
+                state=state,
+                author=data["author"]["username"],
+                assignees=[a["username"] for a in data.get("assignees", [])],
+                labels=data.get("labels", []),
+                url=data["web_url"],
+                created_at=data["created_at"],
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod
     def _to_repository(data: dict) -> Repository:
-        return Repository(
-            name=data["name"],
-            full_name=data["path_with_namespace"],
-            description=data.get("description"),
-            private=data.get("visibility") == "private",
-            default_branch=data.get("default_branch"),
-            clone_url=data["http_url_to_repo"],
-            url=data["web_url"],
-        )
+        try:
+            return Repository(
+                name=data["name"],
+                full_name=data["path_with_namespace"],
+                description=data.get("description"),
+                private=data.get("visibility") == "private",
+                default_branch=data.get("default_branch"),
+                clone_url=data["http_url_to_repo"],
+                url=data["web_url"],
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod
     def _to_release(data: dict) -> Release:
-        return Release(
-            tag=data["tag_name"],
-            title=data.get("name") or "",
-            body=data.get("description"),
-            draft=False,
-            prerelease=data.get("upcoming_release", False),
-            url=data["_links"]["self"] if "_links" in data else data.get("web_url", ""),
-            created_at=data["created_at"],
-        )
+        try:
+            return Release(
+                tag=data["tag_name"],
+                title=data.get("name") or "",
+                body=data.get("description"),
+                draft=False,
+                prerelease=data.get("upcoming_release", False),
+                url=data["_links"]["self"] if "_links" in data else data.get("web_url", ""),
+                created_at=data["created_at"],
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod
     def _to_label(data: dict) -> Label:
-        color = data.get("color")
-        if color and color.startswith("#"):
-            color = color[1:]
-        return Label(
-            name=data["name"],
-            color=color,
-            description=data.get("description"),
-        )
+        try:
+            color = data.get("color")
+            if color and color.startswith("#"):
+                color = color[1:]
+            return Label(
+                name=data["name"],
+                color=color,
+                description=data.get("description"),
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod
     def _to_milestone(data: dict) -> Milestone:
-        return Milestone(
-            number=data["iid"],
-            title=data["title"],
-            description=data.get("description"),
-            state=data["state"],
-            due_date=data.get("due_date"),
-        )
+        try:
+            return Milestone(
+                number=data["iid"],
+                title=data["title"],
+                description=data.get("description"),
+                state=data["state"],
+                due_date=data.get("due_date"),
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- PR (Merge Request) ---
 
