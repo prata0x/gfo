@@ -14,6 +14,11 @@ from gfo.detect import DetectResult, detect_from_url, detect_service
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 from gfo.git_util import get_remote_url
 
+_VALID_SERVICE_TYPES = frozenset({
+    "github", "gitlab", "bitbucket", "azure-devops",
+    "gitea", "forgejo", "gogs", "gitbucket", "backlog",
+})
+
 
 def handle(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo init のハンドラ。"""
@@ -30,6 +35,11 @@ def _handle_non_interactive(args: argparse.Namespace) -> None:
 
     if not service_type:
         raise ConfigError("--type is required in non-interactive mode.")
+    if service_type not in _VALID_SERVICE_TYPES:
+        valid = ", ".join(sorted(_VALID_SERVICE_TYPES))
+        raise ConfigError(
+            f"Unknown service type '{service_type}'. Valid values: {valid}"
+        )
     if not host:
         raise ConfigError("--host is required in non-interactive mode.")
 

@@ -115,7 +115,7 @@ class TestHandleCreate:
 
         self.adapter.create_label.assert_called_once_with(
             name="bug",
-            color="#d73a4a",
+            color="d73a4a",
             description="Something isn't working",
         )
 
@@ -164,5 +164,5 @@ class TestHandleCreate:
 
         call_kwargs = self.adapter.create_label.call_args.kwargs
         assert call_kwargs["name"] == "wontfix"
-        assert call_kwargs["color"] == "#ffffff"
+        assert call_kwargs["color"] == "ffffff"
         assert call_kwargs["description"] == "Will not fix"
