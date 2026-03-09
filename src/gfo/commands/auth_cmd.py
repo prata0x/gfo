@@ -47,9 +47,9 @@ def handle_status(args: argparse.Namespace, *, fmt: str) -> None:
         "status": max(len(e["status"]) for e in entries),
         "source": max(len(e["source"]) for e in entries),
     }
-    col_widths["host"] = max(col_widths["host"], 4)
-    col_widths["status"] = max(col_widths["status"], 6)
-    col_widths["source"] = max(col_widths["source"], 6)
+    col_widths["host"] = min(max(col_widths["host"], 4), 50)
+    col_widths["status"] = min(max(col_widths["status"], 6), 20)
+    col_widths["source"] = min(max(col_widths["source"], 6), 40)
 
     header = (
         f"{'HOST':<{col_widths['host']}}  "

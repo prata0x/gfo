@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
@@ -325,6 +326,8 @@ class TestListIssues:
         assert len(issues) == 2
         wiql_body = json.loads(mock_responses.calls[0].request.body)
         assert "NOT IN ('Closed', 'Done', 'Removed')" in wiql_body["query"]
+        qs = parse_qs(urlparse(mock_responses.calls[0].request.url).query)
+        assert qs.get("$top") == ["30"]  # デフォルト limit=30 が $top に渡されることを確認
 
     def test_closed(self, mock_responses, azure_devops_adapter):
         mock_responses.add(
