@@ -9,6 +9,7 @@ import pytest
 
 from gfo.config import (
     ProjectConfig,
+    build_clone_url,
     build_default_api_url,
     get_config_dir,
     get_config_path,
@@ -83,6 +84,15 @@ def test_load_user_config_permission_error(tmp_path):
         patch("builtins.open", side_effect=PermissionError("Permission denied")),
     ):
         with pytest.raises(ConfigError, match="Failed to read config file"):
+            load_user_config()
+
+
+def test_load_user_config_toml_decode_error(tmp_path):
+    """不正な TOML → ConfigError（TOMLDecodeError）。"""
+    config_file = tmp_path / "config.toml"
+    config_file.write_text("invalid toml [[[\n")
+    with patch("gfo.config.get_config_path", return_value=config_file):
+        with pytest.raises(ConfigError, match="Failed to parse config file"):
             load_user_config()
 
 
@@ -252,6 +262,51 @@ def test_build_backlog():
 def test_build_unknown_service():
     with pytest.raises(ConfigError, match="Unknown service type"):
         build_default_api_url("unknown", "example.com")
+
+
+# ── build_clone_url ──
+
+
+def test_build_clone_url_github():
+    url = build_clone_url("github", "github.com", "owner", "repo")
+    assert url == "https://github.com/owner/repo.git"
+
+
+def test_build_clone_url_bitbucket():
+    url = build_clone_url("bitbucket", "bitbucket.org", "owner", "repo")
+    assert url == "https://bitbucket.org/owner/repo.git"
+
+
+def test_build_clone_url_azure_devops():
+    url = build_clone_url("azure-devops", "dev.azure.com", "myorg", "repo")
+    assert url == "https://dev.azure.com/myorg/myorg/_git/repo"
+
+
+def test_build_clone_url_gitlab():
+    url = build_clone_url("gitlab", "gitlab.com", "owner", "repo")
+    assert url == "https://gitlab.com/owner/repo.git"
+
+
+def test_build_clone_url_gitbucket():
+    url = build_clone_url("gitbucket", "gb.local", "owner", "repo")
+    assert url == "https://gb.local/git/owner/repo.git"
+
+
+def test_build_clone_url_backlog():
+    url = build_clone_url("backlog", "space.backlog.com", "owner", "repo")
+    assert url == "https://space.backlog.com/git/owner/repo.git"
+
+
+def test_build_clone_url_unknown_service_default():
+    """未知のサービスはデフォルトの HTTPS URL を返す。"""
+    url = build_clone_url("unknown-svc", "example.com", "owner", "repo")
+    assert url == "https://example.com/owner/repo.git"
+
+
+def test_build_clone_url_empty_owner_raises():
+    """owner が空のとき ConfigError。"""
+    with pytest.raises(ConfigError, match="owner and name must be non-empty"):
+        build_clone_url("github", "github.com", "", "repo")
 
 
 # ── resolve_project_config ──
@@ -552,6 +607,54 @@ def test_resolve_remote_url_failure_falls_back_to_git_config_owner_repo():
         cfg = resolve_project_config()
     assert cfg.owner == "ci-owner"
     assert cfg.repo == "ci-repo"
+
+
+def test_resolve_raises_when_no_host():
+    """gfo.host が未設定かつ detect_service も host を返さない → ConfigError。"""
+    from gfo.detect import DetectResult
+    git_cfg = {
+        "gfo.type": None,
+        "gfo.host": None,
+        "gfo.api-url": None,
+        "gfo.owner": None,
+        "gfo.repo": None,
+        "gfo.organization": None,
+        "gfo.project-key": None,
+    }
+    detect_result = DetectResult(
+        service_type="github",
+        host="",  # 空文字 = falsy
+        owner="owner",
+        repo="repo",
+    )
+    with (
+        patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
+        patch("gfo.detect.detect_service", return_value=detect_result),
+    ):
+        with pytest.raises(ConfigError, match="Could not resolve host"):
+            resolve_project_config()
+
+
+def test_resolve_project_key_git_config_override():
+    """gfo.project-key の git config が project_key を上書きする。"""
+    git_cfg = {
+        "gfo.type": "backlog",
+        "gfo.host": "space.backlog.com",
+        "gfo.api-url": None,
+        "gfo.owner": None,
+        "gfo.repo": None,
+        "gfo.organization": None,
+        "gfo.project-key": "MY-PROJECT",
+    }
+    with (
+        patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
+        patch(
+            "gfo.git_util.get_remote_url",
+            return_value="https://space.backlog.com/git/owner/repo.git",
+        ),
+    ):
+        cfg = resolve_project_config()
+    assert cfg.project_key == "MY-PROJECT"
 
 
 def test_resolve_owner_repo_git_config_override():
