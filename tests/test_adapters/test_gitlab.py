@@ -11,6 +11,7 @@ import responses
 from gfo.adapter.base import Issue, Label, Milestone, PullRequest, Release, Repository
 from gfo.adapter.gitlab import GitLabAdapter
 from gfo.adapter.registry import get_adapter_class
+from gfo.exceptions import AuthenticationError, NotFoundError, ServerError
 
 
 BASE = "https://gitlab.com/api/v4"
@@ -481,3 +482,22 @@ class TestCreateMilestone:
 class TestRegistry:
     def test_registered(self):
         assert get_adapter_class("gitlab") is GitLabAdapter
+
+
+class TestErrorHandling:
+    """HTTP エラーが適切な例外に変換されることを確認する。"""
+
+    def test_not_found_raises_error(self, mock_responses, gitlab_adapter):
+        mock_responses.add(responses.GET, f"{PROJECT}/issues/999", status=404)
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.get_issue(999)
+
+    def test_401_raises_auth_error(self, mock_responses, gitlab_adapter):
+        mock_responses.add(responses.GET, f"{PROJECT}/merge_requests", status=401)
+        with pytest.raises(AuthenticationError):
+            gitlab_adapter.list_pull_requests()
+
+    def test_500_raises_server_error(self, mock_responses, gitlab_adapter):
+        mock_responses.add(responses.GET, f"{PROJECT}/issues", status=500)
+        with pytest.raises(ServerError):
+            gitlab_adapter.list_issues()

@@ -222,6 +222,35 @@ class TestHandleClone:
 
         mock_clone.assert_called_once_with("https://gitea.example.com/owner/myrepo.git")
 
+    def test_azure_devops_url(self):
+        args = make_args(host="dev.azure.com", repo="myorg/myrepo")
+        with patch("gfo.commands.repo._resolve_host_without_repo",
+                   return_value=("dev.azure.com", "azure-devops")), \
+             patch("gfo.commands.repo.git_clone") as mock_clone:
+            repo_cmd.handle_clone(args, fmt="table")
+
+        mock_clone.assert_called_once_with(
+            "https://dev.azure.com/myorg/myorg/_git/myrepo"
+        )
+
+    def test_forgejo_url(self):
+        args = make_args(host="codeberg.org", repo="owner/myrepo")
+        with patch("gfo.commands.repo._resolve_host_without_repo",
+                   return_value=("codeberg.org", "forgejo")), \
+             patch("gfo.commands.repo.git_clone") as mock_clone:
+            repo_cmd.handle_clone(args, fmt="table")
+
+        mock_clone.assert_called_once_with("https://codeberg.org/owner/myrepo.git")
+
+    def test_gogs_url(self):
+        args = make_args(host="gogs.local", repo="owner/myrepo")
+        with patch("gfo.commands.repo._resolve_host_without_repo",
+                   return_value=("gogs.local", "gogs")), \
+             patch("gfo.commands.repo.git_clone") as mock_clone:
+            repo_cmd.handle_clone(args, fmt="table")
+
+        mock_clone.assert_called_once_with("https://gogs.local/owner/myrepo.git")
+
     def test_invalid_repo_format_raises_config_error(self):
         args = make_args(host="github.com", repo="invalidformat")
         with patch("gfo.commands.repo._resolve_host_without_repo", return_value=("github.com", "github")):

@@ -367,6 +367,23 @@ class TestPaginateLinkHeader:
         assert len(result) == 4
         assert call_count["n"] == 2
 
+    @responses.activate
+    def test_second_page_connection_error(self):
+        import json as json_mod
+        import requests as req_lib
+
+        next_url = f"{BASE}/items?page=2"
+
+        def callback(request):
+            headers = {"Link": f'<{next_url}>; rel="next"'}
+            return (200, headers, json_mod.dumps([{"id": 1}]))
+
+        responses.add_callback(responses.GET, f"{BASE}/items", callback=callback)
+        responses.add(responses.GET, next_url, body=req_lib.ConnectionError("refused"))
+        c = HttpClient(BASE)
+        with pytest.raises(NetworkError):
+            paginate_link_header(c, "/items", limit=10)
+
 
 # ── paginate_page_param ──
 

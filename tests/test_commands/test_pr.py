@@ -8,6 +8,7 @@ import pytest
 
 from gfo.adapter.base import PullRequest
 from gfo.commands import pr as pr_cmd
+from gfo.exceptions import ConfigError, NotFoundError
 from tests.test_commands.conftest import make_args
 
 
@@ -186,3 +187,32 @@ class TestHandleCheckout:
         mock_adapter.get_pr_checkout_refspec.assert_called_once()
         mock_fetch.assert_called_once_with("origin", "refs/pull/1/head")
         mock_checkout.assert_called_once_with("feature/test")
+
+    def test_checkout_pr_not_found_raises(self, sample_config, mock_adapter):
+        mock_adapter.get_pull_request.side_effect = NotFoundError("/pulls/999")
+        args = make_args(number=999)
+        with _patch_all(sample_config, mock_adapter):
+            with pytest.raises(NotFoundError):
+                pr_cmd.handle_checkout(args, fmt="table")
+
+    def test_checkout_git_fetch_failure(self, sample_config, mock_adapter):
+        import subprocess
+
+        args = make_args(number=1)
+        with _patch_all(sample_config, mock_adapter), \
+             patch("gfo.commands.pr.gfo.git_util.git_fetch",
+                   side_effect=subprocess.CalledProcessError(1, "git")):
+            with pytest.raises(subprocess.CalledProcessError):
+                pr_cmd.handle_checkout(args, fmt="table")
+
+
+def test_pr_list_config_error(capsys):
+    """resolve_project_config が ConfigError を投げた場合に CLI で exit code 1 になる。"""
+    from gfo.cli import main
+
+    with patch("gfo.commands.pr.resolve_project_config",
+               side_effect=ConfigError("not configured")):
+        result = main(["pr", "list"])
+
+    assert result == 1
+    assert "not configured" in capsys.readouterr().err

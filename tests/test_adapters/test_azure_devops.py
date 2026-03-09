@@ -14,7 +14,7 @@ from gfo.adapter.azure_devops import (
     _strip_refs_prefix,
 )
 from gfo.adapter.registry import get_adapter_class
-from gfo.exceptions import NotSupportedError
+from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError, ServerError
 
 
 BASE = "https://dev.azure.com/test-org/test-project/_apis"
@@ -510,3 +510,24 @@ class TestRefsPrefix:
 class TestRegistry:
     def test_registered(self):
         assert get_adapter_class("azure-devops") is AzureDevOpsAdapter
+
+
+class TestErrorHandling:
+    """HTTP エラーが適切な例外に変換されることを確認する。"""
+
+    def test_not_found_raises_error(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(responses.GET, f"{GIT}/pullrequests/999", status=404)
+        with pytest.raises(NotFoundError):
+            azure_devops_adapter.get_pull_request(999)
+
+    def test_401_raises_auth_error(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(responses.GET, f"{GIT}/pullrequests", status=401)
+        with pytest.raises(AuthenticationError):
+            azure_devops_adapter.list_pull_requests()
+
+    def test_500_raises_server_error(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(responses.POST, f"{GIT}/pullrequests", status=500)
+        with pytest.raises(ServerError):
+            azure_devops_adapter.create_pull_request(
+                title="PR", body="", base="main", head="feature"
+            )

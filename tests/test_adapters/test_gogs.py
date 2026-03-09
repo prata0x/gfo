@@ -105,6 +105,29 @@ class TestWebUrl:
 
 
 class TestInheritedOperations:
+    def test_create_issue(self, mock_responses, gogs_adapter):
+        mock_responses.add(
+            responses.POST, f"{REPOS}/issues",
+            json=_issue_data(), status=201,
+        )
+        issue = gogs_adapter.create_issue(title="Test", body="body")
+        assert issue.number == 1
+
+    def test_close_issue(self, mock_responses, gogs_adapter):
+        mock_responses.add(
+            responses.PATCH, f"{REPOS}/issues/1",
+            json=_issue_data(state="closed"), status=200,
+        )
+        gogs_adapter.close_issue(1)
+
+    def test_get_issue(self, mock_responses, gogs_adapter):
+        mock_responses.add(
+            responses.GET, f"{REPOS}/issues/1",
+            json=_issue_data(), status=200,
+        )
+        issue = gogs_adapter.get_issue(1)
+        assert issue.number == 1
+
     def test_list_issues(self, mock_responses, gogs_adapter):
         mock_responses.add(
             responses.GET, f"{REPOS}/issues",

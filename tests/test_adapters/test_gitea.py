@@ -10,6 +10,7 @@ import responses
 from gfo.adapter.base import Issue, Label, Milestone, PullRequest, Release, Repository
 from gfo.adapter.gitea import GiteaAdapter
 from gfo.adapter.registry import get_adapter_class
+from gfo.exceptions import AuthenticationError, NotFoundError, ServerError
 
 
 BASE = "https://gitea.example.com/api/v1"
@@ -514,3 +515,22 @@ class TestCreateMilestone:
 class TestRegistry:
     def test_registered(self):
         assert get_adapter_class("gitea") is GiteaAdapter
+
+
+class TestErrorHandling:
+    """HTTP エラーが適切な例外に変換されることを確認する。"""
+
+    def test_not_found_raises_error(self, mock_responses, gitea_adapter):
+        mock_responses.add(responses.GET, f"{REPOS}/issues/999", status=404)
+        with pytest.raises(NotFoundError):
+            gitea_adapter.get_issue(999)
+
+    def test_401_raises_auth_error(self, mock_responses, gitea_adapter):
+        mock_responses.add(responses.GET, f"{REPOS}/pulls", status=401)
+        with pytest.raises(AuthenticationError):
+            gitea_adapter.list_pull_requests()
+
+    def test_500_raises_server_error(self, mock_responses, gitea_adapter):
+        mock_responses.add(responses.GET, f"{REPOS}/issues", status=500)
+        with pytest.raises(ServerError):
+            gitea_adapter.list_issues()

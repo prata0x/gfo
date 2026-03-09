@@ -10,7 +10,7 @@ import responses
 from gfo.adapter.base import Issue, PullRequest, Repository
 from gfo.adapter.bitbucket import BitbucketAdapter
 from gfo.adapter.registry import get_adapter_class
-from gfo.exceptions import NotSupportedError
+from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError, ServerError
 
 
 BASE = "https://api.bitbucket.org/2.0"
@@ -368,3 +368,22 @@ class TestNotSupported:
 class TestRegistry:
     def test_registered(self):
         assert get_adapter_class("bitbucket") is BitbucketAdapter
+
+
+class TestErrorHandling:
+    """HTTP エラーが適切な例外に変換されることを確認する。"""
+
+    def test_not_found_raises_error(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(responses.GET, f"{REPOS}/pullrequests/999", status=404)
+        with pytest.raises(NotFoundError):
+            bitbucket_adapter.get_pull_request(999)
+
+    def test_401_raises_auth_error(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(responses.GET, f"{REPOS}/pullrequests", status=401)
+        with pytest.raises(AuthenticationError):
+            bitbucket_adapter.list_pull_requests()
+
+    def test_500_raises_server_error(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(responses.GET, f"{REPOS}/issues", status=500)
+        with pytest.raises(ServerError):
+            bitbucket_adapter.list_issues()

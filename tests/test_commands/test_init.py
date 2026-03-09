@@ -94,6 +94,22 @@ class TestHandleInteractive:
         assert saved.service_type == "github"
         assert saved.host == "github.com"
 
+    def test_detect_failure_manual_no_remote_url(self):
+        """手動入力時に get_remote_url が失敗 → owner/repo は空文字。"""
+        args = make_args(non_interactive=False)
+        inputs = iter(["github", "github.com", "", ""])
+
+        with patch("gfo.commands.init.detect_service", side_effect=DetectionError()), \
+             patch("gfo.commands.init.get_remote_url",
+                   side_effect=Exception("not a git repo")), \
+             patch("gfo.commands.init.save_project_config") as mock_save, \
+             patch("builtins.input", side_effect=inputs):
+            init_cmd.handle(args, fmt="table")
+
+        saved = mock_save.call_args[0][0]
+        assert saved.owner == ""
+        assert saved.repo == ""
+
     def test_detect_failure_manual_uses_default_api_url(self):
         """検出失敗 → 手動入力で api_url 空白 → デフォルト URL が使われる。"""
         args = make_args(non_interactive=False)
