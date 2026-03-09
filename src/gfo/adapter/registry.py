@@ -61,16 +61,16 @@ def create_adapter(config: ProjectConfig) -> GitServiceAdapter:
     import gfo.auth
 
     token = gfo.auth.resolve_token(config.host, config.service_type)
-    stype = config.service_type
+    service_type = config.service_type
 
     kwargs: dict = {}
 
-    if stype == "backlog":
+    if service_type == "backlog":
         kwargs["project_key"] = config.project_key
-    elif stype == "azure-devops":
+    elif service_type == "azure-devops":
         kwargs["organization"] = config.organization
         kwargs["project_key"] = config.project_key
 
-    client = create_http_client(stype, config.api_url, token)
-    adapter_cls = get_adapter_class(stype)
+    client = create_http_client(service_type, config.api_url, token)
+    adapter_cls = get_adapter_class(service_type)
     return adapter_cls(client, config.owner, config.repo, **kwargs)

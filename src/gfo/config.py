@@ -111,12 +111,12 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
     import gfo.detect
     import gfo.git_util
 
-    # 1-2. git config から service_type / host を取得
-    stype = gfo.git_util.git_config_get("gfo.type", cwd=cwd)
-    shost = gfo.git_util.git_config_get("gfo.host", cwd=cwd)
+    # 1-2. git config から service_type / host を取得（saved_type / saved_host: git config 保存値）
+    saved_type = gfo.git_util.git_config_get("gfo.type", cwd=cwd)
+    saved_host = gfo.git_util.git_config_get("gfo.host", cwd=cwd)
 
     # 3. いずれも未設定なら detect_service() で自動検出
-    if stype and shost:
+    if saved_type and saved_host:
         # remote URL が存在しない環境でも失敗しないよう任意解析にする
         try:
             remote_url = gfo.git_util.get_remote_url(cwd=cwd)
@@ -132,16 +132,16 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
             project_key = None
     else:
         detect_result = gfo.detect.detect_service(cwd=cwd)
-        stype = stype or detect_result.service_type
-        shost = shost or detect_result.host
+        saved_type = saved_type or detect_result.service_type
+        saved_host = saved_host or detect_result.host
         owner = detect_result.owner
         repo = detect_result.repo
         organization = detect_result.organization
         project_key = detect_result.project
 
-    if not stype:
+    if not saved_type:
         raise ConfigError("Could not resolve service type.")
-    if not shost:
+    if not saved_host:
         raise ConfigError("Could not resolve host.")
 
     # git config から organization / project_key を上書き
@@ -155,15 +155,15 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
     # 4. api_url の解決
     api_url = gfo.git_util.git_config_get("gfo.api-url", cwd=cwd)
     if not api_url:
-        host_cfg = get_host_config(shost)
+        host_cfg = get_host_config(saved_host)
         if host_cfg and "api_url" in host_cfg:
             api_url = host_cfg["api_url"]
     if not api_url:
-        api_url = build_default_api_url(stype, shost, organization, project_key)
+        api_url = build_default_api_url(saved_type, saved_host, organization, project_key)
 
     return ProjectConfig(
-        service_type=stype,
-        host=shost,
+        service_type=saved_type,
+        host=saved_host,
         api_url=api_url,
         owner=owner,
         repo=repo,

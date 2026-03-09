@@ -252,21 +252,21 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
 
 def detect_service(cwd: str | None = None) -> DetectResult:
     """完全な検出フローを実行する。"""
-    # 1. git config ショートカット
-    stype = git_config_get("gfo.type", cwd=cwd)
-    shost = git_config_get("gfo.host", cwd=cwd)
-    if stype and shost:
+    # 1. git config ショートカット（saved_type / saved_host: git config に保存済みの値）
+    saved_type = git_config_get("gfo.type", cwd=cwd)
+    saved_host = git_config_get("gfo.host", cwd=cwd)
+    if saved_type and saved_host:
         remote_url = get_remote_url(cwd=cwd)
         result = detect_from_url(remote_url)
         # URL パース結果と git config 設定が食い違う場合に警告
-        if result.service_type is not None and result.service_type != stype:
+        if result.service_type is not None and result.service_type != saved_type:
             print(
-                f"warning: gfo.type={stype!r} but URL suggests {result.service_type!r}; "
+                f"warning: gfo.type={saved_type!r} but URL suggests {result.service_type!r}; "
                 "using git config value.",
                 file=sys.stderr,
             )
         # service_type と host を git config の値で統一する
-        result = dataclasses.replace(result, service_type=stype, host=shost)
+        result = dataclasses.replace(result, service_type=saved_type, host=saved_host)
         return result
 
     # 2. URL パース
