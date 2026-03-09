@@ -509,6 +509,21 @@ class TestPaginateLinkHeader:
         result = paginate_link_header(c, "/items", limit=10)
         assert result == []
 
+    @responses.activate
+    def test_cross_origin_next_link_stops_pagination(self):
+        """Link ヘッダーの next URL が異なるオリジンの場合はページネーションを停止する。"""
+        import json as json_mod
+        cross_origin_url = "https://evil.com/items?page=2"
+
+        def callback(request):
+            headers = {"Link": f'<{cross_origin_url}>; rel="next"'}
+            return (200, headers, json_mod.dumps([{"id": 1}]))
+
+        responses.add_callback(responses.GET, f"{BASE}/items", callback=callback)
+        c = HttpClient(BASE)
+        result = paginate_link_header(c, "/items", limit=10)
+        assert result == [{"id": 1}]
+
 
 # ── paginate_page_param ──
 
@@ -577,6 +592,18 @@ class TestPaginatePageParam:
         paginate_page_param(c, "/items", per_page=20, limit=2)
         assert "per_page=2" in responses.calls[0].request.url
 
+    @responses.activate
+    def test_next_page_header_non_integer_stops_pagination(self):
+        """X-Next-Page が整数でない場合はページネーションを停止する。"""
+        responses.add(
+            responses.GET, f"{BASE}/items",
+            json=[{"id": 1}],
+            headers={"X-Next-Page": "invalid"},
+        )
+        c = HttpClient(BASE)
+        result = paginate_page_param(c, "/items", limit=10)
+        assert result == [{"id": 1}]
+
 
 # ── paginate_response_body ──
 
@@ -633,6 +660,40 @@ class TestPaginateResponseBody:
         c = HttpClient(BASE)
         result = paginate_response_body(c, "/items", limit=0)
         assert len(result) == 4
+
+    @responses.activate
+    def test_non_dict_body_stops_pagination(self):
+        """レスポンスボディが dict でない場合はページネーションを停止する。"""
+        responses.add(responses.GET, f"{BASE}/items", json=[1, 2, 3])
+        c = HttpClient(BASE)
+        result = paginate_response_body(c, "/items", limit=10)
+        assert result == []
+
+    @responses.activate
+    def test_limit_truncates_results(self):
+        """結果が limit を超える場合に切り詰められる。"""
+        next_url = f"{BASE}/items?page=2"
+        responses.add(
+            responses.GET,
+            f"{BASE}/items",
+            json={"values": [{"id": 1}, {"id": 2}, {"id": 3}], "next": next_url},
+        )
+        c = HttpClient(BASE)
+        result = paginate_response_body(c, "/items", limit=2)
+        assert len(result) == 2
+
+    @responses.activate
+    def test_cross_origin_next_url_stops_pagination(self):
+        """next URL が異なるオリジンの場合はページネーションを停止する。"""
+        cross_origin_url = "https://evil.com/items?page=2"
+        responses.add(
+            responses.GET,
+            f"{BASE}/items",
+            json={"values": [{"id": 1}], "next": cross_origin_url},
+        )
+        c = HttpClient(BASE)
+        result = paginate_response_body(c, "/items", limit=10)
+        assert result == [{"id": 1}]
 
 
 # ── paginate_offset ──
@@ -712,6 +773,14 @@ class TestPaginateTopSkip:
     @responses.activate
     def test_empty(self):
         responses.add(responses.GET, f"{BASE}/items", json={"value": []})
+        c = HttpClient(BASE)
+        result = paginate_top_skip(c, "/items", top=30, limit=10)
+        assert result == []
+
+    @responses.activate
+    def test_non_dict_body_stops_pagination(self):
+        """レスポンスボディが dict でない場合はページネーションを停止する。"""
+        responses.add(responses.GET, f"{BASE}/items", json=[1, 2, 3])
         c = HttpClient(BASE)
         result = paginate_top_skip(c, "/items", top=30, limit=10)
         assert result == []

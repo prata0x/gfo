@@ -476,3 +476,12 @@ class TestDetectServiceHostsConfig:
         with patch("gfo.config.get_hosts_config", return_value={"git.example.com": "forgejo"}):
             r = detect_service()
         assert r.service_type == "forgejo"
+
+    @patch("gfo.detect.probe_unknown_host", return_value=None)
+    @patch("gfo.detect.get_remote_url", return_value="https://git.example.com/owner/repo.git")
+    @patch("gfo.detect.git_config_get", return_value=None)
+    def test_hosts_config_attribute_error_ignored(self, mock_config, mock_remote, mock_probe):
+        """hosts config の取得で AttributeError が発生しても DetectionError になる（握りつぶし確認）。"""
+        with patch("gfo.config.get_hosts_config", side_effect=AttributeError("no attr")):
+            with pytest.raises(DetectionError):
+                detect_service()
