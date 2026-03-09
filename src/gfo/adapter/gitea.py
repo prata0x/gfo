@@ -51,7 +51,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return self._to_pull_request(resp.json())
 
     def merge_pull_request(self, number: int, *, method: str = "merge") -> None:
-        self._client.put(
+        self._client.post(
             f"{self._repos_path()}/pulls/{number}/merge",
             json={"merge_method": method},
         )

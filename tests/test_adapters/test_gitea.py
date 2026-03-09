@@ -230,17 +230,19 @@ class TestGetPullRequest:
 
 class TestMergePullRequest:
     def test_merge(self, mock_responses, gitea_adapter):
+        """merge_pull_request は POST .../merge エンドポイントを使用する（R35修正確認）。"""
         mock_responses.add(
-            responses.PUT, f"{REPOS}/pulls/1/merge",
+            responses.POST, f"{REPOS}/pulls/1/merge",
             json={"merged": True}, status=200,
         )
         gitea_adapter.merge_pull_request(1)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["merge_method"] == "merge"
+        assert mock_responses.calls[0].request.method == "POST"
 
     def test_merge_squash(self, mock_responses, gitea_adapter):
         mock_responses.add(
-            responses.PUT, f"{REPOS}/pulls/1/merge",
+            responses.POST, f"{REPOS}/pulls/1/merge",
             json={"merged": True}, status=200,
         )
         gitea_adapter.merge_pull_request(1, method="squash")

@@ -218,13 +218,15 @@ class TestGetPullRequest:
 
 class TestMergePullRequest:
     def test_merge(self, mock_responses, forgejo_adapter):
+        """merge_pull_request は POST .../merge エンドポイントを使用する（R35修正確認）。"""
         mock_responses.add(
-            responses.PUT, f"{REPOS}/pulls/1/merge",
+            responses.POST, f"{REPOS}/pulls/1/merge",
             json={"merged": True}, status=200,
         )
         forgejo_adapter.merge_pull_request(1)
         req_body = json_mod.loads(mock_responses.calls[0].request.body)
         assert req_body["merge_method"] == "merge"
+        assert mock_responses.calls[0].request.method == "POST"
 
 
 class TestClosePullRequest:
