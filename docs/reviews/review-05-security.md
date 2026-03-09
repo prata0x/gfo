@@ -293,6 +293,27 @@
 
 ---
 
+## 修正記録（2026-03-09）
+
+| ID | 対応 | コミット | 備考 |
+|----|------|---------|------|
+| R4-01 | ✅ 修正済み | `6495c67` | `_wiql_escape()` ヘルパー追加、`self._project` / `assignee` / `label` に適用 |
+| R4-02 | ✅ 修正済み | `e71da2d` | `_MAX_RETRY_AFTER=300` 追加、`_parse_retry_after()` に `max(1, min(result, _MAX_RETRY_AFTER))` クランプ追加 |
+| R4-03 | ✅ 修正済み | `e71da2d` | `_validate_same_origin()` 追加、`paginate_link_header` / `paginate_response_body` の `next_url` にオリジン検証適用 |
+| R4-04 | ✅ 修正済み | `1c16f75` | `_mask_credentials()` 追加、`run_git()` / `git_clone()` の stderr に適用 |
+| R4-05 | ✅ 修正済み | `2a5100b` | SSH URL でも HTTPS を使用（`http://` 始まりのみ `http`、それ以外は `https`） |
+| R4-06 | ✅ 修正済み | `2cc6fbe` | `getpass.getuser()` に置換、`icacls` returncode チェックと警告追加、`:R` → `:F` に変更 |
+| R4-07 | ✅ 修正済み | `e71da2d` | `request()` / `get_absolute()` の `NetworkError` に `_mask_api_key()` 適用 |
+| R4-08 | ✅ 修正済み | `2a5100b` | `_mask_credentials()` 追加、`DetectionError` の全エラーメッセージ URL をサニタイズ |
+| R4-09 | ✅ 修正済み | `e71da2d` / `2a5100b` | `self._session.verify = True` 明示、`probe_unknown_host` の `requests.get()` に `verify=True` 追加 |
+| R4-10 | ✅ 修正済み | `2a5100b` | `except Exception` → `except (requests.ConnectionError, requests.Timeout, requests.RequestException)` に絞り込み |
+| R4-11 | ⏭️ スキップ | — | 現行コードでは `next_url = match.group(1)` (L219) と正しく記述済みのため修正不要 |
+| R4-12 | ✅ 修正済み | `2cc6fbe` | `\r` / 制御文字（`\x00-\x1f`）の TOML エスケープを `_write_credentials_toml()` に追加 |
+| R4-13 | ⏭️ スキップ | — | `get_absolute()` メソッドが既に実装済みで `_session` 直接アクセスは排除済みのため修正不要 |
+| R4-14 | ⏭️ 対応なし | — | 設計変更が必要でリスクが軽微なためコード変更は行わない。ドキュメント明記を推奨 |
+
+---
+
 ## 次ラウンドへの申し送り
 
 - **Round 5（入力バリデーション・データ整合性）**: `create_issue` / `create_pull_request` 等のユーザー入力（`title`, `body`, `branch` 名等）に対するバリデーション欠如を調査する。特に `branch` 名への特殊文字注入（スラッシュ、ドット等）が API パスに影響しないかを確認する。
