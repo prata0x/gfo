@@ -57,7 +57,15 @@ def create_http_client(service_type: str, api_url: str, token: str):
 
 
 def create_adapter(config: ProjectConfig) -> GitServiceAdapter:
-    """ProjectConfig からアダプターインスタンスを生成する。"""
+    """ProjectConfig からアダプターインスタンスを生成する。
+
+    create_http_client との分岐の非対称性について:
+    - create_http_client は認証方式（auth_header/auth_params/basic_auth）が
+      サービスごとに異なるため全サービスを列挙する。
+    - create_adapter の kwargs 分岐は追加コンストラクタ引数が必要なサービス
+      （backlog: project_key、azure-devops: organization/project_key）のみ。
+      新サービス追加時に追加引数が不要であれば create_adapter の変更は不要。
+    """
     import gfo.auth
 
     token = gfo.auth.resolve_token(config.host, config.service_type)
