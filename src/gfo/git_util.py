@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 
 from gfo.exceptions import GitCommandError
 
 _DEFAULT_TIMEOUT = 30
+
+
+def _mask_credentials(text: str) -> str:
+    """URL 内の認証情報（`://user:pass@` 形式）をマスクする。"""
+    return re.sub(r"://[^@\s]+@", "://***@", text)
 
 
 def run_git(*args: str, cwd: str | None = None) -> str:
@@ -21,7 +27,7 @@ def run_git(*args: str, cwd: str | None = None) -> str:
         shell=False,
     )
     if result.returncode != 0:
-        raise GitCommandError(result.stderr.strip())
+        raise GitCommandError(_mask_credentials(result.stderr.strip()))
     return result.stdout.strip()
 
 
@@ -92,4 +98,4 @@ def git_clone(url: str, dest: str | None = None, cwd: str | None = None) -> None
         shell=False,
     )
     if result.returncode != 0:
-        raise GitCommandError(result.stderr.strip())
+        raise GitCommandError(_mask_credentials(result.stderr.strip()))
