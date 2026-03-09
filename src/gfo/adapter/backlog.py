@@ -86,7 +86,7 @@ class BacklogAdapter(GitServiceAdapter):
         assignees = [assignee["userId"]] if assignee else []
 
         return Issue(
-            number=data["issueKey"].split("-")[-1] if isinstance(data.get("issueKey"), str) else data["id"],
+            number=int(data["issueKey"].split("-")[-1]) if isinstance(data.get("issueKey"), str) else data["id"],
             title=data["summary"],
             body=data.get("description"),
             state=state,
