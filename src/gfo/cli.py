@@ -210,3 +210,6 @@ def main(argv: list[str] | None = None) -> int:
     except GfoError as err:
         print(str(err), file=sys.stderr)
         return 1
+    except Exception as err:  # pragma: no cover
+        print(f"Unexpected error: {err}", file=sys.stderr)
+        return 1
