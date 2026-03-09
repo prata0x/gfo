@@ -16,6 +16,7 @@
   - `src/gfo/adapter/registry.py`（参照確認）
   - `src/gfo/adapter/base.py`（参照確認）
 - 発見事項: 重大 3 / 中 7 / 軽微 4
+- **修正完了日: 2026-03-09（全 13 件対応済み）**
 
 ---
 
@@ -404,21 +405,21 @@
 
 ## サマリーテーブル
 
-| ID | 重大度 | ファイル | 行 | 説明 | 検出回数 |
-|----|--------|----------|----|------|----------|
-| R1-01 | 🔴 重大 | `http.py` | L185 | `next_url` への代入漏れ — 2ページ目以降取得不能・無限ループ | 3/3 |
-| R1-02 | 🔴 重大 | `commands/issue.py` | L31 | `"azure_devops"`（アンダースコア）— 正しくは `"azure-devops"` | 3/3 |
-| R1-03 | 🔴 重大 | `adapter/backlog.py` | L89 | `issueKey.split("-")[-1]` が `str` — `Issue.number` は `int` | 3/3 |
-| R1-04 | 🟡 中 | `config.py` | L113 | `resolve_project_config` 条件分岐 — リモートなし環境で失敗する | 3/3 |
-| R1-05 | 🟡 中 | `commands/init.py` | L44 | Azure DevOps 非対話 init で `organization` 未渡し | 3/3 |
-| R1-06 | 🟡 中 | `cli.py` | L181 | argparse 内部 API `_subparsers._group_actions` の直接参照 | 3/3 |
-| R1-07 | 🟡 中 | `detect.py` | L198-203 | Gogs/Gitea/Forgejo プローブ判別の精度不足 | 3/3 |
-| R1-08 | 🟡 中 | `detect.py` | L237 | `service_type` の無条件上書きで `host` との不整合が発生しうる | 1/3 |
-| R1-09 | 🟡 中 | `http.py` | L79–L96 | リトライが1回固定でハードコード・仕様がドキュメントなし | 1/3 |
-| R1-10 | 🟡 中 | `commands/issue.py` | L35 | `args.priority` の falsy 評価で `0` が無視される | 1/3 |
-| R1-11 | 🟢 軽微 | `http.py` | L165, L243 | `_session` 直接アクセスで `auth_params` が付与されない | 3/3 |
-| R1-12 | 🟢 軽微 | `commands/init.py` | L87 | Azure DevOps 対話初期化で `organization=None` 時のエラーが不親切 | 2/3 |
-| R1-13 | 🟢 軽微 | `http.py` | L80 | `Retry-After` が日時形式の場合 `int()` で `ValueError` | 1/3 |
+| ID | 重大度 | ファイル | 行 | 説明 | 検出回数 | 修正コミット |
+|----|--------|----------|----|------|----------|-------------|
+| R1-01 | 🔴 重大 | `http.py` | L185 | `next_url` への代入漏れ — 2ページ目以降取得不能・無限ループ | 3/3 | f2609ff ✅ |
+| R1-02 | 🔴 重大 | `commands/issue.py` | L31 | `"azure_devops"`（アンダースコア）— 正しくは `"azure-devops"` | 3/3 | 890035b ✅ |
+| R1-03 | 🔴 重大 | `adapter/backlog.py` | L89 | `issueKey.split("-")[-1]` が `str` — `Issue.number` は `int` | 3/3 | a2fa891 ✅ |
+| R1-04 | 🟡 中 | `config.py` | L113 | `resolve_project_config` 条件分岐 — リモートなし環境で失敗する | 3/3 | 2971dc1 ✅ |
+| R1-05 | 🟡 中 | `commands/init.py` | L44 | Azure DevOps 非対話 init で `organization` 未渡し | 3/3 | 183e991 ✅ |
+| R1-06 | 🟡 中 | `cli.py` | L181 | argparse 内部 API `_subparsers._group_actions` の直接参照 | 3/3 | 54335ac ✅ |
+| R1-07 | 🟡 中 | `detect.py` | L198-203 | Gogs/Gitea/Forgejo プローブ判別の精度不足 | 3/3 | bc4ffb1 ✅ |
+| R1-08 | 🟡 中 | `detect.py` | L237 | `service_type` の無条件上書きで `host` との不整合が発生しうる | 1/3 | b5d1c06 ✅ |
+| R1-09 | 🟡 中 | `http.py` | L79–L96 | リトライが1回固定でハードコード・仕様がドキュメントなし | 1/3 | b7190da ✅ |
+| R1-10 | 🟡 中 | `commands/issue.py` | L35 | `args.priority` の falsy 評価で `0` が無視される | 1/3 | 5211d14 ✅ |
+| R1-11 | 🟢 軽微 | `http.py` | L165, L243 | `_session` 直接アクセスで `auth_params` が付与されない | 3/3 | 6783cc8 ✅ |
+| R1-12 | 🟢 軽微 | `commands/init.py` | L87 | Azure DevOps 対話初期化で `organization=None` 時のエラーが不親切 | 2/3 | eb577ba ✅ |
+| R1-13 | 🟢 軽微 | `http.py` | L80 | `Retry-After` が日時形式の場合 `int()` で `ValueError` | 1/3 | 5cf3a84 ✅ |
 
 ---
 
