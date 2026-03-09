@@ -133,7 +133,13 @@ def handle_view(args: argparse.Namespace, *, fmt: str) -> None:
         if len(parts) == 2:
             owner, name = parts
         else:
-            owner, name = None, repo_arg
+            raise ConfigError(
+                f"Invalid repo format '{repo_arg}'. Expected 'owner/name'."
+            )
+        if not owner or not name:
+            raise ConfigError(
+                f"Invalid repo format '{repo_arg}'. Both owner and name must be non-empty."
+            )
     else:
         owner, name = None, None
 
