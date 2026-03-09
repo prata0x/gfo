@@ -21,7 +21,10 @@ from gfo.exceptions import GfoError, NotSupportedError
 
 def _positive_int(value: str) -> int:
     """argparse type: 正の整数のみ受け付ける。"""
-    ivalue = int(value)
+    try:
+        ivalue = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{value} is not a positive integer")
     if ivalue <= 0:
         raise argparse.ArgumentTypeError(f"{value} is not a positive integer")
     return ivalue

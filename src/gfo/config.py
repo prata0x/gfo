@@ -61,8 +61,8 @@ def load_user_config() -> dict:
                 return tomllib.load(f)
             except tomllib.TOMLDecodeError as e:
                 raise ConfigError(f"Failed to parse config file {path}: {e}") from e
-    except PermissionError as e:
-        raise ConfigError(f"Permission denied reading config file {path}: {e}") from e
+    except OSError as e:
+        raise ConfigError(f"Failed to read config file {path}: {e}") from e
 
 
 def get_default_output_format() -> str:

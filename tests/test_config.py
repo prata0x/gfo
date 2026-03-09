@@ -75,14 +75,14 @@ def test_load_user_config_no_file(tmp_path):
 
 
 def test_load_user_config_permission_error(tmp_path):
-    """PermissionError が ConfigError に変換される。"""
+    """PermissionError（OSError の一種）が ConfigError に変換される。"""
     config_file = tmp_path / "config.toml"
     config_file.write_text("")
     with (
         patch("gfo.config.get_config_path", return_value=config_file),
         patch("builtins.open", side_effect=PermissionError("Permission denied")),
     ):
-        with pytest.raises(ConfigError, match="Permission denied"):
+        with pytest.raises(ConfigError, match="Failed to read config file"):
             load_user_config()
 
 
@@ -413,8 +413,8 @@ def test_resolve_git_config_does_not_call_detect_service():
     mock_detect.assert_not_called()
 
 
-def test_resolve_only_shost_in_git_config():
-    """git config に host のみある場合 → detect_service() が呼ばれ stype が補完される。"""
+def test_resolve_only_host_in_git_config():
+    """git config に host のみある場合 → detect_service() が呼ばれ type が補完される。"""
     from gfo.detect import DetectResult
 
     detect_result = DetectResult(

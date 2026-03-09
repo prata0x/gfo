@@ -6,8 +6,38 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from gfo.cli import _DISPATCH, create_parser, main
+import argparse
+
+from gfo.cli import _DISPATCH, _positive_int, create_parser, main
 from gfo.exceptions import GfoError, NotSupportedError
+
+
+# ── _positive_int のテスト ──
+
+
+def test_positive_int_valid():
+    assert _positive_int("1") == 1
+    assert _positive_int("100") == 100
+
+
+def test_positive_int_zero_raises():
+    with pytest.raises(argparse.ArgumentTypeError, match="0 is not a positive integer"):
+        _positive_int("0")
+
+
+def test_positive_int_negative_raises():
+    with pytest.raises(argparse.ArgumentTypeError, match="-5 is not a positive integer"):
+        _positive_int("-5")
+
+
+def test_positive_int_non_integer_raises():
+    with pytest.raises(argparse.ArgumentTypeError, match="abc is not a positive integer"):
+        _positive_int("abc")
+
+
+def test_positive_int_float_string_raises():
+    with pytest.raises(argparse.ArgumentTypeError, match="1.5 is not a positive integer"):
+        _positive_int("1.5")
 
 
 # ── create_parser のテスト ──

@@ -231,6 +231,21 @@ class TestProbeUnknownHost:
         assert probe_unknown_host("git.example.com") == "forgejo"
 
     @responses.activate
+    def test_forgejo_old_version_detected_via_source_url(self):
+        """旧版 Forgejo は source_url に 'forgejo' を含む場合に検出される。"""
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v1/version",
+            json={
+                "version": "1.19.0",
+                "go_version": "go1.20",
+                "source_url": "https://codeberg.org/forgejo/forgejo",
+            },
+            status=200,
+        )
+        assert probe_unknown_host("git.example.com") == "forgejo"
+
+    @responses.activate
     def test_gitea_detected_go_version(self):
         responses.add(
             responses.GET,
