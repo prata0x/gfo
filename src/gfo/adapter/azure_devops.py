@@ -239,7 +239,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             patch_ops.append({"op": "add", "path": "/fields/System.Tags", "value": label})
 
         resp = self._client.post(
-            f"{self._wit_path()}/workitems/${work_item_type}",
+            f"{self._wit_path()}/workitems/${quote(work_item_type, safe='')}",
             data=_json.dumps(patch_ops),
             headers={"Content-Type": "application/json-patch+json"},
         )

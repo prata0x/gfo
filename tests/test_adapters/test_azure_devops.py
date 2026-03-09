@@ -449,6 +449,19 @@ class TestCreateIssue:
         assert "/fields/System.Tags" in paths
 
 
+    def test_create_with_custom_work_item_type(self, mock_responses, azure_devops_adapter):
+        """work_item_type にスペースを含む値（"User Story" 等）が URL エンコードされる。"""
+        mock_responses.add(
+            responses.POST, f"{WIT}/workitems/$User%20Story",
+            json=_issue_data(), status=200,
+        )
+        issue = azure_devops_adapter.create_issue(
+            title="Story #1", work_item_type="User Story",
+        )
+        assert isinstance(issue, Issue)
+        assert "$User%20Story" in mock_responses.calls[0].request.url
+
+
 class TestGetIssue:
     def test_get(self, mock_responses, azure_devops_adapter):
         mock_responses.add(
