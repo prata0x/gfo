@@ -89,6 +89,13 @@ class TestToPullRequest:
         pr = BacklogAdapter._to_pull_request(data)
         assert pr.body is None
 
+    def test_null_status_defaults_to_open(self):
+        """status フィールドが null でも AttributeError にならずデフォルト open になる。"""
+        data = _pr_data()
+        data["status"] = None
+        pr = BacklogAdapter._to_pull_request(data)
+        assert pr.state == "open"
+
 
 class TestToIssue:
     def test_open(self):
@@ -125,6 +132,13 @@ class TestToIssue:
         data["assignee"] = {}
         issue = BacklogAdapter._to_issue(data)
         assert issue.assignees == []
+
+    def test_null_status_defaults_to_open(self):
+        """status フィールドが null でも AttributeError にならずデフォルト open になる。"""
+        data = _issue_data()
+        data["status"] = None
+        issue = BacklogAdapter._to_issue(data)
+        assert issue.state == "open"
 
 
 class TestToRepository:

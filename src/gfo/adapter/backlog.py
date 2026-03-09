@@ -68,7 +68,7 @@ class BacklogAdapter(GitServiceAdapter):
     @staticmethod
     def _to_pull_request(data: dict, merged_status_id: int | None = None) -> PullRequest:
         try:
-            status_id = data.get("status", {}).get("id", 1)
+            status_id = (data.get("status") or {}).get("id", 1)
             if status_id == _STATUS_CLOSED_ID:
                 state = "closed"
             elif merged_status_id is not None and status_id == merged_status_id:
@@ -98,7 +98,7 @@ class BacklogAdapter(GitServiceAdapter):
     @staticmethod
     def _to_issue(data: dict) -> Issue:
         try:
-            status_id = data.get("status", {}).get("id", 1)
+            status_id = (data.get("status") or {}).get("id", 1)
             state = "closed" if status_id == _STATUS_CLOSED_ID else "open"
 
             created_user = data.get("createdUser", {})

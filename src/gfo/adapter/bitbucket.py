@@ -71,7 +71,7 @@ class BitbucketAdapter(GitServiceAdapter):
             return Issue(
                 number=data["id"],
                 title=data["title"],
-                body=data.get("content", {}).get("raw"),
+                body=(data.get("content") or {}).get("raw"),
                 state=state,
                 author=data["reporter"]["nickname"],
                 assignees=assignees,

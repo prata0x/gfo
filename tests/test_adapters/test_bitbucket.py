@@ -410,6 +410,13 @@ class TestCreateIssue:
         issue = BitbucketAdapter._to_issue(_issue_data())
         assert issue.labels == []
 
+    def test_to_issue_with_null_content_returns_none_body(self):
+        """API が content: null を返しても AttributeError にならない。"""
+        data = _issue_data()
+        data["content"] = None
+        issue = BitbucketAdapter._to_issue(data)
+        assert issue.body is None
+
 
 class TestGetIssue:
     def test_get(self, mock_responses, bitbucket_adapter):
