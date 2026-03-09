@@ -338,7 +338,7 @@ def paginate_response_body(
             break
 
         next_url = body.get(next_key)
-        if not next_url:
+        if not next_url or not isinstance(next_url, str):
             break
         if not _validate_same_origin(client.base_url, next_url):
             break

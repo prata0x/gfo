@@ -723,6 +723,18 @@ class TestPaginateResponseBody:
         result = paginate_response_body(c, "/items", limit=10)
         assert result == []
 
+    @responses.activate
+    def test_non_string_next_url_stops_pagination(self):
+        """next フィールドが文字列以外（整数等）の場合はページネーションを停止する（R29修正確認）。"""
+        responses.add(
+            responses.GET,
+            f"{BASE}/items",
+            json={"values": [{"id": 1}], "next": 42},
+        )
+        c = HttpClient(BASE)
+        result = paginate_response_body(c, "/items", limit=10)
+        assert result == [{"id": 1}]
+
 
 # ── paginate_offset ──
 
