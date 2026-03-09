@@ -279,6 +279,8 @@ def paginate_response_body(
             resp = client.get_absolute(next_url)
 
         body = resp.json()
+        if not isinstance(body, dict):
+            break
         page_data = body.get(values_key, [])
         if not page_data:
             break
@@ -346,6 +348,8 @@ def paginate_top_skip(
         params["$skip"] = skip
         resp = client.get(path, params=params)
         body = resp.json()
+        if not isinstance(body, dict):
+            break
         page_data = body.get(result_key, [])
         if not page_data:
             break
