@@ -17,6 +17,11 @@ from .registry import register
 from gfo.exceptions import GfoError, NotSupportedError
 from gfo.http import paginate_offset
 
+# Backlog PR / Issue ステータス ID 定数
+_STATUS_OPEN_IDS = [1, 2, 3]   # open / in-progress / resolved (open 扱い)
+_STATUS_CLOSED_ID = 4           # closed
+_STATUS_MERGED_ID = 5           # merged（PR 固定値; カスタムの場合は動的解決で上書き）
+
 
 @register("backlog")
 class BacklogAdapter(GitServiceAdapter):
@@ -55,11 +60,11 @@ class BacklogAdapter(GitServiceAdapter):
     def _to_pull_request(data: dict, merged_status_id: int | None = None) -> PullRequest:
         try:
             status_id = data.get("status", {}).get("id", 1)
-            if status_id == 4:
+            if status_id == _STATUS_CLOSED_ID:
                 state = "closed"
             elif merged_status_id is not None and status_id == merged_status_id:
                 state = "merged"
-            elif merged_status_id is None and status_id == 5:
+            elif merged_status_id is None and status_id == _STATUS_MERGED_ID:
                 state = "merged"
             else:
                 state = "open"
@@ -85,7 +90,7 @@ class BacklogAdapter(GitServiceAdapter):
     def _to_issue(data: dict) -> Issue:
         try:
             status_id = data.get("status", {}).get("id", 1)
-            state = "closed" if status_id == 4 else "open"
+            state = "closed" if status_id == _STATUS_CLOSED_ID else "open"
 
             created_user = data.get("createdUser", {})
             assignee = data.get("assignee")
@@ -130,9 +135,9 @@ class BacklogAdapter(GitServiceAdapter):
             if merged_id is not None:
                 params["statusId[]"] = merged_id
         elif state == "open":
-            params["statusId[]"] = [1, 2, 3]
+            params["statusId[]"] = _STATUS_OPEN_IDS
         elif state == "closed":
-            params["statusId[]"] = [4]
+            params["statusId[]"] = [_STATUS_CLOSED_ID]
         else:
             # state="all": 動的 merged_status_id が必要
             merged_id = self._resolve_merged_status_id()
@@ -163,7 +168,7 @@ class BacklogAdapter(GitServiceAdapter):
         )
 
     def close_pull_request(self, number: int) -> None:
-        self._client.patch(f"{self._pr_path()}/{number}", json={"statusId": 4})
+        self._client.patch(f"{self._pr_path()}/{number}", json={"statusId": _STATUS_CLOSED_ID})
 
     def get_pr_checkout_refspec(self, number: int, *,
                                 pr: PullRequest | None = None) -> str:
@@ -180,9 +185,9 @@ class BacklogAdapter(GitServiceAdapter):
         project_id = self._ensure_project_id()
         params: dict = {"projectId[]": project_id}
         if state == "open":
-            params["statusId[]"] = [1, 2, 3]
+            params["statusId[]"] = _STATUS_OPEN_IDS
         elif state == "closed":
-            params["statusId[]"] = [4]
+            params["statusId[]"] = [_STATUS_CLOSED_ID]
         if assignee:
             params["assigneeUserId[]"] = assignee
         if label:
@@ -242,7 +247,7 @@ class BacklogAdapter(GitServiceAdapter):
         return self._to_issue(resp.json())
 
     def close_issue(self, number: int) -> None:
-        self._client.patch(f"/issues/{number}", json={"statusId": 4})
+        self._client.patch(f"/issues/{number}", json={"statusId": _STATUS_CLOSED_ID})
 
     # --- Repository ---
 
