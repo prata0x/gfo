@@ -83,7 +83,7 @@ class GitLabAdapter(GitServiceAdapter):
             tag=data["tag_name"],
             title=data.get("name") or "",
             body=data.get("description"),
-            draft=data.get("upcoming_release", False),
+            draft=False,
             prerelease=data.get("upcoming_release", False),
             url=data["_links"]["self"] if "_links" in data else data.get("web_url", ""),
             created_at=data["created_at"],
