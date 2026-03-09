@@ -512,6 +512,17 @@ class TestResolveMergedStatusId:
 
 # --- Registry ---
 
+class TestPrPath:
+    def test_non_ascii_repo_encoded(self):
+        """非ASCII repo 名が URL エンコードされる。"""
+        from gfo.http import HttpClient
+        client = HttpClient("https://example.backlog.com/api/v2")
+        adapter = BacklogAdapter(client, "owner", "日本語-repo", project_key="TEST")
+        path = adapter._pr_path()
+        assert "日本語" not in path
+        assert "%E6%97%A5%E6%9C%AC%E8%AA%9E" in path
+
+
 class TestRegistry:
     def test_registered(self):
         assert get_adapter_class("backlog") is BacklogAdapter

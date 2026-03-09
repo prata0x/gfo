@@ -29,7 +29,7 @@ class BacklogAdapter(GitServiceAdapter):
         self._merged_status_id: int | None = None
 
     def _pr_path(self) -> str:
-        return f"/projects/{self._project_key}/git/repositories/{self._repo}/pullRequests"
+        return f"/projects/{self._project_key}/git/repositories/{urllib.parse.quote(self._repo, safe='')}/pullRequests"
 
     def _ensure_project_id(self) -> int:
         """プロジェクト ID を取得してキャッシュする。"""

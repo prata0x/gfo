@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from urllib.parse import quote
+
 from .base import (
     GitServiceAdapter,
     Issue,
@@ -21,7 +23,7 @@ class GiteaAdapter(GitServiceAdapter):
     service_name = "Gitea"
 
     def _repos_path(self) -> str:
-        return f"/repos/{self._owner}/{self._repo}"
+        return f"/repos/{quote(self._owner, safe='')}/{quote(self._repo, safe='')}"
 
     # --- 変換ヘルパー ---
 

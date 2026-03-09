@@ -479,6 +479,26 @@ class TestCreateMilestone:
 
 # --- Registry ---
 
+class TestReposPath:
+    def test_non_ascii_owner_encoded(self):
+        """非ASCII owner が URL エンコードされる。"""
+        from gfo.http import HttpClient
+        client = HttpClient("https://api.github.com")
+        adapter = GitHubAdapter(client, "日本語-owner", "my-repo")
+        path = adapter._repos_path()
+        assert "日本語" not in path
+        assert "%E6%97%A5%E6%9C%AC%E8%AA%9E" in path
+
+    def test_special_char_owner_encoded(self):
+        """スペースを含む owner が URL エンコードされる。"""
+        from gfo.http import HttpClient
+        client = HttpClient("https://api.github.com")
+        adapter = GitHubAdapter(client, "my owner", "my-repo")
+        path = adapter._repos_path()
+        assert " " not in path
+        assert "my%20owner" in path
+
+
 class TestRegistry:
     def test_registered(self):
         assert get_adapter_class("github") is GitHubAdapter
