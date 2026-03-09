@@ -283,7 +283,7 @@ def detect_service(cwd: str | None = None) -> DetectResult:
             import gfo.config
 
             hosts = gfo.config.get_hosts_config()
-            service_from_hosts = hosts.get(result.host)
+            service_from_hosts = hosts.get(result.host.lower())
             if service_from_hosts is not None:
                 result = dataclasses.replace(result, service_type=service_from_hosts)
         except (ImportError, AttributeError):
