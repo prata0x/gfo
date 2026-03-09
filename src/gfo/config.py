@@ -8,7 +8,7 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-from gfo.exceptions import ConfigError
+from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 
 
 @dataclass
@@ -125,7 +125,7 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
             repo = detect_result.repo
             organization = detect_result.organization
             project_key = detect_result.project
-        except Exception:
+        except (DetectionError, ConfigError, GitCommandError, ValueError, OSError):
             owner = ""
             repo = ""
             organization = None

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import time
 from typing import Any
@@ -12,6 +13,7 @@ import requests
 import gfo.exceptions
 
 _MAX_RETRY_AFTER = 300
+_VERIFY_SSL = os.environ.get("GFO_INSECURE", "").lower() not in ("1", "true", "yes")
 
 
 class HttpClient:
@@ -44,7 +46,7 @@ class HttpClient:
         self._default_params: dict[str, str] = default_params or {}
         self._max_retries = max_retries
         self._session = requests.Session()
-        self._session.verify = True
+        self._session.verify = _VERIFY_SSL
         if auth_header:
             self._session.headers.update(auth_header)
         if basic_auth:
@@ -100,8 +102,6 @@ class HttpClient:
                 wait = self._parse_retry_after(resp.headers.get("Retry-After"))
                 time.sleep(wait)
 
-        return resp  # unreachable; ループは必ず return か raise で終了する
-
     def get(self, path: str, **kwargs: Any) -> requests.Response:
         """GET リクエスト。"""
         return self.request("GET", path, **kwargs)
@@ -145,8 +145,6 @@ class HttpClient:
                     raise
                 wait = self._parse_retry_after(resp.headers.get("Retry-After"))
                 time.sleep(wait)
-
-        return resp  # unreachable; ループは必ず return か raise で終了する
 
     def _handle_response(self, response: requests.Response) -> None:
         """ステータスコードを検査し、適切なエラーを送出する。"""

@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import dataclasses
+import os
 import re
 import warnings
 from dataclasses import dataclass
 
+import requests
+
 from gfo.exceptions import DetectionError
 from gfo.git_util import get_remote_url, git_config_get
+
+_VERIFY_SSL = os.environ.get("GFO_INSECURE", "").lower() not in ("1", "true", "yes")
 
 
 def _mask_credentials(text: str) -> str:
@@ -212,7 +217,7 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
     #   Forgejo {"version": "...", "forgejo": "...", "go_version": "..."}  (>= 1.20)
     #           {"version": "...", "go_version": "...", "source_url": "https://codeberg.org/forgejo/forgejo"}  (旧版)
     try:
-        resp = requests.get(f"{base}/api/v1/version", timeout=5, verify=True)
+        resp = requests.get(f"{base}/api/v1/version", timeout=5, verify=_VERIFY_SSL)
         if resp.status_code == 200:
             data = resp.json()
             # Forgejo >= 1.20 は "forgejo" キーを持つ
@@ -233,7 +238,7 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
 
     # 2. GitLab (v4)
     try:
-        resp = requests.get(f"{base}/api/v4/version", timeout=5, verify=True)
+        resp = requests.get(f"{base}/api/v4/version", timeout=5, verify=_VERIFY_SSL)
         if resp.status_code == 200:
             return "gitlab"
     except requests.RequestException:
@@ -241,7 +246,7 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
 
     # 3. GitBucket (v3)
     try:
-        resp = requests.get(f"{base}/api/v3/", timeout=5, verify=True)
+        resp = requests.get(f"{base}/api/v3/", timeout=5, verify=_VERIFY_SSL)
         if resp.status_code == 200:
             return "gitbucket"
     except requests.RequestException:

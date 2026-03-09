@@ -70,7 +70,8 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 source_branch=_strip_refs_prefix(data["sourceRefName"]),
                 target_branch=_strip_refs_prefix(data["targetRefName"]),
                 draft=data.get("isDraft", False),
-                url=data.get("url", ""),
+                url=(f"{data['repository']['webUrl']}/pullrequest/{data['pullRequestId']}"
+                     if data.get("repository", {}).get("webUrl") else data.get("url", "")),
                 created_at=data["creationDate"],
                 updated_at=data.get("closedDate"),
             )
@@ -194,7 +195,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         wiql_resp = self._client.post(
             f"{self._wit_path()}/wiql",
             json={"query": wiql},
-            params={"$top": min(limit, 200)},
+            params={"$top": limit},
         )
         work_items = wiql_resp.json().get("workItems", [])
         ids = [wi["id"] for wi in work_items]

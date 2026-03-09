@@ -135,7 +135,7 @@ def _handle_interactive(args: argparse.Namespace) -> None:
             owner = from_url.owner
             repo = from_url.repo
             organization = from_url.organization
-        except Exception:
+        except (DetectionError, GitCommandError, ValueError, OSError):
             owner = ""
             repo = ""
             organization = None
