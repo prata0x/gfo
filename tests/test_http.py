@@ -202,6 +202,16 @@ class TestErrorHandling:
         with pytest.raises(NetworkError):
             c.get("/x")
 
+    @responses.activate
+    def test_ssl_error_raises_network_error(self):
+        """SSLError 等の RequestException サブクラスも NetworkError に変換される。"""
+        from requests.exceptions import SSLError
+
+        responses.add(responses.GET, f"{BASE}/x", body=SSLError("certificate verify failed"))
+        c = HttpClient(BASE)
+        with pytest.raises(NetworkError):
+            c.get("/x")
+
 
 # ── 429 リトライ ──
 

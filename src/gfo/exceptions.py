@@ -79,7 +79,7 @@ class ServerError(HttpError):
 
 
 class NetworkError(GfoError):
-    """ネットワーク接続エラー（ConnectionError, Timeout）。"""
+    """ネットワーク接続エラー（ConnectionError, Timeout, SSLError 等）。"""
     pass
 
 

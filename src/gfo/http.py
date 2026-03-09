@@ -67,9 +67,7 @@ class HttpClient:
         for attempt in range(self._max_retries + 1):
             try:
                 resp = resp_fn()
-            except requests.ConnectionError as e:
-                raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
-            except requests.Timeout as e:
+            except requests.RequestException as e:
                 raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
 
             try:
