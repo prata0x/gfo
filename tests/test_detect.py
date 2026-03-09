@@ -398,3 +398,81 @@ class TestDetectService:
         r = detect_service()
         assert r.service_type == "gitea"
         mock_probe.assert_called_once_with("git.example.com", scheme="http")
+
+
+# ── 追加テスト（未カバー行） ──
+
+
+class TestDetectFromUrlErrors:
+    """detect_from_url の DetectionError パス。"""
+
+    def test_backlog_invalid_path_raises(self):
+        """Backlog ホストで不正パス → DetectionError。"""
+        with pytest.raises(DetectionError, match="Cannot parse Backlog path"):
+            detect_from_url("https://space.backlog.com/invalid")
+
+    def test_azure_devops_invalid_path_raises(self):
+        """Azure DevOps ホストで不正パス → DetectionError。"""
+        with pytest.raises(DetectionError, match="Cannot parse Azure DevOps path"):
+            detect_from_url("https://dev.azure.com/only-one-segment")
+
+    def test_known_host_invalid_path_raises(self):
+        """既知ホスト (github.com) でパース不可パス → DetectionError。"""
+        with pytest.raises(DetectionError, match="Cannot parse path"):
+            detect_from_url("https://github.com/singlepart")
+
+
+class TestProbeUnknownHostRequestException:
+    """probe_unknown_host で requests.RequestException が発生する場合。"""
+
+    @responses.activate
+    def test_gitea_endpoint_request_exception(self):
+        """Gitea/Forgejo エンドポイントで接続エラー → 例外を握りつぶして次を試みる。"""
+        import requests
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v1/version",
+            body=requests.RequestException("connection error"),
+        )
+        responses.add(responses.GET, "https://git.example.com/api/v4/version", status=404)
+        responses.add(responses.GET, "https://git.example.com/api/v3/", status=404)
+        assert probe_unknown_host("git.example.com") is None
+
+    @responses.activate
+    def test_gitlab_endpoint_request_exception(self):
+        """GitLab エンドポイントで接続エラー → 例外を握りつぶして次を試みる。"""
+        import requests
+        responses.add(responses.GET, "https://git.example.com/api/v1/version", status=404)
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v4/version",
+            body=requests.RequestException("connection error"),
+        )
+        responses.add(responses.GET, "https://git.example.com/api/v3/", status=404)
+        assert probe_unknown_host("git.example.com") is None
+
+    @responses.activate
+    def test_gitbucket_endpoint_request_exception(self):
+        """GitBucket エンドポイントで接続エラー → 例外を握りつぶして None を返す。"""
+        import requests
+        responses.add(responses.GET, "https://git.example.com/api/v1/version", status=404)
+        responses.add(responses.GET, "https://git.example.com/api/v4/version", status=404)
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v3/",
+            body=requests.RequestException("connection error"),
+        )
+        assert probe_unknown_host("git.example.com") is None
+
+
+class TestDetectServiceHostsConfig:
+    """detect_service で hosts config に一致するサービスが上書きされる。"""
+
+    @patch("gfo.detect.probe_unknown_host", return_value=None)
+    @patch("gfo.detect.get_remote_url", return_value="https://git.example.com/owner/repo.git")
+    @patch("gfo.detect.git_config_get", return_value=None)
+    def test_service_type_from_hosts_config(self, mock_config, mock_remote, mock_probe):
+        """hosts config に一致ホストがある場合、その service_type が使用される。"""
+        with patch("gfo.config.get_hosts_config", return_value={"git.example.com": "forgejo"}):
+            r = detect_service()
+        assert r.service_type == "forgejo"
