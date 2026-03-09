@@ -509,6 +509,72 @@ class TestCreateIssue:
         with pytest.raises(GfoError, match="no priorities"):
             backlog_adapter.create_issue(title="Issue")
 
+    def test_create_non_list_issue_types_raises_gfo_error(self, mock_responses, backlog_adapter):
+        """issueTypes が list 以外を返したとき GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST",
+            json={"id": 100, "projectKey": "TEST"}, status=200,
+        )
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST/issueTypes",
+            json={"error": "unexpected"}, status=200,
+        )
+        with pytest.raises(GfoError, match="issueTypes"):
+            backlog_adapter.create_issue(title="Issue")
+
+    def test_create_malformed_issue_type_item_raises_gfo_error(self, mock_responses, backlog_adapter):
+        """issueTypes の各アイテムに id がないとき GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST",
+            json={"id": 100, "projectKey": "TEST"}, status=200,
+        )
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST/issueTypes",
+            json=[{"name": "Task"}],  # id キーが欠落
+            status=200,
+        )
+        with pytest.raises(GfoError, match="issueTypes"):
+            backlog_adapter.create_issue(title="Issue")
+
+    def test_create_non_list_priorities_raises_gfo_error(self, mock_responses, backlog_adapter):
+        """priorities が list 以外を返したとき GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST",
+            json={"id": 100, "projectKey": "TEST"}, status=200,
+        )
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST/issueTypes",
+            json=[{"id": 2, "name": "Task"}], status=200,
+        )
+        mock_responses.add(
+            responses.GET, f"{BASE}/priorities",
+            json={"error": "unexpected"}, status=200,
+        )
+        with pytest.raises(GfoError, match="priorities"):
+            backlog_adapter.create_issue(title="Issue")
+
+    def test_create_malformed_priority_item_raises_gfo_error(self, mock_responses, backlog_adapter):
+        """priorities の各アイテムに id がないとき GfoError。"""
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST",
+            json={"id": 100, "projectKey": "TEST"}, status=200,
+        )
+        mock_responses.add(
+            responses.GET, f"{BASE}/projects/TEST/issueTypes",
+            json=[{"id": 2, "name": "Task"}], status=200,
+        )
+        mock_responses.add(
+            responses.GET, f"{BASE}/priorities",
+            json=[{"name": "Normal"}],  # id キーが欠落
+            status=200,
+        )
+        with pytest.raises(GfoError, match="priorities"):
+            backlog_adapter.create_issue(title="Issue")
+
     def test_create_with_assignee(self, mock_responses, backlog_adapter):
         """assignee を渡すと assigneeUserId がペイロードに含まれる。"""
         mock_responses.add(

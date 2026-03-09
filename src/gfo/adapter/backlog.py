@@ -222,16 +222,26 @@ class BacklogAdapter(GitServiceAdapter):
         if issue_type is None:
             resp = self._client.get(f"/projects/{self._project_key}/issueTypes")
             types = resp.json()
-            issue_type = types[0]["id"] if types else None
+            if not isinstance(types, list):
+                raise GfoError(f"Unexpected API response from issueTypes endpoint: {type(types)}")
+            try:
+                issue_type = types[0]["id"] if types else None
+            except (KeyError, TypeError) as e:
+                raise GfoError(f"Unexpected API response from issueTypes endpoint: {e}") from e
 
         if priority is None:
             resp = self._client.get("/priorities")
             priorities = resp.json()
-            # "中" (Normal) を優先、なければ先頭
-            priority = next(
-                (p["id"] for p in priorities if "中" in p["name"] or p["name"].lower() == "normal"),
-                priorities[0]["id"] if priorities else None,
-            )
+            if not isinstance(priorities, list):
+                raise GfoError(f"Unexpected API response from priorities endpoint: {type(priorities)}")
+            try:
+                # "中" (Normal) を優先、なければ先頭
+                priority = next(
+                    (p["id"] for p in priorities if "中" in p.get("name", "") or p.get("name", "").lower() == "normal"),
+                    priorities[0]["id"] if priorities else None,
+                )
+            except (KeyError, TypeError) as e:
+                raise GfoError(f"Unexpected API response from priorities endpoint: {e}") from e
 
         if issue_type is None:
             raise GfoError(
