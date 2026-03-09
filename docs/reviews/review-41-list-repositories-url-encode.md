@@ -127,9 +127,9 @@
 
 | ID | 重大度 | ファイル | 概要 | 状態 |
 |----|--------|---------|------|------|
-| **R41-01** | 🟡 中 | `github.py` / `gitea.py` / `gitlab.py` | `list_repositories` owner URL エンコード漏れ | 未修正 |
-| **R41-02** | 🟡 中 | `tests/test_adapters/conftest.py` | GitBucket フィクスチャが `Bearer` 形式（正しくは `token`） | 未修正 |
-| **R41-03** | 🟢 軽微 | `test_github.py` / `test_gitea.py` / `test_gitlab.py` | `list_repositories` owner URL エンコードテスト欠落 | 未修正 |
+| **R41-01** | 🟡 中 | `github.py` / `gitea.py` / `gitlab.py` | `list_repositories` owner URL エンコード漏れ | ✅ 修正済み |
+| **R41-02** | 🟡 中 | `tests/test_adapters/conftest.py` | GitBucket フィクスチャが `Bearer` 形式（正しくは `token`） | ✅ 修正済み |
+| **R41-03** | 🟢 軽微 | `test_github.py` / `test_gitea.py` / `test_gitlab.py` | `list_repositories` owner URL エンコードテスト欠落 | ✅ 修正済み |
 
 ---
 
@@ -143,4 +143,4 @@
 
 | コミット | 修正内容 |
 |---------|---------|
-| （次のコミット） | R41-01〜03 — list_repositories owner URL エンコード修正・GitBucket テスト認証修正・テスト追加 |
+| 5d28ac6 | R41-01〜03 — list_repositories owner URL エンコード修正・GitBucket テスト認証修正・テスト追加 |
