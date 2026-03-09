@@ -28,7 +28,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     adapter = create_adapter(config)
     kwargs: dict = {}
     if args.type:
-        if config.service_type == "azure_devops":
+        if config.service_type == "azure-devops":
             kwargs["work_item_type"] = args.type
         elif config.service_type == "backlog":
             kwargs["issue_type"] = args.type
