@@ -18,6 +18,11 @@ from gfo.http import paginate_top_skip
 import json as _json
 
 
+def _wiql_escape(value: str) -> str:
+    """WIQL クエリ文字列内のシングルクォートをエスケープする。"""
+    return value.replace("'", "''")
+
+
 _PR_STATE_TO_API = {"open": "active", "closed": "abandoned", "merged": "completed"}
 _PR_STATE_FROM_API = {"active": "open", "abandoned": "closed", "completed": "merged"}
 
@@ -174,17 +179,15 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                     assignee: str | None = None,
                     label: str | None = None,
                     limit: int = 30) -> list[Issue]:
-        conditions = [f"[System.TeamProject] = '{self._project}'"]
+        conditions = [f"[System.TeamProject] = '{_wiql_escape(self._project)}'"]
         if state == "open":
             conditions.append("[System.State] NOT IN ('Closed', 'Done', 'Removed')")
         elif state == "closed":
             conditions.append("[System.State] IN ('Closed', 'Done', 'Removed')")
         if assignee:
-            safe_assignee = assignee.replace("'", "''")
-            conditions.append(f"[System.AssignedTo] = '{safe_assignee}'")
+            conditions.append(f"[System.AssignedTo] = '{_wiql_escape(assignee)}'")
         if label:
-            safe_label = label.replace("'", "''")
-            conditions.append(f"[System.Tags] CONTAINS '{safe_label}'")
+            conditions.append(f"[System.Tags] CONTAINS '{_wiql_escape(label)}'")
 
         wiql = "SELECT [System.Id] FROM WorkItems WHERE " + " AND ".join(conditions)
         wiql_resp = self._client.post(
