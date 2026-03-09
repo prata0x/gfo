@@ -207,6 +207,18 @@ class TestListPullRequests:
         prs = gitlab_adapter.list_pull_requests(limit=10)
         assert len(prs) == 2
 
+    def test_pagination_limit_truncates(self, mock_responses, gitlab_adapter):
+        """limit=1 のとき 1 ページ目の 1 件で打ち切られる。"""
+        mock_responses.add(
+            responses.GET, f"{PROJECT}/merge_requests",
+            json=[_mr_data(iid=1), _mr_data(iid=2)], status=200,
+            headers={"X-Next-Page": "2"},
+        )
+        prs = gitlab_adapter.list_pull_requests(limit=1)
+        assert len(prs) == 1
+        assert prs[0].number == 1
+        assert len(mock_responses.calls) == 1  # 2 ページ目へのリクエストなし
+
 
 class TestCreatePullRequest:
     def test_create(self, mock_responses, gitlab_adapter):

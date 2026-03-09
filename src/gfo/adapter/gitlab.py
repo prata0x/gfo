@@ -156,13 +156,15 @@ class GitLabAdapter(GitServiceAdapter):
         return self._to_pull_request(resp.json())
 
     def merge_pull_request(self, number: int, *, method: str = "merge") -> None:
+        allowed_methods = {"merge", "squash", "rebase"}
+        if method not in allowed_methods:
+            raise ValueError(f"method must be one of {sorted(allowed_methods)}, got {method!r}")
         payload: dict = {}
         if method == "squash":
             payload["squash"] = True
         elif method == "rebase":
             payload["merge_method"] = "rebase_merge"
-        elif method != "merge":
-            payload["merge_method"] = method
+        # method == "merge" はデフォルト動作（追加 payload なし）
         self._client.put(
             f"{self._project_path()}/merge_requests/{number}/merge",
             json=payload,
@@ -267,9 +269,10 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- Label ---
 
-    def list_labels(self) -> list[Label]:
+    def list_labels(self, *, limit: int = 30) -> list[Label]:
         results = paginate_page_param(
             self._client, f"{self._project_path()}/labels",
+            limit=limit,
         )
         return [self._to_label(r) for r in results]
 
@@ -285,9 +288,10 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- Milestone ---
 
-    def list_milestones(self) -> list[Milestone]:
+    def list_milestones(self, *, limit: int = 30) -> list[Milestone]:
         results = paginate_page_param(
             self._client, f"{self._project_path()}/milestones",
+            limit=limit,
         )
         return [self._to_milestone(r) for r in results]
 

@@ -13,6 +13,8 @@ from gfo.exceptions import (
 )
 from gfo.http import (
     HttpClient,
+    _extract_next_link,
+    _validate_same_origin,
     paginate_link_header,
     paginate_offset,
     paginate_page_param,
@@ -659,3 +661,77 @@ class TestPaginateTopSkip:
         c = HttpClient(BASE)
         result = paginate_top_skip(c, "/items", top=30, limit=10)
         assert result == []
+
+
+# ── _validate_same_origin ──
+
+
+class TestValidateSameOrigin:
+    def test_same_origin(self):
+        assert _validate_same_origin(
+            "https://api.example.com/v1/items",
+            "https://api.example.com/v1/items?page=2",
+        ) is True
+
+    def test_different_host_blocked(self):
+        assert _validate_same_origin(
+            "https://api.example.com/v1",
+            "https://api.evil.com/v1",
+        ) is False
+
+    def test_different_scheme_blocked(self):
+        assert _validate_same_origin(
+            "https://api.example.com/v1",
+            "http://api.example.com/v1",
+        ) is False
+
+    def test_different_port_blocked(self):
+        assert _validate_same_origin(
+            "https://api.example.com:8080/v1",
+            "https://api.example.com:9000/v1",
+        ) is False
+
+    def test_subdomain_blocked(self):
+        assert _validate_same_origin(
+            "https://api.example.com/v1",
+            "https://evil.example.com/v1",
+        ) is False
+
+    def test_implicit_vs_explicit_default_port(self):
+        """https://host と https://host:443 は同一オリジン。"""
+        assert _validate_same_origin(
+            "https://api.example.com/v1",
+            "https://api.example.com:443/v1",
+        ) is True
+
+    def test_http_default_port(self):
+        """http://host と http://host:80 は同一オリジン。"""
+        assert _validate_same_origin(
+            "http://api.example.com/v1",
+            "http://api.example.com:80/v1",
+        ) is True
+
+
+# ── _extract_next_link ──
+
+
+class TestExtractNextLink:
+    def test_basic(self):
+        link = '<https://api.example.com/items?page=2>; rel="next"'
+        assert _extract_next_link(link) == "https://api.example.com/items?page=2"
+
+    def test_with_prev(self):
+        link = '<https://api.example.com/items?page=1>; rel="prev", <https://api.example.com/items?page=3>; rel="next"'
+        assert _extract_next_link(link) == "https://api.example.com/items?page=3"
+
+    def test_param_order_variation(self):
+        """rel が URL の直後でなくても正しく抽出する（RFC 5988 順序非依存）。"""
+        link = '<https://api.example.com/items?page=2>; title="Page 2"; rel="next"'
+        assert _extract_next_link(link) == "https://api.example.com/items?page=2"
+
+    def test_no_next(self):
+        link = '<https://api.example.com/items?page=1>; rel="prev"'
+        assert _extract_next_link(link) is None
+
+    def test_empty_string(self):
+        assert _extract_next_link("") is None

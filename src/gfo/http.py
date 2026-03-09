@@ -176,7 +176,7 @@ class HttpClient:
             dt = email.utils.parsedate_to_datetime(value)
             diff = int((dt - datetime.now(timezone.utc)).total_seconds())
             return max(1, min(diff, _MAX_RETRY_AFTER))
-        except Exception:
+        except (ValueError, TypeError):
             return default
 
     @staticmethod
@@ -185,11 +185,31 @@ class HttpClient:
         return re.sub(r"apiKey=[^&]+", "apiKey=***", url)
 
 
+_DEFAULT_PORTS: dict[str, int] = {"http": 80, "https": 443}
+
+
+def _extract_next_link(link: str) -> str | None:
+    """RFC 5988 Link ヘッダーから rel=next の URL を抽出する。
+
+    `<url>; rel="next"` の形式に加え、パラメータの順序が異なる
+    `<url>; title="x"; rel="next"` のような形式にも対応する。
+    """
+    for entry in link.split(","):
+        url_match = re.match(r"\s*<([^>]+)>", entry)
+        if url_match and re.search(r';\s*rel\s*=\s*"?next"?', entry, re.IGNORECASE):
+            return url_match.group(1)
+    return None
+
+
 def _validate_same_origin(base_url: str, next_url: str) -> bool:
-    """next_url が base_url と同一オリジン（scheme + host）であることを検証する。"""
+    """next_url が base_url と同一オリジン（scheme + host + port）であることを検証する。"""
     base = urlparse(base_url)
     target = urlparse(next_url)
-    return base.scheme == target.scheme and base.hostname == target.hostname
+    base_port = base.port or _DEFAULT_PORTS.get(base.scheme)
+    target_port = target.port or _DEFAULT_PORTS.get(target.scheme)
+    return (base.scheme == target.scheme
+            and base.hostname == target.hostname
+            and base_port == target_port)
 
 
 def paginate_link_header(
@@ -226,10 +246,9 @@ def paginate_link_header(
             break
 
         link = resp.headers.get("Link", "")
-        match = re.search(r'<([^>]+)>;\s*rel="next"', link, re.IGNORECASE)
-        if not match:
+        next_url = _extract_next_link(link)
+        if not next_url:
             break
-        next_url = match.group(1)
         if not _validate_same_origin(client.base_url, next_url):
             break
 
