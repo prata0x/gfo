@@ -151,11 +151,17 @@ class BitbucketAdapter(GitServiceAdapter):
                     assignee: str | None = None,
                     label: str | None = None,
                     limit: int = 30) -> list[Issue]:
-        params: dict = {}
+        conditions: list[str] = []
         if state == "open":
-            params["q"] = '(state="new" OR state="open")'
+            conditions.append('(state="new" OR state="open")')
         elif state != "all":
-            params["q"] = f'state="{state}"'
+            conditions.append(f'state="{state}"')
+        if assignee is not None:
+            escaped = assignee.replace('"', '\\"')
+            conditions.append(f'assignee.nickname="{escaped}"')
+        params: dict = {}
+        if conditions:
+            params["q"] = " AND ".join(conditions)
         results = paginate_response_body(
             self._client, f"{self._repos_path()}/issues",
             params=params, limit=limit,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from urllib.parse import unquote
 
 import pytest
 import responses
@@ -292,6 +293,30 @@ class TestListIssues:
         assert len(issues) == 2
         req = mock_responses.calls[0].request
         assert "q=" not in req.url
+
+    def test_assignee_filter(self, mock_responses, bitbucket_adapter):
+        """assignee を指定すると q に assignee.nickname フィルタが追加される。"""
+        mock_responses.add(
+            responses.GET, f"{REPOS}/issues",
+            json={"values": [_issue_data()]}, status=200,
+        )
+        bitbucket_adapter.list_issues(state="open", assignee="alice")
+        req = mock_responses.calls[0].request
+        decoded_url = unquote(req.url)
+        assert 'assignee.nickname="alice"' in decoded_url
+        assert 'state="new"' in decoded_url
+
+    def test_assignee_filter_with_all_state(self, mock_responses, bitbucket_adapter):
+        """state='all' + assignee のとき state フィルタなしで assignee のみ含まれる。"""
+        mock_responses.add(
+            responses.GET, f"{REPOS}/issues",
+            json={"values": [_issue_data()]}, status=200,
+        )
+        bitbucket_adapter.list_issues(state="all", assignee="bob")
+        req = mock_responses.calls[0].request
+        decoded_url = unquote(req.url)
+        assert 'assignee.nickname="bob"' in decoded_url
+        assert 'state="' not in decoded_url
 
 
 class TestCreateIssue:
