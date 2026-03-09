@@ -361,3 +361,28 @@
 23. **[R2-14] `github.py` `state="all"` の仕様明確化** — `base.py` に有効な state 値のドキュメントを追加するかバリデーションを実装する。
 24. **[R2-21] `backlog.py` `url` フィールド確認** — Backlog API 仕様を確認して `Repository.url` に適切な Web UI URL を設定する。
 25. **[R2-25] `gitbucket.py` / `forgejo.py` 認証形式は問題なし** — `registry.py` で `gitbucket` は `Authorization: token {token}` 形式を使用しており、`spec.md` の仕様通りに正しく実装されている。対応不要。
+
+---
+
+## 修正記録 (2026-03-09)
+
+review-02 で修正済み: R2-08, R2-01, R2-11 はスキップ。残り 14 件を全て修正・コミット完了。
+
+| ID | 修正内容 | コミット |
+|----|---------|---------|
+| R2-02 | `bitbucket.py` `close_issue` の state 値を `"resolved"` に修正 | ed68f62 |
+| R2-03 | `azure_devops.py` PR state 辞書参照を `.get()` で KeyError 対策 | 2219b4a |
+| R2-05 | `gitlab.py` `_to_pull_request` に `"locked"` state マッピングを追加 | 19447d5 |
+| R2-07 | `gitea.py` `list_issues` に `type=issues` パラメータを追加 | d7de1b8 |
+| R2-04 | `backlog.py` `create_issue` で issue_type/priority が None のとき GfoError を raise | 2408124 |
+| R2-16 | `backlog.py` `_to_pull_request` の merged 判定を動的 status_id 参照に変更 | 583904d |
+| R2-15 | `backlog.py` `get_issue` を issueKey 形式 (`PROJECT_KEY-N`) で取得 | 9262448 |
+| R2-10 | `bitbucket.py` `_to_issue` の deleted user assignee で KeyError を防止 | 0e6a166 |
+| R2-09 | `gitlab.py` `_to_release` の `draft` を `False` 固定に修正 | f269d97 |
+| R2-18 | `gitlab.py` `merge_pull_request` の squash/rebase マッピングを GitLab API 仕様に修正 | ce01a14 |
+| R2-23 | `github.py`/`gitea.py` `list_labels`/`list_milestones` をページネーション対応 | 8f13b56 |
+| R2-24 | `gitlab.py` `create_label` の二重 `#` プレフィックス防止 | a0639c7 |
+| R2-22 | `gogs.py` `get_pr_checkout_refspec` を `NotSupportedError` でオーバーライド | c53f1d0 |
+| R2-12 | `azure_devops.py` WIQL クエリのシングルクォートをエスケープ | ce50256 |
+| R2-17 | `gitlab.py` `list_repositories` の URL 構築を params ベースに変更 | 1ed4ace |
+| R2-19 | `gitlab.py` `_to_issue` の冗長な no-op 代入を削除 | e380901 |
