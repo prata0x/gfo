@@ -109,7 +109,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def list_repositories(self, *, owner: str | None = None,
                           limit: int = 30) -> list[Repository]:
         if owner is not None:
-            path = f"/users/{owner}/repos"
+            path = f"/users/{quote(owner, safe='')}/repos"
         else:
             path = "/user/repos"
         results = paginate_link_header(self._client, path, limit=limit, per_page_key="limit")

@@ -113,7 +113,7 @@ def gogs_adapter(gogs_client):
 
 @pytest.fixture
 def gitbucket_client():
-    return HttpClient(GITBUCKET_BASE_URL, auth_header={"Authorization": "Bearer test-token"})
+    return HttpClient(GITBUCKET_BASE_URL, auth_header={"Authorization": "token test-token"})
 
 
 @pytest.fixture

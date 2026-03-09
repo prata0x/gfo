@@ -397,6 +397,15 @@ class TestListRepositories:
         repos = gitlab_adapter.list_repositories()
         assert len(repos) == 1
 
+    def test_owner_with_special_chars_is_encoded(self, mock_responses, gitlab_adapter):
+        """list_repositories(owner="...") で特殊文字が URL エンコードされる（R41-01）。"""
+        mock_responses.add(
+            responses.GET, f"{BASE}/users/org%2Fsub/projects",
+            json=[_repo_data()], status=200,
+        )
+        gitlab_adapter.list_repositories(owner="org/sub")
+        assert "%2F" in mock_responses.calls[0].request.url
+
 
 class TestCreateRepository:
     def test_create(self, mock_responses, gitlab_adapter):

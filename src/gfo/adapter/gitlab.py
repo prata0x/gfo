@@ -230,7 +230,7 @@ class GitLabAdapter(GitServiceAdapter):
     def list_repositories(self, *, owner: str | None = None,
                           limit: int = 30) -> list[Repository]:
         if owner is not None:
-            path = f"/users/{owner}/projects"
+            path = f"/users/{quote(owner, safe='')}/projects"
             params: dict = {}
         else:
             path = "/projects"

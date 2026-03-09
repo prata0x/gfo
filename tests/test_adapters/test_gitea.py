@@ -364,6 +364,15 @@ class TestListRepositories:
         repos = gitea_adapter.list_repositories()
         assert len(repos) == 1
 
+    def test_owner_with_special_chars_is_encoded(self, mock_responses, gitea_adapter):
+        """list_repositories(owner="...") で特殊文字が URL エンコードされる（R41-01）。"""
+        mock_responses.add(
+            responses.GET, f"{BASE}/users/org%2Fsub/repos",
+            json=[_repo_data()], status=200,
+        )
+        gitea_adapter.list_repositories(owner="org/sub")
+        assert "%2F" in mock_responses.calls[0].request.url
+
     def test_pagination_uses_limit_param(self, mock_responses, gitea_adapter):
         mock_responses.add(
             responses.GET, f"{BASE}/user/repos",
