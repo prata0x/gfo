@@ -215,6 +215,19 @@ class TestDetectFromUrl:
         with pytest.raises(DetectionError):
             detect_from_url("not-a-url")
 
+    def test_unknown_host_unparseable_path_masks_apikey(self):
+        """未知ホスト + apiKey を含むパース不可パスで DetectionError メッセージが apiKey をマスクする（R38-01）。"""
+        # _GENERIC_PATH_RE は "/" が必要なため "items" 単体ではマッチしない → L196 が発火
+        # 事前修正なしだと apiKey=secret がそのままエラーメッセージに含まれていた
+        with pytest.raises(DetectionError) as exc_info:
+            detect_from_url("https://git.example.com/items%3FapiKey%3Dsecret")
+        assert "apiKey=secret" not in str(exc_info.value)
+
+    def test_unknown_host_unparseable_path_error_message(self):
+        """未知ホスト + パース不可パスで DetectionError が 'Cannot parse path' を含む（R38-01）。"""
+        with pytest.raises(DetectionError, match="Cannot parse path"):
+            detect_from_url("https://git.example.com/singlepart")
+
 
 # ── API プローブテスト ──
 

@@ -127,4 +127,5 @@ def git_clone(url: str, dest: str | None = None, cwd: str | None = None) -> None
     except subprocess.TimeoutExpired as e:
         raise GitCommandError(f"git clone timed out after {_CLONE_TIMEOUT}s") from e
     if result.returncode != 0:
-        raise GitCommandError(_mask_credentials(result.stderr.strip()))
+        raw = result.stderr.strip() or result.stdout.strip() or f"exited with code {result.returncode}"
+        raise GitCommandError(_mask_credentials(raw))

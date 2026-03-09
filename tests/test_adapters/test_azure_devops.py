@@ -415,9 +415,9 @@ class TestListIssues:
         )
         issues = azure_devops_adapter.list_issues(limit=0)
         assert len(issues) == 3
-        # limit=0 の場合 $top パラメータを渡さない
+        # limit=0（全件取得）の場合 $top=20000 を渡す（R38-02）
         qs = parse_qs(urlparse(mock_responses.calls[0].request.url).query)
-        assert "$top" not in qs
+        assert qs.get("$top") == ["20000"]
 
 
 class TestCreateIssue:

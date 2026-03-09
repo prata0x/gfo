@@ -275,3 +275,17 @@ class TestGitClone:
         mock_run.side_effect = subprocess.TimeoutExpired(cmd=["git", "clone"], timeout=600)
         with pytest.raises(GitCommandError, match="timed out"):
             git_util.git_clone("https://github.com/user/repo.git")
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_clone_empty_stderr_uses_stdout(self, mock_run):
+        """git clone 失敗で stderr が空のとき stdout をエラーメッセージに使う（R38-04）。"""
+        mock_run.return_value = _mock_result(stdout="fatal: repo not found", stderr="", returncode=1)
+        with pytest.raises(GitCommandError, match="fatal: repo not found"):
+            git_util.git_clone("https://github.com/user/repo.git")
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_clone_both_empty_uses_returncode(self, mock_run):
+        """git clone 失敗で stderr も stdout も空のとき returncode をエラーメッセージに使う（R38-04）。"""
+        mock_run.return_value = _mock_result(stdout="", stderr="", returncode=128)
+        with pytest.raises(GitCommandError, match="exited with code 128"):
+            git_util.git_clone("https://github.com/user/repo.git")

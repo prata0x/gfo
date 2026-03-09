@@ -99,7 +99,7 @@ class BacklogAdapter(GitServiceAdapter):
             issue_key = data.get("issueKey")
             try:
                 number = int(issue_key.split("-")[-1]) if isinstance(issue_key, str) else data["id"]
-            except (ValueError, AttributeError):
+            except ValueError:
                 number = data["id"]
 
             return Issue(
@@ -127,7 +127,7 @@ class BacklogAdapter(GitServiceAdapter):
                 private=True,
                 default_branch=None,
                 clone_url=data.get("httpUrl", ""),
-                url=data.get("httpUrl", ""),
+                url=data.get("httpUrl", "").removesuffix(".git"),
             )
         except (KeyError, TypeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e

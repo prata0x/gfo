@@ -196,7 +196,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             conditions.append(f"[System.Tags] CONTAINS '{_wiql_escape(label)}'")
 
         wiql = "SELECT [System.Id] FROM WorkItems WHERE " + " AND ".join(conditions)
-        wiql_params = {"$top": limit} if limit > 0 else {}
+        wiql_params = {"$top": limit} if limit > 0 else {"$top": 20000}
         wiql_resp = self._client.post(
             f"{self._wit_path()}/wiql",
             json={"query": wiql},

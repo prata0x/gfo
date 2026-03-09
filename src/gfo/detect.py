@@ -193,7 +193,7 @@ def detect_from_url(remote_url: str) -> DetectResult:
             owner=m.group("owner"),
             repo=m.group("repo"),
         )
-    raise DetectionError(f"Cannot parse path: {path}")
+    raise DetectionError(f"Cannot parse path: {_mask_credentials(path)}")
 
 
 # ── API プローブ ──
@@ -201,8 +201,6 @@ def detect_from_url(remote_url: str) -> DetectResult:
 
 def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
     """未知ホストに対して API プローブを実行し、サービス種別を返す。"""
-    import requests
-
     base = f"{scheme}://{host}"
 
     # 1. Gitea/Forgejo/Gogs (v1)
