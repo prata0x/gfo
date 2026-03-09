@@ -510,6 +510,16 @@ class TestCreateLabel:
         assert "color" not in req_body
         assert "description" not in req_body
 
+    def test_create_with_description(self, mock_responses, gitea_adapter):
+        """description を渡すとペイロードに含まれる。"""
+        mock_responses.add(
+            responses.POST, f"{REPOS}/labels",
+            json=_label_data(), status=201,
+        )
+        gitea_adapter.create_label(name="bug", color="d73a4a", description="Bug report")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["description"] == "Bug report"
+
 
 # --- Milestone 系 ---
 
@@ -561,6 +571,16 @@ class TestCreateMilestone:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert "description" not in req_body
         assert "due_on" not in req_body
+
+    def test_create_with_description(self, mock_responses, gitea_adapter):
+        """description を渡すとペイロードに含まれる。"""
+        mock_responses.add(
+            responses.POST, f"{REPOS}/milestones",
+            json=_milestone_data(), status=201,
+        )
+        gitea_adapter.create_milestone(title="v1.0", description="First release")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["description"] == "First release"
 
 
 # --- Registry ---
