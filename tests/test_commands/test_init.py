@@ -94,6 +94,22 @@ class TestHandleInteractive:
         assert saved.service_type == "github"
         assert saved.host == "github.com"
 
+    def test_detect_service_git_command_error_falls_back_to_manual(self):
+        """detect_service が GitCommandError を送出した場合も手動入力にフォールバックする（R32修正確認）。"""
+        args = make_args(non_interactive=False)
+        inputs = iter(["github", "github.com", "", ""])
+
+        with patch("gfo.commands.init.detect_service", side_effect=GitCommandError("no remote 'origin'")), \
+             patch("gfo.commands.init.get_remote_url", return_value="https://github.com/owner/repo.git"), \
+             patch("gfo.commands.init.save_project_config") as mock_save, \
+             patch("builtins.input", side_effect=inputs):
+            init_cmd.handle(args, fmt="table")
+
+        mock_save.assert_called_once()
+        saved: ProjectConfig = mock_save.call_args[0][0]
+        assert saved.service_type == "github"
+        assert saved.host == "github.com"
+
     def test_detect_failure_manual_no_remote_url(self):
         """手動入力時に get_remote_url が失敗 → owner/repo は空文字。"""
         args = make_args(non_interactive=False)

@@ -86,7 +86,7 @@ def _handle_interactive(args: argparse.Namespace) -> None:
         answer = input("Is this correct? [Y/n]: ").strip().lower()
         if answer in ("n", "no"):
             detect_result = None
-    except DetectionError:
+    except (DetectionError, GitCommandError):
         print("Could not auto-detect service. Please enter manually.")
 
     if detect_result is not None:
