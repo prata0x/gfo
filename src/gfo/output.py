@@ -24,6 +24,11 @@ def _pad_right(val: str, width: int) -> str:
     return val + " " * max(0, width - w)
 
 
+def _field_str(val: Any) -> str:
+    """フィールド値を文字列化する。None は空文字列に変換する。"""
+    return "" if val is None else str(val)
+
+
 def _sanitize_for_table(val: str) -> str:
     """テーブル表示用に改行・タブをエスケープする。"""
     return val.replace("\n", "\\n").replace("\r", "\\r").replace("\t", " ")
@@ -68,7 +73,7 @@ def format_table(items: list, fields: list[str]) -> str:
     rows: list[list[str]] = []
     for item in items:
         d = dataclasses.asdict(item)
-        rows.append([_sanitize_for_table(str(d.get(f, ""))) for f in fields])
+        rows.append([_sanitize_for_table(_field_str(d.get(f))) for f in fields])
 
     widths = [_display_width(h) for h in headers]
     for row in rows:
@@ -99,5 +104,5 @@ def format_plain(items: list, fields: list[str]) -> str:
     lines: list[str] = []
     for item in items:
         d = dataclasses.asdict(item)
-        lines.append("\t".join(_sanitize_for_plain(str(d.get(f, ""))) for f in fields))
+        lines.append("\t".join(_sanitize_for_plain(_field_str(d.get(f))) for f in fields))
     return "\n".join(lines)

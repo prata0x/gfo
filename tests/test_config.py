@@ -211,8 +211,8 @@ def test_build_azure_devops_missing_org():
 
 
 def test_build_azure_devops_missing_project():
-    """organization あり・project なしの場合も ConfigError。"""
-    with pytest.raises(ConfigError, match="organization"):
+    """organization あり・project なしの場合は "project" を含む ConfigError（R35-02）。"""
+    with pytest.raises(ConfigError, match="project"):
         build_default_api_url("azure-devops", "dev.azure.com", organization="myorg")
 
 

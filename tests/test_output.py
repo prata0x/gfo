@@ -156,6 +156,19 @@ class TestFormatJson:
         item = parsed[0] if isinstance(parsed, list) else parsed
         assert item["value"] is None
 
+    def test_none_field_shown_as_empty_in_table(self):
+        """None フィールドはテーブル形式で空文字列として出力される（"None" にならない）（R35-03）。"""
+        @dataclass(frozen=True)
+        class WithNone:
+            name: str
+            value: str | None
+
+        result = format_table([WithNone("test", None)], ["name", "value"])
+        assert "None" not in result
+        # value 列は空
+        data_line = result.split("\n")[2]
+        assert "test" in data_line
+
 
 class TestFormatPlain:
     def test_tab_separated(self):
@@ -174,6 +187,17 @@ class TestFormatPlain:
         fields = result.split("\t")
         assert len(fields) == 2  # 区切りの \t のみ、値内の \t はエスケープ済み
         assert "\\t" in fields[1]
+
+    def test_none_field_shown_as_empty_in_plain(self):
+        """None フィールドはプレーン形式で空文字列として出力される（"None" にならない）（R35-03）。"""
+        @dataclass(frozen=True)
+        class WithNone:
+            name: str
+            value: str | None
+
+        result = format_plain([WithNone("test", None)], ["name", "value"])
+        assert result == "test\t"
+        assert "None" not in result
 
     def test_no_header(self):
         result = format_plain(

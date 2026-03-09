@@ -113,13 +113,16 @@ def save_token(host: str, token: str) -> None:
 def load_tokens() -> dict[str, str]:
     """credentials.toml の [tokens] セクションを dict で返す。"""
     path = get_credentials_path()
-    if not path.exists():
+    try:
+        with open(path, "rb") as f:
+            try:
+                data = tomllib.load(f)
+            except tomllib.TOMLDecodeError as e:
+                raise ConfigError(f"Failed to parse credentials file {path}: {e}") from e
+    except FileNotFoundError:
         return {}
-    with open(path, "rb") as f:
-        try:
-            data = tomllib.load(f)
-        except tomllib.TOMLDecodeError as e:
-            raise ConfigError(f"Failed to parse credentials file {path}: {e}") from e
+    except OSError as e:
+        raise ConfigError(f"Failed to read credentials file {path}: {e}") from e
     return data.get("tokens", {})
 
 

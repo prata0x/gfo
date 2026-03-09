@@ -237,9 +237,13 @@ def build_default_api_url(
     if service_type == "bitbucket":
         return "https://api.bitbucket.org/2.0"
     if service_type == "azure-devops":
-        if not organization or not project:
+        if not organization:
             raise ConfigError(
-                "Azure DevOps requires organization and project_key."
+                "Azure DevOps requires organization."
+            )
+        if not project:
+            raise ConfigError(
+                "Azure DevOps requires project."
             )
         return f"https://dev.azure.com/{organization}/{project}/_apis"
     if service_type in ("gitea", "forgejo", "gogs"):

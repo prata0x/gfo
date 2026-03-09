@@ -15,7 +15,7 @@ from gfo.auth import (
     resolve_token,
     save_token,
 )
-from gfo.exceptions import AuthError
+from gfo.exceptions import AuthError, ConfigError
 
 
 # ── resolve_token ──
@@ -200,6 +200,19 @@ def test_load_tokens_no_file(tmp_path, monkeypatch):
     monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
 
     assert load_tokens() == {}
+
+
+def test_load_tokens_permission_error(tmp_path, monkeypatch):
+    """PermissionError → ConfigError（R35-01）。"""
+    creds = tmp_path / "credentials.toml"
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+
+    def _raise(*args, **kwargs):
+        raise PermissionError("Permission denied")
+
+    monkeypatch.setattr("builtins.open", _raise)
+    with pytest.raises(ConfigError, match="Failed to read credentials file"):
+        load_tokens()
 
 
 def test_load_tokens_success(tmp_path, monkeypatch):
