@@ -152,8 +152,8 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- Label ---
 
-    def list_labels(self) -> list[Label]:
-        results = paginate_link_header(self._client, f"{self._repos_path()}/labels")
+    def list_labels(self, *, limit: int = 0) -> list[Label]:
+        results = paginate_link_header(self._client, f"{self._repos_path()}/labels", limit=limit)
         return [self._to_label(r) for r in results]
 
     def create_label(self, *, name: str, color: str | None = None,
@@ -168,8 +168,8 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- Milestone ---
 
-    def list_milestones(self) -> list[Milestone]:
-        results = paginate_link_header(self._client, f"{self._repos_path()}/milestones")
+    def list_milestones(self, *, limit: int = 0) -> list[Milestone]:
+        results = paginate_link_header(self._client, f"{self._repos_path()}/milestones", limit=limit)
         return [self._to_milestone(r) for r in results]
 
     def create_milestone(self, *, title: str,

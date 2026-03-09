@@ -52,7 +52,7 @@ class GogsAdapter(GiteaAdapter):
 
     # --- Label（非サポート）---
 
-    def list_labels(self) -> list[Label]:
+    def list_labels(self, *, limit: int = 0) -> list[Label]:
         raise NotSupportedError("Gogs", "label operations")
 
     def create_label(self, *, name: str, color: str | None = None,
@@ -61,7 +61,7 @@ class GogsAdapter(GiteaAdapter):
 
     # --- Milestone（非サポート）---
 
-    def list_milestones(self) -> list[Milestone]:
+    def list_milestones(self, *, limit: int = 0) -> list[Milestone]:
         raise NotSupportedError("Gogs", "milestone operations")
 
     def create_milestone(self, *, title: str, description: str | None = None,

@@ -212,14 +212,14 @@ class BitbucketAdapter(GitServiceAdapter):
                        prerelease: bool = False) -> Release:
         raise NotSupportedError(self.service_name, "releases")
 
-    def list_labels(self) -> list[Label]:
+    def list_labels(self, *, limit: int = 0) -> list[Label]:
         raise NotSupportedError(self.service_name, "labels")
 
     def create_label(self, *, name: str, color: str | None = None,
                      description: str | None = None) -> Label:
         raise NotSupportedError(self.service_name, "labels")
 
-    def list_milestones(self) -> list[Milestone]:
+    def list_milestones(self, *, limit: int = 0) -> list[Milestone]:
         raise NotSupportedError(self.service_name, "milestones")
 
     def create_milestone(self, *, title: str,

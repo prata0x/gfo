@@ -26,6 +26,22 @@ class TestPullRequest:
         assert pr.title == "feat: add login"
         assert pr.updated_at is None
 
+    def test_updated_at_defaults_to_none(self):
+        """updated_at を省略すると None になる（Issue との一貫性、R36-02）。"""
+        pr = PullRequest(
+            number=2,
+            title="fix: bug",
+            body=None,
+            state="open",
+            author="bob",
+            source_branch="fix/bug",
+            target_branch="main",
+            draft=False,
+            url="https://example.com/pr/2",
+            created_at="2026-01-02T00:00:00Z",
+        )
+        assert pr.updated_at is None
+
     def test_frozen(self):
         pr = PullRequest(
             number=1,

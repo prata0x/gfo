@@ -18,7 +18,7 @@ class PullRequest:
     draft: bool
     url: str
     created_at: str     # ISO 8601
-    updated_at: str | None
+    updated_at: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -268,7 +268,7 @@ class GitServiceAdapter(ABC):
 
     # --- Label ---
     @abstractmethod
-    def list_labels(self) -> list[Label]: ...
+    def list_labels(self, *, limit: int = 0) -> list[Label]: ...
 
     @abstractmethod
     def create_label(self, *, name: str, color: str | None = None,
@@ -276,7 +276,7 @@ class GitServiceAdapter(ABC):
 
     # --- Milestone ---
     @abstractmethod
-    def list_milestones(self) -> list[Milestone]: ...
+    def list_milestones(self, *, limit: int = 0) -> list[Milestone]: ...
 
     @abstractmethod
     def create_milestone(self, *, title: str,
