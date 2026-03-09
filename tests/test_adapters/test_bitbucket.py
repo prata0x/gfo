@@ -382,6 +382,17 @@ class TestListIssues:
         decoded_url = unquote(req.url)
         assert 'component.name="bug"' in decoded_url
 
+    def test_custom_state_filter(self, mock_responses, bitbucket_adapter):
+        """'open'/'closed'/'all' 以外の state を直接指定すると state="{state}" フィルタが追加される。"""
+        mock_responses.add(
+            responses.GET, f"{REPOS}/issues",
+            json={"values": [_issue_data(state="resolved")]}, status=200,
+        )
+        bitbucket_adapter.list_issues(state="resolved")
+        req = mock_responses.calls[0].request
+        decoded_url = unquote(req.url)
+        assert 'state="resolved"' in decoded_url
+
 
 class TestCreateIssue:
     def test_create(self, mock_responses, bitbucket_adapter):
