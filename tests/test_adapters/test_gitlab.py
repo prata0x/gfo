@@ -220,6 +220,18 @@ class TestListPullRequests:
         assert len(mock_responses.calls) == 1  # 2 ページ目へのリクエストなし
 
 
+    def test_all_state_omits_filter(self, mock_responses, gitlab_adapter):
+        """state='all' のとき state パラメータを送らない（GitLab API は 'all' を受け付けない）。"""
+        mock_responses.add(
+            responses.GET, f"{PROJECT}/merge_requests",
+            json=[_mr_data(iid=1), _mr_data(iid=2, state="merged")], status=200,
+        )
+        prs = gitlab_adapter.list_pull_requests(state="all")
+        assert len(prs) == 2
+        req = mock_responses.calls[0].request
+        assert "state=" not in req.url
+
+
 class TestCreatePullRequest:
     def test_create(self, mock_responses, gitlab_adapter):
         mock_responses.add(
@@ -330,6 +342,18 @@ class TestListIssues:
         req = mock_responses.calls[0].request
         assert "assignee_username=dev1" in req.url
         assert "labels=bug" in req.url
+
+
+    def test_all_state_omits_filter(self, mock_responses, gitlab_adapter):
+        """state='all' のとき state パラメータを送らない（GitLab API は 'all' を受け付けない）。"""
+        mock_responses.add(
+            responses.GET, f"{PROJECT}/issues",
+            json=[_issue_data(iid=1), _issue_data(iid=2)], status=200,
+        )
+        issues = gitlab_adapter.list_issues(state="all")
+        assert len(issues) == 2
+        req = mock_responses.calls[0].request
+        assert "state=" not in req.url
 
 
 class TestCreateIssue:
