@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from urllib.parse import unquote
+from urllib.parse import unquote, unquote_plus
 
 import pytest
 import responses
@@ -306,16 +306,19 @@ class TestListIssues:
 
 
     def test_closed_state_filter(self, mock_responses, bitbucket_adapter):
-        """state='closed' のとき q に state フィルタが追加される。"""
+        """state='closed' のとき q に resolved 等の全非 open 状態を包含するフィルタが追加される。"""
         mock_responses.add(
             responses.GET, f"{REPOS}/issues",
-            json={"values": [_issue_data(state="closed")]}, status=200,
+            json={"values": [_issue_data(state="resolved")]}, status=200,
         )
         issues = bitbucket_adapter.list_issues(state="closed")
         assert len(issues) == 1
         req = mock_responses.calls[0].request
-        decoded_url = unquote(req.url)
-        assert 'state="closed"' in decoded_url
+        # unquote_plus: クエリ文字列の + をスペースに戻して比較する
+        decoded_url = unquote_plus(req.url)
+        # close_issue が state="resolved" を使うため、resolved も含む NOT IN open 形式で問い合わせる
+        assert 'state != "new"' in decoded_url
+        assert 'state != "open"' in decoded_url
 
     def test_all_state_omits_filter(self, mock_responses, bitbucket_adapter):
         """state='all' のとき q フィルタを送らない（'all' は Bitbucket の有効な state 値ではない）。"""

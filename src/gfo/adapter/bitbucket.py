@@ -166,6 +166,10 @@ class BitbucketAdapter(GitServiceAdapter):
         conditions: list[str] = []
         if state == "open":
             conditions.append('(state="new" OR state="open")')
+        elif state == "closed":
+            # Bitbucket のクローズ相当の全状態を包含する
+            # （resolved / on hold / invalid / duplicate / wontfix / closed）
+            conditions.append('(state != "new" AND state != "open")')
         elif state != "all":
             conditions.append(f'state="{state}"')
         if assignee is not None:
