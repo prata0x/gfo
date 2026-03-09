@@ -125,7 +125,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
                        name: str | None = None) -> Repository:
         o = owner if owner is not None else self._owner
         n = name if name is not None else self._repo
-        resp = self._client.get(f"/repos/{o}/{n}")
+        resp = self._client.get(f"/repos/{quote(o, safe='')}/{quote(n, safe='')}")
         return self._to_repository(resp.json())
 
     # --- Release ---

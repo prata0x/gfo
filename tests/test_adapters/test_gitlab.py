@@ -467,6 +467,24 @@ class TestListLabels:
         labels = gitlab_adapter.list_labels()
         assert len(labels) == 2
 
+    def test_list_fetches_all_pages(self, mock_responses, gitlab_adapter):
+        """list_labels は limit=0 で全ページを取得する（30 件上限なし）。"""
+        # 1 ページ目: 20 件 + X-Next-Page: 2
+        mock_responses.add(
+            responses.GET, f"{PROJECT}/labels",
+            json=[_label_data(name=f"label-{i}") for i in range(20)],
+            headers={"X-Next-Page": "2"},
+            status=200,
+        )
+        # 2 ページ目: 1 件 + X-Next-Page なし（最終ページ）
+        mock_responses.add(
+            responses.GET, f"{PROJECT}/labels",
+            json=[_label_data(name="last-label")],
+            status=200,
+        )
+        labels = gitlab_adapter.list_labels()
+        assert len(labels) == 21
+
 
 class TestCreateLabel:
     def test_create(self, mock_responses, gitlab_adapter):
@@ -502,6 +520,22 @@ class TestListMilestones:
         milestones = gitlab_adapter.list_milestones()
         assert len(milestones) == 1
         assert milestones[0].title == "v1.0"
+
+    def test_list_fetches_all_pages(self, mock_responses, gitlab_adapter):
+        """list_milestones は limit=0 で全ページを取得する（30 件上限なし）。"""
+        mock_responses.add(
+            responses.GET, f"{PROJECT}/milestones",
+            json=[_milestone_data() for _ in range(20)],
+            headers={"X-Next-Page": "2"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET, f"{PROJECT}/milestones",
+            json=[_milestone_data()],
+            status=200,
+        )
+        milestones = gitlab_adapter.list_milestones()
+        assert len(milestones) == 21
 
 
 class TestCreateMilestone:

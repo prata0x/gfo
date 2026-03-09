@@ -382,6 +382,16 @@ class TestGetRepository:
         repo = github_adapter.get_repository()
         assert repo.full_name == "test-owner/test-repo"
 
+    def test_get_owner_with_special_chars_is_encoded(self, mock_responses, github_adapter):
+        """owner に特殊文字が含まれる場合、URL エンコードされてリクエストされる。"""
+        mock_responses.add(
+            responses.GET, f"{BASE}/repos/org%2Fsub/repo",
+            json=_repo_data(name="repo", full_name="org/sub/repo"),
+            status=200,
+        )
+        github_adapter.get_repository(owner="org/sub", name="repo")
+        assert "%2F" in mock_responses.calls[0].request.url
+
 
 # --- Release 系 ---
 

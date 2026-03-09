@@ -274,7 +274,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- Label ---
 
-    def list_labels(self, *, limit: int = 30) -> list[Label]:
+    def list_labels(self, *, limit: int = 0) -> list[Label]:
         results = paginate_page_param(
             self._client, f"{self._project_path()}/labels",
             limit=limit,
@@ -293,7 +293,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- Milestone ---
 
-    def list_milestones(self, *, limit: int = 30) -> list[Milestone]:
+    def list_milestones(self, *, limit: int = 0) -> list[Milestone]:
         results = paginate_page_param(
             self._client, f"{self._project_path()}/milestones",
             limit=limit,

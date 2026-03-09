@@ -285,6 +285,47 @@ class TestRateLimit:
             c.get("/x")
 
 
+# ── _parse_retry_after ──
+
+
+class TestParseRetryAfter:
+    def test_integer_seconds(self):
+        assert HttpClient._parse_retry_after("30") == 30
+
+    def test_zero_clamps_to_one(self):
+        assert HttpClient._parse_retry_after("0") == 1
+
+    def test_negative_clamps_to_one(self):
+        assert HttpClient._parse_retry_after("-5") == 1
+
+    def test_none_returns_default(self):
+        assert HttpClient._parse_retry_after(None) == 60
+        assert HttpClient._parse_retry_after(None, default=10) == 10
+
+    def test_invalid_string_returns_default(self):
+        assert HttpClient._parse_retry_after("invalid") == 60
+
+    def test_http_date_future(self, monkeypatch):
+        """HTTP-date 形式（未来の日時）が秒数に変換される。"""
+        from datetime import datetime, timezone
+        future = datetime(2099, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        monkeypatch.setattr(
+            "gfo.http.datetime",
+            type("_MockDatetime", (), {"now": staticmethod(lambda tz=None: future - __import__("datetime").timedelta(seconds=120))})(),
+        )
+        # HTTP-date で 120 秒後を指定
+        import email.utils
+        date_str = email.utils.format_datetime(future)
+        result = HttpClient._parse_retry_after(date_str)
+        assert result == 120
+
+    def test_http_date_past_clamps_to_one(self):
+        """HTTP-date が過去の日時を示す場合は 1 秒にクランプされる。"""
+        # 過去の日時を指定
+        past_date = "Mon, 01 Jan 2000 00:00:00 GMT"
+        assert HttpClient._parse_retry_after(past_date) == 1
+
+
 # ── _mask_api_key ──
 
 
