@@ -115,7 +115,8 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
     saved_type = gfo.git_util.git_config_get("gfo.type", cwd=cwd)
     saved_host = gfo.git_util.git_config_get("gfo.host", cwd=cwd)
 
-    # 3. いずれも未設定なら detect_service() で自動検出
+    # 3. git config で両方設定済みの場合は remote URL から owner/repo を検出
+    #    いずれか未設定なら detect_service() で自動検出（else ブロック）
     if saved_type and saved_host:
         # remote URL が存在しない環境でも失敗しないよう任意解析にする
         try:
