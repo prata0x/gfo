@@ -146,9 +146,8 @@ class BitbucketAdapter(GitServiceAdapter):
         )
 
     def close_pull_request(self, number: int) -> None:
-        self._client.put(
-            f"{self._repos_path()}/pullrequests/{number}",
-            json={"state": "DECLINED"},
+        self._client.post(
+            f"{self._repos_path()}/pullrequests/{number}/decline",
         )
 
     def get_pr_checkout_refspec(self, number: int, *,

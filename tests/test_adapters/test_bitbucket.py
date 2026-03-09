@@ -287,13 +287,14 @@ class TestMergePullRequest:
 
 class TestClosePullRequest:
     def test_close(self, mock_responses, bitbucket_adapter):
+        """close_pull_request は POST .../decline エンドポイントを使用する（R34修正確認）。"""
         mock_responses.add(
-            responses.PUT, f"{REPOS}/pullrequests/1",
+            responses.POST, f"{REPOS}/pullrequests/1/decline",
             json=_pr_data(state="DECLINED"), status=200,
         )
         bitbucket_adapter.close_pull_request(1)
-        req_body = json.loads(mock_responses.calls[0].request.body)
-        assert req_body["state"] == "DECLINED"
+        assert mock_responses.calls[0].request.method == "POST"
+        assert "/decline" in mock_responses.calls[0].request.url
 
 
 class TestCheckoutRefspec:
