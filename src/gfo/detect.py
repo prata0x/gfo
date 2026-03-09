@@ -144,7 +144,7 @@ def detect_from_url(remote_url: str) -> DetectResult:
         raise DetectionError(f"Cannot parse Backlog path: {_mask_credentials(path)}")
 
     # 既知ホストテーブル照合
-    service_type = _KNOWN_HOSTS.get(host)
+    service_type = _KNOWN_HOSTS.get(host.lower())
 
     # *.visualstudio.com → azure-devops
     if service_type is None and host.endswith(".visualstudio.com"):

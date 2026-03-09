@@ -161,6 +161,14 @@ def test_get_host_config_not_found():
         assert get_host_config("unknown.com") is None
 
 
+def test_get_host_config_uppercase_host_normalized():
+    """大文字ホストで検索しても小文字キーの設定が見つかる。"""
+    cfg = {"hosts": {"gitlab.example.com": {"type": "gitlab"}}}
+    with patch("gfo.config.load_user_config", return_value=cfg):
+        result = get_host_config("GITLAB.EXAMPLE.COM")
+        assert result == {"type": "gitlab"}
+
+
 # ── get_hosts_config ──
 
 

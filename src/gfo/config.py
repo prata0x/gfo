@@ -81,7 +81,7 @@ def get_host_config(host: str) -> dict | None:
     """config.toml の hosts.{host} セクションを返す。未設定なら None。"""
     cfg = load_user_config()
     hosts = cfg.get("hosts", {})
-    return hosts.get(host)
+    return hosts.get(host.lower()) or hosts.get(host)
 
 
 def get_hosts_config() -> dict[str, str]:
@@ -94,7 +94,7 @@ def get_hosts_config() -> dict[str, str]:
     result: dict[str, str] = {}
     for host_name, host_cfg in hosts.items():
         if isinstance(host_cfg, dict) and isinstance(host_cfg.get("type"), str):
-            result[host_name] = host_cfg["type"]
+            result[host_name.lower()] = host_cfg["type"]
     return result
 
 

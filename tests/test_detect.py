@@ -14,6 +14,17 @@ from gfo.exceptions import DetectionError
 
 class TestDetectFromUrl:
     # GitHub
+    def test_github_https_uppercase_host(self):
+        """URL のホスト名が大文字でも既知サービスとして検出される。"""
+        r = detect_from_url("https://GITHUB.COM/owner/repo.git")
+        assert r.service_type == "github"
+        assert r.owner == "owner"
+
+    def test_gitlab_https_uppercase_host(self):
+        """GitLab 大文字ホストでも検出される。"""
+        r = detect_from_url("https://GITLAB.COM/owner/repo.git")
+        assert r.service_type == "gitlab"
+
     def test_github_https(self):
         r = detect_from_url("https://github.com/owner/repo.git")
         assert r.service_type == "github"
