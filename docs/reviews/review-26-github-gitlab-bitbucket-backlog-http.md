@@ -112,22 +112,30 @@
 
 ## 全問題サマリー（R26）
 
-| ID | 重大度 | ファイル | 概要 |
-|----|--------|---------|------|
-| **R26-01** | 🔴 重大 | `gitlab.py` L165 | `merge_pull_request` の `method="rebase"` が誤った API エンドポイント |
-| **R26-02** | 🟡 中 | `bitbucket.py` L63 | `_to_issue` assignee nickname 空文字問題 |
-| **R26-03** | 🟡 中 | `test_gitlab.py` | `test_merge` のリクエストボディ検証不足 |
-| **R26-04** | 🟢 軽微 | `http.py` | 非 JSON break が無言（R25-03 設計上の選択） |
-| **R26-05** | 🟢 軽微 | `bitbucket.py` | `list_issues` state バリデーションなし |
-| **R26-06** | 🟢 軽微 | `test_github.py` | Link ヘッダーに `per_page` なし |
-| **R26-07** | 🟢 軽微 | `backlog.py` | `_to_issue` エラーメッセージのコンテキスト不足 |
-| **R26-08** | 🟢 軽微 | `test_gitlab.py` | `merge_pull_request` rebase テストなし |
+| ID | 重大度 | ファイル | 概要 | 状態 |
+|----|--------|---------|------|------|
+| **R26-01** | 🔴 重大 | `gitlab.py` L165 | `merge_pull_request` の `method="rebase"` が誤った API エンドポイント | ✅ 修正済み |
+| **R26-02** | 🟡 中 | `bitbucket.py` L63 | `_to_issue` assignee nickname 空文字問題 | ✅ 修正済み |
+| **R26-03** | 🟡 中 | `test_gitlab.py` | `test_merge` のリクエストボディ検証不足 | ✅ 修正済み |
+| **R26-04** | 🟢 軽微 | `http.py` | 非 JSON break が無言（R25-03 設計上の選択） | 許容 |
+| **R26-05** | 🟢 軽微 | `bitbucket.py` | `list_issues` state バリデーションなし | 保留 |
+| **R26-06** | 🟢 軽微 | `test_github.py` | Link ヘッダーに `per_page` なし | 保留 |
+| **R26-07** | 🟢 軽微 | `backlog.py` | `_to_issue` エラーメッセージのコンテキスト不足 | 保留 |
+| **R26-08** | 🟢 軽微 | `test_gitlab.py` | `merge_pull_request` rebase テストなし | ✅ 修正済み |
+
+---
+
+## 修正コミット（R26）
+
+| コミット | 修正内容 |
+|---------|---------|
+| `8a0b973` | R26-01/02/03/08 — gitlab rebase エンドポイント修正・bitbucket assignee 空文字修正・テスト追加 |
 
 ---
 
 ## 推奨アクション（優先度順）
 
-1. **[R26-01]** `gitlab.py` — `method="rebase"` を `/rebase` エンドポイントに修正
-2. **[R26-02]** `bitbucket.py` — assignee nickname 空文字チェックを追加
-3. **[R26-03/08]** `test_gitlab.py` — `test_merge` ボディ検証・rebase テストを追加
-4. **[R26-05/06/07]** 軽微な問題（低優先度）
+1. ~~**[R26-01]**~~ ✅ 修正済み
+2. ~~**[R26-02]**~~ ✅ 修正済み
+3. ~~**[R26-03/08]**~~ ✅ 修正済み
+4. **[R26-05/06/07]** 軽微な問題（保留）
