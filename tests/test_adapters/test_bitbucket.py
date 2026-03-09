@@ -385,6 +385,28 @@ class TestCreateIssue:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["assignee"]["nickname"] == "dev1"
 
+    def test_create_with_label_sets_component(self, mock_responses, bitbucket_adapter):
+        """label を指定すると payload に component.name が設定される。"""
+        mock_responses.add(
+            responses.POST, f"{REPOS}/issues",
+            json=_issue_data(), status=201,
+        )
+        bitbucket_adapter.create_issue(title="Issue", label="bug")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["component"]["name"] == "bug"
+
+    def test_to_issue_with_component_maps_to_labels(self):
+        """API レスポンスに component があるとき labels に変換される。"""
+        data = _issue_data()
+        data["component"] = {"name": "bug"}
+        issue = BitbucketAdapter._to_issue(data)
+        assert issue.labels == ["bug"]
+
+    def test_to_issue_without_component_has_empty_labels(self):
+        """component がないとき labels は空リスト。"""
+        issue = BitbucketAdapter._to_issue(_issue_data())
+        assert issue.labels == []
+
 
 class TestGetIssue:
     def test_get(self, mock_responses, bitbucket_adapter):

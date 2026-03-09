@@ -65,6 +65,9 @@ class BitbucketAdapter(GitServiceAdapter):
             nickname = assignee.get("nickname") if isinstance(assignee, dict) else None
             assignees = [nickname] if nickname else []
 
+            component = data.get("component")
+            labels = [component["name"]] if isinstance(component, dict) and component.get("name") else []
+
             return Issue(
                 number=data["id"],
                 title=data["title"],
@@ -72,7 +75,7 @@ class BitbucketAdapter(GitServiceAdapter):
                 state=state,
                 author=data["reporter"]["nickname"],
                 assignees=assignees,
-                labels=[],
+                labels=labels,
                 url=data["links"]["html"]["href"],
                 created_at=data["created_on"],
                 updated_at=data.get("updated_on"),
@@ -186,6 +189,8 @@ class BitbucketAdapter(GitServiceAdapter):
         payload: dict = {"title": title, "content": {"raw": body}}
         if assignee is not None:
             payload["assignee"] = {"nickname": assignee}
+        if label is not None:
+            payload["component"] = {"name": label}
         resp = self._client.post(f"{self._repos_path()}/issues", json=payload)
         return self._to_issue(resp.json())
 
