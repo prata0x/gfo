@@ -22,8 +22,15 @@ class HttpClient:
         basic_auth: tuple[str, str] | None = None,
         extra_headers: dict[str, str] | None = None,
         default_params: dict[str, str] | None = None,
+        max_retries: int = 1,
     ):
-        """初期化。auth_header / auth_params / basic_auth は排他。"""
+        """初期化。auth_header / auth_params / basic_auth は排他。
+
+        Args:
+            max_retries: 429 レートリミット時の最大リトライ回数。デフォルト 1。
+                         0 を指定するとリトライなしで即座に RateLimitError を送出する。
+                         再送後も 429 が継続する場合は RateLimitError を呼び出し元に伝播する。
+        """
         auth_count = sum(x is not None for x in (auth_header, auth_params, basic_auth))
         if auth_count > 1:
             raise ValueError(
@@ -32,6 +39,7 @@ class HttpClient:
         self._base_url = base_url.rstrip("/")
         self._auth_params: dict[str, str] = auth_params or {}
         self._default_params: dict[str, str] = default_params or {}
+        self._max_retries = max_retries
         self._session = requests.Session()
         if auth_header:
             self._session.headers.update(auth_header)
@@ -56,29 +64,14 @@ class HttpClient:
         headers: dict[str, str] | None = None,
         timeout: int = 30,
     ) -> requests.Response:
-        """HTTP リクエストを実行する。429 は 1 回だけ再送を試みる。"""
+        """HTTP リクエストを実行する。
+
+        429 レートリミット時は Retry-After 秒待機して最大 max_retries 回再送する。
+        再送後も 429 が継続する場合は RateLimitError を呼び出し元に伝播する。
+        """
         url = self._base_url + path
         merged_params = {**self._default_params, **self._auth_params, **(params or {})}
-        try:
-            resp = self._session.request(
-                method,
-                url,
-                params=merged_params,
-                json=json,
-                data=data,
-                headers=headers,
-                timeout=timeout,
-            )
-        except requests.ConnectionError as e:
-            raise gfo.exceptions.NetworkError(str(e)) from e
-        except requests.Timeout as e:
-            raise gfo.exceptions.NetworkError(str(e)) from e
-
-        try:
-            self._handle_response(resp)
-        except gfo.exceptions.RateLimitError:
-            wait = int(resp.headers.get("Retry-After", 60))
-            time.sleep(wait)
+        for attempt in range(self._max_retries + 1):
             try:
                 resp = self._session.request(
                     method,
@@ -93,9 +86,17 @@ class HttpClient:
                 raise gfo.exceptions.NetworkError(str(e)) from e
             except requests.Timeout as e:
                 raise gfo.exceptions.NetworkError(str(e)) from e
-            self._handle_response(resp)
 
-        return resp
+            try:
+                self._handle_response(resp)
+                return resp
+            except gfo.exceptions.RateLimitError:
+                if attempt >= self._max_retries:
+                    raise
+                wait = int(resp.headers.get("Retry-After", 60))
+                time.sleep(wait)
+
+        return resp  # unreachable; ループは必ず return か raise で終了する
 
     def get(self, path: str, **kwargs: Any) -> requests.Response:
         """GET リクエスト。"""
@@ -118,29 +119,30 @@ class HttpClient:
         return self.request("DELETE", path, **kwargs)
 
     def get_absolute(self, url: str, *, timeout: int = 30) -> requests.Response:
-        """絶対 URL に対して GET リクエストを実行する。認証パラメータ・リトライを適用する。"""
-        merged_params = {**self._default_params, **self._auth_params}
-        try:
-            resp = self._session.get(url, params=merged_params, timeout=timeout)
-        except requests.ConnectionError as e:
-            raise gfo.exceptions.NetworkError(str(e)) from e
-        except requests.Timeout as e:
-            raise gfo.exceptions.NetworkError(str(e)) from e
+        """絶対 URL に対して GET リクエストを実行する。認証パラメータ・リトライを適用する。
 
-        try:
-            self._handle_response(resp)
-        except gfo.exceptions.RateLimitError:
-            wait = int(resp.headers.get("Retry-After", 60))
-            time.sleep(wait)
+        429 レートリミット時は Retry-After 秒待機して最大 max_retries 回再送する。
+        再送後も 429 が継続する場合は RateLimitError を呼び出し元に伝播する。
+        """
+        merged_params = {**self._default_params, **self._auth_params}
+        for attempt in range(self._max_retries + 1):
             try:
                 resp = self._session.get(url, params=merged_params, timeout=timeout)
             except requests.ConnectionError as e:
                 raise gfo.exceptions.NetworkError(str(e)) from e
             except requests.Timeout as e:
                 raise gfo.exceptions.NetworkError(str(e)) from e
-            self._handle_response(resp)
 
-        return resp
+            try:
+                self._handle_response(resp)
+                return resp
+            except gfo.exceptions.RateLimitError:
+                if attempt >= self._max_retries:
+                    raise
+                wait = int(resp.headers.get("Retry-After", 60))
+                time.sleep(wait)
+
+        return resp  # unreachable; ループは必ず return か raise で終了する
 
     def _handle_response(self, response: requests.Response) -> None:
         """ステータスコードを検査し、適切なエラーを送出する。"""
