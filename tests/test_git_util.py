@@ -114,6 +114,12 @@ class TestGetDefaultBranch:
         )
         assert git_util.get_default_branch() == "main"
 
+    @patch("gfo.git_util.subprocess.run")
+    def test_ref_without_prefix_returned_as_is(self, mock_run):
+        """prefix なしの ref はそのまま返される。"""
+        mock_run.return_value = _mock_result(stdout="main\n")
+        assert git_util.get_default_branch() == "main"
+
 
 class TestGitConfigGet:
     @patch("gfo.git_util.subprocess.run")

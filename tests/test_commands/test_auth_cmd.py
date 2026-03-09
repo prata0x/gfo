@@ -5,7 +5,8 @@ from __future__ import annotations
 import pytest
 from unittest.mock import patch, call
 
-from gfo.commands import auth_cmd
+from unittest.mock import MagicMock
+from gfo.commands import auth_cmd, get_adapter, get_adapter_with_config
 from gfo.detect import DetectResult
 from gfo.exceptions import ConfigError, DetectionError
 from tests.test_commands.conftest import make_args
@@ -201,3 +202,27 @@ class TestHandleStatus:
         assert "HOST" in captured.out
         assert "STATUS" in captured.out
         assert "SOURCE" in captured.out
+
+
+# ── get_adapter / get_adapter_with_config ──
+
+
+def test_get_adapter_returns_adapter():
+    """get_adapter() は resolve_project_config と create_adapter を呼ぶ。"""
+    mock_config = MagicMock()
+    mock_adapter = MagicMock()
+    with patch("gfo.commands.resolve_project_config", return_value=mock_config), \
+         patch("gfo.commands.create_adapter", return_value=mock_adapter):
+        result = get_adapter()
+    assert result is mock_adapter
+
+
+def test_get_adapter_with_config_returns_tuple():
+    """get_adapter_with_config() はアダプターと設定のタプルを返す。"""
+    mock_config = MagicMock()
+    mock_adapter = MagicMock()
+    with patch("gfo.commands.resolve_project_config", return_value=mock_config), \
+         patch("gfo.commands.create_adapter", return_value=mock_adapter):
+        adapter, config = get_adapter_with_config()
+    assert adapter is mock_adapter
+    assert config is mock_config
