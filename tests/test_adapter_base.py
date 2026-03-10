@@ -288,6 +288,11 @@ class TestGitServiceAdapterDeleteDefaults:
         with pytest.raises(NotSupportedError):
             adapter.delete_milestone(number=1)
 
+    def test_delete_repository_raises_not_supported(self):
+        adapter = self._make_adapter()
+        with pytest.raises(NotSupportedError):
+            adapter.delete_repository()
+
 
 class TestMilestone:
     def test_create(self):

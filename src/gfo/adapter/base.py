@@ -268,6 +268,10 @@ class GitServiceAdapter(ABC):
         """
         ...
 
+    def delete_repository(self) -> None:
+        """リポジトリを削除する。引数なし（self._owner, self._repo を使用）。"""
+        raise NotSupportedError(self.service_name, "repo delete")
+
     # --- Release ---
     @abstractmethod
     def list_releases(self, *, limit: int = 30) -> list[Release]: ...
