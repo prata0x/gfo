@@ -20,7 +20,12 @@ packages = ["src/gfo"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=gfo --cov-report=term-missing"
+addopts = "--cov=gfo --cov-report=term-missing --ignore=tests/integration"
+markers = [
+    "integration: integration tests requiring live services",
+    "saas: integration tests requiring SaaS accounts (GitHub, GitLab, etc.)",
+    "selfhosted: integration tests requiring Docker self-hosted services",
+]
 
 [tool.ruff]
 line-length = 100

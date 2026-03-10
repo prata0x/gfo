@@ -82,6 +82,23 @@ pytest
 pytest tests/test_commands/test_pr.py
 ```
 
+### 統合テスト
+
+実サービスに対する統合テストも用意されている。
+
+- **セルフホスト**（Gitea / Forgejo / Gogs / GitBucket）: Docker さえあれば自動実行可能
+- **SaaS**（GitHub / GitLab / Bitbucket / Azure DevOps）: 各サービスのアカウントと API トークンが必要
+
+詳細なセットアップ手順は [docs/integration-testing.md](docs/integration-testing.md) を参照。
+
+```bash
+# セルフホストテスト（Docker 自動起動・クリーンアップ込み）
+bash tests/integration/run_selfhosted.sh
+
+# SaaS テスト（.env にトークン設定後）
+bash tests/integration/run_saas.sh
+```
+
 ## ライセンス
 
 MIT

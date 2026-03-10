@@ -1,0 +1,101 @@
+version: "3.8"
+
+services:
+  gitea:
+    image: gitea/gitea:1.22
+    container_name: gfo-gitea
+    environment:
+      - GITEA__database__DB_TYPE=sqlite3
+      - GITEA__server__ROOT_URL=http://localhost:3000/
+      - GITEA__server__HTTP_PORT=3000
+      - GITEA__security__INSTALL_LOCK=true
+      - GITEA__service__DISABLE_REGISTRATION=false
+    ports:
+      - "3000:3000"
+      - "2222:22"
+    volumes:
+      - gitea-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/version"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  forgejo:
+    image: codeberg/forgejo:9
+    container_name: gfo-forgejo
+    environment:
+      - FORGEJO__database__DB_TYPE=sqlite3
+      - FORGEJO__server__ROOT_URL=http://localhost:3001/
+      - FORGEJO__server__HTTP_PORT=3000
+      - FORGEJO__security__INSTALL_LOCK=true
+      - FORGEJO__service__DISABLE_REGISTRATION=false
+    ports:
+      - "3001:3000"
+      - "2223:22"
+    volumes:
+      - forgejo-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/version"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  gogs:
+    image: gogs/gogs:0.13
+    container_name: gfo-gogs
+    ports:
+      - "3002:3000"
+      - "2224:22"
+    volumes:
+      - gogs-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  gitbucket:
+    image: gitbucket/gitbucket:4.40
+    container_name: gfo-gitbucket
+    ports:
+      - "3003:8080"
+      - "2225:29418"
+    volumes:
+      - gitbucket-data:/gitbucket
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v3/rate_limit"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  # GitLab CE はオプション（重量級、メモリ 4GB 以上推奨）
+  # 必要な場合はコメントを外して使用
+  # gitlab:
+  #   image: gitlab/gitlab-ce:17.0-ce.0
+  #   container_name: gfo-gitlab
+  #   hostname: gitlab.local
+  #   environment:
+  #     GITLAB_OMNIBUS_CONFIG: |
+  #       external_url 'http://localhost:3004'
+  #       gitlab_rails['initial_root_password'] = 'gfo-test-password'
+  #   ports:
+  #     - "3004:80"
+  #     - "2226:22"
+  #   volumes:
+  #     - gitlab-config:/etc/gitlab
+  #     - gitlab-data:/var/opt/gitlab
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:80/-/readiness"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 30
+  #   shm_size: "256m"
+
+volumes:
+  gitea-data:
+  forgejo-data:
+  gogs-data:
+  gitbucket-data:
+  # gitlab-config:
+  # gitlab-data:
