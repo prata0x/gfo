@@ -8,7 +8,7 @@ import re
 import warnings
 from dataclasses import dataclass
 
-import requests  # type: ignore[import-untyped]
+import requests
 
 from gfo.exceptions import DetectionError
 from gfo.git_util import _mask_credentials, get_remote_url, git_config_get

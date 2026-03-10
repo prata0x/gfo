@@ -11,6 +11,7 @@ def test_python_m_gfo_no_args():
     result = subprocess.run(
         [sys.executable, "-m", "gfo"],
         capture_output=True,
+        stdin=subprocess.DEVNULL,
         text=True,
     )
     assert result.returncode == 1
@@ -22,6 +23,7 @@ def test_python_m_gfo_version():
     result = subprocess.run(
         [sys.executable, "-m", "gfo", "--version"],
         capture_output=True,
+        stdin=subprocess.DEVNULL,
         text=True,
     )
     assert result.returncode == 0

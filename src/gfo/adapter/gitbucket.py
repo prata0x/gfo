@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import urllib.parse
 
-import requests as _requests  # type: ignore[import-untyped]
+import requests as _requests
 
 from gfo.exceptions import GfoError
 

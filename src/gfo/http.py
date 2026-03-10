@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlparse
 
-import requests  # type: ignore[import-untyped]
+import requests
 
 import gfo.exceptions
 

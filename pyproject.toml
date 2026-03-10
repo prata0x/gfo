@@ -9,7 +9,7 @@ dependencies = ["requests"]
 gfo = "gfo.cli:main"
 
 [project.optional-dependencies]
-dev = ["pytest", "responses", "pytest-cov", "ruff", "bandit", "mypy", "pre-commit"]
+dev = ["pytest", "responses", "pytest-cov", "ruff", "bandit", "mypy", "types-requests", "pre-commit"]
 
 [build-system]
 requires = ["hatchling"]
@@ -33,6 +33,7 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
+ignore = ["E501"]  # 日本語コメント・docstring は行長制限を除外
 
 [tool.bandit]
 exclude_dirs = ["tests"]
