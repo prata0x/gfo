@@ -204,6 +204,17 @@ class TestGitLabIntegration:
 
     def test_14_pr_merge(self) -> None:
         assert self._pr_number is not None
+        # GitLab は MR 作成直後 merge_status が "checking" になるため、
+        # "can_be_merged" になるまで最大 10 秒待機する
+        import time
+
+        for _ in range(10):
+            resp = self.adapter._client.get(
+                f"{self.adapter._project_path()}/merge_requests/{self._pr_number}"
+            )
+            if resp.json().get("merge_status") == "can_be_merged":
+                break
+            time.sleep(1)
         self.adapter.merge_pull_request(self._pr_number, method="merge")
         pr = self.adapter.get_pull_request(self._pr_number)
         assert pr.state == "merged"
