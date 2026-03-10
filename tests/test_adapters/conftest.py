@@ -5,17 +5,16 @@ from __future__ import annotations
 import pytest
 import responses
 
-from gfo.http import HttpClient
+from gfo.adapter.azure_devops import AzureDevOpsAdapter
+from gfo.adapter.backlog import BacklogAdapter
+from gfo.adapter.bitbucket import BitbucketAdapter
+from gfo.adapter.forgejo import ForgejoAdapter
+from gfo.adapter.gitbucket import GitBucketAdapter
+from gfo.adapter.gitea import GiteaAdapter
 from gfo.adapter.github import GitHubAdapter
 from gfo.adapter.gitlab import GitLabAdapter
-from gfo.adapter.bitbucket import BitbucketAdapter
-from gfo.adapter.azure_devops import AzureDevOpsAdapter
-from gfo.adapter.gitea import GiteaAdapter
-from gfo.adapter.forgejo import ForgejoAdapter
 from gfo.adapter.gogs import GogsAdapter
-from gfo.adapter.gitbucket import GitBucketAdapter
-from gfo.adapter.backlog import BacklogAdapter
-
+from gfo.http import HttpClient
 
 BASE_URL = "https://api.github.com"
 GITLAB_BASE_URL = "https://gitlab.com/api/v4"
@@ -76,8 +75,11 @@ def azure_devops_client():
 @pytest.fixture
 def azure_devops_adapter(azure_devops_client):
     return AzureDevOpsAdapter(
-        azure_devops_client, "test-owner", "test-repo",
-        organization="test-org", project_key="test-project",
+        azure_devops_client,
+        "test-owner",
+        "test-repo",
+        organization="test-org",
+        project_key="test-project",
     )
 
 

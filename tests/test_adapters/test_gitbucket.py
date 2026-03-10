@@ -375,6 +375,7 @@ class TestDeleteInheritance:
     def test_delete_issue_raises_not_supported(self, gitbucket_adapter):
         """GitBucket は issue delete 未対応（GitHub 継承）→ NotSupportedError。"""
         from gfo.exceptions import NotSupportedError
+
         with pytest.raises(NotSupportedError):
             gitbucket_adapter.delete_issue(1)
 

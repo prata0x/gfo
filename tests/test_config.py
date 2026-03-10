@@ -24,13 +24,13 @@ from gfo.config import (
 )
 from gfo.exceptions import ConfigError
 
-
 # ── get_config_dir ──
 
 
 def test_get_config_dir_windows():
-    with patch("gfo.config.sys") as mock_sys, patch.dict(
-        "os.environ", {"APPDATA": r"C:\Users\test\AppData\Roaming"}
+    with (
+        patch("gfo.config.sys") as mock_sys,
+        patch.dict("os.environ", {"APPDATA": r"C:\Users\test\AppData\Roaming"}),
     ):
         mock_sys.platform = "win32"
         result = get_config_dir()
@@ -39,8 +39,9 @@ def test_get_config_dir_windows():
 
 def test_get_config_dir_windows_no_appdata():
     home = Path.home()
-    with patch("gfo.config.sys") as mock_sys, patch.dict(
-        "os.environ", {"APPDATA": ""}, clear=False
+    with (
+        patch("gfo.config.sys") as mock_sys,
+        patch.dict("os.environ", {"APPDATA": ""}, clear=False),
     ):
         mock_sys.platform = "win32"
         result = get_config_dir()
@@ -197,23 +198,15 @@ def test_build_github_com():
 
 
 def test_build_github_enterprise():
-    assert (
-        build_default_api_url("github", "ghe.example.com")
-        == "https://ghe.example.com/api/v3"
-    )
+    assert build_default_api_url("github", "ghe.example.com") == "https://ghe.example.com/api/v3"
 
 
 def test_build_gitlab():
-    assert (
-        build_default_api_url("gitlab", "gitlab.com") == "https://gitlab.com/api/v4"
-    )
+    assert build_default_api_url("gitlab", "gitlab.com") == "https://gitlab.com/api/v4"
 
 
 def test_build_bitbucket():
-    assert (
-        build_default_api_url("bitbucket", "bitbucket.org")
-        == "https://api.bitbucket.org/2.0"
-    )
+    assert build_default_api_url("bitbucket", "bitbucket.org") == "https://api.bitbucket.org/2.0"
 
 
 def test_build_azure_devops():
@@ -235,35 +228,24 @@ def test_build_azure_devops_missing_project():
 
 
 def test_build_gitea():
-    assert (
-        build_default_api_url("gitea", "gitea.local") == "https://gitea.local/api/v1"
-    )
+    assert build_default_api_url("gitea", "gitea.local") == "https://gitea.local/api/v1"
 
 
 def test_build_forgejo():
-    assert (
-        build_default_api_url("forgejo", "codeberg.org")
-        == "https://codeberg.org/api/v1"
-    )
+    assert build_default_api_url("forgejo", "codeberg.org") == "https://codeberg.org/api/v1"
 
 
 def test_build_gogs():
-    assert (
-        build_default_api_url("gogs", "gogs.local") == "https://gogs.local/api/v1"
-    )
+    assert build_default_api_url("gogs", "gogs.local") == "https://gogs.local/api/v1"
 
 
 def test_build_gitbucket():
-    assert (
-        build_default_api_url("gitbucket", "gb.local")
-        == "https://gb.local/api/v3"
-    )
+    assert build_default_api_url("gitbucket", "gb.local") == "https://gb.local/api/v3"
 
 
 def test_build_backlog():
     assert (
-        build_default_api_url("backlog", "space.backlog.com")
-        == "https://space.backlog.com/api/v2"
+        build_default_api_url("backlog", "space.backlog.com") == "https://space.backlog.com/api/v2"
     )
 
 
@@ -450,9 +432,10 @@ def test_resolve_raises_when_service_type_unresolvable():
     from gfo.detect import DetectResult
 
     detect_result = DetectResult(service_type="", host="", owner="u", repo="r")
-    git_cfg = {k: None for k in [
-        "gfo.type", "gfo.host", "gfo.api-url", "gfo.organization", "gfo.project-key"
-    ]}
+    git_cfg = {
+        k: None
+        for k in ["gfo.type", "gfo.host", "gfo.api-url", "gfo.organization", "gfo.project-key"]
+    }
     with (
         patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
         patch("gfo.detect.detect_service", return_value=detect_result),
@@ -498,9 +481,7 @@ def test_resolve_only_host_in_git_config():
     }
     with (
         patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
-        patch(
-            "gfo.detect.detect_service", return_value=detect_result
-        ) as mock_detect,
+        patch("gfo.detect.detect_service", return_value=detect_result) as mock_detect,
     ):
         cfg = resolve_project_config()
     mock_detect.assert_called_once()
@@ -524,9 +505,7 @@ def test_resolve_only_stype_in_git_config():
     }
     with (
         patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
-        patch(
-            "gfo.detect.detect_service", return_value=detect_result
-        ) as mock_detect,
+        patch("gfo.detect.detect_service", return_value=detect_result) as mock_detect,
     ):
         cfg = resolve_project_config()
     mock_detect.assert_called_once()
@@ -593,7 +572,9 @@ def test_save_project_config_with_org():
     )
     with patch("gfo.git_util.git_config_set") as mock_set:
         save_project_config(cfg)
-        assert mock_set.call_count == 7  # type, host, api-url, owner, repo, organization, project-key
+        assert (
+            mock_set.call_count == 7
+        )  # type, host, api-url, owner, repo, organization, project-key
         mock_set.assert_any_call("gfo.organization", "org", cwd=None)
         mock_set.assert_any_call("gfo.project-key", "proj", cwd=None)
 
@@ -641,6 +622,7 @@ def test_resolve_remote_url_failure_falls_back_to_git_config_owner_repo():
 def test_resolve_raises_when_no_host():
     """gfo.host が未設定かつ detect_service も host を返さない → ConfigError。"""
     from gfo.detect import DetectResult
+
     git_cfg = {
         "gfo.type": None,
         "gfo.host": None,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+
 import pytest
 
 from gfo.adapter.base import PullRequest

@@ -86,8 +86,10 @@ class TestAzureDevOpsIntegration:
 
     def test_11_pr_create(self) -> None:
         pr = self.adapter.create_pull_request(
-            title="gfo-test-pr", body="Integration test",
-            base=self.config.default_branch, head=self.config.test_branch,
+            title="gfo-test-pr",
+            body="Integration test",
+            base=self.config.default_branch,
+            head=self.config.test_branch,
         )
         assert pr.state == "open"
         self.__class__._pr_number = pr.number

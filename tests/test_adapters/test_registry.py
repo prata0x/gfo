@@ -1,11 +1,10 @@
 """T-20: adapter/__init__.py — 全アダプター登録のテスト"""
 
+import pytest
+
 import gfo.adapter  # noqa: F401 — 全アダプターを登録
 from gfo.adapter.registry import _REGISTRY, get_adapter_class
 from gfo.exceptions import UnsupportedServiceError
-
-import pytest
-
 
 EXPECTED_SERVICES = [
     "github",

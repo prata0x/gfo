@@ -92,8 +92,10 @@ class TestResolveHostWithoutRepo:
     def test_falls_back_to_detect_service(self):
         detect_result = MagicMock()
         detect_result.host = "gitlab.com"
-        with patch("gfo.commands.repo.detect_service", return_value=detect_result), \
-             patch("gfo.commands.repo.get_host_config", return_value={"type": "gitlab"}):
+        with (
+            patch("gfo.commands.repo.detect_service", return_value=detect_result),
+            patch("gfo.commands.repo.get_host_config", return_value={"type": "gitlab"}),
+        ):
             host, stype = repo_cmd._resolve_host_without_repo(None)
 
         assert host == "gitlab.com"
@@ -101,9 +103,12 @@ class TestResolveHostWithoutRepo:
 
     def test_falls_back_to_default_host_when_detection_fails(self):
         from gfo.exceptions import DetectionError
-        with patch("gfo.commands.repo.detect_service", side_effect=DetectionError("no git")), \
-             patch("gfo.commands.repo.get_default_host", return_value="github.com"), \
-             patch("gfo.commands.repo.get_host_config", return_value={"type": "github"}):
+
+        with (
+            patch("gfo.commands.repo.detect_service", side_effect=DetectionError("no git")),
+            patch("gfo.commands.repo.get_default_host", return_value="github.com"),
+            patch("gfo.commands.repo.get_host_config", return_value={"type": "github"}),
+        ):
             host, stype = repo_cmd._resolve_host_without_repo(None)
 
         assert host == "github.com"
@@ -112,9 +117,14 @@ class TestResolveHostWithoutRepo:
     def test_falls_back_to_default_host_when_git_command_fails(self):
         """git リポジトリ外で GitCommandError が発生した場合もデフォルトホストにフォールバックする（R30修正確認）。"""
         from gfo.exceptions import GitCommandError
-        with patch("gfo.commands.repo.detect_service", side_effect=GitCommandError("not a git repo")), \
-             patch("gfo.commands.repo.get_default_host", return_value="github.com"), \
-             patch("gfo.commands.repo.get_host_config", return_value={"type": "github"}):
+
+        with (
+            patch(
+                "gfo.commands.repo.detect_service", side_effect=GitCommandError("not a git repo")
+            ),
+            patch("gfo.commands.repo.get_default_host", return_value="github.com"),
+            patch("gfo.commands.repo.get_host_config", return_value={"type": "github"}),
+        ):
             host, stype = repo_cmd._resolve_host_without_repo(None)
 
         assert host == "github.com"
@@ -122,14 +132,19 @@ class TestResolveHostWithoutRepo:
 
     def test_raises_config_error_when_no_host(self):
         from gfo.exceptions import DetectionError
-        with patch("gfo.commands.repo.detect_service", side_effect=DetectionError("no git")), \
-             patch("gfo.commands.repo.get_default_host", return_value=None):
+
+        with (
+            patch("gfo.commands.repo.detect_service", side_effect=DetectionError("no git")),
+            patch("gfo.commands.repo.get_default_host", return_value=None),
+        ):
             with pytest.raises(ConfigError):
                 repo_cmd._resolve_host_without_repo(None)
 
     def test_resolves_service_type_from_known_hosts(self):
-        with patch("gfo.commands.repo.get_host_config", return_value=None), \
-             patch("gfo.commands.repo.probe_unknown_host", return_value=None):
+        with (
+            patch("gfo.commands.repo.get_host_config", return_value=None),
+            patch("gfo.commands.repo.probe_unknown_host", return_value=None),
+        ):
             host, stype = repo_cmd._resolve_host_without_repo("github.com")
 
         assert host == "github.com"
@@ -137,18 +152,22 @@ class TestResolveHostWithoutRepo:
 
     def test_falls_back_to_probe_for_unknown_host(self):
         """known_service_type が None のときは probe_unknown_host でサービスを特定する。"""
-        with patch("gfo.commands.repo.get_host_config", return_value=None), \
-             patch("gfo.commands.repo.get_known_service_type", return_value=None), \
-             patch("gfo.commands.repo.probe_unknown_host", return_value="gitea"):
+        with (
+            patch("gfo.commands.repo.get_host_config", return_value=None),
+            patch("gfo.commands.repo.get_known_service_type", return_value=None),
+            patch("gfo.commands.repo.probe_unknown_host", return_value="gitea"),
+        ):
             host, stype = repo_cmd._resolve_host_without_repo("gitea.example.com")
 
         assert stype == "gitea"
 
     def test_raises_when_probe_returns_none(self):
         """probe_unknown_host も None のとき ConfigError。"""
-        with patch("gfo.commands.repo.get_host_config", return_value=None), \
-             patch("gfo.commands.repo.get_known_service_type", return_value=None), \
-             patch("gfo.commands.repo.probe_unknown_host", return_value=None):
+        with (
+            patch("gfo.commands.repo.get_host_config", return_value=None),
+            patch("gfo.commands.repo.get_known_service_type", return_value=None),
+            patch("gfo.commands.repo.probe_unknown_host", return_value=None),
+        ):
             with pytest.raises(ConfigError, match="Could not determine service type"):
                 repo_cmd._resolve_host_without_repo("unknown.example.com")
 
@@ -169,11 +188,16 @@ class TestHandleCreate:
         mock_adapter.create_repository.return_value = mock_repo
         mock_adapter_cls = MagicMock(return_value=mock_adapter)
 
-        with patch("gfo.commands.repo._resolve_host_without_repo", return_value=("github.com", "github")), \
-             patch("gfo.commands.repo.resolve_token", return_value="test-token"), \
-             patch("gfo.commands.repo.build_default_api_url", return_value="https://api.github.com"), \
-             patch("gfo.commands.repo.create_http_client"), \
-             patch("gfo.commands.repo.get_adapter_class", return_value=mock_adapter_cls):
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("github.com", "github"),
+            ),
+            patch("gfo.commands.repo.resolve_token", return_value="test-token"),
+            patch("gfo.commands.repo.build_default_api_url", return_value="https://api.github.com"),
+            patch("gfo.commands.repo.create_http_client"),
+            patch("gfo.commands.repo.get_adapter_class", return_value=mock_adapter_cls),
+        ):
             repo_cmd.handle_create(args, fmt="table")
 
         mock_adapter.create_repository.assert_called_once_with(
@@ -197,11 +221,16 @@ class TestHandleCreate:
         mock_adapter.create_repository.return_value = mock_repo
         mock_adapter_cls = MagicMock(return_value=mock_adapter)
 
-        with patch("gfo.commands.repo._resolve_host_without_repo", return_value=("github.com", "github")), \
-             patch("gfo.commands.repo.resolve_token", return_value="test-token"), \
-             patch("gfo.commands.repo.build_default_api_url", return_value="https://api.github.com"), \
-             patch("gfo.commands.repo.create_http_client"), \
-             patch("gfo.commands.repo.get_adapter_class", return_value=mock_adapter_cls):
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("github.com", "github"),
+            ),
+            patch("gfo.commands.repo.resolve_token", return_value="test-token"),
+            patch("gfo.commands.repo.build_default_api_url", return_value="https://api.github.com"),
+            patch("gfo.commands.repo.create_http_client"),
+            patch("gfo.commands.repo.get_adapter_class", return_value=mock_adapter_cls),
+        ):
             repo_cmd.handle_create(args, fmt="table")
 
         out = capsys.readouterr().out
@@ -210,14 +239,18 @@ class TestHandleCreate:
     def test_backlog_uses_project_key_from_config(self):
         """Backlog の handle_create は resolve_project_config から project_key を取得してアダプターに渡す。"""
         from gfo.config import ProjectConfig
+
         mock_cfg = MagicMock(spec=ProjectConfig)
         mock_cfg.service_type = "backlog"
         mock_cfg.organization = None
         mock_cfg.project_key = "MY_PROJECT"
 
         mock_repo = Repository(
-            name="new-repo", full_name="MY_PROJECT/new-repo", description="",
-            private=False, default_branch="main",
+            name="new-repo",
+            full_name="MY_PROJECT/new-repo",
+            description="",
+            private=False,
+            default_branch="main",
             clone_url="https://example.backlog.com/git/MY_PROJECT/new-repo.git",
             url="https://example.backlog.com/git/MY_PROJECT/new-repo",
         )
@@ -227,14 +260,20 @@ class TestHandleCreate:
 
         args = make_args(host="example.backlog.com", name="new-repo", private=False, description="")
 
-        with patch("gfo.commands.repo._resolve_host_without_repo",
-                   return_value=("example.backlog.com", "backlog")), \
-             patch("gfo.commands.repo.resolve_project_config", return_value=mock_cfg), \
-             patch("gfo.commands.repo.resolve_token", return_value="api-key"), \
-             patch("gfo.commands.repo.build_default_api_url",
-                   return_value="https://example.backlog.com/api/v2"), \
-             patch("gfo.commands.repo.create_http_client"), \
-             patch("gfo.commands.repo.get_adapter_class", return_value=mock_adapter_cls):
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("example.backlog.com", "backlog"),
+            ),
+            patch("gfo.commands.repo.resolve_project_config", return_value=mock_cfg),
+            patch("gfo.commands.repo.resolve_token", return_value="api-key"),
+            patch(
+                "gfo.commands.repo.build_default_api_url",
+                return_value="https://example.backlog.com/api/v2",
+            ),
+            patch("gfo.commands.repo.create_http_client"),
+            patch("gfo.commands.repo.get_adapter_class", return_value=mock_adapter_cls),
+        ):
             repo_cmd.handle_create(args, fmt="table")
 
         # アダプターが project_key="MY_PROJECT" で構築されたことを確認
@@ -245,19 +284,26 @@ class TestHandleCreate:
     def test_backlog_no_project_key_raises_config_error(self):
         """Backlog で project_key が取得できない場合 ConfigError を送出する。"""
         from gfo.config import ProjectConfig
+
         mock_cfg = MagicMock(spec=ProjectConfig)
         mock_cfg.service_type = "backlog"
         mock_cfg.project_key = None
 
         args = make_args(host="example.backlog.com", name="new-repo", private=False, description="")
 
-        with patch("gfo.commands.repo._resolve_host_without_repo",
-                   return_value=("example.backlog.com", "backlog")), \
-             patch("gfo.commands.repo.resolve_project_config", return_value=mock_cfg), \
-             patch("gfo.commands.repo.resolve_token", return_value="api-key"), \
-             patch("gfo.commands.repo.build_default_api_url",
-                   return_value="https://example.backlog.com/api/v2"), \
-             patch("gfo.commands.repo.create_http_client"):
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("example.backlog.com", "backlog"),
+            ),
+            patch("gfo.commands.repo.resolve_project_config", return_value=mock_cfg),
+            patch("gfo.commands.repo.resolve_token", return_value="api-key"),
+            patch(
+                "gfo.commands.repo.build_default_api_url",
+                return_value="https://example.backlog.com/api/v2",
+            ),
+            patch("gfo.commands.repo.create_http_client"),
+        ):
             with pytest.raises(ConfigError, match="project key"):
                 repo_cmd.handle_create(args, fmt="table")
 
@@ -265,28 +311,39 @@ class TestHandleCreate:
         """プロジェクト設定取得が失敗かつ project_key が取得できない場合 ConfigError。"""
         args = make_args(host="example.backlog.com", name="new-repo", private=False, description="")
 
-        with patch("gfo.commands.repo._resolve_host_without_repo",
-                   return_value=("example.backlog.com", "backlog")), \
-             patch("gfo.commands.repo.resolve_project_config",
-                   side_effect=ConfigError("not in a repo")), \
-             patch("gfo.commands.repo.resolve_token", return_value="api-key"), \
-             patch("gfo.commands.repo.build_default_api_url",
-                   return_value="https://example.backlog.com/api/v2"), \
-             patch("gfo.commands.repo.create_http_client"):
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("example.backlog.com", "backlog"),
+            ),
+            patch(
+                "gfo.commands.repo.resolve_project_config", side_effect=ConfigError("not in a repo")
+            ),
+            patch("gfo.commands.repo.resolve_token", return_value="api-key"),
+            patch(
+                "gfo.commands.repo.build_default_api_url",
+                return_value="https://example.backlog.com/api/v2",
+            ),
+            patch("gfo.commands.repo.create_http_client"),
+        ):
             with pytest.raises(ConfigError, match="project key"):
                 repo_cmd.handle_create(args, fmt="table")
 
     def test_azure_devops_uses_org_and_project_key_from_config(self):
         """Azure DevOps の handle_create は organization/project_key をアダプターに渡す（lines 108-109）。"""
         from gfo.config import ProjectConfig
+
         mock_cfg = MagicMock(spec=ProjectConfig)
         mock_cfg.service_type = "azure-devops"
         mock_cfg.organization = "my-org"
         mock_cfg.project_key = "my-project"
 
         mock_repo = Repository(
-            name="new-repo", full_name="my-project/new-repo", description="",
-            private=True, default_branch="main",
+            name="new-repo",
+            full_name="my-project/new-repo",
+            description="",
+            private=True,
+            default_branch="main",
             clone_url="https://dev.azure.com/my-org/my-project/_git/new-repo",
             url="https://dev.azure.com/my-org/my-project/_git/new-repo",
         )
@@ -296,14 +353,20 @@ class TestHandleCreate:
 
         args = make_args(host="dev.azure.com", name="new-repo", private=False, description="")
 
-        with patch("gfo.commands.repo._resolve_host_without_repo",
-                   return_value=("dev.azure.com", "azure-devops")), \
-             patch("gfo.commands.repo.resolve_project_config", return_value=mock_cfg), \
-             patch("gfo.commands.repo.resolve_token", return_value="pat-token"), \
-             patch("gfo.commands.repo.build_default_api_url",
-                   return_value="https://dev.azure.com/my-org/my-project/_apis"), \
-             patch("gfo.commands.repo.create_http_client"), \
-             patch("gfo.commands.repo.get_adapter_class", return_value=mock_adapter_cls):
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("dev.azure.com", "azure-devops"),
+            ),
+            patch("gfo.commands.repo.resolve_project_config", return_value=mock_cfg),
+            patch("gfo.commands.repo.resolve_token", return_value="pat-token"),
+            patch(
+                "gfo.commands.repo.build_default_api_url",
+                return_value="https://dev.azure.com/my-org/my-project/_apis",
+            ),
+            patch("gfo.commands.repo.create_http_client"),
+            patch("gfo.commands.repo.get_adapter_class", return_value=mock_adapter_cls),
+        ):
             repo_cmd.handle_create(args, fmt="table")
 
         # アダプターが organization/project_key 付きで構築されたことを確認
@@ -314,6 +377,7 @@ class TestHandleCreate:
     def test_azure_devops_no_org_raises_config_error(self):
         """Azure DevOps で organization が取得できない場合 ConfigError を送出する。"""
         from gfo.config import ProjectConfig
+
         mock_cfg = MagicMock(spec=ProjectConfig)
         mock_cfg.service_type = "azure-devops"
         mock_cfg.organization = None
@@ -321,14 +385,20 @@ class TestHandleCreate:
 
         args = make_args(host="dev.azure.com", name="new-repo", private=False, description="")
 
-        with patch("gfo.commands.repo._resolve_host_without_repo",
-                   return_value=("dev.azure.com", "azure-devops")), \
-             patch("gfo.commands.repo.resolve_project_config", return_value=mock_cfg), \
-             patch("gfo.commands.repo.resolve_token", return_value="pat-token"), \
-             patch("gfo.commands.repo.build_default_api_url",
-                   return_value="https://dev.azure.com/None/my-project/_apis"), \
-             patch("gfo.commands.repo.create_http_client"), \
-             patch("gfo.commands.repo.get_adapter_class"):
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("dev.azure.com", "azure-devops"),
+            ),
+            patch("gfo.commands.repo.resolve_project_config", return_value=mock_cfg),
+            patch("gfo.commands.repo.resolve_token", return_value="pat-token"),
+            patch(
+                "gfo.commands.repo.build_default_api_url",
+                return_value="https://dev.azure.com/None/my-project/_apis",
+            ),
+            patch("gfo.commands.repo.create_http_client"),
+            patch("gfo.commands.repo.get_adapter_class"),
+        ):
             with pytest.raises(ConfigError, match="organization"):
                 repo_cmd.handle_create(args, fmt="table")
 
@@ -336,84 +406,125 @@ class TestHandleCreate:
 class TestHandleClone:
     def test_github_url(self):
         args = make_args(host="github.com", repo="owner/myrepo")
-        with patch("gfo.commands.repo._resolve_host_without_repo", return_value=("github.com", "github")), \
-             patch("gfo.commands.repo.git_clone") as mock_clone:
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("github.com", "github"),
+            ),
+            patch("gfo.commands.repo.git_clone") as mock_clone,
+        ):
             repo_cmd.handle_clone(args, fmt="table")
 
         mock_clone.assert_called_once_with("https://github.com/owner/myrepo.git")
 
     def test_gitlab_url(self):
         args = make_args(host="gitlab.example.com", repo="owner/myrepo")
-        with patch("gfo.commands.repo._resolve_host_without_repo", return_value=("gitlab.example.com", "gitlab")), \
-             patch("gfo.commands.repo.git_clone") as mock_clone:
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("gitlab.example.com", "gitlab"),
+            ),
+            patch("gfo.commands.repo.git_clone") as mock_clone,
+        ):
             repo_cmd.handle_clone(args, fmt="table")
 
         mock_clone.assert_called_once_with("https://gitlab.example.com/owner/myrepo.git")
 
     def test_bitbucket_url(self):
         args = make_args(host="bitbucket.org", repo="owner/myrepo")
-        with patch("gfo.commands.repo._resolve_host_without_repo", return_value=("bitbucket.org", "bitbucket")), \
-             patch("gfo.commands.repo.git_clone") as mock_clone:
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("bitbucket.org", "bitbucket"),
+            ),
+            patch("gfo.commands.repo.git_clone") as mock_clone,
+        ):
             repo_cmd.handle_clone(args, fmt="table")
 
         mock_clone.assert_called_once_with("https://bitbucket.org/owner/myrepo.git")
 
     def test_gitbucket_url(self):
         args = make_args(host="gitbucket.example.com", repo="owner/myrepo")
-        with patch("gfo.commands.repo._resolve_host_without_repo", return_value=("gitbucket.example.com", "gitbucket")), \
-             patch("gfo.commands.repo.git_clone") as mock_clone:
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("gitbucket.example.com", "gitbucket"),
+            ),
+            patch("gfo.commands.repo.git_clone") as mock_clone,
+        ):
             repo_cmd.handle_clone(args, fmt="table")
 
         mock_clone.assert_called_once_with("https://gitbucket.example.com/git/owner/myrepo.git")
 
     def test_backlog_url(self):
         args = make_args(host="example.backlog.com", repo="PROJECT/myrepo")
-        with patch("gfo.commands.repo._resolve_host_without_repo", return_value=("example.backlog.com", "backlog")), \
-             patch("gfo.commands.repo.git_clone") as mock_clone:
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("example.backlog.com", "backlog"),
+            ),
+            patch("gfo.commands.repo.git_clone") as mock_clone,
+        ):
             repo_cmd.handle_clone(args, fmt="table")
 
         mock_clone.assert_called_once_with("https://example.backlog.com/git/PROJECT/myrepo.git")
 
     def test_gitea_url(self):
         args = make_args(host="gitea.example.com", repo="owner/myrepo")
-        with patch("gfo.commands.repo._resolve_host_without_repo", return_value=("gitea.example.com", "gitea")), \
-             patch("gfo.commands.repo.git_clone") as mock_clone:
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("gitea.example.com", "gitea"),
+            ),
+            patch("gfo.commands.repo.git_clone") as mock_clone,
+        ):
             repo_cmd.handle_clone(args, fmt="table")
 
         mock_clone.assert_called_once_with("https://gitea.example.com/owner/myrepo.git")
 
     def test_azure_devops_url(self):
         args = make_args(host="dev.azure.com", repo="myorg/myrepo")
-        with patch("gfo.commands.repo._resolve_host_without_repo",
-                   return_value=("dev.azure.com", "azure-devops")), \
-             patch("gfo.commands.repo.git_clone") as mock_clone:
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("dev.azure.com", "azure-devops"),
+            ),
+            patch("gfo.commands.repo.git_clone") as mock_clone,
+        ):
             repo_cmd.handle_clone(args, fmt="table")
 
-        mock_clone.assert_called_once_with(
-            "https://dev.azure.com/myorg/myorg/_git/myrepo"
-        )
+        mock_clone.assert_called_once_with("https://dev.azure.com/myorg/myorg/_git/myrepo")
 
     def test_forgejo_url(self):
         args = make_args(host="codeberg.org", repo="owner/myrepo")
-        with patch("gfo.commands.repo._resolve_host_without_repo",
-                   return_value=("codeberg.org", "forgejo")), \
-             patch("gfo.commands.repo.git_clone") as mock_clone:
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("codeberg.org", "forgejo"),
+            ),
+            patch("gfo.commands.repo.git_clone") as mock_clone,
+        ):
             repo_cmd.handle_clone(args, fmt="table")
 
         mock_clone.assert_called_once_with("https://codeberg.org/owner/myrepo.git")
 
     def test_gogs_url(self):
         args = make_args(host="gogs.local", repo="owner/myrepo")
-        with patch("gfo.commands.repo._resolve_host_without_repo",
-                   return_value=("gogs.local", "gogs")), \
-             patch("gfo.commands.repo.git_clone") as mock_clone:
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo", return_value=("gogs.local", "gogs")
+            ),
+            patch("gfo.commands.repo.git_clone") as mock_clone,
+        ):
             repo_cmd.handle_clone(args, fmt="table")
 
         mock_clone.assert_called_once_with("https://gogs.local/owner/myrepo.git")
 
     def test_invalid_repo_format_raises_config_error(self):
         args = make_args(host="github.com", repo="invalidformat")
-        with patch("gfo.commands.repo._resolve_host_without_repo", return_value=("github.com", "github")):
+        with patch(
+            "gfo.commands.repo._resolve_host_without_repo", return_value=("github.com", "github")
+        ):
             with pytest.raises(ConfigError):
                 repo_cmd.handle_clone(args, fmt="table")
 
@@ -470,8 +581,7 @@ class TestHandleDelete:
         args = make_args(yes=False)
         mock_adapter._owner = "test-owner"
         mock_adapter._repo = "test-repo"
-        with _patch_all(sample_config, mock_adapter), \
-             patch("builtins.input", return_value="y"):
+        with _patch_all(sample_config, mock_adapter), patch("builtins.input", return_value="y"):
             repo_cmd.handle_delete(args, fmt="table")
 
         mock_adapter.delete_repository.assert_called_once()
@@ -480,8 +590,7 @@ class TestHandleDelete:
         args = make_args(yes=False)
         mock_adapter._owner = "test-owner"
         mock_adapter._repo = "test-repo"
-        with _patch_all(sample_config, mock_adapter), \
-             patch("builtins.input", return_value="n"):
+        with _patch_all(sample_config, mock_adapter), patch("builtins.input", return_value="n"):
             repo_cmd.handle_delete(args, fmt="table")
 
         mock_adapter.delete_repository.assert_not_called()

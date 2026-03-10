@@ -1,5 +1,7 @@
 """http.py の HttpClient とページネーション関数をテストするモジュール。"""
 
+from datetime import UTC
+
 import pytest
 import responses
 
@@ -235,9 +237,7 @@ class TestRateLimit:
     @responses.activate
     def test_429_retry_default_wait(self, monkeypatch):
         sleep_values = []
-        monkeypatch.setattr(
-            "gfo.http.time.sleep", lambda v: sleep_values.append(v)
-        )
+        monkeypatch.setattr("gfo.http.time.sleep", lambda v: sleep_values.append(v))
         responses.add(responses.GET, f"{BASE}/x", status=429)
         responses.add(responses.GET, f"{BASE}/x", json={"ok": True})
         c = HttpClient(BASE)
@@ -317,14 +317,24 @@ class TestParseRetryAfter:
 
     def test_http_date_future(self, monkeypatch):
         """HTTP-date 形式（未来の日時）が秒数に変換される。"""
-        from datetime import datetime, timezone
-        future = datetime(2099, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        from datetime import datetime
+
+        future = datetime(2099, 1, 1, 0, 0, 0, tzinfo=UTC)
         monkeypatch.setattr(
             "gfo.http.datetime",
-            type("_MockDatetime", (), {"now": staticmethod(lambda tz=None: future - __import__("datetime").timedelta(seconds=120))})(),
+            type(
+                "_MockDatetime",
+                (),
+                {
+                    "now": staticmethod(
+                        lambda tz=None: future - __import__("datetime").timedelta(seconds=120)
+                    )
+                },
+            )(),
         )
         # HTTP-date で 120 秒後を指定
         import email.utils
+
         date_str = email.utils.format_datetime(future)
         result = HttpClient._parse_retry_after(date_str)
         assert result == 120
@@ -342,9 +352,7 @@ class TestParseRetryAfter:
 class TestMaskApiKey:
     def test_masks_api_key(self):
         url = "https://example.com/api?apiKey=secret123&other=val"
-        assert HttpClient._mask_api_key(url) == (
-            "https://example.com/api?apiKey=***&other=val"
-        )
+        assert HttpClient._mask_api_key(url) == ("https://example.com/api?apiKey=***&other=val")
 
     def test_no_api_key_unchanged(self):
         url = "https://example.com/api?foo=bar"
@@ -459,6 +467,7 @@ class TestPaginateLinkHeader:
     @responses.activate
     def test_second_page_connection_error(self):
         import json as json_mod
+
         import requests as req_lib
 
         next_url = f"{BASE}/items?page=2"
@@ -510,7 +519,8 @@ class TestPaginateLinkHeader:
     def test_non_json_response_stops_pagination(self):
         """200 で非 JSON レスポンスを返した場合、ループを終了して空リストを返す。"""
         responses.add(
-            responses.GET, f"{BASE}/items",
+            responses.GET,
+            f"{BASE}/items",
             body="<html>not json</html>",
             status=200,
             content_type="text/html",
@@ -523,6 +533,7 @@ class TestPaginateLinkHeader:
     def test_cross_origin_next_link_stops_pagination(self):
         """Link ヘッダーの next URL が異なるオリジンの場合はページネーションを停止する。"""
         import json as json_mod
+
         cross_origin_url = "https://evil.com/items?page=2"
 
         def callback(request):
@@ -606,7 +617,8 @@ class TestPaginatePageParam:
     def test_next_page_header_non_integer_stops_pagination(self):
         """X-Next-Page が整数でない場合はページネーションを停止する。"""
         responses.add(
-            responses.GET, f"{BASE}/items",
+            responses.GET,
+            f"{BASE}/items",
             json=[{"id": 1}],
             headers={"X-Next-Page": "invalid"},
         )
@@ -617,8 +629,13 @@ class TestPaginatePageParam:
     @responses.activate
     def test_non_json_response_stops_pagination(self):
         """200 で非 JSON レスポンスが返ったときページネーションを停止して空リストを返す。"""
-        responses.add(responses.GET, f"{BASE}/items", body="<html>not json</html>",
-                      content_type="text/html", status=200)
+        responses.add(
+            responses.GET,
+            f"{BASE}/items",
+            body="<html>not json</html>",
+            content_type="text/html",
+            status=200,
+        )
         c = HttpClient(BASE)
         result = paginate_page_param(c, "/items", limit=10)
         assert result == []
@@ -630,9 +647,7 @@ class TestPaginatePageParam:
 class TestPaginateResponseBody:
     @responses.activate
     def test_single_page(self):
-        responses.add(
-            responses.GET, f"{BASE}/items", json={"values": [{"id": 1}]}
-        )
+        responses.add(responses.GET, f"{BASE}/items", json={"values": [{"id": 1}]})
         c = HttpClient(BASE)
         result = paginate_response_body(c, "/items", limit=10)
         assert result == [{"id": 1}]
@@ -717,8 +732,13 @@ class TestPaginateResponseBody:
     @responses.activate
     def test_non_json_response_stops_pagination(self):
         """200 で非 JSON レスポンスが返ったときページネーションを停止して空リストを返す。"""
-        responses.add(responses.GET, f"{BASE}/items", body="<html>not json</html>",
-                      content_type="text/html", status=200)
+        responses.add(
+            responses.GET,
+            f"{BASE}/items",
+            body="<html>not json</html>",
+            content_type="text/html",
+            status=200,
+        )
         c = HttpClient(BASE)
         result = paginate_response_body(c, "/items", limit=10)
         assert result == []
@@ -772,8 +792,13 @@ class TestPaginateOffset:
     @responses.activate
     def test_non_json_response_stops_pagination(self):
         """200 で非 JSON レスポンスが返ったときページネーションを停止して空リストを返す。"""
-        responses.add(responses.GET, f"{BASE}/items", body="<html>not json</html>",
-                      content_type="text/html", status=200)
+        responses.add(
+            responses.GET,
+            f"{BASE}/items",
+            body="<html>not json</html>",
+            content_type="text/html",
+            status=200,
+        )
         c = HttpClient(BASE)
         result = paginate_offset(c, "/items", count=20, limit=10)
         assert result == []
@@ -785,9 +810,7 @@ class TestPaginateOffset:
 class TestPaginateTopSkip:
     @responses.activate
     def test_single_page(self):
-        responses.add(
-            responses.GET, f"{BASE}/items", json={"value": [{"id": 1}]}
-        )
+        responses.add(responses.GET, f"{BASE}/items", json={"value": [{"id": 1}]})
         c = HttpClient(BASE)
         result = paginate_top_skip(c, "/items", top=30, limit=10)
         assert result == [{"id": 1}]
@@ -837,8 +860,13 @@ class TestPaginateTopSkip:
     @responses.activate
     def test_non_json_response_stops_pagination(self):
         """200 で非 JSON レスポンスが返ったときページネーションを停止して空リストを返す。"""
-        responses.add(responses.GET, f"{BASE}/items", body="<html>not json</html>",
-                      content_type="text/html", status=200)
+        responses.add(
+            responses.GET,
+            f"{BASE}/items",
+            body="<html>not json</html>",
+            content_type="text/html",
+            status=200,
+        )
         c = HttpClient(BASE)
         result = paginate_top_skip(c, "/items", top=30, limit=10)
         assert result == []
@@ -849,48 +877,69 @@ class TestPaginateTopSkip:
 
 class TestValidateSameOrigin:
     def test_same_origin(self):
-        assert _validate_same_origin(
-            "https://api.example.com/v1/items",
-            "https://api.example.com/v1/items?page=2",
-        ) is True
+        assert (
+            _validate_same_origin(
+                "https://api.example.com/v1/items",
+                "https://api.example.com/v1/items?page=2",
+            )
+            is True
+        )
 
     def test_different_host_blocked(self):
-        assert _validate_same_origin(
-            "https://api.example.com/v1",
-            "https://api.evil.com/v1",
-        ) is False
+        assert (
+            _validate_same_origin(
+                "https://api.example.com/v1",
+                "https://api.evil.com/v1",
+            )
+            is False
+        )
 
     def test_different_scheme_blocked(self):
-        assert _validate_same_origin(
-            "https://api.example.com/v1",
-            "http://api.example.com/v1",
-        ) is False
+        assert (
+            _validate_same_origin(
+                "https://api.example.com/v1",
+                "http://api.example.com/v1",
+            )
+            is False
+        )
 
     def test_different_port_blocked(self):
-        assert _validate_same_origin(
-            "https://api.example.com:8080/v1",
-            "https://api.example.com:9000/v1",
-        ) is False
+        assert (
+            _validate_same_origin(
+                "https://api.example.com:8080/v1",
+                "https://api.example.com:9000/v1",
+            )
+            is False
+        )
 
     def test_subdomain_blocked(self):
-        assert _validate_same_origin(
-            "https://api.example.com/v1",
-            "https://evil.example.com/v1",
-        ) is False
+        assert (
+            _validate_same_origin(
+                "https://api.example.com/v1",
+                "https://evil.example.com/v1",
+            )
+            is False
+        )
 
     def test_implicit_vs_explicit_default_port(self):
         """https://host と https://host:443 は同一オリジン。"""
-        assert _validate_same_origin(
-            "https://api.example.com/v1",
-            "https://api.example.com:443/v1",
-        ) is True
+        assert (
+            _validate_same_origin(
+                "https://api.example.com/v1",
+                "https://api.example.com:443/v1",
+            )
+            is True
+        )
 
     def test_http_default_port(self):
         """http://host と http://host:80 は同一オリジン。"""
-        assert _validate_same_origin(
-            "http://api.example.com/v1",
-            "http://api.example.com:80/v1",
-        ) is True
+        assert (
+            _validate_same_origin(
+                "http://api.example.com/v1",
+                "http://api.example.com:80/v1",
+            )
+            is True
+        )
 
 
 # ── _extract_next_link ──

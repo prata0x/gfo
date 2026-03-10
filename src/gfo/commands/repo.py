@@ -66,7 +66,7 @@ def _resolve_host_without_repo(args_host: str | None) -> tuple[str, str]:
         if not service_type:
             raise ConfigError(
                 f"Could not determine service type for host '{host}'. "
-                f"Configure it in config.toml: [hosts.{host}] type = \"...\""
+                f'Configure it in config.toml: [hosts.{host}] type = "..."'
             )
 
     return host, service_type
@@ -100,8 +100,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     if service_type == "backlog":
         if not project_key:
             raise ConfigError(
-                "Backlog requires a project key. "
-                "Run 'gfo init' first to configure the project."
+                "Backlog requires a project key. Run 'gfo init' first to configure the project."
             )
         extra_kwargs["project_key"] = project_key
     elif service_type == "azure-devops":

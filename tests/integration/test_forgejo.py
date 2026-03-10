@@ -41,7 +41,9 @@ class TestForgejoIntegration:
 
     def test_03_label_create(self) -> None:
         label = self.adapter.create_label(
-            name="gfo-test-label", color="ff0000", description="Integration test",
+            name="gfo-test-label",
+            color="ff0000",
+            description="Integration test",
         )
         assert label.name == "gfo-test-label"
 
@@ -54,7 +56,8 @@ class TestForgejoIntegration:
 
     def test_05_milestone_create(self) -> None:
         ms = self.adapter.create_milestone(
-            title="gfo-test-milestone", description="Integration test",
+            title="gfo-test-milestone",
+            description="Integration test",
         )
         assert ms.title == "gfo-test-milestone"
 
@@ -91,8 +94,10 @@ class TestForgejoIntegration:
 
     def test_11_pr_create(self) -> None:
         pr = self.adapter.create_pull_request(
-            title="gfo-test-pr", body="Integration test",
-            base=self.config.default_branch, head=self.config.test_branch,
+            title="gfo-test-pr",
+            body="Integration test",
+            base=self.config.default_branch,
+            head=self.config.test_branch,
         )
         assert pr.state == "open"
         self.__class__._pr_number = pr.number
@@ -118,7 +123,9 @@ class TestForgejoIntegration:
 
     def test_15_release_create(self) -> None:
         release = self.adapter.create_release(
-            tag="v0.0.1-test", title="Test Release", notes="Integration test",
+            tag="v0.0.1-test",
+            title="Test Release",
+            notes="Integration test",
         )
         assert release.tag == "v0.0.1-test"
 

@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import urllib.parse
 
+from gfo.exceptions import GfoError, NotSupportedError
+from gfo.http import paginate_offset
+
 from .base import (
     GitServiceAdapter,
     Issue,
@@ -14,13 +17,11 @@ from .base import (
     Repository,
 )
 from .registry import register
-from gfo.exceptions import GfoError, NotSupportedError
-from gfo.http import paginate_offset
 
 # Backlog PR / Issue ステータス ID 定数
-_STATUS_OPEN_IDS = [1, 2, 3]   # open / in-progress / resolved (open 扱い)
-_STATUS_CLOSED_ID = 4           # closed
-_STATUS_MERGED_ID = 5           # merged（PR 固定値; カスタムの場合は動的解決で上書き）
+_STATUS_OPEN_IDS = [1, 2, 3]  # open / in-progress / resolved (open 扱い)
+_STATUS_CLOSED_ID = 4  # closed
+_STATUS_MERGED_ID = 5  # merged（PR 固定値; カスタムの場合は動的解決で上書き）
 
 
 @register("backlog")
@@ -160,9 +161,9 @@ class BacklogAdapter(GitServiceAdapter):
         results = paginate_offset(self._client, self._pr_path(), params=params, limit=limit)
         return [self._to_pull_request(r, merged_id) for r in results]
 
-    def create_pull_request(self, *, title: str, body: str = "",
-                            base: str, head: str,
-                            draft: bool = False) -> PullRequest:
+    def create_pull_request(
+        self, *, title: str, body: str = "", base: str, head: str, draft: bool = False
+    ) -> PullRequest:
         payload = {
             "summary": title,
             "description": body,
@@ -179,25 +180,29 @@ class BacklogAdapter(GitServiceAdapter):
     def merge_pull_request(self, number: int, *, method: str = "merge") -> None:
         hostname = urllib.parse.urlparse(self._client.base_url).hostname
         raise NotSupportedError(
-            "Backlog", "pull request merge",
+            "Backlog",
+            "pull request merge",
             web_url=f"https://{hostname}/git/{self._project_key}/{self._repo}/pullRequests/{number}",
         )
 
     def close_pull_request(self, number: int) -> None:
         self._client.patch(f"{self._pr_path()}/{number}", json={"statusId": _STATUS_CLOSED_ID})
 
-    def get_pr_checkout_refspec(self, number: int, *,
-                                pr: PullRequest | None = None) -> str:
+    def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         if pr is None:
             pr = self.get_pull_request(number)
         return pr.source_branch
 
     # --- Issue ---
 
-    def list_issues(self, *, state: str = "open",
-                    assignee: str | None = None,
-                    label: str | None = None,
-                    limit: int = 30) -> list[Issue]:
+    def list_issues(
+        self,
+        *,
+        state: str = "open",
+        assignee: str | None = None,
+        label: str | None = None,
+        limit: int = 30,
+    ) -> list[Issue]:
         project_id = self._ensure_project_id()
         params: dict = {"projectId[]": project_id}
         if state == "open":
@@ -211,12 +216,17 @@ class BacklogAdapter(GitServiceAdapter):
         results = paginate_offset(self._client, "/issues", params=params, limit=limit)
         return [self._to_issue(r) for r in results]
 
-    def create_issue(self, *, title: str, body: str = "",
-                     assignee: str | None = None,
-                     label: str | None = None,
-                     issue_type: int | None = None,
-                     priority: int | None = None,
-                     **kwargs) -> Issue:
+    def create_issue(
+        self,
+        *,
+        title: str,
+        body: str = "",
+        assignee: str | None = None,
+        label: str | None = None,
+        issue_type: int | None = None,
+        priority: int | None = None,
+        **kwargs,
+    ) -> Issue:
         project_id = self._ensure_project_id()
 
         if issue_type is None:
@@ -233,11 +243,17 @@ class BacklogAdapter(GitServiceAdapter):
             resp = self._client.get("/priorities")
             priorities = resp.json()
             if not isinstance(priorities, list):
-                raise GfoError(f"Unexpected API response from priorities endpoint: {type(priorities)}")
+                raise GfoError(
+                    f"Unexpected API response from priorities endpoint: {type(priorities)}"
+                )
             try:
                 # "中" (Normal) を優先、なければ先頭
                 priority = next(
-                    (p["id"] for p in priorities if "中" in p.get("name", "") or p.get("name", "").lower() == "normal"),
+                    (
+                        p["id"]
+                        for p in priorities
+                        if "中" in p.get("name", "") or p.get("name", "").lower() == "normal"
+                    ),
                     priorities[0]["id"] if priorities else None,
                 )
             except (KeyError, TypeError) as e:
@@ -250,8 +266,7 @@ class BacklogAdapter(GitServiceAdapter):
             )
         if priority is None:
             raise GfoError(
-                "Cannot create issue: no priorities found. "
-                "Configure priorities in Backlog."
+                "Cannot create issue: no priorities found. Configure priorities in Backlog."
             )
 
         payload: dict = {
@@ -273,15 +288,16 @@ class BacklogAdapter(GitServiceAdapter):
         return self._to_issue(resp.json())
 
     def close_issue(self, number: int) -> None:
-        self._client.patch(f"/issues/{self._project_key}-{number}", json={"statusId": _STATUS_CLOSED_ID})
+        self._client.patch(
+            f"/issues/{self._project_key}-{number}", json={"statusId": _STATUS_CLOSED_ID}
+        )
 
     def delete_issue(self, number: int) -> None:
         self._client.delete(f"/issues/{self._project_key}-{number}")
 
     # --- Repository ---
 
-    def list_repositories(self, *, owner: str | None = None,
-                          limit: int = 30) -> list[Repository]:
+    def list_repositories(self, *, owner: str | None = None, limit: int = 30) -> list[Repository]:
         if owner is not None:
             raise NotSupportedError(
                 self.service_name,
@@ -295,16 +311,16 @@ class BacklogAdapter(GitServiceAdapter):
         )
         return [self._to_repository(r) for r in results]
 
-    def create_repository(self, *, name: str, private: bool = False,
-                          description: str = "") -> Repository:
+    def create_repository(
+        self, *, name: str, private: bool = False, description: str = ""
+    ) -> Repository:
         payload: dict = {"name": name}
         if description:
             payload["description"] = description
         resp = self._client.post(f"/projects/{self._project_key}/git/repositories", json=payload)
         return self._to_repository(resp.json())
 
-    def get_repository(self, owner: str | None = None,
-                       name: str | None = None) -> Repository:
+    def get_repository(self, owner: str | None = None, name: str | None = None) -> Repository:
         n = name if name is not None else self._repo
         resp = self._client.get(
             f"/projects/{self._project_key}/git/repositories/{urllib.parse.quote(n, safe='')}"
@@ -322,22 +338,29 @@ class BacklogAdapter(GitServiceAdapter):
     def list_releases(self, *, limit: int = 30) -> list[Release]:
         raise NotSupportedError(self.service_name, "releases")
 
-    def create_release(self, *, tag: str, title: str = "",
-                       notes: str = "", draft: bool = False,
-                       prerelease: bool = False) -> Release:
+    def create_release(
+        self,
+        *,
+        tag: str,
+        title: str = "",
+        notes: str = "",
+        draft: bool = False,
+        prerelease: bool = False,
+    ) -> Release:
         raise NotSupportedError(self.service_name, "releases")
 
     def list_labels(self, *, limit: int = 0) -> list[Label]:
         raise NotSupportedError(self.service_name, "labels")
 
-    def create_label(self, *, name: str, color: str | None = None,
-                     description: str | None = None) -> Label:
+    def create_label(
+        self, *, name: str, color: str | None = None, description: str | None = None
+    ) -> Label:
         raise NotSupportedError(self.service_name, "labels")
 
     def list_milestones(self, *, limit: int = 0) -> list[Milestone]:
         raise NotSupportedError(self.service_name, "milestones")
 
-    def create_milestone(self, *, title: str,
-                         description: str | None = None,
-                         due_date: str | None = None) -> Milestone:
+    def create_milestone(
+        self, *, title: str, description: str | None = None, due_date: str | None = None
+    ) -> Milestone:
         raise NotSupportedError(self.service_name, "milestones")

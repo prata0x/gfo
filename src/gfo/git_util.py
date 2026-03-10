@@ -65,7 +65,7 @@ def get_default_branch(remote: str = "origin", cwd: str | None = None) -> str:
         return "main"
     prefix = f"refs/remotes/{remote}/"
     if ref.startswith(prefix):
-        return ref[len(prefix):]
+        return ref[len(prefix) :]
     return ref
 
 
@@ -87,16 +87,12 @@ def git_fetch(remote: str, refspec: str, cwd: str | None = None) -> None:
     run_git("fetch", remote, refspec, cwd=cwd)
 
 
-def git_checkout_new_branch(
-    branch: str, start: str = "FETCH_HEAD", cwd: str | None = None
-) -> None:
+def git_checkout_new_branch(branch: str, start: str = "FETCH_HEAD", cwd: str | None = None) -> None:
     """新しいブランチを作成してチェックアウトする。"""
     run_git("checkout", "-b", branch, start, cwd=cwd)
 
 
-def git_checkout_branch(
-    branch: str, start: str = "FETCH_HEAD", cwd: str | None = None
-) -> None:
+def git_checkout_branch(branch: str, start: str = "FETCH_HEAD", cwd: str | None = None) -> None:
     """ブランチが存在しなければ新規作成、存在すれば既存ブランチにスイッチする。"""
     try:
         run_git("checkout", "-b", branch, start, cwd=cwd)
@@ -127,5 +123,9 @@ def git_clone(url: str, dest: str | None = None, cwd: str | None = None) -> None
     except subprocess.TimeoutExpired as e:
         raise GitCommandError(f"git clone timed out after {_CLONE_TIMEOUT}s") from e
     if result.returncode != 0:
-        raw = result.stderr.strip() or result.stdout.strip() or f"exited with code {result.returncode}"
+        raw = (
+            result.stderr.strip()
+            or result.stdout.strip()
+            or f"exited with code {result.returncode}"
+        )
         raise GitCommandError(_mask_credentials(raw))

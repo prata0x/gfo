@@ -56,6 +56,7 @@ class TestHandleList:
             pr_cmd.handle_list(args, fmt="json")
 
         import json
+
         out = capsys.readouterr().out
         data = json.loads(out)
         assert isinstance(data, list)
@@ -94,8 +95,10 @@ class TestHandleCreate:
 
     def test_infers_head_from_git(self, sample_config, mock_adapter, capsys):
         args = make_args(head=None, base="main", title="My PR", body="", draft=False)
-        with _patch_all(sample_config, mock_adapter), \
-             patch("gfo.commands.pr.gfo.git_util.get_current_branch", return_value="feature/auto"):
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("gfo.commands.pr.gfo.git_util.get_current_branch", return_value="feature/auto"),
+        ):
             pr_cmd.handle_create(args, fmt="table")
 
         call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
@@ -103,8 +106,10 @@ class TestHandleCreate:
 
     def test_infers_base_from_git(self, sample_config, mock_adapter, capsys):
         args = make_args(head="feature/x", base=None, title="My PR", body="", draft=False)
-        with _patch_all(sample_config, mock_adapter), \
-             patch("gfo.commands.pr.gfo.git_util.get_default_branch", return_value="develop"):
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("gfo.commands.pr.gfo.git_util.get_default_branch", return_value="develop"),
+        ):
             pr_cmd.handle_create(args, fmt="table")
 
         call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
@@ -112,8 +117,13 @@ class TestHandleCreate:
 
     def test_infers_title_from_last_commit(self, sample_config, mock_adapter, capsys):
         args = make_args(head="feature/x", base="main", title=None, body="", draft=False)
-        with _patch_all(sample_config, mock_adapter), \
-             patch("gfo.commands.pr.gfo.git_util.get_last_commit_subject", return_value="Auto commit title"):
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch(
+                "gfo.commands.pr.gfo.git_util.get_last_commit_subject",
+                return_value="Auto commit title",
+            ),
+        ):
             pr_cmd.handle_create(args, fmt="table")
 
         call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
@@ -141,16 +151,20 @@ class TestHandleCreateTitleValidation:
     def test_no_title_and_no_commit_raises_config_error(self, sample_config, mock_adapter):
         """title=None かつ git から取得もできない場合は ConfigError を送出する。"""
         args = make_args(head="feature/x", base="main", title=None, body="", draft=False)
-        with _patch_all(sample_config, mock_adapter), \
-             patch("gfo.commands.pr.gfo.git_util.get_last_commit_subject", return_value=""), \
-             pytest.raises(ConfigError, match="Could not determine PR title"):
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("gfo.commands.pr.gfo.git_util.get_last_commit_subject", return_value=""),
+            pytest.raises(ConfigError, match="Could not determine PR title"),
+        ):
             pr_cmd.handle_create(args, fmt="table")
 
     def test_whitespace_title_raises_config_error(self, sample_config, mock_adapter):
         """title が空白のみの場合は ConfigError を送出する。"""
         args = make_args(head="feature/x", base="main", title="   ", body="", draft=False)
-        with _patch_all(sample_config, mock_adapter), \
-             pytest.raises(ConfigError, match="Could not determine PR title"):
+        with (
+            _patch_all(sample_config, mock_adapter),
+            pytest.raises(ConfigError, match="Could not determine PR title"),
+        ):
             pr_cmd.handle_create(args, fmt="table")
 
 
@@ -199,9 +213,11 @@ class TestHandleClose:
 class TestHandleCheckout:
     def test_fetches_and_checks_out(self, sample_config, mock_adapter):
         args = make_args(number=1)
-        with _patch_all(sample_config, mock_adapter), \
-             patch("gfo.commands.pr.gfo.git_util.git_fetch") as mock_fetch, \
-             patch("gfo.commands.pr.gfo.git_util.git_checkout_branch") as mock_checkout:
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("gfo.commands.pr.gfo.git_util.git_fetch") as mock_fetch,
+            patch("gfo.commands.pr.gfo.git_util.git_checkout_branch") as mock_checkout,
+        ):
             pr_cmd.handle_checkout(args, fmt="table")
 
         mock_adapter.get_pull_request.assert_called_once_with(1)
@@ -220,9 +236,13 @@ class TestHandleCheckout:
         import subprocess
 
         args = make_args(number=1)
-        with _patch_all(sample_config, mock_adapter), \
-             patch("gfo.commands.pr.gfo.git_util.git_fetch",
-                   side_effect=subprocess.CalledProcessError(1, "git")):
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch(
+                "gfo.commands.pr.gfo.git_util.git_fetch",
+                side_effect=subprocess.CalledProcessError(1, "git"),
+            ),
+        ):
             with pytest.raises(subprocess.CalledProcessError):
                 pr_cmd.handle_checkout(args, fmt="table")
 
@@ -231,8 +251,7 @@ def test_pr_list_config_error(capsys):
     """resolve_project_config が ConfigError を投げた場合に CLI で exit code 1 になる。"""
     from gfo.cli import main
 
-    with patch("gfo.commands.pr.get_adapter",
-               side_effect=ConfigError("not configured")):
+    with patch("gfo.commands.pr.get_adapter", side_effect=ConfigError("not configured")):
         result = main(["pr", "list"])
 
     assert result == 1

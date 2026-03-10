@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from gfo.commands import init as init_cmd
 from gfo.config import ProjectConfig
@@ -34,9 +35,11 @@ class TestHandleInteractive:
         detect_result = _make_detect_result()
         args = make_args(non_interactive=False)
 
-        with patch("gfo.commands.init.detect_service", return_value=detect_result), \
-             patch("gfo.commands.init.save_project_config") as mock_save, \
-             patch("builtins.input", return_value="y"):
+        with (
+            patch("gfo.commands.init.detect_service", return_value=detect_result),
+            patch("gfo.commands.init.save_project_config") as mock_save,
+            patch("builtins.input", return_value="y"),
+        ):
             init_cmd.handle(args, fmt="table")
 
         mock_save.assert_called_once()
@@ -49,9 +52,11 @@ class TestHandleInteractive:
         detect_result = _make_detect_result()
         args = make_args(non_interactive=False)
 
-        with patch("gfo.commands.init.detect_service", return_value=detect_result), \
-             patch("gfo.commands.init.save_project_config") as mock_save, \
-             patch("builtins.input", return_value=""):
+        with (
+            patch("gfo.commands.init.detect_service", return_value=detect_result),
+            patch("gfo.commands.init.save_project_config") as mock_save,
+            patch("builtins.input", return_value=""),
+        ):
             init_cmd.handle(args, fmt="table")
 
         mock_save.assert_called_once()
@@ -62,12 +67,19 @@ class TestHandleInteractive:
         args = make_args(non_interactive=False)
 
         # 入力順: [Y/n] 確認 → type → host → api_url → project_key
-        inputs = iter(["n", "gitlab", "gitlab.example.com", "https://gitlab.example.com/api/v4", ""])
+        inputs = iter(
+            ["n", "gitlab", "gitlab.example.com", "https://gitlab.example.com/api/v4", ""]
+        )
 
-        with patch("gfo.commands.init.detect_service", return_value=detect_result), \
-             patch("gfo.commands.init.save_project_config") as mock_save, \
-             patch("gfo.commands.init.get_remote_url", return_value="https://gitlab.example.com/owner/repo.git"), \
-             patch("builtins.input", side_effect=inputs):
+        with (
+            patch("gfo.commands.init.detect_service", return_value=detect_result),
+            patch("gfo.commands.init.save_project_config") as mock_save,
+            patch(
+                "gfo.commands.init.get_remote_url",
+                return_value="https://gitlab.example.com/owner/repo.git",
+            ),
+            patch("builtins.input", side_effect=inputs),
+        ):
             init_cmd.handle(args, fmt="table")
 
         mock_save.assert_called_once()
@@ -83,10 +95,14 @@ class TestHandleInteractive:
         # 入力順: type → host → api_url → project_key
         inputs = iter(["github", "github.com", "", ""])
 
-        with patch("gfo.commands.init.detect_service", side_effect=DetectionError("test")), \
-             patch("gfo.commands.init.save_project_config") as mock_save, \
-             patch("gfo.commands.init.get_remote_url", return_value="https://github.com/owner/repo.git"), \
-             patch("builtins.input", side_effect=inputs):
+        with (
+            patch("gfo.commands.init.detect_service", side_effect=DetectionError("test")),
+            patch("gfo.commands.init.save_project_config") as mock_save,
+            patch(
+                "gfo.commands.init.get_remote_url", return_value="https://github.com/owner/repo.git"
+            ),
+            patch("builtins.input", side_effect=inputs),
+        ):
             init_cmd.handle(args, fmt="table")
 
         mock_save.assert_called_once()
@@ -99,10 +115,17 @@ class TestHandleInteractive:
         args = make_args(non_interactive=False)
         inputs = iter(["github", "github.com", "", ""])
 
-        with patch("gfo.commands.init.detect_service", side_effect=GitCommandError("no remote 'origin'")), \
-             patch("gfo.commands.init.get_remote_url", return_value="https://github.com/owner/repo.git"), \
-             patch("gfo.commands.init.save_project_config") as mock_save, \
-             patch("builtins.input", side_effect=inputs):
+        with (
+            patch(
+                "gfo.commands.init.detect_service",
+                side_effect=GitCommandError("no remote 'origin'"),
+            ),
+            patch(
+                "gfo.commands.init.get_remote_url", return_value="https://github.com/owner/repo.git"
+            ),
+            patch("gfo.commands.init.save_project_config") as mock_save,
+            patch("builtins.input", side_effect=inputs),
+        ):
             init_cmd.handle(args, fmt="table")
 
         mock_save.assert_called_once()
@@ -115,11 +138,14 @@ class TestHandleInteractive:
         args = make_args(non_interactive=False)
         inputs = iter(["github", "github.com", "", ""])
 
-        with patch("gfo.commands.init.detect_service", side_effect=DetectionError()), \
-             patch("gfo.commands.init.get_remote_url",
-                   side_effect=GitCommandError("not a git repo")), \
-             patch("gfo.commands.init.save_project_config") as mock_save, \
-             patch("builtins.input", side_effect=inputs):
+        with (
+            patch("gfo.commands.init.detect_service", side_effect=DetectionError()),
+            patch(
+                "gfo.commands.init.get_remote_url", side_effect=GitCommandError("not a git repo")
+            ),
+            patch("gfo.commands.init.save_project_config") as mock_save,
+            patch("builtins.input", side_effect=inputs),
+        ):
             init_cmd.handle(args, fmt="table")
 
         saved = mock_save.call_args[0][0]
@@ -129,6 +155,7 @@ class TestHandleInteractive:
     def test_detect_success_azure_devops_needs_org_input(self):
         """Azure DevOps 検出 → organization 不足 → 手動入力してから保存。"""
         from gfo.detect import DetectResult
+
         detect_result = DetectResult(
             service_type="azure-devops",
             host="dev.azure.com",
@@ -141,9 +168,11 @@ class TestHandleInteractive:
         # 入力: [Y/n] 確認 → organization → project_key
         inputs = iter(["y", "my-org", "my-project"])
 
-        with patch("gfo.commands.init.detect_service", return_value=detect_result), \
-             patch("gfo.commands.init.save_project_config") as mock_save, \
-             patch("builtins.input", side_effect=inputs):
+        with (
+            patch("gfo.commands.init.detect_service", return_value=detect_result),
+            patch("gfo.commands.init.save_project_config") as mock_save,
+            patch("builtins.input", side_effect=inputs),
+        ):
             init_cmd.handle(args, fmt="table")
 
         mock_save.assert_called_once()
@@ -157,9 +186,11 @@ class TestHandleInteractive:
         args = make_args(non_interactive=False)
         inputs = iter(["", "github", "github.com", "", ""])
 
-        with patch("gfo.commands.init.detect_service", side_effect=DetectionError()), \
-             patch("gfo.commands.init.get_remote_url", return_value="https://github.com/o/r.git"), \
-             patch("builtins.input", side_effect=inputs):
+        with (
+            patch("gfo.commands.init.detect_service", side_effect=DetectionError()),
+            patch("gfo.commands.init.get_remote_url", return_value="https://github.com/o/r.git"),
+            patch("builtins.input", side_effect=inputs),
+        ):
             with pytest.raises(ConfigError, match="service_type cannot be empty"):
                 init_cmd.handle(args, fmt="table")
 
@@ -168,8 +199,10 @@ class TestHandleInteractive:
         args = make_args(non_interactive=False)
         inputs = iter(["unknown-svc", "github.com", "", ""])
 
-        with patch("gfo.commands.init.detect_service", side_effect=DetectionError()), \
-             patch("builtins.input", side_effect=inputs):
+        with (
+            patch("gfo.commands.init.detect_service", side_effect=DetectionError()),
+            patch("builtins.input", side_effect=inputs),
+        ):
             with pytest.raises(ConfigError, match="Unknown service type"):
                 init_cmd.handle(args, fmt="table")
 
@@ -178,14 +211,17 @@ class TestHandleInteractive:
         args = make_args(non_interactive=False)
         inputs = iter(["github", "", "", ""])
 
-        with patch("gfo.commands.init.detect_service", side_effect=DetectionError()), \
-             patch("builtins.input", side_effect=inputs):
+        with (
+            patch("gfo.commands.init.detect_service", side_effect=DetectionError()),
+            patch("builtins.input", side_effect=inputs),
+        ):
             with pytest.raises(ConfigError, match="host cannot be empty"):
                 init_cmd.handle(args, fmt="table")
 
     def test_detect_success_none_service_type_prompts_for_type(self):
         """detect_result.service_type が None のとき service_type の入力を促す（line 99）。"""
         from gfo.detect import DetectResult
+
         detect_result = DetectResult(
             service_type=None,
             host="github.com",
@@ -196,9 +232,11 @@ class TestHandleInteractive:
         # 入力: [Y/n] 確認 → service_type (line 99)
         inputs = iter(["y", "github"])
 
-        with patch("gfo.commands.init.detect_service", return_value=detect_result), \
-             patch("gfo.commands.init.save_project_config") as mock_save, \
-             patch("builtins.input", side_effect=inputs):
+        with (
+            patch("gfo.commands.init.detect_service", return_value=detect_result),
+            patch("gfo.commands.init.save_project_config") as mock_save,
+            patch("builtins.input", side_effect=inputs),
+        ):
             init_cmd.handle(args, fmt="table")
 
         mock_save.assert_called_once()
@@ -208,6 +246,7 @@ class TestHandleInteractive:
     def test_detect_success_azure_devops_second_build_url_fails(self):
         """Azure DevOps で 2 回目の build_default_api_url も失敗 → ConfigError（lines 120-121）。"""
         from gfo.detect import DetectResult
+
         detect_result = DetectResult(
             service_type="azure-devops",
             host="dev.azure.com",
@@ -220,10 +259,14 @@ class TestHandleInteractive:
         # 入力: [Y/n] 確認 → organization → project_key
         inputs = iter(["y", "my-org", "my-project"])
 
-        with patch("gfo.commands.init.detect_service", return_value=detect_result), \
-             patch("gfo.commands.init.build_default_api_url",
-                   side_effect=ConfigError("cannot build URL")), \
-             patch("builtins.input", side_effect=inputs):
+        with (
+            patch("gfo.commands.init.detect_service", return_value=detect_result),
+            patch(
+                "gfo.commands.init.build_default_api_url",
+                side_effect=ConfigError("cannot build URL"),
+            ),
+            patch("builtins.input", side_effect=inputs),
+        ):
             with pytest.raises(ConfigError, match="Could not build API URL"):
                 init_cmd.handle(args, fmt="table")
 
@@ -233,9 +276,11 @@ class TestHandleInteractive:
         # inputs: service_type, host, api_url(空), project_key(空), organization(空), project_key(空)
         inputs = iter(["azure-devops", "dev.azure.com", "", "", "", ""])
 
-        with patch("gfo.commands.init.detect_service", side_effect=DetectionError()), \
-             patch("gfo.commands.init.get_remote_url", side_effect=GitCommandError("no remote")), \
-             patch("builtins.input", side_effect=inputs):
+        with (
+            patch("gfo.commands.init.detect_service", side_effect=DetectionError()),
+            patch("gfo.commands.init.get_remote_url", side_effect=GitCommandError("no remote")),
+            patch("builtins.input", side_effect=inputs),
+        ):
             with pytest.raises(ConfigError, match="Could not build API URL"):
                 init_cmd.handle(args, fmt="table")
 
@@ -245,10 +290,14 @@ class TestHandleInteractive:
 
         inputs = iter(["gitlab", "gitlab.com", "", ""])
 
-        with patch("gfo.commands.init.detect_service", side_effect=DetectionError()), \
-             patch("gfo.commands.init.save_project_config") as mock_save, \
-             patch("gfo.commands.init.get_remote_url", return_value="https://gitlab.com/owner/repo.git"), \
-             patch("builtins.input", side_effect=inputs):
+        with (
+            patch("gfo.commands.init.detect_service", side_effect=DetectionError()),
+            patch("gfo.commands.init.save_project_config") as mock_save,
+            patch(
+                "gfo.commands.init.get_remote_url", return_value="https://gitlab.com/owner/repo.git"
+            ),
+            patch("builtins.input", side_effect=inputs),
+        ):
             init_cmd.handle(args, fmt="table")
 
         saved: ProjectConfig = mock_save.call_args[0][0]
@@ -262,10 +311,12 @@ class TestHandleInteractive:
         # build_default_api_url が organization=None で失敗 → "Organization:" を追加入力
         inputs = iter(["azure-devops", "dev.azure.com", "", "", "my-org", "my-project"])
 
-        with patch("gfo.commands.init.detect_service", side_effect=DetectionError()), \
-             patch("gfo.commands.init.save_project_config") as mock_save, \
-             patch("gfo.commands.init.get_remote_url", side_effect=GitCommandError("no remote")), \
-             patch("builtins.input", side_effect=inputs):
+        with (
+            patch("gfo.commands.init.detect_service", side_effect=DetectionError()),
+            patch("gfo.commands.init.save_project_config") as mock_save,
+            patch("gfo.commands.init.get_remote_url", side_effect=GitCommandError("no remote")),
+            patch("builtins.input", side_effect=inputs),
+        ):
             init_cmd.handle(args, fmt="table")
 
         saved: ProjectConfig = mock_save.call_args[0][0]
@@ -288,8 +339,12 @@ class TestHandleNonInteractive:
             project_key=None,
         )
 
-        with patch("gfo.commands.init.get_remote_url", return_value="https://github.com/owner/repo.git"), \
-             patch("gfo.commands.init.save_project_config") as mock_save:
+        with (
+            patch(
+                "gfo.commands.init.get_remote_url", return_value="https://github.com/owner/repo.git"
+            ),
+            patch("gfo.commands.init.save_project_config") as mock_save,
+        ):
             init_cmd.handle(args, fmt="table")
 
         mock_save.assert_called_once()
@@ -348,8 +403,13 @@ class TestHandleNonInteractive:
             project_key=None,
         )
 
-        with patch("gfo.commands.init.get_remote_url", return_value="https://github.example.com/owner/repo.git"), \
-             patch("gfo.commands.init.save_project_config") as mock_save:
+        with (
+            patch(
+                "gfo.commands.init.get_remote_url",
+                return_value="https://github.example.com/owner/repo.git",
+            ),
+            patch("gfo.commands.init.save_project_config") as mock_save,
+        ):
             init_cmd.handle(args, fmt="table")
 
         saved: ProjectConfig = mock_save.call_args[0][0]
@@ -366,9 +426,14 @@ class TestHandleNonInteractive:
         )
         host_cfg = {"type": "gitea", "api_url": "https://gitea.example.com/api/v1"}
 
-        with patch("gfo.commands.init.get_remote_url", return_value="https://gitea.example.com/owner/repo.git"), \
-             patch("gfo.commands.init.get_host_config", return_value=host_cfg), \
-             patch("gfo.commands.init.save_project_config") as mock_save:
+        with (
+            patch(
+                "gfo.commands.init.get_remote_url",
+                return_value="https://gitea.example.com/owner/repo.git",
+            ),
+            patch("gfo.commands.init.get_host_config", return_value=host_cfg),
+            patch("gfo.commands.init.save_project_config") as mock_save,
+        ):
             init_cmd.handle(args, fmt="table")
 
         saved: ProjectConfig = mock_save.call_args[0][0]
@@ -384,9 +449,13 @@ class TestHandleNonInteractive:
             project_key=None,
         )
 
-        with patch("gfo.commands.init.get_remote_url", return_value="https://gitlab.com/owner/repo.git"), \
-             patch("gfo.commands.init.get_host_config", return_value=None), \
-             patch("gfo.commands.init.save_project_config") as mock_save:
+        with (
+            patch(
+                "gfo.commands.init.get_remote_url", return_value="https://gitlab.com/owner/repo.git"
+            ),
+            patch("gfo.commands.init.get_host_config", return_value=None),
+            patch("gfo.commands.init.save_project_config") as mock_save,
+        ):
             init_cmd.handle(args, fmt="table")
 
         saved: ProjectConfig = mock_save.call_args[0][0]
@@ -403,9 +472,11 @@ class TestHandleNonInteractive:
         )
         remote_url = "https://dev.azure.com/MyOrg/MyProject/_git/MyRepo"
 
-        with patch("gfo.commands.init.get_remote_url", return_value=remote_url), \
-             patch("gfo.commands.init.get_host_config", return_value=None), \
-             patch("gfo.commands.init.save_project_config") as mock_save:
+        with (
+            patch("gfo.commands.init.get_remote_url", return_value=remote_url),
+            patch("gfo.commands.init.get_host_config", return_value=None),
+            patch("gfo.commands.init.save_project_config") as mock_save,
+        ):
             init_cmd.handle(args, fmt="table")
 
         saved: ProjectConfig = mock_save.call_args[0][0]
@@ -424,7 +495,9 @@ class TestHandleNonInteractive:
             project_key=None,
         )
 
-        with patch("gfo.commands.init.get_remote_url", side_effect=GitCommandError("not a git repo")):
+        with patch(
+            "gfo.commands.init.get_remote_url", side_effect=GitCommandError("not a git repo")
+        ):
             with pytest.raises(ConfigError) as exc_info:
                 init_cmd.handle(args, fmt="table")
 

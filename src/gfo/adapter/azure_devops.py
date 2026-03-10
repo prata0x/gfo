@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import json as _json
 from urllib.parse import quote
+
+from gfo.exceptions import GfoError, NotSupportedError
+from gfo.http import paginate_top_skip
 
 from .base import (
     GitServiceAdapter,
@@ -14,10 +18,6 @@ from .base import (
     Repository,
 )
 from .registry import register
-from gfo.exceptions import GfoError, NotSupportedError
-from gfo.http import paginate_top_skip
-
-import json as _json
 
 
 def _wiql_escape(value: str) -> str:
@@ -39,7 +39,7 @@ def _add_refs_prefix(branch: str) -> str:
 
 def _strip_refs_prefix(ref: str) -> str:
     if ref.startswith("refs/heads/"):
-        return ref[len("refs/heads/"):]
+        return ref[len("refs/heads/") :]
     return ref
 
 
@@ -47,7 +47,9 @@ def _strip_refs_prefix(ref: str) -> str:
 class AzureDevOpsAdapter(GitServiceAdapter):
     service_name = "Azure DevOps"
 
-    def __init__(self, client, owner: str, repo: str, *, organization: str, project_key: str, **kwargs):
+    def __init__(
+        self, client, owner: str, repo: str, *, organization: str, project_key: str, **kwargs
+    ):
         super().__init__(client, owner, repo, **kwargs)
         self._org = organization
         self._project = project_key
@@ -72,8 +74,11 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 source_branch=_strip_refs_prefix(data["sourceRefName"]),
                 target_branch=_strip_refs_prefix(data["targetRefName"]),
                 draft=data.get("isDraft", False),
-                url=(f"{data['repository']['webUrl']}/pullrequest/{data['pullRequestId']}"
-                     if (data.get("repository") or {}).get("webUrl") else data.get("url", "")),
+                url=(
+                    f"{data['repository']['webUrl']}/pullrequest/{data['pullRequestId']}"
+                    if (data.get("repository") or {}).get("webUrl")
+                    else data.get("url", "")
+                ),
                 created_at=data["creationDate"],
                 updated_at=data.get("closedDate"),
             )
@@ -131,14 +136,17 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         if state != "all":
             params["searchCriteria.status"] = _PR_STATE_TO_API.get(state, "active")
         results = paginate_top_skip(
-            self._client, f"{self._git_path()}/pullrequests",
-            params=params, limit=limit, result_key="value",
+            self._client,
+            f"{self._git_path()}/pullrequests",
+            params=params,
+            limit=limit,
+            result_key="value",
         )
         return [self._to_pull_request(r) for r in results]
 
-    def create_pull_request(self, *, title: str, body: str = "",
-                            base: str, head: str,
-                            draft: bool = False) -> PullRequest:
+    def create_pull_request(
+        self, *, title: str, body: str = "", base: str, head: str, draft: bool = False
+    ) -> PullRequest:
         payload = {
             "title": title,
             "description": body,
@@ -183,16 +191,19 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             json={"status": "abandoned"},
         )
 
-    def get_pr_checkout_refspec(self, number: int, *,
-                                pr: PullRequest | None = None) -> str:
+    def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         return f"refs/pull/{number}/head"
 
     # --- Issue (Work Item) ---
 
-    def list_issues(self, *, state: str = "open",
-                    assignee: str | None = None,
-                    label: str | None = None,
-                    limit: int = 30) -> list[Issue]:
+    def list_issues(
+        self,
+        *,
+        state: str = "open",
+        assignee: str | None = None,
+        label: str | None = None,
+        limit: int = 30,
+    ) -> list[Issue]:
         conditions = [f"[System.TeamProject] = '{_wiql_escape(self._project)}'"]
         if state == "open":
             conditions.append("[System.State] NOT IN ('Closed', 'Done', 'Removed')")
@@ -225,7 +236,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             # limit > 0 の場合、WIQL が $top で件数を制限済みだが念のため早期終了
             if limit > 0 and len(results) >= limit:
                 break
-            batch_ids = ids[i:i + 200]
+            batch_ids = ids[i : i + 200]
             ids_str = ",".join(str(x) for x in batch_ids)
             resp = self._client.get(
                 f"{self._wit_path()}/workitems",
@@ -233,17 +244,24 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             )
             batch_body = resp.json()
             if not isinstance(batch_body, dict):
-                raise GfoError(f"Unexpected API response from workitems endpoint: {type(batch_body)}")
+                raise GfoError(
+                    f"Unexpected API response from workitems endpoint: {type(batch_body)}"
+                )
             for item in batch_body.get("value", []):
                 results.append(self._to_issue(item))
 
         return results[:limit] if limit > 0 else results
 
-    def create_issue(self, *, title: str, body: str = "",
-                     assignee: str | None = None,
-                     label: str | None = None,
-                     work_item_type: str = "Task",
-                     **kwargs) -> Issue:
+    def create_issue(
+        self,
+        *,
+        title: str,
+        body: str = "",
+        assignee: str | None = None,
+        label: str | None = None,
+        work_item_type: str = "Task",
+        **kwargs,
+    ) -> Issue:
         patch_ops = [
             {"op": "add", "path": "/fields/System.Title", "value": title},
         ]
@@ -278,8 +296,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     # --- Repository ---
 
-    def list_repositories(self, *, owner: str | None = None,
-                          limit: int = 30) -> list[Repository]:
+    def list_repositories(self, *, owner: str | None = None, limit: int = 30) -> list[Repository]:
         if owner is not None:
             raise NotSupportedError(
                 self.service_name,
@@ -287,19 +304,21 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 "(repositories are scoped to the configured project)",
             )
         results = paginate_top_skip(
-            self._client, "/git/repositories",
-            limit=limit, result_key="value",
+            self._client,
+            "/git/repositories",
+            limit=limit,
+            result_key="value",
         )
         return [self._to_repository(r, self._project) for r in results]
 
-    def create_repository(self, *, name: str, private: bool = False,
-                          description: str = "") -> Repository:
+    def create_repository(
+        self, *, name: str, private: bool = False, description: str = ""
+    ) -> Repository:
         payload = {"name": name, "project": {"id": self._project}}
         resp = self._client.post("/git/repositories", json=payload)
         return self._to_repository(resp.json(), self._project)
 
-    def get_repository(self, owner: str | None = None,
-                       name: str | None = None) -> Repository:
+    def get_repository(self, owner: str | None = None, name: str | None = None) -> Repository:
         n = name if name is not None else self._repo
         resp = self._client.get(f"/git/repositories/{quote(n, safe='')}")
         return self._to_repository(resp.json(), self._project)
@@ -317,22 +336,29 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     def list_releases(self, *, limit: int = 30) -> list[Release]:
         raise NotSupportedError(self.service_name, "releases")
 
-    def create_release(self, *, tag: str, title: str = "",
-                       notes: str = "", draft: bool = False,
-                       prerelease: bool = False) -> Release:
+    def create_release(
+        self,
+        *,
+        tag: str,
+        title: str = "",
+        notes: str = "",
+        draft: bool = False,
+        prerelease: bool = False,
+    ) -> Release:
         raise NotSupportedError(self.service_name, "releases")
 
     def list_labels(self, *, limit: int = 0) -> list[Label]:
         raise NotSupportedError(self.service_name, "labels")
 
-    def create_label(self, *, name: str, color: str | None = None,
-                     description: str | None = None) -> Label:
+    def create_label(
+        self, *, name: str, color: str | None = None, description: str | None = None
+    ) -> Label:
         raise NotSupportedError(self.service_name, "labels")
 
     def list_milestones(self, *, limit: int = 0) -> list[Milestone]:
         raise NotSupportedError(self.service_name, "milestones")
 
-    def create_milestone(self, *, title: str,
-                         description: str | None = None,
-                         due_date: str | None = None) -> Milestone:
+    def create_milestone(
+        self, *, title: str, description: str | None = None, due_date: str | None = None
+    ) -> Milestone:
         raise NotSupportedError(self.service_name, "milestones")

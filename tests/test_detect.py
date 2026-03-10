@@ -8,7 +8,6 @@ import responses
 from gfo.detect import detect_from_url, detect_service, get_known_service_type, probe_unknown_host
 from gfo.exceptions import DetectionError
 
-
 # ── URL パーステスト ──
 
 
@@ -379,8 +378,10 @@ class TestProbeUnknownHost:
     def test_non_dict_json_response_returns_none(self):
         """API が dict 以外の JSON を返したとき None を返す（TypeError 等が起きない）。"""
         responses.add(
-            responses.GET, "https://git.example.com/api/v1/version",
-            json=[{"version": "1.0"}], status=200,
+            responses.GET,
+            "https://git.example.com/api/v1/version",
+            json=[{"version": "1.0"}],
+            status=200,
         )
         responses.add(responses.GET, "https://git.example.com/api/v4/version", status=404)
         responses.add(responses.GET, "https://git.example.com/api/v3/", status=404)
@@ -482,6 +483,7 @@ class TestProbeUnknownHostRequestException:
     def test_gitea_endpoint_request_exception(self):
         """Gitea/Forgejo エンドポイントで接続エラー → 例外を握りつぶして次を試みる。"""
         import requests
+
         responses.add(
             responses.GET,
             "https://git.example.com/api/v1/version",
@@ -495,6 +497,7 @@ class TestProbeUnknownHostRequestException:
     def test_gitlab_endpoint_request_exception(self):
         """GitLab エンドポイントで接続エラー → 例外を握りつぶして次を試みる。"""
         import requests
+
         responses.add(responses.GET, "https://git.example.com/api/v1/version", status=404)
         responses.add(
             responses.GET,
@@ -508,6 +511,7 @@ class TestProbeUnknownHostRequestException:
     def test_gitbucket_endpoint_request_exception(self):
         """GitBucket エンドポイントで接続エラー → 例外を握りつぶして None を返す。"""
         import requests
+
         responses.add(responses.GET, "https://git.example.com/api/v1/version", status=404)
         responses.add(responses.GET, "https://git.example.com/api/v4/version", status=404)
         responses.add(
@@ -533,7 +537,9 @@ class TestDetectServiceHostsConfig:
     @patch("gfo.detect.probe_unknown_host", return_value=None)
     @patch("gfo.detect.get_remote_url", return_value="https://Git.Example.Com/owner/repo.git")
     @patch("gfo.detect.git_config_get", return_value=None)
-    def test_service_type_from_hosts_config_mixed_case_host(self, mock_config, mock_remote, mock_probe):
+    def test_service_type_from_hosts_config_mixed_case_host(
+        self, mock_config, mock_remote, mock_probe
+    ):
         """大文字混在のホスト名でも hosts config に一致する（R28修正確認）。"""
         with patch("gfo.config.get_hosts_config", return_value={"git.example.com": "forgejo"}):
             r = detect_service()

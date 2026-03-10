@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import pytest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from unittest.mock import MagicMock
+import pytest
+
 from gfo.commands import auth_cmd, get_adapter, get_adapter_with_config
 from gfo.detect import DetectResult
 from gfo.exceptions import ConfigError, DetectionError
@@ -40,8 +40,10 @@ class TestHandleLogin:
         """--host 指定、--token なし → getpass 呼び出し + save_token。"""
         args = make_args(host="gitlab.com", token=None)
 
-        with patch("gfo.commands.auth_cmd.gfo.auth.save_token") as mock_save, \
-             patch("gfo.commands.auth_cmd.getpass.getpass", return_value="secret") as mock_gp:
+        with (
+            patch("gfo.commands.auth_cmd.gfo.auth.save_token") as mock_save,
+            patch("gfo.commands.auth_cmd.getpass.getpass", return_value="secret") as mock_gp,
+        ):
             auth_cmd.handle_login(args, fmt="table")
 
         mock_gp.assert_called_once_with("Token: ")
@@ -54,9 +56,13 @@ class TestHandleLogin:
         """--host なし → detect_service().host を使用。"""
         args = make_args(host=None, token="tok")
 
-        with patch("gfo.commands.auth_cmd.gfo.detect.detect_service",
-                   return_value=_make_detect_result("github.com")), \
-             patch("gfo.commands.auth_cmd.gfo.auth.save_token") as mock_save:
+        with (
+            patch(
+                "gfo.commands.auth_cmd.gfo.detect.detect_service",
+                return_value=_make_detect_result("github.com"),
+            ),
+            patch("gfo.commands.auth_cmd.gfo.auth.save_token") as mock_save,
+        ):
             auth_cmd.handle_login(args, fmt="table")
 
         mock_save.assert_called_once_with("github.com", "tok")
@@ -65,8 +71,10 @@ class TestHandleLogin:
         """--host なし + detect_service が DetectionError → ConfigError に変換して raise。"""
         args = make_args(host=None, token="tok")
 
-        with patch("gfo.commands.auth_cmd.gfo.detect.detect_service",
-                   side_effect=DetectionError("no remote")):
+        with patch(
+            "gfo.commands.auth_cmd.gfo.detect.detect_service",
+            side_effect=DetectionError("no remote"),
+        ):
             with pytest.raises(ConfigError, match="--host"):
                 auth_cmd.handle_login(args, fmt="table")
 
@@ -90,8 +98,10 @@ class TestHandleLogin_ErrorCases:
         """--token なし（getpass 経由）では stderr への警告が出ない。"""
         args = make_args(host="github.com", token=None)
 
-        with patch("gfo.commands.auth_cmd.gfo.auth.save_token"), \
-             patch("gfo.commands.auth_cmd.getpass.getpass", return_value="tok"):
+        with (
+            patch("gfo.commands.auth_cmd.gfo.auth.save_token"),
+            patch("gfo.commands.auth_cmd.getpass.getpass", return_value="tok"),
+        ):
             auth_cmd.handle_login(args, fmt="table")
 
         captured = capsys.readouterr()
@@ -101,8 +111,10 @@ class TestHandleLogin_ErrorCases:
         """handle_login はトークン検証を save_token に委譲する（空文字チェックは save_token 側）。"""
         args = make_args(host="github.com", token=None)
 
-        with patch("gfo.commands.auth_cmd.gfo.auth.save_token") as mock_save, \
-             patch("gfo.commands.auth_cmd.getpass.getpass", return_value=""):
+        with (
+            patch("gfo.commands.auth_cmd.gfo.auth.save_token") as mock_save,
+            patch("gfo.commands.auth_cmd.getpass.getpass", return_value=""),
+        ):
             auth_cmd.handle_login(args, fmt="table")
 
         mock_save.assert_called_once_with("github.com", "")
@@ -111,8 +123,9 @@ class TestHandleLogin_ErrorCases:
         """save_token が例外を送出した場合、そのまま再 raise される。"""
         args = make_args(host="invalid-host", token="tok")
 
-        with patch("gfo.commands.auth_cmd.gfo.auth.save_token",
-                   side_effect=OSError("permission denied")):
+        with patch(
+            "gfo.commands.auth_cmd.gfo.auth.save_token", side_effect=OSError("permission denied")
+        ):
             with pytest.raises(OSError, match="permission denied"):
                 auth_cmd.handle_login(args, fmt="table")
 
@@ -120,10 +133,14 @@ class TestHandleLogin_ErrorCases:
         """--host なし・--token なし → getpass が呼ばれる。"""
         args = make_args(host=None, token=None)
 
-        with patch("gfo.commands.auth_cmd.gfo.detect.detect_service",
-                   return_value=_make_detect_result("github.com")), \
-             patch("gfo.commands.auth_cmd.gfo.auth.save_token"), \
-             patch("gfo.commands.auth_cmd.getpass.getpass", return_value="tok") as mock_gp:
+        with (
+            patch(
+                "gfo.commands.auth_cmd.gfo.detect.detect_service",
+                return_value=_make_detect_result("github.com"),
+            ),
+            patch("gfo.commands.auth_cmd.gfo.auth.save_token"),
+            patch("gfo.commands.auth_cmd.getpass.getpass", return_value="tok") as mock_gp,
+        ):
             auth_cmd.handle_login(args, fmt="table")
 
         mock_gp.assert_called_once_with("Token: ")
@@ -211,8 +228,10 @@ def test_get_adapter_returns_adapter():
     """get_adapter() は resolve_project_config と create_adapter を呼ぶ。"""
     mock_config = MagicMock()
     mock_adapter = MagicMock()
-    with patch("gfo.commands.resolve_project_config", return_value=mock_config), \
-         patch("gfo.commands.create_adapter", return_value=mock_adapter):
+    with (
+        patch("gfo.commands.resolve_project_config", return_value=mock_config),
+        patch("gfo.commands.create_adapter", return_value=mock_adapter),
+    ):
         result = get_adapter()
     assert result is mock_adapter
 
@@ -221,8 +240,10 @@ def test_get_adapter_with_config_returns_tuple():
     """get_adapter_with_config() はアダプターと設定のタプルを返す。"""
     mock_config = MagicMock()
     mock_adapter = MagicMock()
-    with patch("gfo.commands.resolve_project_config", return_value=mock_config), \
-         patch("gfo.commands.create_adapter", return_value=mock_adapter):
+    with (
+        patch("gfo.commands.resolve_project_config", return_value=mock_config),
+        patch("gfo.commands.create_adapter", return_value=mock_adapter),
+    ):
         adapter, config = get_adapter_with_config()
     assert adapter is mock_adapter
     assert config is mock_config

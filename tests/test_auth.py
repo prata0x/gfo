@@ -17,7 +17,6 @@ from gfo.auth import (
 )
 from gfo.exceptions import AuthError, ConfigError
 
-
 # ── resolve_token ──
 
 
@@ -101,9 +100,7 @@ def test_save_token_empty_raises_auth_error(tmp_path, monkeypatch):
     """空のトークンを渡すと AuthError を送出する。"""
     config_dir = tmp_path / "config"
     monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
-    monkeypatch.setattr(
-        "gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml"
-    )
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml")
     with pytest.raises(AuthError, match="Token must not be empty"):
         save_token("github.com", "")
 
@@ -115,9 +112,7 @@ def test_save_token_new_file(tmp_path, monkeypatch):
     """新規ファイル作成。"""
     config_dir = tmp_path / "config"
     monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
-    monkeypatch.setattr(
-        "gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml"
-    )
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml")
 
     save_token("github.com", "ghp_new")
 
@@ -146,9 +141,7 @@ def test_save_token_creates_directory(tmp_path, monkeypatch):
     """ディレクトリ自動作成。"""
     config_dir = tmp_path / "deep" / "nested" / "config"
     monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
-    monkeypatch.setattr(
-        "gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml"
-    )
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml")
 
     save_token("github.com", "ghp_test")
 
@@ -160,9 +153,7 @@ def test_save_token_posix_permission(tmp_path, monkeypatch):
     """POSIX パーミッション設定 (os.chmod が 0o600 で呼ばれる)。"""
     config_dir = tmp_path / "config"
     monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
-    monkeypatch.setattr(
-        "gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml"
-    )
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml")
     monkeypatch.setattr("gfo.auth.sys.platform", "linux")
 
     chmod_calls = []
@@ -184,9 +175,7 @@ def test_save_token_windows_icacls(tmp_path, monkeypatch):
     """Windows では icacls をベストエフォートで呼ぶ。"""
     config_dir = tmp_path / "config"
     monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
-    monkeypatch.setattr(
-        "gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml"
-    )
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml")
     monkeypatch.setattr("gfo.auth.sys.platform", "win32")
 
     calls = []
@@ -209,11 +198,10 @@ def test_save_token_windows_icacls(tmp_path, monkeypatch):
 def test_save_token_windows_icacls_nonzero_warns(tmp_path, monkeypatch):
     """Windows icacls が非ゼロ終了コードを返しても警告のみで伝播しない。"""
     import warnings
+
     config_dir = tmp_path / "config"
     monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
-    monkeypatch.setattr(
-        "gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml"
-    )
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml")
     monkeypatch.setattr("gfo.auth.sys.platform", "win32")
 
     def mock_run(cmd, **kwargs):
@@ -234,9 +222,7 @@ def test_save_token_windows_icacls_oserror_ignored(tmp_path, monkeypatch):
     """Windows icacls が OSError を投げても伝播しない。"""
     config_dir = tmp_path / "config"
     monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
-    monkeypatch.setattr(
-        "gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml"
-    )
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml")
     monkeypatch.setattr("gfo.auth.sys.platform", "win32")
 
     def mock_run_raises(cmd, **kwargs):

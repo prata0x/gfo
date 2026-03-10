@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch, MagicMock
 import subprocess
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from gfo.exceptions import GitCommandError
 from gfo import git_util
+from gfo.exceptions import GitCommandError
 
 
 def _mock_result(stdout: str = "", stderr: str = "", returncode: int = 0):
@@ -109,9 +109,7 @@ class TestGetDefaultBranch:
 
     @patch("gfo.git_util.subprocess.run")
     def test_fallback_to_main(self, mock_run):
-        mock_run.return_value = _mock_result(
-            stderr="fatal: ref not found", returncode=1
-        )
+        mock_run.return_value = _mock_result(stderr="fatal: ref not found", returncode=1)
         assert git_util.get_default_branch() == "main"
 
     @patch("gfo.git_util.subprocess.run")
@@ -173,8 +171,12 @@ class TestGitCheckoutBranch:
         git_util.git_checkout_branch("pr-42")
         mock_run.assert_called_once_with(
             ["git", "checkout", "-b", "pr-42", "FETCH_HEAD"],
-            capture_output=True, text=True, check=False,
-            timeout=30, cwd=None, shell=False,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=30,
+            cwd=None,
+            shell=False,
         )
 
     @patch("gfo.git_util.subprocess.run")
@@ -285,7 +287,9 @@ class TestGitClone:
     @patch("gfo.git_util.subprocess.run")
     def test_clone_empty_stderr_uses_stdout(self, mock_run):
         """git clone 失敗で stderr が空のとき stdout をエラーメッセージに使う（R38-04）。"""
-        mock_run.return_value = _mock_result(stdout="fatal: repo not found", stderr="", returncode=1)
+        mock_run.return_value = _mock_result(
+            stdout="fatal: repo not found", stderr="", returncode=1
+        )
         with pytest.raises(GitCommandError, match="fatal: repo not found"):
             git_util.git_clone("https://github.com/user/repo.git")
 

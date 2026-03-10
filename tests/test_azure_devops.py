@@ -15,9 +15,7 @@ REPO = "myrepo"
 
 def _make_adapter() -> AzureDevOpsAdapter:
     client = HttpClient(BASE, auth_header={"Authorization": "Bearer tok"})
-    return AzureDevOpsAdapter(
-        client, ORG, REPO, organization=ORG, project_key=PROJECT
-    )
+    return AzureDevOpsAdapter(client, ORG, REPO, organization=ORG, project_key=PROJECT)
 
 
 # ── list_issues ──
@@ -38,24 +36,32 @@ class TestListIssues:
         responses.add(
             responses.GET,
             workitems_url,
-            json={"value": [
-                {"id": 1, "fields": {
-                    "System.Title": "Issue 1",
-                    "System.State": "Active",
-                    "System.CreatedBy": {"uniqueName": "alice"},
-                    "System.CreatedDate": "2026-01-01T00:00:00Z",
-                    "System.ChangedDate": "2026-02-01T00:00:00Z",
-                    "System.Tags": "",
-                }},
-                {"id": 2, "fields": {
-                    "System.Title": "Issue 2",
-                    "System.State": "Active",
-                    "System.CreatedBy": {"uniqueName": "bob"},
-                    "System.CreatedDate": "2026-01-02T00:00:00Z",
-                    "System.ChangedDate": "2026-02-02T00:00:00Z",
-                    "System.Tags": "",
-                }},
-            ]},
+            json={
+                "value": [
+                    {
+                        "id": 1,
+                        "fields": {
+                            "System.Title": "Issue 1",
+                            "System.State": "Active",
+                            "System.CreatedBy": {"uniqueName": "alice"},
+                            "System.CreatedDate": "2026-01-01T00:00:00Z",
+                            "System.ChangedDate": "2026-02-01T00:00:00Z",
+                            "System.Tags": "",
+                        },
+                    },
+                    {
+                        "id": 2,
+                        "fields": {
+                            "System.Title": "Issue 2",
+                            "System.State": "Active",
+                            "System.CreatedBy": {"uniqueName": "bob"},
+                            "System.CreatedDate": "2026-01-02T00:00:00Z",
+                            "System.ChangedDate": "2026-02-02T00:00:00Z",
+                            "System.Tags": "",
+                        },
+                    },
+                ]
+            },
         )
 
         adapter = _make_adapter()

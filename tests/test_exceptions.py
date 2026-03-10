@@ -1,9 +1,10 @@
 """exceptions.py の全エラー型をテストするモジュール。"""
+
 import pytest
 
 from gfo.exceptions import (
-    AuthError,
     AuthenticationError,
+    AuthError,
     ConfigError,
     DetectionError,
     GfoError,

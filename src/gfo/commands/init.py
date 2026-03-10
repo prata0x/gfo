@@ -14,10 +14,19 @@ from gfo.detect import DetectResult, detect_from_url, detect_service
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 from gfo.git_util import get_remote_url
 
-_VALID_SERVICE_TYPES = frozenset({
-    "github", "gitlab", "bitbucket", "azure-devops",
-    "gitea", "forgejo", "gogs", "gitbucket", "backlog",
-})
+_VALID_SERVICE_TYPES = frozenset(
+    {
+        "github",
+        "gitlab",
+        "bitbucket",
+        "azure-devops",
+        "gitea",
+        "forgejo",
+        "gogs",
+        "gitbucket",
+        "backlog",
+    }
+)
 
 
 def handle(args: argparse.Namespace, *, fmt: str) -> None:
@@ -37,9 +46,7 @@ def _handle_non_interactive(args: argparse.Namespace) -> None:
         raise ConfigError("--type is required in non-interactive mode.")
     if service_type not in _VALID_SERVICE_TYPES:
         valid = ", ".join(sorted(_VALID_SERVICE_TYPES))
-        raise ConfigError(
-            f"Unknown service type '{service_type}'. Valid values: {valid}"
-        )
+        raise ConfigError(f"Unknown service type '{service_type}'. Valid values: {valid}")
     if not host:
         raise ConfigError("--host is required in non-interactive mode.")
 
@@ -61,7 +68,9 @@ def _handle_non_interactive(args: argparse.Namespace) -> None:
         if host_cfg and "api_url" in host_cfg:
             api_url = host_cfg["api_url"]
     if not api_url:
-        api_url = build_default_api_url(service_type, host, organization=detect_result.organization, project=project_key)
+        api_url = build_default_api_url(
+            service_type, host, organization=detect_result.organization, project=project_key
+        )
 
     config = ProjectConfig(
         service_type=service_type,

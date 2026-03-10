@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
-from gfo.output import format_json, format_plain, format_table, output, _display_width
+from gfo.output import _display_width, format_json, format_plain, format_table, output
 
 
 @dataclass(frozen=True)
@@ -158,6 +158,7 @@ class TestFormatJson:
 
     def test_none_field_shown_as_empty_in_table(self):
         """None フィールドはテーブル形式で空文字列として出力される（"None" にならない）（R35-03）。"""
+
         @dataclass(frozen=True)
         class WithNone:
             name: str
@@ -190,6 +191,7 @@ class TestFormatPlain:
 
     def test_none_field_shown_as_empty_in_plain(self):
         """None フィールドはプレーン形式で空文字列として出力される（"None" にならない）（R35-03）。"""
+
         @dataclass(frozen=True)
         class WithNone:
             name: str

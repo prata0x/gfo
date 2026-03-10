@@ -121,8 +121,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_view = repo_sub.add_parser("view")
     repo_view.add_argument("repo", nargs="?")  # ハンドラは args.repo を参照
     repo_delete = repo_sub.add_parser("delete")
-    repo_delete.add_argument("--yes", "-y", action="store_true",
-                              help="Skip confirmation prompt")
+    repo_delete.add_argument("--yes", "-y", action="store_true", help="Skip confirmation prompt")
 
     # gfo release → サブサブコマンド
     release_parser = subparser_map["release"] = subparsers.add_parser("release")
