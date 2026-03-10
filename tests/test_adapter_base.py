@@ -1,10 +1,21 @@
 from __future__ import annotations
 
 import dataclasses
+from unittest.mock import MagicMock
 
 import pytest
 
-from gfo.adapter.base import GitHubLikeAdapter, Issue, Label, Milestone, PullRequest, Release, Repository
+from gfo.adapter.base import (
+    GitHubLikeAdapter,
+    GitServiceAdapter,
+    Issue,
+    Label,
+    Milestone,
+    PullRequest,
+    Release,
+    Repository,
+)
+from gfo.exceptions import NotSupportedError
 
 
 class TestPullRequest:
@@ -215,6 +226,69 @@ class TestLabel:
             label.name = "feature"  # type: ignore[misc]
 
 
+class TestGitServiceAdapterDeleteDefaults:
+    """delete デフォルト実装が NotSupportedError を送出することを確認する。"""
+
+    def _make_adapter(self):
+        """抽象メソッドを最小限に実装したコンクリートサブクラスのインスタンスを返す。"""
+
+        class MinimalAdapter(GitServiceAdapter):
+            service_name = "TestService"
+
+            def list_pull_requests(self, *, state="open", limit=30):
+                return []
+
+            def create_pull_request(self, *, title, body="", base, head, draft=False): ...
+            def get_pull_request(self, number): ...
+            def merge_pull_request(self, number, *, method="merge"): ...
+            def close_pull_request(self, number): ...
+            def list_issues(self, *, state="open", assignee=None, label=None, limit=30):
+                return []
+
+            def create_issue(self, *, title, body="", assignee=None, label=None, **kwargs): ...
+            def get_issue(self, number): ...
+            def close_issue(self, number): ...
+            def list_repositories(self, *, owner=None, limit=30):
+                return []
+
+            def create_repository(self, *, name, private=False, description=""): ...
+            def get_repository(self, owner=None, name=None): ...
+            def list_releases(self, *, limit=30):
+                return []
+
+            def create_release(self, *, tag, title="", notes="", draft=False, prerelease=False): ...
+            def list_labels(self, *, limit=0):
+                return []
+
+            def create_label(self, *, name, color=None, description=None): ...
+            def list_milestones(self, *, limit=0):
+                return []
+
+            def create_milestone(self, *, title, description=None, due_date=None): ...
+
+        return MinimalAdapter(MagicMock(), "owner", "repo")
+
+    def test_delete_issue_raises_not_supported(self):
+        adapter = self._make_adapter()
+        with pytest.raises(NotSupportedError):
+            adapter.delete_issue(1)
+
+    def test_delete_release_raises_not_supported(self):
+        adapter = self._make_adapter()
+        with pytest.raises(NotSupportedError):
+            adapter.delete_release(tag="v1.0")
+
+    def test_delete_label_raises_not_supported(self):
+        adapter = self._make_adapter()
+        with pytest.raises(NotSupportedError):
+            adapter.delete_label(name="bug")
+
+    def test_delete_milestone_raises_not_supported(self):
+        adapter = self._make_adapter()
+        with pytest.raises(NotSupportedError):
+            adapter.delete_milestone(number=1)
+
+
 class TestMilestone:
     def test_create(self):
         ms = Milestone(
@@ -239,8 +313,6 @@ class TestMilestone:
         assert ms.due_date is None
 
     def test_frozen(self):
-        ms = Milestone(
-            number=1, title="v1.0", description=None, state="open", due_date=None
-        )
+        ms = Milestone(number=1, title="v1.0", description=None, state="open", due_date=None)
         with pytest.raises(dataclasses.FrozenInstanceError):
             ms.state = "closed"  # type: ignore[misc]

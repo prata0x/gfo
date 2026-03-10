@@ -61,3 +61,10 @@ def handle_close(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo issue close <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.close_issue(args.number)
+
+
+def handle_delete(args: argparse.Namespace, *, fmt: str) -> None:
+    """gfo issue delete <number> のハンドラ。"""
+    adapter = get_adapter()
+    adapter.delete_issue(args.number)
+    print(f"Deleted issue '{args.number}'.")

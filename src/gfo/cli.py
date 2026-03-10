@@ -101,6 +101,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_view.add_argument("number", type=int)
     issue_close = issue_sub.add_parser("close")
     issue_close.add_argument("number", type=int)
+    issue_delete = issue_sub.add_parser("delete")
+    issue_delete.add_argument("number", type=int)
 
     # gfo repo → サブサブコマンド
     repo_parser = subparser_map["repo"] = subparsers.add_parser("repo")
@@ -172,6 +174,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("issue", "create"): gfo.commands.issue.handle_create,
     ("issue", "view"): gfo.commands.issue.handle_view,
     ("issue", "close"): gfo.commands.issue.handle_close,
+    ("issue", "delete"): gfo.commands.issue.handle_delete,
     ("repo", "list"): gfo.commands.repo.handle_list,
     ("repo", "create"): gfo.commands.repo.handle_create,
     ("repo", "clone"): gfo.commands.repo.handle_clone,

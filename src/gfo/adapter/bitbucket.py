@@ -227,6 +227,9 @@ class BitbucketAdapter(GitServiceAdapter):
             json={"state": "resolved"},
         )
 
+    def delete_issue(self, number: int) -> None:
+        self._client.delete(f"{self._repos_path()}/issues/{number}")
+
     # --- Repository ---
 
     def list_repositories(self, *, owner: str | None = None, limit: int = 30) -> list[Repository]:

@@ -49,8 +49,10 @@ def _make_adapter(sample_issue: Issue) -> MagicMock:
 
 @contextlib.contextmanager
 def _patch_all(config: ProjectConfig, adapter: MagicMock):
-    with patch("gfo.commands.issue.get_adapter", return_value=adapter), \
-         patch("gfo.commands.issue.get_adapter_with_config", return_value=(adapter, config)):
+    with (
+        patch("gfo.commands.issue.get_adapter", return_value=adapter),
+        patch("gfo.commands.issue.get_adapter_with_config", return_value=(adapter, config)),
+    ):
         yield
 
 
@@ -263,7 +265,10 @@ class TestHandleCreateTitleValidation:
         config = _make_config("github")
         adapter = _make_adapter(_make_issue())
         args = make_args(title=None, body=None, assignee=None, label=None, type=None, priority=None)
-        with _patch_all(config, adapter), pytest.raises(ConfigError, match="--title must not be empty"):
+        with (
+            _patch_all(config, adapter),
+            pytest.raises(ConfigError, match="--title must not be empty"),
+        ):
             issue_cmd.handle_create(args, fmt="table")
 
     def test_empty_title_raises_config_error(self):
@@ -271,15 +276,23 @@ class TestHandleCreateTitleValidation:
         config = _make_config("github")
         adapter = _make_adapter(_make_issue())
         args = make_args(title="", body=None, assignee=None, label=None, type=None, priority=None)
-        with _patch_all(config, adapter), pytest.raises(ConfigError, match="--title must not be empty"):
+        with (
+            _patch_all(config, adapter),
+            pytest.raises(ConfigError, match="--title must not be empty"),
+        ):
             issue_cmd.handle_create(args, fmt="table")
 
     def test_whitespace_title_raises_config_error(self):
         """title="   " は ConfigError を送出する。"""
         config = _make_config("github")
         adapter = _make_adapter(_make_issue())
-        args = make_args(title="   ", body=None, assignee=None, label=None, type=None, priority=None)
-        with _patch_all(config, adapter), pytest.raises(ConfigError, match="--title must not be empty"):
+        args = make_args(
+            title="   ", body=None, assignee=None, label=None, type=None, priority=None
+        )
+        with (
+            _patch_all(config, adapter),
+            pytest.raises(ConfigError, match="--title must not be empty"),
+        ):
             issue_cmd.handle_create(args, fmt="table")
 
 
@@ -324,3 +337,26 @@ class TestHandleClose:
             issue_cmd.handle_close(args, fmt="table")
 
         self.adapter.close_issue.assert_called_once_with(42)
+
+
+class TestHandleDelete:
+    def setup_method(self):
+        self.config = _make_config()
+        self.issue = _make_issue()
+        self.adapter = _make_adapter(self.issue)
+
+    def test_calls_delete_issue(self):
+        args = make_args(number=5)
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_delete(args, fmt="table")
+
+        self.adapter.delete_issue.assert_called_once_with(5)
+
+    def test_prints_confirmation(self, capsys):
+        args = make_args(number=5)
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_delete(args, fmt="table")
+
+        out = capsys.readouterr().out
+        assert "5" in out
+        assert "Deleted" in out

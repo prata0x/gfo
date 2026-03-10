@@ -246,6 +246,9 @@ class GitServiceAdapter(ABC):
     @abstractmethod
     def close_issue(self, number: int) -> None: ...
 
+    def delete_issue(self, number: int) -> None:
+        raise NotSupportedError(self.service_name, "issue delete")
+
     # --- Repository ---
     @abstractmethod
     def list_repositories(

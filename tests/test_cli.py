@@ -151,6 +151,13 @@ def test_parser_issue_close():
     assert args.number == 10
 
 
+def test_parser_issue_delete():
+    parser, _ = create_parser()
+    args = parser.parse_args(["issue", "delete", "7"])
+    assert args.subcommand == "delete"
+    assert args.number == 7
+
+
 def test_parser_repo_list():
     parser, _ = create_parser()
     args = parser.parse_args(["repo", "list", "--limit", "10"])
@@ -252,8 +259,8 @@ def test_parser_format_option():
 # ── _DISPATCH テーブルのテスト ──
 
 
-def test_dispatch_table_has_26_entries():
-    assert len(_DISPATCH) == 26  # init(None) + 25 subcommands
+def test_dispatch_table_has_27_entries():
+    assert len(_DISPATCH) == 27  # init(None) + 26 subcommands
 
 
 def test_dispatch_table_all_keys():
@@ -271,6 +278,7 @@ def test_dispatch_table_all_keys():
         ("issue", "create"),
         ("issue", "view"),
         ("issue", "close"),
+        ("issue", "delete"),
         ("repo", "list"),
         ("repo", "create"),
         ("repo", "clone"),

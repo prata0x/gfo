@@ -13,12 +13,12 @@ from gfo.adapter.bitbucket import BitbucketAdapter
 from gfo.adapter.registry import get_adapter_class
 from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError, ServerError
 
-
 BASE = "https://api.bitbucket.org/2.0"
 REPOS = f"{BASE}/repositories/test-workspace/test-repo"
 
 
 # --- サンプルデータ ---
+
 
 def _pr_data(*, id=1, state="OPEN"):
     return {
@@ -29,7 +29,9 @@ def _pr_data(*, id=1, state="OPEN"):
         "author": {"nickname": "author1"},
         "source": {"branch": {"name": "feature"}},
         "destination": {"branch": {"name": "main"}},
-        "links": {"html": {"href": f"https://bitbucket.org/test-workspace/test-repo/pull-requests/{id}"}},
+        "links": {
+            "html": {"href": f"https://bitbucket.org/test-workspace/test-repo/pull-requests/{id}"}
+        },
         "created_on": "2025-01-01T00:00:00Z",
         "updated_on": "2025-01-02T00:00:00Z",
     }
@@ -66,6 +68,7 @@ def _repo_data(*, slug="test-repo", full_name="test-workspace/test-repo"):
 
 
 # --- 変換メソッドのテスト ---
+
 
 class TestToPullRequest:
     def test_open(self):
@@ -124,6 +127,7 @@ class TestToIssue:
     def test_non_dict_content_raises_gfo_error(self):
         """content が dict 以外の truthy 値のとき AttributeError でなく GfoError になる。"""
         from gfo.exceptions import GfoError
+
         data = _issue_data()
         data["content"] = "not a dict"
         with pytest.raises(GfoError):
@@ -148,6 +152,7 @@ class TestToRepository:
     def test_null_links_raises_gfo_error_not_attribute_error(self):
         """links フィールドが null のとき AttributeError でなく GfoError が発生する。"""
         from gfo.exceptions import GfoError
+
         data = _repo_data()
         data["links"] = None
         with pytest.raises(GfoError):
@@ -156,11 +161,14 @@ class TestToRepository:
 
 # --- PR 系 ---
 
+
 class TestListPullRequests:
     def test_open(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/pullrequests",
-            json={"values": [_pr_data()], "next": None}, status=200,
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [_pr_data()], "next": None},
+            status=200,
         )
         prs = bitbucket_adapter.list_pull_requests()
         assert len(prs) == 1
@@ -170,8 +178,10 @@ class TestListPullRequests:
 
     def test_merged_filter(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/pullrequests",
-            json={"values": [_pr_data(state="MERGED")]}, status=200,
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [_pr_data(state="MERGED")]},
+            status=200,
         )
         prs = bitbucket_adapter.list_pull_requests(state="merged")
         assert len(prs) == 1
@@ -180,10 +190,12 @@ class TestListPullRequests:
         assert "state=MERGED" in req.url
 
     def test_all_state_omits_filter(self, mock_responses, bitbucket_adapter):
-        """state='all' のとき state パラメータを送らない（Bitbucket API は 'ALL' を受け付けない）。"""
+        """state='all' のとき state パラメータを送らない。"""
         mock_responses.add(
-            responses.GET, f"{REPOS}/pullrequests",
-            json={"values": [_pr_data(), _pr_data(id=2, state="MERGED")]}, status=200,
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [_pr_data(), _pr_data(id=2, state="MERGED")]},
+            status=200,
         )
         prs = bitbucket_adapter.list_pull_requests(state="all")
         assert len(prs) == 2
@@ -193,12 +205,16 @@ class TestListPullRequests:
     def test_pagination(self, mock_responses, bitbucket_adapter):
         page2_url = f"{REPOS}/pullrequests?state=OPEN&page=2"
         mock_responses.add(
-            responses.GET, f"{REPOS}/pullrequests",
-            json={"values": [_pr_data(id=1)], "next": page2_url}, status=200,
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [_pr_data(id=1)], "next": page2_url},
+            status=200,
         )
         mock_responses.add(
-            responses.GET, page2_url,
-            json={"values": [_pr_data(id=2)]}, status=200,
+            responses.GET,
+            page2_url,
+            json={"values": [_pr_data(id=2)]},
+            status=200,
         )
         prs = bitbucket_adapter.list_pull_requests(limit=10)
         assert len(prs) == 2
@@ -207,8 +223,10 @@ class TestListPullRequests:
         """next URL が別オリジンを指す場合はページネーションを中断する（SSRF 防止）。"""
         other_origin_url = "https://evil.example.com/api/pullrequests?page=2"
         mock_responses.add(
-            responses.GET, f"{REPOS}/pullrequests",
-            json={"values": [_pr_data(id=1)], "next": other_origin_url}, status=200,
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [_pr_data(id=1)], "next": other_origin_url},
+            status=200,
         )
         prs = bitbucket_adapter.list_pull_requests(limit=10)
         # 別オリジンへのリクエストは行われず、1件のみ返る
@@ -219,11 +237,16 @@ class TestListPullRequests:
 class TestCreatePullRequest:
     def test_create(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/pullrequests",
-            json=_pr_data(), status=201,
+            responses.POST,
+            f"{REPOS}/pullrequests",
+            json=_pr_data(),
+            status=201,
         )
         pr = bitbucket_adapter.create_pull_request(
-            title="PR #1", body="desc", base="main", head="feature",
+            title="PR #1",
+            body="desc",
+            base="main",
+            head="feature",
         )
         assert isinstance(pr, PullRequest)
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -234,11 +257,16 @@ class TestCreatePullRequest:
 class TestCreatePullRequestDescription:
     def test_create_with_description(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/pullrequests",
-            json=_pr_data(), status=201,
+            responses.POST,
+            f"{REPOS}/pullrequests",
+            json=_pr_data(),
+            status=201,
         )
         bitbucket_adapter.create_pull_request(
-            title="PR", body="Description text", base="main", head="feature",
+            title="PR",
+            body="Description text",
+            base="main",
+            head="feature",
         )
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["description"] == "Description text"
@@ -247,8 +275,10 @@ class TestCreatePullRequestDescription:
 class TestGetPullRequest:
     def test_get(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/pullrequests/42",
-            json=_pr_data(id=42), status=200,
+            responses.GET,
+            f"{REPOS}/pullrequests/42",
+            json=_pr_data(id=42),
+            status=200,
         )
         pr = bitbucket_adapter.get_pull_request(42)
         assert pr.number == 42
@@ -257,8 +287,10 @@ class TestGetPullRequest:
 class TestMergePullRequest:
     def test_merge(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/pullrequests/1/merge",
-            json={"state": "MERGED"}, status=200,
+            responses.POST,
+            f"{REPOS}/pullrequests/1/merge",
+            json={"state": "MERGED"},
+            status=200,
         )
         bitbucket_adapter.merge_pull_request(1)
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -267,8 +299,10 @@ class TestMergePullRequest:
     def test_squash_method(self, mock_responses, bitbucket_adapter):
         """method='squash' → merge_strategy='squash' がリクエストに含まれる。"""
         mock_responses.add(
-            responses.POST, f"{REPOS}/pullrequests/1/merge",
-            json={"state": "MERGED"}, status=200,
+            responses.POST,
+            f"{REPOS}/pullrequests/1/merge",
+            json={"state": "MERGED"},
+            status=200,
         )
         bitbucket_adapter.merge_pull_request(1, method="squash")
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -277,8 +311,10 @@ class TestMergePullRequest:
     def test_rebase_method(self, mock_responses, bitbucket_adapter):
         """method='rebase' → merge_strategy='fast_forward' がリクエストに含まれる。"""
         mock_responses.add(
-            responses.POST, f"{REPOS}/pullrequests/1/merge",
-            json={"state": "MERGED"}, status=200,
+            responses.POST,
+            f"{REPOS}/pullrequests/1/merge",
+            json={"state": "MERGED"},
+            status=200,
         )
         bitbucket_adapter.merge_pull_request(1, method="rebase")
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -289,8 +325,10 @@ class TestClosePullRequest:
     def test_close(self, mock_responses, bitbucket_adapter):
         """close_pull_request は POST .../decline エンドポイントを使用する（R34修正確認）。"""
         mock_responses.add(
-            responses.POST, f"{REPOS}/pullrequests/1/decline",
-            json=_pr_data(state="DECLINED"), status=200,
+            responses.POST,
+            f"{REPOS}/pullrequests/1/decline",
+            json=_pr_data(state="DECLINED"),
+            status=200,
         )
         bitbucket_adapter.close_pull_request(1)
         assert mock_responses.calls[0].request.method == "POST"
@@ -304,29 +342,35 @@ class TestCheckoutRefspec:
 
     def test_without_pr(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/pullrequests/1",
-            json=_pr_data(), status=200,
+            responses.GET,
+            f"{REPOS}/pullrequests/1",
+            json=_pr_data(),
+            status=200,
         )
         assert bitbucket_adapter.get_pr_checkout_refspec(1) == "feature"
 
 
 # --- Issue 系 ---
 
+
 class TestListIssues:
     def test_list(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/issues",
-            json={"values": [_issue_data(id=1), _issue_data(id=2)]}, status=200,
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"values": [_issue_data(id=1), _issue_data(id=2)]},
+            status=200,
         )
         issues = bitbucket_adapter.list_issues()
         assert len(issues) == 2
 
-
     def test_closed_state_filter(self, mock_responses, bitbucket_adapter):
         """state='closed' のとき q に resolved 等の全非 open 状態を包含するフィルタが追加される。"""
         mock_responses.add(
-            responses.GET, f"{REPOS}/issues",
-            json={"values": [_issue_data(state="resolved")]}, status=200,
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"values": [_issue_data(state="resolved")]},
+            status=200,
         )
         issues = bitbucket_adapter.list_issues(state="closed")
         assert len(issues) == 1
@@ -338,10 +382,12 @@ class TestListIssues:
         assert 'state != "open"' in decoded_url
 
     def test_all_state_omits_filter(self, mock_responses, bitbucket_adapter):
-        """state='all' のとき q フィルタを送らない（'all' は Bitbucket の有効な state 値ではない）。"""
+        """state='all' のとき q フィルタを送らない。"""
         mock_responses.add(
-            responses.GET, f"{REPOS}/issues",
-            json={"values": [_issue_data(id=1), _issue_data(id=2)]}, status=200,
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"values": [_issue_data(id=1), _issue_data(id=2)]},
+            status=200,
         )
         issues = bitbucket_adapter.list_issues(state="all")
         assert len(issues) == 2
@@ -351,8 +397,10 @@ class TestListIssues:
     def test_assignee_filter(self, mock_responses, bitbucket_adapter):
         """assignee を指定すると q に assignee.nickname フィルタが追加される。"""
         mock_responses.add(
-            responses.GET, f"{REPOS}/issues",
-            json={"values": [_issue_data()]}, status=200,
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"values": [_issue_data()]},
+            status=200,
         )
         bitbucket_adapter.list_issues(state="open", assignee="alice")
         req = mock_responses.calls[0].request
@@ -363,8 +411,10 @@ class TestListIssues:
     def test_assignee_filter_with_all_state(self, mock_responses, bitbucket_adapter):
         """state='all' + assignee のとき state フィルタなしで assignee のみ含まれる。"""
         mock_responses.add(
-            responses.GET, f"{REPOS}/issues",
-            json={"values": [_issue_data()]}, status=200,
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"values": [_issue_data()]},
+            status=200,
         )
         bitbucket_adapter.list_issues(state="all", assignee="bob")
         req = mock_responses.calls[0].request
@@ -375,8 +425,10 @@ class TestListIssues:
     def test_label_filter(self, mock_responses, bitbucket_adapter):
         """label を指定すると q に component.name フィルタが追加される。"""
         mock_responses.add(
-            responses.GET, f"{REPOS}/issues",
-            json={"values": [_issue_data()]}, status=200,
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"values": [_issue_data()]},
+            status=200,
         )
         bitbucket_adapter.list_issues(state="all", label="bug")
         req = mock_responses.calls[0].request
@@ -384,10 +436,12 @@ class TestListIssues:
         assert 'component.name="bug"' in decoded_url
 
     def test_custom_state_filter(self, mock_responses, bitbucket_adapter):
-        """'open'/'closed'/'all' 以外の state を直接指定すると state="{state}" フィルタが追加される。"""
+        """state が open/closed/all 以外の場合、その値をそのままフィルタに使う。"""
         mock_responses.add(
-            responses.GET, f"{REPOS}/issues",
-            json={"values": [_issue_data(state="resolved")]}, status=200,
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"values": [_issue_data(state="resolved")]},
+            status=200,
         )
         bitbucket_adapter.list_issues(state="resolved")
         req = mock_responses.calls[0].request
@@ -398,8 +452,10 @@ class TestListIssues:
 class TestCreateIssue:
     def test_create(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/issues",
-            json=_issue_data(), status=201,
+            responses.POST,
+            f"{REPOS}/issues",
+            json=_issue_data(),
+            status=201,
         )
         issue = bitbucket_adapter.create_issue(title="Issue #1", body="body")
         assert isinstance(issue, Issue)
@@ -409,8 +465,10 @@ class TestCreateIssue:
 
     def test_create_with_assignee(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/issues",
-            json=_issue_data(), status=201,
+            responses.POST,
+            f"{REPOS}/issues",
+            json=_issue_data(),
+            status=201,
         )
         bitbucket_adapter.create_issue(title="Issue", assignee="dev1")
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -419,8 +477,10 @@ class TestCreateIssue:
     def test_create_with_label_sets_component(self, mock_responses, bitbucket_adapter):
         """label を指定すると payload に component.name が設定される。"""
         mock_responses.add(
-            responses.POST, f"{REPOS}/issues",
-            json=_issue_data(), status=201,
+            responses.POST,
+            f"{REPOS}/issues",
+            json=_issue_data(),
+            status=201,
         )
         bitbucket_adapter.create_issue(title="Issue", label="bug")
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -449,8 +509,10 @@ class TestCreateIssue:
 class TestGetIssue:
     def test_get(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/issues/5",
-            json=_issue_data(id=5), status=200,
+            responses.GET,
+            f"{REPOS}/issues/5",
+            json=_issue_data(id=5),
+            status=200,
         )
         issue = bitbucket_adapter.get_issue(5)
         assert issue.number == 5
@@ -459,29 +521,48 @@ class TestGetIssue:
 class TestCloseIssue:
     def test_close(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.PUT, f"{REPOS}/issues/3",
-            json=_issue_data(id=3, state="resolved"), status=200,
+            responses.PUT,
+            f"{REPOS}/issues/3",
+            json=_issue_data(id=3, state="resolved"),
+            status=200,
         )
         bitbucket_adapter.close_issue(3)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["state"] == "resolved"
 
 
+class TestDeleteIssue:
+    def test_delete(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/issues/7",
+            status=204,
+        )
+        bitbucket_adapter.delete_issue(7)
+        assert mock_responses.calls[0].request.method == "DELETE"
+        assert mock_responses.calls[0].request.url.endswith("/issues/7")
+
+
 # --- Repository 系 ---
+
 
 class TestListRepositories:
     def test_with_owner(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.GET, f"{BASE}/repositories/someone",
-            json={"values": [_repo_data()]}, status=200,
+            responses.GET,
+            f"{BASE}/repositories/someone",
+            json={"values": [_repo_data()]},
+            status=200,
         )
         repos = bitbucket_adapter.list_repositories(owner="someone")
         assert len(repos) == 1
 
     def test_no_owner(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.GET, f"{BASE}/repositories/test-workspace",
-            json={"values": [_repo_data()]}, status=200,
+            responses.GET,
+            f"{BASE}/repositories/test-workspace",
+            json={"values": [_repo_data()]},
+            status=200,
         )
         repos = bitbucket_adapter.list_repositories()
         assert len(repos) == 1
@@ -489,8 +570,10 @@ class TestListRepositories:
     def test_owner_with_slash_is_encoded(self, mock_responses, bitbucket_adapter):
         """list_repositories(owner="org/sub") でスラッシュが URL エンコードされる（R42-01）。"""
         mock_responses.add(
-            responses.GET, f"{BASE}/repositories/org%2Fsub",
-            json={"values": [_repo_data()]}, status=200,
+            responses.GET,
+            f"{BASE}/repositories/org%2Fsub",
+            json={"values": [_repo_data()]},
+            status=200,
         )
         bitbucket_adapter.list_repositories(owner="org/sub")
         assert "%2F" in mock_responses.calls[0].request.url
@@ -499,7 +582,8 @@ class TestListRepositories:
 class TestCreateRepository:
     def test_create(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.POST, f"{BASE}/repositories/test-workspace/new-repo",
+            responses.POST,
+            f"{BASE}/repositories/test-workspace/new-repo",
             json=_repo_data(slug="new-repo", full_name="test-workspace/new-repo"),
             status=201,
         )
@@ -512,7 +596,8 @@ class TestCreateRepository:
     def test_name_with_slash_is_encoded(self, mock_responses, bitbucket_adapter):
         """create_repository で name のスラッシュが URL エンコードされる（R42-01）。"""
         mock_responses.add(
-            responses.POST, f"{BASE}/repositories/test-workspace/my%2Frepo",
+            responses.POST,
+            f"{BASE}/repositories/test-workspace/my%2Frepo",
             json=_repo_data(slug="my/repo", full_name="test-workspace/my/repo"),
             status=201,
         )
@@ -523,7 +608,8 @@ class TestCreateRepository:
 class TestGetRepository:
     def test_get(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.GET, f"{BASE}/repositories/other/other-repo",
+            responses.GET,
+            f"{BASE}/repositories/other/other-repo",
             json=_repo_data(slug="other-repo", full_name="other/other-repo"),
             status=200,
         )
@@ -532,8 +618,10 @@ class TestGetRepository:
 
     def test_get_defaults(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}",
-            json=_repo_data(), status=200,
+            responses.GET,
+            f"{REPOS}",
+            json=_repo_data(),
+            status=200,
         )
         repo = bitbucket_adapter.get_repository()
         assert repo.full_name == "test-workspace/test-repo"
@@ -541,7 +629,8 @@ class TestGetRepository:
     def test_get_owner_with_slash_is_encoded(self, mock_responses, bitbucket_adapter):
         """get_repository(owner="org/sub") でスラッシュが URL エンコードされる（R42-01）。"""
         mock_responses.add(
-            responses.GET, f"{BASE}/repositories/org%2Fsub/test-repo",
+            responses.GET,
+            f"{BASE}/repositories/org%2Fsub/test-repo",
             json=_repo_data(slug="test-repo", full_name="org/sub/test-repo"),
             status=200,
         )
@@ -552,6 +641,7 @@ class TestGetRepository:
         """owner/repo に特殊文字が含まれる場合に URL エンコードされる（R33-03）。"""
         from gfo.adapter.bitbucket import BitbucketAdapter
         from gfo.http import HttpClient
+
         client = HttpClient("https://api.bitbucket.org/2.0", basic_auth=("u", "p"))
         adapter = BitbucketAdapter(client, "my workspace", "my repo")
         mock_responses.add(
@@ -565,6 +655,7 @@ class TestGetRepository:
 
 
 # --- NotSupportedError ---
+
 
 class TestNotSupported:
     def test_list_releases(self, bitbucket_adapter):
@@ -594,6 +685,7 @@ class TestNotSupported:
 
 # --- Registry ---
 
+
 class TestRegistry:
     def test_registered(self):
         assert get_adapter_class("bitbucket") is BitbucketAdapter
@@ -620,9 +712,12 @@ class TestErrorHandling:
     def test_malformed_pr_raises_gfo_error(self, mock_responses, bitbucket_adapter):
         """_to_pull_request で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError
+
         mock_responses.add(
-            responses.GET, f"{REPOS}/pullrequests/1",
-            json={"incomplete": True}, status=200,
+            responses.GET,
+            f"{REPOS}/pullrequests/1",
+            json={"incomplete": True},
+            status=200,
         )
         with pytest.raises(GfoError):
             bitbucket_adapter.get_pull_request(1)
@@ -630,9 +725,12 @@ class TestErrorHandling:
     def test_malformed_issue_raises_gfo_error(self, mock_responses, bitbucket_adapter):
         """_to_issue で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError
+
         mock_responses.add(
-            responses.GET, f"{REPOS}/issues",
-            json={"values": [{"incomplete": True}], "next": None}, status=200,
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"values": [{"incomplete": True}], "next": None},
+            status=200,
         )
         with pytest.raises(GfoError):
             bitbucket_adapter.list_issues()
@@ -640,9 +738,12 @@ class TestErrorHandling:
     def test_malformed_repository_raises_gfo_error(self, mock_responses, bitbucket_adapter):
         """_to_repository で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError
+
         mock_responses.add(
-            responses.GET, f"{REPOS}",
-            json={"incomplete": True}, status=200,
+            responses.GET,
+            f"{REPOS}",
+            json={"incomplete": True},
+            status=200,
         )
         with pytest.raises(GfoError):
             bitbucket_adapter.get_repository()
