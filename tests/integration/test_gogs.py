@@ -9,7 +9,7 @@ from __future__ import annotations
 import pytest
 
 from gfo.exceptions import NotSupportedError
-from tests.integration.conftest import create_test_adapter, get_service_config
+from tests.integration.conftest import ServiceTestConfig, create_test_adapter, get_service_config
 
 CONFIG = get_service_config("gogs")
 
@@ -112,3 +112,48 @@ class TestGogsIntegration:
     def test_14_release_list_not_supported(self) -> None:
         with pytest.raises(NotSupportedError):
             self.adapter.list_releases(limit=10)
+
+    # --- Issue delete（非対応）---
+
+    def test_15_issue_delete_not_supported(self) -> None:
+        assert self._issue_number is not None
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_issue(self._issue_number)
+
+    # --- PR close (非対応) ---
+
+    def test_17_pr_close_not_supported(self) -> None:
+        with pytest.raises(NotSupportedError):
+            self.adapter.close_pull_request(1)
+
+    # --- Repo create and delete ---
+
+    def test_16_repo_create_and_delete(self) -> None:
+        import time
+
+        temp_name = f"gfo-test-temp-{int(time.time())}"
+        temp_adapter = None
+        try:
+            repo = self.adapter.create_repository(
+                name=temp_name, private=True, description="Integration test temp"
+            )
+            assert repo.name == temp_name
+            temp_config = ServiceTestConfig(
+                service_type=self.config.service_type,
+                host=self.config.host,
+                api_url=self.config.api_url,
+                owner=self.config.owner,
+                repo=temp_name,
+                token=self.config.token,
+                organization=self.config.organization,
+                project_key=self.config.project_key,
+            )
+            temp_adapter = create_test_adapter(temp_config)
+            temp_adapter.delete_repository()
+        except Exception:
+            if temp_adapter is not None:
+                try:
+                    temp_adapter.delete_repository()
+                except Exception:
+                    pass
+            raise

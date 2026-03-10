@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from tests.integration.conftest import create_test_adapter, get_service_config
+from gfo.exceptions import GfoError, NotSupportedError
+from tests.integration.conftest import ServiceTestConfig, create_test_adapter, get_service_config
 
 CONFIG = get_service_config("github")
 
@@ -201,3 +202,97 @@ class TestGitHubIntegration:
                 break
             time.sleep(2)
         assert "v0.0.1-test" in tags
+
+    # --- PR close ---
+
+    def test_17_pr_close(self) -> None:
+        import base64
+        import time
+
+        content = base64.b64encode(f"close-test {time.time()}".encode()).decode()
+        marker_path = f"{self.adapter._repos_path()}/contents/test-close-marker.txt"
+        payload: dict = {
+            "message": "test: add marker for close test",
+            "content": content,
+            "branch": self.config.test_branch,
+        }
+        try:
+            existing = self.adapter._client.get(
+                marker_path, params={"ref": self.config.test_branch}
+            )
+            payload["sha"] = existing.json()["sha"]
+        except GfoError:
+            pass
+        self.adapter._client.put(marker_path, json=payload)
+        pr = self.adapter.create_pull_request(
+            title="gfo-test-pr-close",
+            body="Integration test for close",
+            base=self.config.default_branch,
+            head=self.config.test_branch,
+        )
+        self.adapter.close_pull_request(pr.number)
+        closed = self.adapter.get_pull_request(pr.number)
+        assert closed.state == "closed"
+
+    # --- Issue delete ---
+
+    def test_18_issue_delete_not_supported(self) -> None:
+        assert self._issue_number is not None
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_issue(self._issue_number)
+
+    # --- Label delete ---
+
+    def test_19_label_delete(self) -> None:
+        self.adapter.delete_label(name="gfo-test-label")
+        labels = self.adapter.list_labels()
+        assert not any(lb.name == "gfo-test-label" for lb in labels)
+
+    # --- Milestone delete ---
+
+    def test_20_milestone_delete(self) -> None:
+        milestones = self.adapter.list_milestones()
+        test_ms = next((m for m in milestones if m.title == "gfo-test-milestone"), None)
+        assert test_ms is not None
+        self.adapter.delete_milestone(number=test_ms.number)
+        milestones_after = self.adapter.list_milestones()
+        assert not any(m.title == "gfo-test-milestone" for m in milestones_after)
+
+    # --- Release delete ---
+
+    def test_21_release_delete(self) -> None:
+        self.adapter.delete_release(tag="v0.0.1-test")
+        releases = self.adapter.list_releases()
+        assert not any(r.tag == "v0.0.1-test" for r in releases)
+
+    # --- Repo create and delete ---
+
+    def test_22_repo_create_and_delete(self) -> None:
+        import time
+
+        temp_name = f"gfo-test-temp-{int(time.time())}"
+        temp_adapter = None
+        try:
+            repo = self.adapter.create_repository(
+                name=temp_name, private=True, description="Integration test temp"
+            )
+            assert repo.name == temp_name
+            temp_config = ServiceTestConfig(
+                service_type=self.config.service_type,
+                host=self.config.host,
+                api_url=self.config.api_url,
+                owner=self.config.owner,
+                repo=temp_name,
+                token=self.config.token,
+                organization=self.config.organization,
+                project_key=self.config.project_key,
+            )
+            temp_adapter = create_test_adapter(temp_config)
+            temp_adapter.delete_repository()
+        except Exception:
+            if temp_adapter is not None:
+                try:
+                    temp_adapter.delete_repository()
+                except Exception:
+                    pass
+            raise

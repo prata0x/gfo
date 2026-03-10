@@ -8,7 +8,7 @@ from __future__ import annotations
 import pytest
 
 from gfo.exceptions import NotSupportedError
-from tests.integration.conftest import create_test_adapter, get_service_config
+from tests.integration.conftest import ServiceTestConfig, create_test_adapter, get_service_config
 
 CONFIG = get_service_config("azure-devops")
 
@@ -120,3 +120,106 @@ class TestAzureDevOpsIntegration:
     def test_16_release_create_not_supported(self) -> None:
         with pytest.raises(NotSupportedError):
             self.adapter.create_release(tag="test", title="test")
+
+    # --- PR close ---
+
+    def test_17_pr_close(self) -> None:
+        import time
+
+        # ブランチの最新コミットID取得
+        refs_resp = self.adapter._client.get(
+            f"{self.adapter._git_path()}/refs",
+            params={"filter": f"heads/{self.config.test_branch}"},
+        )
+        old_object_id = refs_resp.json()["value"][0]["objectId"]
+        # コミット追加
+        self.adapter._client.post(
+            f"{self.adapter._git_path()}/pushes",
+            json={
+                "refUpdates": [
+                    {"name": f"refs/heads/{self.config.test_branch}", "oldObjectId": old_object_id}
+                ],
+                "commits": [
+                    {
+                        "comment": "test: add marker for close test",
+                        "changes": [
+                            {
+                                "changeType": "add",
+                                "item": {"path": "/test-close-marker.txt"},
+                                "newContent": {
+                                    "content": f"close-{int(time.time())}",
+                                    "contentType": "rawtext",
+                                },
+                            }
+                        ],
+                    }
+                ],
+            },
+        )
+        pr = self.adapter.create_pull_request(
+            title="gfo-test-pr-close",
+            body="Integration test",
+            base=self.config.default_branch,
+            head=self.config.test_branch,
+        )
+        self.adapter.close_pull_request(pr.number)
+        closed = self.adapter.get_pull_request(pr.number)
+        assert closed.state == "closed"
+
+    # --- Issue delete ---
+
+    def test_18_issue_delete(self) -> None:
+        assert self._issue_number is not None
+        self.adapter.delete_issue(self._issue_number)
+        issues = self.adapter.list_issues(state="all", limit=50)
+        assert not any(i.number == self._issue_number for i in issues)
+
+    # --- Label delete (非対応) ---
+
+    def test_19_label_delete_not_supported(self) -> None:
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_label(name="gfo-test-label")
+
+    # --- Milestone delete (非対応) ---
+
+    def test_20_milestone_delete_not_supported(self) -> None:
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_milestone(number=1)
+
+    # --- Release delete (非対応) ---
+
+    def test_21_release_delete_not_supported(self) -> None:
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_release(tag="v0.0.1-test")
+
+    # --- Repo create and delete ---
+
+    def test_22_repo_create_and_delete(self) -> None:
+        import time
+
+        temp_name = f"gfo-test-temp-{int(time.time())}"
+        temp_adapter = None
+        try:
+            repo = self.adapter.create_repository(
+                name=temp_name, private=True, description="Integration test temp"
+            )
+            assert repo.name == temp_name
+            temp_config = ServiceTestConfig(
+                service_type=self.config.service_type,
+                host=self.config.host,
+                api_url=self.config.api_url,
+                owner=self.config.owner,
+                repo=temp_name,
+                token=self.config.token,
+                organization=self.config.organization,
+                project_key=self.config.project_key,
+            )
+            temp_adapter = create_test_adapter(temp_config)
+            temp_adapter.delete_repository()
+        except Exception:
+            if temp_adapter is not None:
+                try:
+                    temp_adapter.delete_repository()
+                except Exception:
+                    pass
+            raise
