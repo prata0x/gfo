@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
+from gfo.exceptions import NotFoundError
 from gfo.http import paginate_link_header
 
 from .base import (
@@ -173,6 +174,11 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.post(f"{self._repos_path()}/releases", json=payload)
         return self._to_release(resp.json())
 
+    def delete_release(self, *, tag: str) -> None:
+        resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
+        release_id = resp.json()["id"]
+        self._client.delete(f"{self._repos_path()}/releases/{release_id}")
+
     # --- Label ---
 
     def list_labels(self, *, limit: int = 0) -> list[Label]:
@@ -195,6 +201,14 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.post(f"{self._repos_path()}/labels", json=payload)
         return self._to_label(resp.json())
 
+    def delete_label(self, *, name: str) -> None:
+        resp = self._client.get(f"{self._repos_path()}/labels")
+        for label in resp.json():
+            if label.get("name") == name:
+                self._client.delete(f"{self._repos_path()}/labels/{label['id']}")
+                return
+        raise NotFoundError()
+
     # --- Milestone ---
 
     def list_milestones(self, *, limit: int = 0) -> list[Milestone]:
@@ -216,3 +230,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["due_on"] = due_date
         resp = self._client.post(f"{self._repos_path()}/milestones", json=payload)
         return self._to_milestone(resp.json())
+
+    def delete_milestone(self, *, number: int) -> None:
+        self._client.delete(f"{self._repos_path()}/milestones/{number}")

@@ -69,6 +69,9 @@ class GogsAdapter(GiteaAdapter):
     ) -> Label:
         raise NotSupportedError("Gogs", "label operations")
 
+    def delete_label(self, *, name: str) -> None:
+        raise NotSupportedError("Gogs", "label operations")
+
     # --- Milestone（非サポート）---
 
     def list_milestones(self, *, limit: int = 0) -> list[Milestone]:
@@ -77,6 +80,9 @@ class GogsAdapter(GiteaAdapter):
     def create_milestone(
         self, *, title: str, description: str | None = None, due_date: str | None = None
     ) -> Milestone:
+        raise NotSupportedError("Gogs", "milestone operations")
+
+    def delete_milestone(self, *, number: int) -> None:
         raise NotSupportedError("Gogs", "milestone operations")
 
     # --- Release（非サポート）---
@@ -93,4 +99,7 @@ class GogsAdapter(GiteaAdapter):
         draft: bool = False,
         prerelease: bool = False,
     ) -> Release:
+        raise NotSupportedError("Gogs", "release operations")
+
+    def delete_release(self, *, tag: str) -> None:
         raise NotSupportedError("Gogs", "release operations")

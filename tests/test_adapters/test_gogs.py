@@ -5,11 +5,10 @@ from __future__ import annotations
 import pytest
 import responses
 
-from gfo.adapter.gogs import GogsAdapter
 from gfo.adapter.gitea import GiteaAdapter
+from gfo.adapter.gogs import GogsAdapter
 from gfo.adapter.registry import get_adapter_class
 from gfo.exceptions import NotSupportedError
-
 
 BASE = "https://gogs.example.com/api/v1"
 WEB_BASE = "https://gogs.example.com"
@@ -94,6 +93,21 @@ class TestNotSupportedOperations:
             gogs_adapter.create_milestone(title="v1.0")
         assert exc_info.value.web_url is None
 
+    def test_delete_label(self, gogs_adapter):
+        with pytest.raises(NotSupportedError) as exc_info:
+            gogs_adapter.delete_label(name="bug")
+        assert exc_info.value.web_url is None
+
+    def test_delete_milestone(self, gogs_adapter):
+        with pytest.raises(NotSupportedError) as exc_info:
+            gogs_adapter.delete_milestone(number=1)
+        assert exc_info.value.web_url is None
+
+    def test_delete_release(self, gogs_adapter):
+        with pytest.raises(NotSupportedError) as exc_info:
+            gogs_adapter.delete_release(tag="v1.0.0")
+        assert exc_info.value.web_url is None
+
 
 class TestWebUrl:
     def test_standard_url(self, gogs_adapter):
@@ -101,6 +115,7 @@ class TestWebUrl:
 
     def test_url_with_port(self, gogs_client):
         from gfo.http import HttpClient
+
         client = HttpClient(
             "http://gogs.local:3000/api/v1",
             auth_header={"Authorization": "token test-token"},
@@ -111,6 +126,7 @@ class TestWebUrl:
     def test_web_url_owner_repo_with_special_chars_is_encoded(self, gogs_client):
         """owner/repo に特殊文字が含まれる場合に web_url が URL エンコードされる（R34-01）。"""
         from gfo.http import HttpClient
+
         client = HttpClient(
             "https://gogs.example.com/api/v1",
             auth_header={"Authorization": "token test-token"},
@@ -125,31 +141,39 @@ class TestWebUrl:
 class TestInheritedOperations:
     def test_create_issue(self, mock_responses, gogs_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/issues",
-            json=_issue_data(), status=201,
+            responses.POST,
+            f"{REPOS}/issues",
+            json=_issue_data(),
+            status=201,
         )
         issue = gogs_adapter.create_issue(title="Test", body="body")
         assert issue.number == 1
 
     def test_close_issue(self, mock_responses, gogs_adapter):
         mock_responses.add(
-            responses.PATCH, f"{REPOS}/issues/1",
-            json=_issue_data(state="closed"), status=200,
+            responses.PATCH,
+            f"{REPOS}/issues/1",
+            json=_issue_data(state="closed"),
+            status=200,
         )
         gogs_adapter.close_issue(1)
 
     def test_get_issue(self, mock_responses, gogs_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/issues/1",
-            json=_issue_data(), status=200,
+            responses.GET,
+            f"{REPOS}/issues/1",
+            json=_issue_data(),
+            status=200,
         )
         issue = gogs_adapter.get_issue(1)
         assert issue.number == 1
 
     def test_list_issues(self, mock_responses, gogs_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/issues",
-            json=[_issue_data()], status=200,
+            responses.GET,
+            f"{REPOS}/issues",
+            json=[_issue_data()],
+            status=200,
         )
         issues = gogs_adapter.list_issues()
         assert len(issues) == 1
@@ -166,7 +190,11 @@ class TestInheritedOperations:
             call_count["n"] += 1
             if call_count["n"] == 1:
                 headers = {"Link": f'<{next_url}>; rel="next"'}
-                return (200, headers, json_mod.dumps([_issue_data(number=1), _issue_data(number=2)]))
+                return (
+                    200,
+                    headers,
+                    json_mod.dumps([_issue_data(number=1), _issue_data(number=2)]),
+                )
             return (200, {}, json_mod.dumps([_issue_data(number=3)]))
 
         mock_responses.add_callback(responses.GET, f"{REPOS}/issues", callback=callback)

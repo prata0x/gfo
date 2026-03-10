@@ -130,6 +130,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     release_create.add_argument("--notes", default="")
     release_create.add_argument("--draft", action="store_true")
     release_create.add_argument("--prerelease", action="store_true")
+    release_delete = release_sub.add_parser("delete")
+    release_delete.add_argument("tag")
 
     # gfo label → サブサブコマンド
     label_parser = subparser_map["label"] = subparsers.add_parser("label")
@@ -139,6 +141,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     label_create.add_argument("name")
     label_create.add_argument("--color")
     label_create.add_argument("--description")
+    label_delete = label_sub.add_parser("delete")
+    label_delete.add_argument("name")
 
     # gfo milestone → サブサブコマンド
     milestone_parser = subparser_map["milestone"] = subparsers.add_parser("milestone")
@@ -148,6 +152,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     milestone_create.add_argument("title")
     milestone_create.add_argument("--description")
     milestone_create.add_argument("--due")
+    milestone_delete = milestone_sub.add_parser("delete")
+    milestone_delete.add_argument("number", type=int)
 
     return parser, subparser_map
 
@@ -172,10 +178,13 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("repo", "view"): gfo.commands.repo.handle_view,
     ("release", "list"): gfo.commands.release.handle_list,
     ("release", "create"): gfo.commands.release.handle_create,
+    ("release", "delete"): gfo.commands.release.handle_delete,
     ("label", "list"): gfo.commands.label.handle_list,
     ("label", "create"): gfo.commands.label.handle_create,
+    ("label", "delete"): gfo.commands.label.handle_delete,
     ("milestone", "list"): gfo.commands.milestone.handle_list,
     ("milestone", "create"): gfo.commands.milestone.handle_create,
+    ("milestone", "delete"): gfo.commands.milestone.handle_delete,
 }
 
 

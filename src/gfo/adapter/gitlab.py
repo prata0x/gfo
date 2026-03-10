@@ -302,6 +302,9 @@ class GitLabAdapter(GitServiceAdapter):
         resp = self._client.post(f"{self._project_path()}/releases", json=payload)
         return self._to_release(resp.json())
 
+    def delete_release(self, *, tag: str) -> None:
+        self._client.delete(f"{self._project_path()}/releases/{quote(tag, safe='')}")
+
     # --- Label ---
 
     def list_labels(self, *, limit: int = 0) -> list[Label]:
@@ -323,6 +326,9 @@ class GitLabAdapter(GitServiceAdapter):
         resp = self._client.post(f"{self._project_path()}/labels", json=payload)
         return self._to_label(resp.json())
 
+    def delete_label(self, *, name: str) -> None:
+        self._client.delete(f"{self._project_path()}/labels/{quote(name, safe='')}")
+
     # --- Milestone ---
 
     def list_milestones(self, *, limit: int = 0) -> list[Milestone]:
@@ -343,3 +349,6 @@ class GitLabAdapter(GitServiceAdapter):
             payload["due_date"] = due_date
         resp = self._client.post(f"{self._project_path()}/milestones", json=payload)
         return self._to_milestone(resp.json())
+
+    def delete_milestone(self, *, number: int) -> None:
+        self._client.delete(f"{self._project_path()}/milestones/{number}")

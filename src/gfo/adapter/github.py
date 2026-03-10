@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
+from gfo.http import paginate_link_header
+
 from .base import (
     GitHubLikeAdapter,
     GitServiceAdapter,
@@ -15,7 +17,6 @@ from .base import (
     Repository,
 )
 from .registry import register
-from gfo.http import paginate_link_header
 
 
 @register("github")
@@ -28,20 +29,24 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     # --- PR ---
 
     def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]:
-        api_state = "closed" if state == "merged" else state  # GitHub API に merged パラメータはなく closed で代用
+        api_state = (
+            "closed" if state == "merged" else state
+        )  # GitHub API に merged パラメータはなく closed で代用
         params = {"state": api_state}
         results = paginate_link_header(
-            self._client, f"{self._repos_path()}/pulls",
-            params=params, limit=limit,
+            self._client,
+            f"{self._repos_path()}/pulls",
+            params=params,
+            limit=limit,
         )
         prs = [self._to_pull_request(r) for r in results]
         if state == "merged":
             prs = [pr for pr in prs if pr.state == "merged"]
         return prs
 
-    def create_pull_request(self, *, title: str, body: str = "",
-                            base: str, head: str,
-                            draft: bool = False) -> PullRequest:
+    def create_pull_request(
+        self, *, title: str, body: str = "", base: str, head: str, draft: bool = False
+    ) -> PullRequest:
         payload = {"title": title, "body": body, "base": base, "head": head, "draft": draft}
         resp = self._client.post(f"{self._repos_path()}/pulls", json=payload)
         return self._to_pull_request(resp.json())
@@ -62,30 +67,41 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             json={"state": "closed"},
         )
 
-    def get_pr_checkout_refspec(self, number: int, *,
-                                pr: PullRequest | None = None) -> str:
+    def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         return f"refs/pull/{number}/head"
 
     # --- Issue ---
 
-    def list_issues(self, *, state: str = "open",
-                    assignee: str | None = None,
-                    label: str | None = None,
-                    limit: int = 30) -> list[Issue]:
+    def list_issues(
+        self,
+        *,
+        state: str = "open",
+        assignee: str | None = None,
+        label: str | None = None,
+        limit: int = 30,
+    ) -> list[Issue]:
         params: dict = {"state": state}
         if assignee is not None:
             params["assignee"] = assignee
         if label is not None:
             params["labels"] = label
         results = paginate_link_header(
-            self._client, f"{self._repos_path()}/issues",
-            params=params, limit=limit,
+            self._client,
+            f"{self._repos_path()}/issues",
+            params=params,
+            limit=limit,
         )
         return [self._to_issue(r) for r in results if "pull_request" not in r]
 
-    def create_issue(self, *, title: str, body: str = "",
-                     assignee: str | None = None,
-                     label: str | None = None, **kwargs) -> Issue:
+    def create_issue(
+        self,
+        *,
+        title: str,
+        body: str = "",
+        assignee: str | None = None,
+        label: str | None = None,
+        **kwargs,
+    ) -> Issue:
         # **kwargs は base.py の抽象メソッドに合わせて受け取るが、GitHub では使用しない
         payload: dict = {"title": title, "body": body}
         if assignee is not None:
@@ -107,8 +123,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- Repository ---
 
-    def list_repositories(self, *, owner: str | None = None,
-                          limit: int = 30) -> list[Repository]:
+    def list_repositories(self, *, owner: str | None = None, limit: int = 30) -> list[Repository]:
         if owner is not None:
             path = f"/users/{quote(owner, safe='')}/repos"
         else:
@@ -116,14 +131,14 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         results = paginate_link_header(self._client, path, limit=limit)
         return [self._to_repository(r) for r in results]
 
-    def create_repository(self, *, name: str, private: bool = False,
-                          description: str = "") -> Repository:
+    def create_repository(
+        self, *, name: str, private: bool = False, description: str = ""
+    ) -> Repository:
         payload = {"name": name, "private": private, "description": description}
         resp = self._client.post("/user/repos", json=payload)
         return self._to_repository(resp.json())
 
-    def get_repository(self, owner: str | None = None,
-                       name: str | None = None) -> Repository:
+    def get_repository(self, owner: str | None = None, name: str | None = None) -> Repository:
         o = owner if owner is not None else self._owner
         n = name if name is not None else self._repo
         resp = self._client.get(f"/repos/{quote(o, safe='')}/{quote(n, safe='')}")
@@ -133,13 +148,21 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def list_releases(self, *, limit: int = 30) -> list[Release]:
         results = paginate_link_header(
-            self._client, f"{self._repos_path()}/releases", limit=limit,
+            self._client,
+            f"{self._repos_path()}/releases",
+            limit=limit,
         )
         return [self._to_release(r) for r in results]
 
-    def create_release(self, *, tag: str, title: str = "",
-                       notes: str = "", draft: bool = False,
-                       prerelease: bool = False) -> Release:
+    def create_release(
+        self,
+        *,
+        tag: str,
+        title: str = "",
+        notes: str = "",
+        draft: bool = False,
+        prerelease: bool = False,
+    ) -> Release:
         payload = {
             "tag_name": tag,
             "name": title,
@@ -150,14 +173,20 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.post(f"{self._repos_path()}/releases", json=payload)
         return self._to_release(resp.json())
 
+    def delete_release(self, *, tag: str) -> None:
+        resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
+        release_id = resp.json()["id"]
+        self._client.delete(f"{self._repos_path()}/releases/{release_id}")
+
     # --- Label ---
 
     def list_labels(self, *, limit: int = 0) -> list[Label]:
         results = paginate_link_header(self._client, f"{self._repos_path()}/labels", limit=limit)
         return [self._to_label(r) for r in results]
 
-    def create_label(self, *, name: str, color: str | None = None,
-                     description: str | None = None) -> Label:
+    def create_label(
+        self, *, name: str, color: str | None = None, description: str | None = None
+    ) -> Label:
         payload: dict = {"name": name}
         if color is not None:
             payload["color"] = color
@@ -166,15 +195,20 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.post(f"{self._repos_path()}/labels", json=payload)
         return self._to_label(resp.json())
 
+    def delete_label(self, *, name: str) -> None:
+        self._client.delete(f"{self._repos_path()}/labels/{quote(name, safe='')}")
+
     # --- Milestone ---
 
     def list_milestones(self, *, limit: int = 0) -> list[Milestone]:
-        results = paginate_link_header(self._client, f"{self._repos_path()}/milestones", limit=limit)
+        results = paginate_link_header(
+            self._client, f"{self._repos_path()}/milestones", limit=limit
+        )
         return [self._to_milestone(r) for r in results]
 
-    def create_milestone(self, *, title: str,
-                         description: str | None = None,
-                         due_date: str | None = None) -> Milestone:
+    def create_milestone(
+        self, *, title: str, description: str | None = None, due_date: str | None = None
+    ) -> Milestone:
         payload: dict = {"title": title}
         if description is not None:
             payload["description"] = description
@@ -182,3 +216,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["due_on"] = due_date
         resp = self._client.post(f"{self._repos_path()}/milestones", json=payload)
         return self._to_milestone(resp.json())
+
+    def delete_milestone(self, *, number: int) -> None:
+        self._client.delete(f"{self._repos_path()}/milestones/{number}")

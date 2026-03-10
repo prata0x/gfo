@@ -36,3 +36,13 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
         description=args.description,
     )
     output(label, fmt=fmt)
+
+
+def handle_delete(args: argparse.Namespace, *, fmt: str) -> None:
+    """gfo label delete のハンドラ。"""
+    name = args.name.strip()
+    if not name:
+        raise ConfigError("name must not be empty.")
+    adapter = get_adapter()
+    adapter.delete_label(name=name)
+    print(f"Deleted label '{name}'.")

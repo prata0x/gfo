@@ -871,3 +871,54 @@ class TestErrorHandling:
         )
         with pytest.raises(GfoError):
             gitlab_adapter.list_labels()
+
+
+# --- Delete 系 ---
+
+
+class TestDeleteRelease:
+    def test_delete(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/releases/v1.0.0",
+            status=200,
+        )
+        gitlab_adapter.delete_release(tag="v1.0.0")
+
+    def test_tag_url_encoded(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/releases/v1.0.0%2Brc1",
+            status=200,
+        )
+        gitlab_adapter.delete_release(tag="v1.0.0+rc1")
+        assert "%2B" in mock_responses.calls[0].request.url
+
+
+class TestDeleteLabel:
+    def test_delete(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/labels/bug",
+            status=204,
+        )
+        gitlab_adapter.delete_label(name="bug")
+
+    def test_name_url_encoded(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/labels/my%20label",
+            status=204,
+        )
+        gitlab_adapter.delete_label(name="my label")
+        assert "%20" in mock_responses.calls[0].request.url
+
+
+class TestDeleteMilestone:
+    def test_delete(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/milestones/3",
+            status=204,
+        )
+        gitlab_adapter.delete_milestone(number=3)

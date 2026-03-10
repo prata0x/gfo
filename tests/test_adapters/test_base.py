@@ -7,27 +7,28 @@ import pytest
 from gfo.adapter.base import GitServiceAdapter
 from gfo.exceptions import NotSupportedError
 
-
-EXPECTED_ABSTRACT_METHODS = frozenset({
-    "list_pull_requests",
-    "create_pull_request",
-    "get_pull_request",
-    "merge_pull_request",
-    "close_pull_request",
-    "list_issues",
-    "create_issue",
-    "get_issue",
-    "close_issue",
-    "list_repositories",
-    "create_repository",
-    "get_repository",
-    "list_releases",
-    "create_release",
-    "list_labels",
-    "create_label",
-    "list_milestones",
-    "create_milestone",
-})
+EXPECTED_ABSTRACT_METHODS = frozenset(
+    {
+        "list_pull_requests",
+        "create_pull_request",
+        "get_pull_request",
+        "merge_pull_request",
+        "close_pull_request",
+        "list_issues",
+        "create_issue",
+        "get_issue",
+        "close_issue",
+        "list_repositories",
+        "create_repository",
+        "get_repository",
+        "list_releases",
+        "create_release",
+        "list_labels",
+        "create_label",
+        "list_milestones",
+        "create_milestone",
+    }
+)
 
 
 class StubAdapter(GitServiceAdapter):
@@ -115,3 +116,26 @@ class TestGetPrCheckoutRefspec:
             adapter.get_pr_checkout_refspec(1)
         assert exc_info.value.service == "stub"
         assert exc_info.value.operation == "pr checkout"
+
+
+class TestDeleteDefaults:
+    def setup_method(self):
+        self.adapter = StubAdapter(client=None, owner="o", repo="r")
+
+    def test_delete_release_raises_not_supported_error(self):
+        with pytest.raises(NotSupportedError) as exc_info:
+            self.adapter.delete_release(tag="v1.0.0")
+        assert exc_info.value.service == "stub"
+        assert exc_info.value.operation == "release delete"
+
+    def test_delete_label_raises_not_supported_error(self):
+        with pytest.raises(NotSupportedError) as exc_info:
+            self.adapter.delete_label(name="bug")
+        assert exc_info.value.service == "stub"
+        assert exc_info.value.operation == "label delete"
+
+    def test_delete_milestone_raises_not_supported_error(self):
+        with pytest.raises(NotSupportedError) as exc_info:
+            self.adapter.delete_milestone(number=1)
+        assert exc_info.value.service == "stub"
+        assert exc_info.value.operation == "milestone delete"

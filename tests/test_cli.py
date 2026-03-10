@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
+import argparse
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-import argparse
-
 from gfo.cli import _DISPATCH, _positive_int, create_parser, main
 from gfo.exceptions import GfoError, NotSupportedError
-
 
 # ── _positive_int のテスト ──
 
@@ -63,7 +61,9 @@ def test_parser_init_defaults():
 
 def test_parser_init_non_interactive():
     parser, _ = create_parser()
-    args = parser.parse_args(["init", "--non-interactive", "--type", "github", "--host", "github.com"])
+    args = parser.parse_args(
+        ["init", "--non-interactive", "--type", "github", "--host", "github.com"]
+    )
     assert args.non_interactive is True
     assert args.type == "github"
     assert args.host == "github.com"
@@ -222,6 +222,27 @@ def test_parser_milestone_create():
     assert args.due == "2026-12-31"
 
 
+def test_parser_release_delete():
+    parser, _ = create_parser()
+    args = parser.parse_args(["release", "delete", "v1.0.0"])
+    assert args.subcommand == "delete"
+    assert args.tag == "v1.0.0"
+
+
+def test_parser_label_delete():
+    parser, _ = create_parser()
+    args = parser.parse_args(["label", "delete", "bug"])
+    assert args.subcommand == "delete"
+    assert args.name == "bug"
+
+
+def test_parser_milestone_delete():
+    parser, _ = create_parser()
+    args = parser.parse_args(["milestone", "delete", "5"])
+    assert args.subcommand == "delete"
+    assert args.number == 5
+
+
 def test_parser_format_option():
     parser, _ = create_parser()
     args = parser.parse_args(["--format", "json", "pr", "list"])
@@ -231,8 +252,8 @@ def test_parser_format_option():
 # ── _DISPATCH テーブルのテスト ──
 
 
-def test_dispatch_table_has_23_entries():
-    assert len(_DISPATCH) == 23  # init(None) + 22 subcommands
+def test_dispatch_table_has_26_entries():
+    assert len(_DISPATCH) == 26  # init(None) + 25 subcommands
 
 
 def test_dispatch_table_all_keys():
@@ -256,10 +277,13 @@ def test_dispatch_table_all_keys():
         ("repo", "view"),
         ("release", "list"),
         ("release", "create"),
+        ("release", "delete"),
         ("label", "list"),
         ("label", "create"),
+        ("label", "delete"),
         ("milestone", "list"),
         ("milestone", "create"),
+        ("milestone", "delete"),
     }
     assert set(_DISPATCH.keys()) == expected_keys
 
@@ -325,8 +349,10 @@ def test_main_format_plain_override():
 def test_main_default_format_from_config_plain():
     """config.toml の output = "plain" が fmt に伝搬する。"""
     mock_handler = MagicMock()
-    with patch.dict(_DISPATCH, {("pr", "list"): mock_handler}), \
-         patch("gfo.cli.get_default_output_format", return_value="plain"):
+    with (
+        patch.dict(_DISPATCH, {("pr", "list"): mock_handler}),
+        patch("gfo.cli.get_default_output_format", return_value="plain"),
+    ):
         result = main(["pr", "list"])
     assert result == 0
     _, kwargs = mock_handler.call_args

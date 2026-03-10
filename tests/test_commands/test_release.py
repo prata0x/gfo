@@ -87,7 +87,9 @@ class TestHandleCreate:
         self.adapter = _make_adapter(self.release)
 
     def test_basic_create(self, sample_config):
-        args = make_args(tag="v1.0.0", title="Version 1.0.0", notes="Notes", draft=False, prerelease=False)
+        args = make_args(
+            tag="v1.0.0", title="Version 1.0.0", notes="Notes", draft=False, prerelease=False
+        )
         with _patch_all(sample_config, self.adapter):
             release_cmd.handle_create(args, fmt="table")
 
@@ -147,3 +149,37 @@ class TestHandleCreate:
         with _patch_all(sample_config, self.adapter):
             with pytest.raises(ConfigError, match="gfo release create"):
                 release_cmd.handle_create(args, fmt="table")
+
+
+class TestHandleDelete:
+    def setup_method(self):
+        self.release = _make_release()
+        self.adapter = _make_adapter(self.release)
+
+    def test_delete_calls_adapter(self, sample_config):
+        args = make_args(tag="v1.0.0")
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_delete(args, fmt="table")
+
+        self.adapter.delete_release.assert_called_once_with(tag="v1.0.0")
+
+    def test_delete_prints_message(self, sample_config, capsys):
+        args = make_args(tag="v1.0.0")
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_delete(args, fmt="table")
+
+        out = capsys.readouterr().out
+        assert "v1.0.0" in out
+        assert "Deleted" in out
+
+    def test_empty_tag_raises_config_error(self, sample_config):
+        args = make_args(tag="")
+        with _patch_all(sample_config, self.adapter):
+            with pytest.raises(ConfigError, match="gfo release delete"):
+                release_cmd.handle_delete(args, fmt="table")
+
+    def test_whitespace_only_tag_raises_config_error(self, sample_config):
+        args = make_args(tag="   ")
+        with _patch_all(sample_config, self.adapter):
+            with pytest.raises(ConfigError):
+                release_cmd.handle_delete(args, fmt="table")

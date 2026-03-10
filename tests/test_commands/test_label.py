@@ -190,15 +190,19 @@ class TestHandleCreate:
     def test_invalid_color_raises_config_error(self, sample_config):
         """不正なカラーコードは ConfigError を送出する。"""
         args = make_args(name="bug", color="xyz123", description=None)
-        with _patch_all(sample_config, self.adapter), \
-             pytest.raises(ConfigError, match="Invalid color"):
+        with (
+            _patch_all(sample_config, self.adapter),
+            pytest.raises(ConfigError, match="Invalid color"),
+        ):
             label_cmd.handle_create(args, fmt="table")
 
     def test_double_hash_color_raises_config_error(self, sample_config):
         """複数の `#` を持つカラーは ConfigError を送出する（lstrip→removeprefix 修正の確認）。"""
         args = make_args(name="bug", color="##ff0000", description=None)
-        with _patch_all(sample_config, self.adapter), \
-             pytest.raises(ConfigError, match="Invalid color"):
+        with (
+            _patch_all(sample_config, self.adapter),
+            pytest.raises(ConfigError, match="Invalid color"),
+        ):
             label_cmd.handle_create(args, fmt="table")
 
     def test_name_with_surrounding_whitespace_is_stripped(self, sample_config):
@@ -213,5 +217,43 @@ class TestHandleCreate:
     def test_whitespace_only_name_raises_config_error(self, sample_config):
         """空白のみの name は ConfigError を送出する。"""
         args = make_args(name="   ", color=None, description=None)
-        with _patch_all(sample_config, self.adapter), pytest.raises(ConfigError, match="name must not be empty"):
+        with (
+            _patch_all(sample_config, self.adapter),
+            pytest.raises(ConfigError, match="name must not be empty"),
+        ):
             label_cmd.handle_create(args, fmt="table")
+
+
+class TestHandleDelete:
+    def setup_method(self):
+        self.label = _make_label()
+        self.adapter = _make_adapter(self.label)
+
+    def test_delete_calls_adapter(self, sample_config):
+        args = make_args(name="bug")
+        with _patch_all(sample_config, self.adapter):
+            label_cmd.handle_delete(args, fmt="table")
+
+        self.adapter.delete_label.assert_called_once_with(name="bug")
+
+    def test_delete_prints_message(self, sample_config, capsys):
+        args = make_args(name="bug")
+        with _patch_all(sample_config, self.adapter):
+            label_cmd.handle_delete(args, fmt="table")
+
+        out = capsys.readouterr().out
+        assert "bug" in out
+        assert "Deleted" in out
+
+    def test_whitespace_only_name_raises_config_error(self, sample_config):
+        args = make_args(name="   ")
+        with _patch_all(sample_config, self.adapter):
+            with pytest.raises(ConfigError, match="name must not be empty"):
+                label_cmd.handle_delete(args, fmt="table")
+
+    def test_name_stripped_before_call(self, sample_config):
+        args = make_args(name="  bug  ")
+        with _patch_all(sample_config, self.adapter):
+            label_cmd.handle_delete(args, fmt="table")
+
+        self.adapter.delete_label.assert_called_once_with(name="bug")

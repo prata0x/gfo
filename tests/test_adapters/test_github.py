@@ -12,12 +12,12 @@ from gfo.adapter.github import GitHubAdapter
 from gfo.adapter.registry import get_adapter_class
 from gfo.exceptions import AuthenticationError, NotFoundError, ServerError
 
-
 BASE = "https://api.github.com"
 REPOS = f"{BASE}/repos/test-owner/test-repo"
 
 
 # --- サンプルデータ ---
+
 
 def _pr_data(*, number=1, state="open", merged_at=None, draft=False):
     return {
@@ -93,6 +93,7 @@ def _milestone_data(*, number=1):
 
 # --- 変換メソッドのテスト ---
 
+
 class TestToPullRequest:
     def test_open(self):
         pr = GitHubAdapter._to_pull_request(_pr_data())
@@ -153,11 +154,14 @@ class TestToMilestone:
 
 # --- PR 系 ---
 
+
 class TestListPullRequests:
     def test_open(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/pulls",
-            json=[_pr_data()], status=200,
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[_pr_data()],
+            status=200,
         )
         prs = github_adapter.list_pull_requests()
         assert len(prs) == 1
@@ -165,7 +169,8 @@ class TestListPullRequests:
 
     def test_merged_filter(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/pulls",
+            responses.GET,
+            f"{REPOS}/pulls",
             json=[
                 _pr_data(number=1, state="closed", merged_at="2025-01-03T00:00:00Z"),
                 _pr_data(number=2, state="closed"),
@@ -178,13 +183,17 @@ class TestListPullRequests:
 
     def test_pagination(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/pulls",
-            json=[_pr_data(number=1)], status=200,
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[_pr_data(number=1)],
+            status=200,
             headers={"Link": f'<{REPOS}/pulls?page=2>; rel="next"'},
         )
         mock_responses.add(
-            responses.GET, f"{REPOS}/pulls",
-            json=[_pr_data(number=2)], status=200,
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[_pr_data(number=2)],
+            status=200,
         )
         prs = github_adapter.list_pull_requests(limit=10)
         assert len(prs) == 2
@@ -193,11 +202,16 @@ class TestListPullRequests:
 class TestCreatePullRequest:
     def test_create(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/pulls",
-            json=_pr_data(), status=201,
+            responses.POST,
+            f"{REPOS}/pulls",
+            json=_pr_data(),
+            status=201,
         )
         pr = github_adapter.create_pull_request(
-            title="PR #1", body="desc", base="main", head="feature",
+            title="PR #1",
+            body="desc",
+            base="main",
+            head="feature",
         )
         assert isinstance(pr, PullRequest)
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -205,11 +219,17 @@ class TestCreatePullRequest:
 
     def test_create_draft(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/pulls",
-            json=_pr_data(draft=True), status=201,
+            responses.POST,
+            f"{REPOS}/pulls",
+            json=_pr_data(draft=True),
+            status=201,
         )
         _ = github_adapter.create_pull_request(
-            title="Draft", body="", base="main", head="feature", draft=True,
+            title="Draft",
+            body="",
+            base="main",
+            head="feature",
+            draft=True,
         )
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["draft"] is True
@@ -218,8 +238,10 @@ class TestCreatePullRequest:
 class TestGetPullRequest:
     def test_get(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/pulls/42",
-            json=_pr_data(number=42), status=200,
+            responses.GET,
+            f"{REPOS}/pulls/42",
+            json=_pr_data(number=42),
+            status=200,
         )
         pr = github_adapter.get_pull_request(42)
         assert pr.number == 42
@@ -228,8 +250,10 @@ class TestGetPullRequest:
 class TestMergePullRequest:
     def test_merge(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.PUT, f"{REPOS}/pulls/1/merge",
-            json={"merged": True}, status=200,
+            responses.PUT,
+            f"{REPOS}/pulls/1/merge",
+            json={"merged": True},
+            status=200,
         )
         github_adapter.merge_pull_request(1)
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -237,8 +261,10 @@ class TestMergePullRequest:
 
     def test_merge_squash(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.PUT, f"{REPOS}/pulls/1/merge",
-            json={"merged": True}, status=200,
+            responses.PUT,
+            f"{REPOS}/pulls/1/merge",
+            json={"merged": True},
+            status=200,
         )
         github_adapter.merge_pull_request(1, method="squash")
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -248,8 +274,10 @@ class TestMergePullRequest:
 class TestClosePullRequest:
     def test_close(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.PATCH, f"{REPOS}/pulls/1",
-            json=_pr_data(state="closed"), status=200,
+            responses.PATCH,
+            f"{REPOS}/pulls/1",
+            json=_pr_data(state="closed"),
+            status=200,
         )
         github_adapter.close_pull_request(1)
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -263,10 +291,12 @@ class TestCheckoutRefspec:
 
 # --- Issue 系 ---
 
+
 class TestListIssues:
     def test_excludes_prs(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/issues",
+            responses.GET,
+            f"{REPOS}/issues",
             json=[_issue_data(number=1), _issue_data(number=2, has_pr=True)],
             status=200,
         )
@@ -276,8 +306,10 @@ class TestListIssues:
 
     def test_with_filters(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/issues",
-            json=[_issue_data()], status=200,
+            responses.GET,
+            f"{REPOS}/issues",
+            json=[_issue_data()],
+            status=200,
         )
         issues = github_adapter.list_issues(assignee="dev1", label="bug")
         assert len(issues) == 1
@@ -289,8 +321,10 @@ class TestListIssues:
 class TestCreateIssue:
     def test_create(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/issues",
-            json=_issue_data(), status=201,
+            responses.POST,
+            f"{REPOS}/issues",
+            json=_issue_data(),
+            status=201,
         )
         issue = github_adapter.create_issue(title="Issue #1", body="body")
         assert isinstance(issue, Issue)
@@ -300,11 +334,15 @@ class TestCreateIssue:
 
     def test_create_with_assignee_and_label(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/issues",
-            json=_issue_data(), status=201,
+            responses.POST,
+            f"{REPOS}/issues",
+            json=_issue_data(),
+            status=201,
         )
         github_adapter.create_issue(
-            title="Issue", assignee="dev1", label="bug",
+            title="Issue",
+            assignee="dev1",
+            label="bug",
         )
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["assignees"] == ["dev1"]
@@ -314,8 +352,10 @@ class TestCreateIssue:
 class TestGetIssue:
     def test_get(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/issues/5",
-            json=_issue_data(number=5), status=200,
+            responses.GET,
+            f"{REPOS}/issues/5",
+            json=_issue_data(number=5),
+            status=200,
         )
         issue = github_adapter.get_issue(5)
         assert issue.number == 5
@@ -324,8 +364,10 @@ class TestGetIssue:
 class TestCloseIssue:
     def test_close(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.PATCH, f"{REPOS}/issues/3",
-            json=_issue_data(number=3, state="closed"), status=200,
+            responses.PATCH,
+            f"{REPOS}/issues/3",
+            json=_issue_data(number=3, state="closed"),
+            status=200,
         )
         github_adapter.close_issue(3)
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -334,19 +376,24 @@ class TestCloseIssue:
 
 # --- Repository 系 ---
 
+
 class TestListRepositories:
     def test_with_owner(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.GET, f"{BASE}/users/someone/repos",
-            json=[_repo_data()], status=200,
+            responses.GET,
+            f"{BASE}/users/someone/repos",
+            json=[_repo_data()],
+            status=200,
         )
         repos = github_adapter.list_repositories(owner="someone")
         assert len(repos) == 1
 
     def test_no_owner(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.GET, f"{BASE}/user/repos",
-            json=[_repo_data()], status=200,
+            responses.GET,
+            f"{BASE}/user/repos",
+            json=[_repo_data()],
+            status=200,
         )
         repos = github_adapter.list_repositories()
         assert len(repos) == 1
@@ -354,8 +401,10 @@ class TestListRepositories:
     def test_owner_with_special_chars_is_encoded(self, mock_responses, github_adapter):
         """list_repositories(owner="...") で特殊文字が URL エンコードされる（R41-01）。"""
         mock_responses.add(
-            responses.GET, f"{BASE}/users/org%2Fsub/repos",
-            json=[_repo_data()], status=200,
+            responses.GET,
+            f"{BASE}/users/org%2Fsub/repos",
+            json=[_repo_data()],
+            status=200,
         )
         github_adapter.list_repositories(owner="org/sub")
         assert "%2F" in mock_responses.calls[0].request.url
@@ -364,8 +413,10 @@ class TestListRepositories:
 class TestCreateRepository:
     def test_create(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.POST, f"{BASE}/user/repos",
-            json=_repo_data(), status=201,
+            responses.POST,
+            f"{BASE}/user/repos",
+            json=_repo_data(),
+            status=201,
         )
         repo = github_adapter.create_repository(name="test-repo")
         assert isinstance(repo, Repository)
@@ -376,7 +427,8 @@ class TestCreateRepository:
 class TestGetRepository:
     def test_get(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.GET, f"{BASE}/repos/other/other-repo",
+            responses.GET,
+            f"{BASE}/repos/other/other-repo",
             json=_repo_data(name="other-repo", full_name="other/other-repo"),
             status=200,
         )
@@ -385,8 +437,10 @@ class TestGetRepository:
 
     def test_get_defaults(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}",
-            json=_repo_data(), status=200,
+            responses.GET,
+            f"{REPOS}",
+            json=_repo_data(),
+            status=200,
         )
         repo = github_adapter.get_repository()
         assert repo.full_name == "test-owner/test-repo"
@@ -394,7 +448,8 @@ class TestGetRepository:
     def test_get_owner_with_special_chars_is_encoded(self, mock_responses, github_adapter):
         """owner に特殊文字が含まれる場合、URL エンコードされてリクエストされる。"""
         mock_responses.add(
-            responses.GET, f"{BASE}/repos/org%2Fsub/repo",
+            responses.GET,
+            f"{BASE}/repos/org%2Fsub/repo",
             json=_repo_data(name="repo", full_name="org/sub/repo"),
             status=200,
         )
@@ -404,11 +459,14 @@ class TestGetRepository:
 
 # --- Release 系 ---
 
+
 class TestListReleases:
     def test_list(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/releases",
-            json=[_release_data()], status=200,
+            responses.GET,
+            f"{REPOS}/releases",
+            json=[_release_data()],
+            status=200,
         )
         releases = github_adapter.list_releases()
         assert len(releases) == 1
@@ -418,8 +476,10 @@ class TestListReleases:
 class TestCreateRelease:
     def test_create(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/releases",
-            json=_release_data(), status=201,
+            responses.POST,
+            f"{REPOS}/releases",
+            json=_release_data(),
+            status=201,
         )
         rel = github_adapter.create_release(tag="v1.0.0", title="Release v1.0.0")
         assert isinstance(rel, Release)
@@ -429,10 +489,12 @@ class TestCreateRelease:
 
 # --- Label 系 ---
 
+
 class TestListLabels:
     def test_list(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/labels",
+            responses.GET,
+            f"{REPOS}/labels",
             json=[_label_data(), _label_data(name="enhancement")],
             status=200,
         )
@@ -443,15 +505,18 @@ class TestListLabels:
 class TestCreateLabel:
     def test_create(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/labels",
-            json=_label_data(), status=201,
+            responses.POST,
+            f"{REPOS}/labels",
+            json=_label_data(),
+            status=201,
         )
         label = github_adapter.create_label(name="bug", color="d73a4a")
         assert label.name == "bug"
 
     def test_create_optional_fields(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/labels",
+            responses.POST,
+            f"{REPOS}/labels",
             json={"name": "minimal", "color": None, "description": None},
             status=201,
         )
@@ -462,7 +527,8 @@ class TestCreateLabel:
 
     def test_create_with_description(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/labels",
+            responses.POST,
+            f"{REPOS}/labels",
             json={"name": "bug", "color": "d73a4a", "description": "Something broken"},
             status=201,
         )
@@ -473,11 +539,14 @@ class TestCreateLabel:
 
 # --- Milestone 系 ---
 
+
 class TestListMilestones:
     def test_list(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.GET, f"{REPOS}/milestones",
-            json=[_milestone_data()], status=200,
+            responses.GET,
+            f"{REPOS}/milestones",
+            json=[_milestone_data()],
+            status=200,
         )
         milestones = github_adapter.list_milestones()
         assert len(milestones) == 1
@@ -487,8 +556,10 @@ class TestListMilestones:
 class TestCreateMilestone:
     def test_create(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/milestones",
-            json=_milestone_data(), status=201,
+            responses.POST,
+            f"{REPOS}/milestones",
+            json=_milestone_data(),
+            status=201,
         )
         ms = github_adapter.create_milestone(title="v1.0", due_date="2025-06-01T00:00:00Z")
         assert isinstance(ms, Milestone)
@@ -497,8 +568,10 @@ class TestCreateMilestone:
 
     def test_create_optional_fields(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/milestones",
-            json=_milestone_data(), status=201,
+            responses.POST,
+            f"{REPOS}/milestones",
+            json=_milestone_data(),
+            status=201,
         )
         github_adapter.create_milestone(title="v1.0")
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -507,8 +580,10 @@ class TestCreateMilestone:
 
     def test_create_with_description(self, mock_responses, github_adapter):
         mock_responses.add(
-            responses.POST, f"{REPOS}/milestones",
-            json=_milestone_data(), status=201,
+            responses.POST,
+            f"{REPOS}/milestones",
+            json=_milestone_data(),
+            status=201,
         )
         github_adapter.create_milestone(title="v1.0", description="First release")
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -517,10 +592,12 @@ class TestCreateMilestone:
 
 # --- Registry ---
 
+
 class TestReposPath:
     def test_non_ascii_owner_encoded(self):
         """非ASCII owner が URL エンコードされる。"""
         from gfo.http import HttpClient
+
         client = HttpClient("https://api.github.com")
         adapter = GitHubAdapter(client, "日本語-owner", "my-repo")
         path = adapter._repos_path()
@@ -530,6 +607,7 @@ class TestReposPath:
     def test_special_char_owner_encoded(self):
         """スペースを含む owner が URL エンコードされる。"""
         from gfo.http import HttpClient
+
         client = HttpClient("https://api.github.com")
         adapter = GitHubAdapter(client, "my owner", "my-repo")
         path = adapter._repos_path()
@@ -563,9 +641,12 @@ class TestErrorHandling:
     def test_malformed_pr_raises_gfo_error(self, mock_responses, github_adapter):
         """_to_pull_request で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError
+
         mock_responses.add(
-            responses.GET, f"{REPOS}/pulls/1",
-            json={"incomplete": True}, status=200,
+            responses.GET,
+            f"{REPOS}/pulls/1",
+            json={"incomplete": True},
+            status=200,
         )
         with pytest.raises(GfoError):
             github_adapter.get_pull_request(1)
@@ -573,9 +654,12 @@ class TestErrorHandling:
     def test_malformed_issue_raises_gfo_error(self, mock_responses, github_adapter):
         """_to_issue で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError
+
         mock_responses.add(
-            responses.GET, f"{REPOS}/issues/1",
-            json={"incomplete": True}, status=200,
+            responses.GET,
+            f"{REPOS}/issues/1",
+            json={"incomplete": True},
+            status=200,
         )
         with pytest.raises(GfoError):
             github_adapter.get_issue(1)
@@ -583,9 +667,12 @@ class TestErrorHandling:
     def test_malformed_milestone_raises_gfo_error(self, mock_responses, github_adapter):
         """_to_milestone で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError
+
         mock_responses.add(
-            responses.GET, f"{REPOS}/milestones",
-            json=[{"incomplete": True}], status=200,
+            responses.GET,
+            f"{REPOS}/milestones",
+            json=[{"incomplete": True}],
+            status=200,
         )
         with pytest.raises(GfoError):
             github_adapter.list_milestones()
@@ -593,9 +680,12 @@ class TestErrorHandling:
     def test_malformed_repository_raises_gfo_error(self, mock_responses, github_adapter):
         """_to_repository で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError
+
         mock_responses.add(
-            responses.GET, f"{REPOS}",
-            json={"incomplete": True}, status=200,
+            responses.GET,
+            f"{REPOS}",
+            json={"incomplete": True},
+            status=200,
         )
         with pytest.raises(GfoError):
             github_adapter.get_repository()
@@ -603,9 +693,12 @@ class TestErrorHandling:
     def test_malformed_release_raises_gfo_error(self, mock_responses, github_adapter):
         """_to_release で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError
+
         mock_responses.add(
-            responses.GET, f"{REPOS}/releases",
-            json=[{"incomplete": True}], status=200,
+            responses.GET,
+            f"{REPOS}/releases",
+            json=[{"incomplete": True}],
+            status=200,
         )
         with pytest.raises(GfoError):
             github_adapter.list_releases()
@@ -613,9 +706,75 @@ class TestErrorHandling:
     def test_malformed_label_raises_gfo_error(self, mock_responses, github_adapter):
         """_to_label で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError
+
         mock_responses.add(
-            responses.GET, f"{REPOS}/labels",
-            json=[{"incomplete": True}], status=200,
+            responses.GET,
+            f"{REPOS}/labels",
+            json=[{"incomplete": True}],
+            status=200,
         )
         with pytest.raises(GfoError):
             github_adapter.list_labels()
+
+
+# --- Delete 系 ---
+
+
+class TestDeleteRelease:
+    def test_delete(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json={"id": 42, "tag_name": "v1.0.0"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/releases/42",
+            status=204,
+        )
+        github_adapter.delete_release(tag="v1.0.0")
+
+    def test_tag_url_encoded(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0%2Brc1",
+            json={"id": 99, "tag_name": "v1.0.0+rc1"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/releases/99",
+            status=204,
+        )
+        github_adapter.delete_release(tag="v1.0.0+rc1")
+        assert "%2B" in mock_responses.calls[0].request.url
+
+
+class TestDeleteLabel:
+    def test_delete(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/labels/bug",
+            status=204,
+        )
+        github_adapter.delete_label(name="bug")
+
+    def test_name_url_encoded(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/labels/my%20label",
+            status=204,
+        )
+        github_adapter.delete_label(name="my label")
+        assert "%20" in mock_responses.calls[0].request.url
+
+
+class TestDeleteMilestone:
+    def test_delete(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/milestones/3",
+            status=204,
+        )
+        github_adapter.delete_milestone(number=3)

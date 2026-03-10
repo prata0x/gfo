@@ -31,3 +31,13 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
         prerelease=args.prerelease,
     )
     output(release, fmt=fmt)
+
+
+def handle_delete(args: argparse.Namespace, *, fmt: str) -> None:
+    """gfo release delete のハンドラ。"""
+    tag = (args.tag or "").strip()
+    if not tag:
+        raise ConfigError("tag must not be empty. Use 'gfo release delete <tag>'.")
+    adapter = get_adapter()
+    adapter.delete_release(tag=tag)
+    print(f"Deleted release '{tag}'.")

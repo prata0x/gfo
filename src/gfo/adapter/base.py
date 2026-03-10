@@ -280,6 +280,9 @@ class GitServiceAdapter(ABC):
         prerelease: bool = False,
     ) -> Release: ...
 
+    def delete_release(self, *, tag: str) -> None:
+        raise NotSupportedError(self.service_name, "release delete")
+
     # --- Label ---
     @abstractmethod
     def list_labels(self, *, limit: int = 0) -> list[Label]: ...
@@ -289,6 +292,9 @@ class GitServiceAdapter(ABC):
         self, *, name: str, color: str | None = None, description: str | None = None
     ) -> Label: ...
 
+    def delete_label(self, *, name: str) -> None:
+        raise NotSupportedError(self.service_name, "label delete")
+
     # --- Milestone ---
     @abstractmethod
     def list_milestones(self, *, limit: int = 0) -> list[Milestone]: ...
@@ -297,3 +303,6 @@ class GitServiceAdapter(ABC):
     def create_milestone(
         self, *, title: str, description: str | None = None, due_date: str | None = None
     ) -> Milestone: ...
+
+    def delete_milestone(self, *, number: int) -> None:
+        raise NotSupportedError(self.service_name, "milestone delete")

@@ -347,3 +347,43 @@ class TestErrorHandling:
         )
         with pytest.raises(ServerError):
             forgejo_adapter.list_issues()
+
+
+class TestDeleteInheritance:
+    """GiteaAdapter から継承した delete メソッドが動作することを確認する。"""
+
+    def test_delete_release(self, mock_responses, forgejo_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json={"id": 42, "tag_name": "v1.0.0"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/releases/42",
+            status=204,
+        )
+        forgejo_adapter.delete_release(tag="v1.0.0")
+
+    def test_delete_label(self, mock_responses, forgejo_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/labels",
+            json=[{"id": 10, "name": "bug", "color": "d73a4a", "description": ""}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/labels/10",
+            status=204,
+        )
+        forgejo_adapter.delete_label(name="bug")
+
+    def test_delete_milestone(self, mock_responses, forgejo_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/milestones/3",
+            status=204,
+        )
+        forgejo_adapter.delete_milestone(number=3)

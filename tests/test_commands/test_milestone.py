@@ -203,3 +203,25 @@ class TestHandleCreate:
         with _patch_all(sample_config, self.adapter):
             with pytest.raises(ConfigError):
                 milestone_cmd.handle_create(args, fmt="table")
+
+
+class TestHandleDelete:
+    def setup_method(self):
+        self.milestone = _make_milestone()
+        self.adapter = _make_adapter(self.milestone)
+
+    def test_delete_calls_adapter(self, sample_config):
+        args = make_args(number=3)
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_delete(args, fmt="table")
+
+        self.adapter.delete_milestone.assert_called_once_with(number=3)
+
+    def test_delete_prints_message(self, sample_config, capsys):
+        args = make_args(number=5)
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_delete(args, fmt="table")
+
+        out = capsys.readouterr().out
+        assert "5" in out
+        assert "Deleted" in out

@@ -708,3 +708,73 @@ class TestErrorHandling:
         mock_responses.add(responses.GET, f"{REPOS}/issues", status=500)
         with pytest.raises(ServerError):
             gitea_adapter.list_issues()
+
+
+# --- Delete 系 ---
+
+
+class TestDeleteRelease:
+    def test_delete(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json={"id": 42, "tag_name": "v1.0.0"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/releases/42",
+            status=204,
+        )
+        gitea_adapter.delete_release(tag="v1.0.0")
+
+    def test_tag_url_encoded(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0%2Brc1",
+            json={"id": 99, "tag_name": "v1.0.0+rc1"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/releases/99",
+            status=204,
+        )
+        gitea_adapter.delete_release(tag="v1.0.0+rc1")
+        assert "%2B" in mock_responses.calls[0].request.url
+
+
+class TestDeleteLabel:
+    def test_delete(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/labels",
+            json=[{"id": 10, "name": "bug", "color": "d73a4a", "description": ""}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/labels/10",
+            status=204,
+        )
+        gitea_adapter.delete_label(name="bug")
+
+    def test_not_found_raises_error(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/labels",
+            json=[{"id": 10, "name": "other", "color": "d73a4a", "description": ""}],
+            status=200,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.delete_label(name="bug")
+
+
+class TestDeleteMilestone:
+    def test_delete(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/milestones/3",
+            status=204,
+        )
+        gitea_adapter.delete_milestone(number=3)

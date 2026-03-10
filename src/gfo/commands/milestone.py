@@ -28,3 +28,10 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
         due_date=args.due,
     )
     output(milestone, fmt=fmt)
+
+
+def handle_delete(args: argparse.Namespace, *, fmt: str) -> None:
+    """gfo milestone delete のハンドラ。"""
+    adapter = get_adapter()
+    adapter.delete_milestone(number=args.number)
+    print(f"Deleted milestone '{args.number}'.")
