@@ -50,6 +50,7 @@ python "$SCRIPT_DIR/setup_services.py"
 
 echo ""
 echo "=== 統合テスト実行 ==="
+cd "$SCRIPT_DIR/../.."
 python -m pytest tests/integration/ -m selfhosted -v --tb=short --no-cov
 
 echo ""
