@@ -103,6 +103,16 @@ class TestNotSupportedOperations:
             gogs_adapter.delete_milestone(number=1)
         assert exc_info.value.web_url is None
 
+    def test_list_releases(self, gogs_adapter):
+        with pytest.raises(NotSupportedError) as exc_info:
+            gogs_adapter.list_releases()
+        assert exc_info.value.web_url is None
+
+    def test_create_release(self, gogs_adapter):
+        with pytest.raises(NotSupportedError) as exc_info:
+            gogs_adapter.create_release(tag="v1.0.0")
+        assert exc_info.value.web_url is None
+
     def test_delete_release(self, gogs_adapter):
         with pytest.raises(NotSupportedError) as exc_info:
             gogs_adapter.delete_release(tag="v1.0.0")
