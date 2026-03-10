@@ -26,6 +26,30 @@ class TestGitHubIntegration:
         cls._issue_number: int | None = None
         cls._pr_number: int | None = None
 
+    @classmethod
+    def teardown_class(cls) -> None:
+        """テスト終了後にテスト用リソースを削除する。"""
+        try:
+            cls.adapter.delete_release(tag="v0.0.1-test")
+        except Exception:
+            pass
+        try:
+            # リリース削除では git タグが残るため個別削除
+            cls.adapter._client.delete(f"{cls.adapter._repos_path()}/git/refs/tags/v0.0.1-test")
+        except Exception:
+            pass
+        try:
+            cls.adapter.delete_label(name="gfo-test-label")
+        except Exception:
+            pass
+        try:
+            for ms in cls.adapter.list_milestones():
+                if ms.title == "gfo-test-milestone":
+                    cls.adapter.delete_milestone(number=ms.number)
+                    break
+        except Exception:
+            pass
+
     # --- Repository ---
 
     def test_01_repo_view(self) -> None:
@@ -43,7 +67,9 @@ class TestGitHubIntegration:
 
     def test_03_label_create(self) -> None:
         label = self.adapter.create_label(
-            name="gfo-test-label", color="ff0000", description="Integration test",
+            name="gfo-test-label",
+            color="ff0000",
+            description="Integration test",
         )
         assert label.name == "gfo-test-label"
 
@@ -56,7 +82,8 @@ class TestGitHubIntegration:
 
     def test_05_milestone_create(self) -> None:
         ms = self.adapter.create_milestone(
-            title="gfo-test-milestone", description="Integration test",
+            title="gfo-test-milestone",
+            description="Integration test",
         )
         assert ms.title == "gfo-test-milestone"
 
@@ -94,8 +121,10 @@ class TestGitHubIntegration:
 
     def test_11_pr_create(self) -> None:
         pr = self.adapter.create_pull_request(
-            title="gfo-test-pr", body="Integration test",
-            base=self.config.default_branch, head=self.config.test_branch,
+            title="gfo-test-pr",
+            body="Integration test",
+            base=self.config.default_branch,
+            head=self.config.test_branch,
         )
         assert pr.title == "gfo-test-pr"
         assert pr.state == "open"
@@ -122,7 +151,9 @@ class TestGitHubIntegration:
 
     def test_15_release_create(self) -> None:
         release = self.adapter.create_release(
-            tag="v0.0.1-test", title="Test Release", notes="Integration test",
+            tag="v0.0.1-test",
+            title="Test Release",
+            notes="Integration test",
         )
         assert release.tag == "v0.0.1-test"
 
