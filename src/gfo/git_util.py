@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-import subprocess
+import subprocess  # nosec B404
 
 from gfo.exceptions import GitCommandError
 
@@ -19,7 +19,7 @@ def _mask_credentials(text: str) -> str:
 def run_git(*args: str, cwd: str | None = None) -> str:
     """git コマンドを実行し stdout を返す。失敗時は GitCommandError。"""
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603 B607 - git is a fixed system command
             ["git", *args],
             capture_output=True,
             text=True,
@@ -113,7 +113,7 @@ def git_clone(url: str, dest: str | None = None, cwd: str | None = None) -> None
     if dest is not None:
         cmd.append(dest)
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603 B607 - git is a fixed system command
             cmd,
             capture_output=True,
             text=True,

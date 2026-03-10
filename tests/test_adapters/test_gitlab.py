@@ -8,7 +8,7 @@ from urllib.parse import quote
 import pytest
 import responses
 
-from gfo.adapter.base import Issue, Label, Milestone, PullRequest, Release, Repository
+from gfo.adapter.base import Issue, Milestone, PullRequest, Release, Repository
 from gfo.adapter.gitlab import GitLabAdapter
 from gfo.adapter.registry import get_adapter_class
 from gfo.exceptions import AuthenticationError, NotFoundError, ServerError
@@ -290,7 +290,7 @@ class TestCreatePullRequest:
             responses.POST, f"{PROJECT}/merge_requests",
             json=_mr_data(draft=True), status=201,
         )
-        pr = gitlab_adapter.create_pull_request(
+        _ = gitlab_adapter.create_pull_request(
             title="Draft", body="", base="main", head="feature", draft=True,
         )
         req_body = json.loads(mock_responses.calls[0].request.body)

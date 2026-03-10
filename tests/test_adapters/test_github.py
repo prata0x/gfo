@@ -7,7 +7,7 @@ import json
 import pytest
 import responses
 
-from gfo.adapter.base import Issue, Label, Milestone, PullRequest, Release, Repository
+from gfo.adapter.base import Issue, Milestone, PullRequest, Release, Repository
 from gfo.adapter.github import GitHubAdapter
 from gfo.adapter.registry import get_adapter_class
 from gfo.exceptions import AuthenticationError, NotFoundError, ServerError
@@ -208,7 +208,7 @@ class TestCreatePullRequest:
             responses.POST, f"{REPOS}/pulls",
             json=_pr_data(draft=True), status=201,
         )
-        pr = github_adapter.create_pull_request(
+        _ = github_adapter.create_pull_request(
             title="Draft", body="", base="main", head="feature", draft=True,
         )
         req_body = json.loads(mock_responses.calls[0].request.body)

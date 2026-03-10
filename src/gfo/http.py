@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urlparse
 
-import requests
+import requests  # type: ignore[import-untyped]
 
 import gfo.exceptions
 
@@ -321,6 +321,7 @@ def paginate_response_body(
             resp = client.get(path, params=params)
             first = False
         else:
+            assert next_url is not None  # set at end of previous iteration before loop continues
             resp = client.get_absolute(next_url)
 
         try:

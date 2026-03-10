@@ -390,7 +390,7 @@ class TestListIssues:
             responses.GET, ISSUES_PATH,
             json=[_issue_data()], status=200,
         )
-        issues = backlog_adapter.list_issues(state="all")
+        _ = backlog_adapter.list_issues(state="all")
         req = mock_responses.calls[1].request
         assert "statusId" not in req.url
 

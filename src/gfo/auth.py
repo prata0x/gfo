@@ -5,7 +5,7 @@ from __future__ import annotations
 import getpass
 import os
 import re
-import subprocess
+import subprocess  # nosec B404
 import sys
 import tomllib
 import warnings
@@ -87,7 +87,7 @@ def save_token(host: str, token: str) -> None:
     else:
         try:
             username = getpass.getuser()
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 B607 - icacls is a fixed Windows system command
                 [
                     "icacls",
                     str(path),
@@ -125,7 +125,8 @@ def load_tokens() -> dict[str, str]:
         return {}
     except OSError as e:
         raise ConfigError(f"Failed to read credentials file {path}: {e}") from e
-    return data.get("tokens", {})
+    tokens = data.get("tokens", {})
+    return {str(k): str(v) for k, v in tokens.items() if isinstance(v, str)}
 
 
 def get_auth_status() -> list[dict[str, str]]:

@@ -330,7 +330,7 @@ class TestCreatePullRequest:
             responses.POST, f"{GIT}/pullrequests",
             json=_pr_data(is_draft=True), status=201,
         )
-        pr = azure_devops_adapter.create_pull_request(
+        _ = azure_devops_adapter.create_pull_request(
             title="Draft PR", body="", base="main", head="feature", draft=True,
         )
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -440,7 +440,7 @@ class TestListIssues:
             responses.GET, f"{WIT}/workitems",
             json={"value": [_issue_data(id=1, state="Closed")]}, status=200,
         )
-        issues = azure_devops_adapter.list_issues(state="closed")
+        _ = azure_devops_adapter.list_issues(state="closed")
         wiql_body = json.loads(mock_responses.calls[0].request.body)
         assert "IN ('Closed', 'Done', 'Removed')" in wiql_body["query"]
 

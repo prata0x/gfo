@@ -7,6 +7,7 @@ import sys
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 
@@ -34,7 +35,7 @@ def get_config_dir() -> Path:
         if appdata:
             return Path(appdata) / "gfo"
         return Path.home() / "AppData" / "Roaming" / "gfo"
-    return Path.home() / ".config" / "gfo"
+    return Path.home() / ".config" / "gfo"  # type: ignore[unreachable]
 
 
 def get_config_path() -> Path:
@@ -68,20 +69,24 @@ def load_user_config() -> dict:
 def get_default_output_format() -> str:
     """config.toml の defaults.output を返す。未設定なら "table"。"""
     cfg = load_user_config()
-    return cfg.get("defaults", {}).get("output", "table")
+    defaults: dict[str, Any] = cfg.get("defaults", {})
+    return str(defaults.get("output", "table"))
 
 
 def get_default_host() -> str | None:
     """config.toml の defaults.host を返す。未設定なら None。"""
     cfg = load_user_config()
-    return cfg.get("defaults", {}).get("host")
+    defaults: dict[str, Any] = cfg.get("defaults", {})
+    value = defaults.get("host")
+    return str(value) if value is not None else None
 
 
-def get_host_config(host: str) -> dict | None:
+def get_host_config(host: str) -> dict[str, Any] | None:
     """config.toml の hosts.{host} セクションを返す。未設定なら None。"""
     cfg = load_user_config()
-    hosts = cfg.get("hosts", {})
-    return hosts.get(host.lower()) or hosts.get(host)
+    hosts: dict[str, Any] = cfg.get("hosts", {})
+    result = hosts.get(host.lower()) or hosts.get(host)
+    return result if isinstance(result, dict) else None
 
 
 def get_hosts_config() -> dict[str, str]:
