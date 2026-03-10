@@ -21,7 +21,8 @@ if _ENV_FILE.exists():
             continue
         if "=" in line:
             key, _, value = line.partition("=")
-            os.environ.setdefault(key.strip(), value.strip())
+            value = value.strip().strip('"').strip("'")
+            os.environ.setdefault(key.strip(), value)
 
 
 @dataclass
@@ -36,12 +37,6 @@ class ServiceTestConfig:
     token: str
     organization: str | None = None
     project_key: str | None = None
-    # 対応機能フラグ
-    supports_pr: bool = True
-    supports_pr_merge: bool = True
-    supports_release: bool = True
-    supports_label: bool = True
-    supports_milestone: bool = True
     # テスト用ブランチ名
     test_branch: str = "gfo-test-branch"
     # デフォルトブランチ名
@@ -66,19 +61,6 @@ _DEFAULT_API_URLS = {
     "github": "https://api.github.com",
     "gitlab": "https://gitlab.com/api/v4",
     "bitbucket": "https://api.bitbucket.org/2.0",
-}
-
-# サービス種別ごとの非対応機能
-_UNSUPPORTED = {
-    "gogs": {"supports_pr": False, "supports_label": False, "supports_milestone": False},
-    "bitbucket": {"supports_release": False, "supports_label": False, "supports_milestone": False},
-    "azure-devops": {
-        "supports_release": False, "supports_label": False, "supports_milestone": False,
-    },
-    "backlog": {
-        "supports_pr_merge": False, "supports_release": False,
-        "supports_label": False, "supports_milestone": False,
-    },
 }
 
 
@@ -136,9 +118,6 @@ def get_service_config(service_type: str) -> ServiceTestConfig | None:
     if service_type == "backlog":
         project_key = os.environ.get(f"GFO_TEST_{prefix}_PROJECT_KEY")
 
-    # 非対応機能のフラグ
-    unsupported = _UNSUPPORTED.get(service_type, {})
-
     return ServiceTestConfig(
         service_type=service_type,
         host=host,
@@ -148,7 +127,6 @@ def get_service_config(service_type: str) -> ServiceTestConfig | None:
         token=token,
         organization=organization,
         project_key=project_key,
-        **unsupported,
     )
 
 

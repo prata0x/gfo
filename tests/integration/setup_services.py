@@ -258,20 +258,20 @@ def setup_gogs() -> str:
         timeout=10,
     )
     if r.status_code == 422:
-        # トークン名が既に存在する場合
-        r = requests.get(
-            f"{api_url}/users/{ADMIN_USER}/tokens",
+        # トークン名が既に存在する場合 — 削除して再作成（Gogs はトークン一覧 API が sha1 を返さない）
+        requests.delete(
+            f"{api_url}/users/{ADMIN_USER}/tokens/gfo-test",
             auth=(ADMIN_USER, ADMIN_PASS),
             timeout=10,
         )
+        r = requests.post(
+            f"{api_url}/users/{ADMIN_USER}/tokens",
+            auth=(ADMIN_USER, ADMIN_PASS),
+            json={"name": "gfo-test"},
+            timeout=10,
+        )
         r.raise_for_status()
-        tokens = r.json()
-        for t in tokens:
-            if t.get("name") == "gfo-test":
-                token = t.get("sha1", "")
-                break
-        else:
-            raise RuntimeError("Failed to find existing token")
+        token = r.json()["sha1"]
     else:
         r.raise_for_status()
         token = r.json()["sha1"]
@@ -333,23 +333,18 @@ def setup_gitbucket() -> str:
         timeout=10,
     )
     if r.status_code == 422 or r.status_code == 409:
-        # 既存トークンを使用 — GitBucket は token 一覧 API がないため再作成
-        print(f"  [{prefix}] Token may already exist, trying to proceed ...")
-        # Basic 認証でテスト
-        token = ""
+        # 既存トークンが存在するが取得できない — GitBucket は token 一覧 API がない
+        raise RuntimeError(
+            f"[{prefix}] Token 'gfo-test' already exists but cannot be retrieved. "
+            "Please delete the token manually via GitBucket Web UI or restart the container."
+        )
     elif r.ok:
         token = r.json().get("token", "")
+        if not token:
+            raise RuntimeError(f"[{prefix}] Token generation succeeded but token value is empty.")
         print(f"  [{prefix}] Token generated.")
     else:
-        print(f"  [{prefix}] Token generation failed ({r.status_code}), using basic auth.")
-        token = ""
-
-    # トークンが取得できない場合は Basic 認証の文字列を使用
-    if not token:
-        token = f"{GITBUCKET_USER}:{GITBUCKET_PASS}"
-        headers = {}
-    else:
-        headers = {"Authorization": f"token {token}"}
+        raise RuntimeError(f"[{prefix}] Token generation failed: {r.status_code} {r.text[:200]}")
 
     # テスト用リポジトリ作成
     print(f"  [{prefix}] Creating test repository ...")

@@ -11,12 +11,15 @@ ENV_FILE="$SCRIPT_DIR/.env"
 if [ -f "$ENV_FILE" ]; then
     echo "=== .env ファイルを読み込み ==="
     set -a
-    # コメント行と空行を除外して読み込み
+    # 行頭 # のコメント行と空行を除外して読み込み
     while IFS= read -r line; do
-        line=$(echo "$line" | sed 's/#.*//' | xargs)
-        if [ -n "$line" ]; then
-            export "$line"
+        line="${line%%$'\r'}"  # CRLF 対応
+        # 先頭の空白を除去して判定
+        trimmed="${line#"${line%%[! ]*}"}"
+        if [ -z "$trimmed" ] || [[ "$trimmed" == \#* ]]; then
+            continue
         fi
+        export "$line"
     done < "$ENV_FILE"
     set +a
 else
