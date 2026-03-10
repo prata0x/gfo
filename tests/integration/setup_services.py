@@ -48,7 +48,7 @@ def append_env(key: str, value: str) -> None:
     """環境変数を .env ファイルに追記する。既存キーは上書き。"""
     lines: list[str] = []
     if ENV_FILE.exists():
-        lines = ENV_FILE.read_text().splitlines()
+        lines = ENV_FILE.read_text(encoding="utf-8").splitlines()
 
     new_lines = []
     replaced = False
@@ -61,7 +61,7 @@ def append_env(key: str, value: str) -> None:
     if not replaced:
         new_lines.append(f"{key}={value}")
 
-    ENV_FILE.write_text("\n".join(new_lines) + "\n")
+    ENV_FILE.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -111,6 +111,8 @@ def setup_gitea_like(
         ],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     if result.returncode != 0 and "already exists" not in result.stderr.lower():
         print(f"  [{prefix}] Warning: user creation: {result.stderr.strip()}")
@@ -123,8 +125,9 @@ def setup_gitea_like(
         json={"name": "gfo-test", "scopes": ["all"]},
         timeout=10,
     )
-    if r.status_code == 409:
+    if r.status_code in (400, 409):
         # トークン名が既に存在する場合 — 削除して再作成
+        # Gitea 1.22+ は重複時に 400、旧版は 409 を返す
         requests.delete(
             f"{api_url}/users/{ADMIN_USER}/tokens/gfo-test",
             auth=(ADMIN_USER, ADMIN_PASS),
@@ -223,6 +226,47 @@ def setup_forgejo() -> str:
 # ---------------------------------------------------------------------------
 
 
+def _gogs_delete_token_via_ui(base_url: str, token_name: str) -> None:
+    """Gogs Web UI 経由でトークンを削除する。
+
+    Gogs は REST API のトークン削除が未実装のため Web UI を使う。
+    削除フォームのエンドポイント: POST /user/settings/applications/delete
+    """
+    import re as _re
+
+    session = requests.Session()
+    # ログイン
+    login_page = session.get(f"{base_url}/user/login", timeout=10)
+    csrf_m = _re.search(r'name="_csrf" value="([^"]+)"', login_page.text)
+    csrf = csrf_m.group(1) if csrf_m else ""
+    session.post(
+        f"{base_url}/user/login",
+        data={"user_name": ADMIN_USER, "password": ADMIN_PASS, "_csrf": csrf},
+        allow_redirects=True,
+        timeout=10,
+    )
+    # アプリケーション設定ページからトークン ID を取得
+    app_page = session.get(f"{base_url}/user/settings/applications", timeout=10)
+    csrf_m2 = _re.search(r'name="_csrf" value="([^"]+)"', app_page.text)
+    csrf2 = csrf_m2.group(1) if csrf_m2 else ""
+    # トークン名 → ID のマッピングを構築
+    token_id = None
+    for block in app_page.text.split('<div class="item">'):
+        name_m = _re.search(r"<strong>([^<]+)</strong>", block)
+        id_m = _re.search(r'data-id="(\d+)"', block)
+        if name_m and id_m and name_m.group(1).strip() == token_name:
+            token_id = id_m.group(1)
+            break
+    if token_id is None:
+        return  # 既に存在しない
+    session.post(
+        f"{base_url}/user/settings/applications/delete",
+        data={"_csrf": csrf2, "id": token_id},
+        allow_redirects=True,
+        timeout=10,
+    )
+
+
 def setup_gogs() -> str:
     """Gogs の初期セットアップを実行する。"""
     base_url = "http://localhost:3002"
@@ -270,24 +314,18 @@ def setup_gogs() -> str:
         timeout=10,
     )
     if r.status_code == 422:
-        # トークン名が既に存在する場合 — 削除して再作成
-        # （Gogs のトークン一覧 API は sha1 を返さないため Gitea 方式に統一）
-        requests.delete(
-            f"{api_url}/users/{ADMIN_USER}/tokens/gfo-test",
-            auth=(ADMIN_USER, ADMIN_PASS),
-            timeout=10,
-        )
+        # トークン名が既に存在する場合 — Web UI 経由で削除して再作成
+        # Gogs の REST API はトークン削除未実装（DELETE /tokens/{name} → 404）
+        # また一覧の sha1 は DB 上のハッシュで実際のトークン値と異なるため再利用不可
+        _gogs_delete_token_via_ui(base_url, "gfo-test")
         r = requests.post(
             f"{api_url}/users/{ADMIN_USER}/tokens",
             auth=(ADMIN_USER, ADMIN_PASS),
             json={"name": "gfo-test"},
             timeout=10,
         )
-        r.raise_for_status()
-        token = r.json()["sha1"]
-    else:
-        r.raise_for_status()
-        token = r.json()["sha1"]
+    r.raise_for_status()
+    token = r.json()["sha1"]
     print(f"  [{prefix}] Token generated.")
 
     # テスト用リポジトリ作成
@@ -441,27 +479,25 @@ def setup_gitbucket() -> str:
     tmpdir = tempfile.mkdtemp(prefix="gfo-gitbucket-")
     try:
         clone_url = f"http://{GITBUCKET_USER}:{GITBUCKET_PASS}@localhost:3003/git/{GITBUCKET_USER}/{TEST_REPO}.git"
+        _run_kw = {"capture_output": True, "text": True, "encoding": "utf-8", "errors": "replace"}
         result = subprocess.run(
             ["git", "clone", clone_url, tmpdir + "/repo"],
-            capture_output=True,
-            text=True,
+            **_run_kw,
         )
         if result.returncode == 0:
             repo_path = tmpdir + "/repo"
             subprocess.run(
                 ["git", "-C", repo_path, "checkout", "-b", TEST_BRANCH],
-                capture_output=True,
-                text=True,
+                **_run_kw,
             )
             # テスト用ファイルを追加
             branch_file = repo_path + "/test-branch-file.txt"
             with open(branch_file, "w") as f:
                 f.write("test content for PR\n")
-            subprocess.run(["git", "-C", repo_path, "add", "."], capture_output=True, text=True)
+            subprocess.run(["git", "-C", repo_path, "add", "."], **_run_kw)
             subprocess.run(
                 ["git", "-C", repo_path, "commit", "-m", "test: add branch file"],
-                capture_output=True,
-                text=True,
+                **_run_kw,
                 env={
                     **__import__("os").environ,
                     "GIT_AUTHOR_NAME": "gfo-test",
@@ -472,8 +508,7 @@ def setup_gitbucket() -> str:
             )
             push_result = subprocess.run(
                 ["git", "-C", repo_path, "push", "origin", TEST_BRANCH],
-                capture_output=True,
-                text=True,
+                **_run_kw,
             )
             if push_result.returncode == 0:
                 print(f"  [{prefix}] Branch created from {default_branch}.")
