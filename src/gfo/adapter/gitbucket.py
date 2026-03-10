@@ -13,7 +13,7 @@ import urllib.parse
 
 import requests as _requests
 
-from gfo.exceptions import GfoError
+from gfo.exceptions import GfoError, NotSupportedError
 
 from .base import PullRequest, Release
 from .github import GitHubAdapter
@@ -96,6 +96,14 @@ class GitBucketAdapter(GitHubAdapter):
             )
         except (KeyError, TypeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    def delete_repository(self) -> None:
+        """GitBucket は DELETE /repos API 未実装のため非対応。"""
+        raise NotSupportedError("GitBucket", "repo delete")
+
+    def delete_release(self, *, tag: str) -> None:
+        """GitBucket はリリースをタグ名で直接削除する（数値 ID を返さないため）。"""
+        self._client.delete(f"{self._repos_path()}/releases/{urllib.parse.quote(tag, safe='')}")
 
     def create_release(
         self,

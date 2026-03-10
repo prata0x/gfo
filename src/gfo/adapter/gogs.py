@@ -59,6 +59,11 @@ class GogsAdapter(GiteaAdapter):
             "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
         )
 
+    # --- Issue ---
+
+    def delete_issue(self, number: int) -> None:
+        raise NotSupportedError("Gogs", "issue delete")
+
     # --- Label（非サポート）---
 
     def list_labels(self, *, limit: int = 0) -> list[Label]:

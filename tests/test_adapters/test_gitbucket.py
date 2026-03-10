@@ -344,14 +344,8 @@ class TestDeleteInheritance:
 
     def test_delete_release(self, mock_responses, gitbucket_adapter):
         mock_responses.add(
-            responses.GET,
-            f"{REPOS}/releases/tags/v1.0.0",
-            json={"id": 42, "tag_name": "v1.0.0"},
-            status=200,
-        )
-        mock_responses.add(
             responses.DELETE,
-            f"{REPOS}/releases/42",
+            f"{REPOS}/releases/v1.0.0",
             status=204,
         )
         gitbucket_adapter.delete_release(tag="v1.0.0")
@@ -379,14 +373,12 @@ class TestDeleteInheritance:
         with pytest.raises(NotSupportedError):
             gitbucket_adapter.delete_issue(1)
 
-    def test_delete_repository(self, mock_responses, gitbucket_adapter):
-        mock_responses.add(
-            responses.DELETE,
-            REPOS,
-            status=204,
-        )
-        gitbucket_adapter.delete_repository()
-        assert mock_responses.calls[0].request.method == "DELETE"
+    def test_delete_repository_raises_not_supported(self, gitbucket_adapter):
+        """GitBucket は DELETE /repos API 未実装のため NotSupportedError。"""
+        from gfo.exceptions import NotSupportedError
+
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.delete_repository()
 
 
 class TestParseResponse:

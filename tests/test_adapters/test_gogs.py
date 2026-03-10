@@ -214,16 +214,14 @@ class TestInheritedOperations:
 
 
 class TestDeleteInheritance:
-    """GiteaAdapter から継承した delete メソッドが動作することを確認する。"""
+    """Gogs の delete メソッドの動作確認。"""
 
-    def test_delete_issue(self, mock_responses, gogs_adapter):
-        mock_responses.add(
-            responses.DELETE,
-            f"{REPOS}/issues/5",
-            status=204,
-        )
-        gogs_adapter.delete_issue(5)
-        assert mock_responses.calls[0].request.method == "DELETE"
+    def test_delete_issue_raises_not_supported(self, gogs_adapter):
+        """Gogs は issue delete 未対応 → NotSupportedError。"""
+        from gfo.exceptions import NotSupportedError
+
+        with pytest.raises(NotSupportedError):
+            gogs_adapter.delete_issue(5)
 
     def test_delete_repository(self, mock_responses, gogs_adapter):
         mock_responses.add(
