@@ -3,14 +3,11 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-
-import pytest
 
 from gfo.adapter.base import GitServiceAdapter
 from gfo.adapter.registry import create_http_client, get_adapter_class
-
 
 # .env ファイルを読み込む（存在する場合）
 _ENV_FILE = Path(__file__).parent / ".env"

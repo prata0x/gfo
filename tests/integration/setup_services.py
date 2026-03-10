@@ -10,11 +10,9 @@ Usage: python tests/integration/setup_services.py
 from __future__ import annotations
 
 import base64
-import json
 import sys
 import time
 from pathlib import Path
-from urllib.parse import urljoin
 
 import requests
 
@@ -258,7 +256,8 @@ def setup_gogs() -> str:
         timeout=10,
     )
     if r.status_code == 422:
-        # トークン名が既に存在する場合 — 削除して再作成（Gogs はトークン一覧 API が sha1 を返さない）
+        # トークン名が既に存在する場合 — 削除して再作成
+        # （Gogs のトークン一覧 API は sha1 を返さないため Gitea 方式に統一）
         requests.delete(
             f"{api_url}/users/{ADMIN_USER}/tokens/gfo-test",
             auth=(ADMIN_USER, ADMIN_PASS),
@@ -448,7 +447,7 @@ def main() -> None:
     for name, setup_fn in services:
         print(f"\n--- {name} ---")
         try:
-            token = setup_fn()
+            setup_fn()
             results[name] = "OK"
             print(f"  [{name}] Setup complete.")
         except Exception as e:
