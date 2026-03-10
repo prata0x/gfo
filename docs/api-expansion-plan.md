@@ -68,14 +68,25 @@ gfo comment delete <comment-id> --on <pr|issue>
 | サービス | list | create | update | delete | 備考 |
 |---|:---:|:---:|:---:|:---:|---|
 | GitHub | o | o | o | o | PR/Issue 共通エンドポイント |
-| GitLab | o | o | o | o | Notes API (`/notes`) |
+| GitLab | o | o | △ | △ | Notes API は URL に issue/MR 番号が必要（※1） |
 | Bitbucket | o | o | o | o | PR: `/comments`, Issue: `/comments` |
-| Azure DevOps | o | o | o | o | PR: Threads API, Issue: Comments API |
+| Azure DevOps | o | o | △ | △ | PR コメントは Thread API でスレッド ID が必要（※2） |
 | Backlog | o | o | o | o | `/comments` |
 | Gitea | o | o | o | o | GitHub 互換 |
 | Forgejo | o | o | o | o | Gitea 継承 |
 | Gogs | o | o | x | x | Issue コメントのみ |
 | GitBucket | o | o | o | o | GitHub 互換 |
+
+> **※1 GitLab**: `update_comment` / `delete_comment` は現在 `NotSupportedError`。
+> GitLab の Notes API（`PUT /projects/:id/issues/:issue_iid/notes/:note_id`）は
+> URL に issue/MR 番号が必要だが、本インターフェースは `comment_id` のみ受け取るため
+> リソース番号を特定できない。対応するには `resource` と `number` をメソッドシグネチャに
+> 追加する必要がある（将来の改善候補）。
+>
+> **※2 Azure DevOps**: `update_comment` / `delete_comment` は現在 `NotSupportedError`。
+> PR コメントの更新・削除は Thread API（`PATCH /repos/.../threads/:threadId/comments/:commentId`）
+> を使用し、スレッド ID が必要。本インターフェースは `comment_id` のみ受け取るため
+> スレッド ID を特定できない（将来の改善候補）。
 
 ### P1-2: PR 更新 (`gfo pr update`)
 
