@@ -31,7 +31,7 @@ fi
 
 echo ""
 echo "=== SaaS 統合テスト実行 ==="
-pytest tests/integration/ -m saas -v --tb=short --no-cov
+python -m pytest tests/integration/ -m saas -v --tb=short --no-cov
 
 echo ""
 echo "=== テスト完了 ==="

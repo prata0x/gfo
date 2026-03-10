@@ -916,9 +916,25 @@ class TestDeleteLabel:
 
 class TestDeleteMilestone:
     def test_delete(self, mock_responses, gitlab_adapter):
+        # delete_milestone は iid→global id 解決のため GET を先に呼ぶ
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/milestones",
+            json=[
+                {
+                    "id": 99,
+                    "iid": 3,
+                    "title": "v1.0",
+                    "state": "active",
+                    "description": None,
+                    "due_date": None,
+                }
+            ],
+            status=200,
+        )
         mock_responses.add(
             responses.DELETE,
-            f"{PROJECT}/milestones/3",
+            f"{PROJECT}/milestones/99",
             status=204,
         )
         gitlab_adapter.delete_milestone(number=3)

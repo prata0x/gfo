@@ -49,6 +49,13 @@ class TestGitLabIntegration:
                     break
         except Exception:
             pass
+        # オープンなテスト用 MR を閉じる（マージ失敗時の残留対応）
+        try:
+            for pr in cls.adapter.list_pull_requests(state="open"):
+                if pr.title == "gfo-test-pr":
+                    cls.adapter.close_pull_request(pr.number)
+        except Exception:
+            pass
 
     # --- Repository ---
 
@@ -116,6 +123,65 @@ class TestGitLabIntegration:
     # --- Pull Request (GitLab では Merge Request) ---
 
     def test_11_pr_create(self) -> None:
+        import time
+        from urllib.parse import quote as _quote
+
+        from gfo.exceptions import GfoError, NotFoundError
+
+        # 残留オープン MR を閉じる（前回テストが途中終了した場合の対応）
+        for pr in self.adapter.list_pull_requests(state="open"):
+            if pr.title == "gfo-test-pr":
+                try:
+                    self.adapter.close_pull_request(pr.number)
+                except Exception:
+                    pass
+
+        # test_branch が存在しない場合は再作成（前回マージで削除された場合の対応）
+        try:
+            self.adapter._client.get(
+                f"{self.adapter._project_path()}/repository/branches"
+                f"/{_quote(self.config.test_branch, safe='')}"
+            )
+        except NotFoundError:
+            self.adapter._client.post(
+                f"{self.adapter._project_path()}/repository/branches",
+                json={"branch": self.config.test_branch, "ref": self.config.default_branch},
+            )
+
+        # ブランチに差分コミットを追加（前回マージ済みで差分がない場合の対応）
+        content = f"test run {time.time()}\n"
+        try:
+            self.adapter._client.post(
+                f"{self.adapter._project_path()}/repository/commits",
+                json={
+                    "branch": self.config.test_branch,
+                    "commit_message": "test: update marker for MR",
+                    "actions": [
+                        {
+                            "action": "update",
+                            "file_path": "test-pr-marker.txt",
+                            "content": content,
+                        }
+                    ],
+                },
+            )
+        except GfoError:
+            # ファイルが存在しない場合は create で再試行
+            self.adapter._client.post(
+                f"{self.adapter._project_path()}/repository/commits",
+                json={
+                    "branch": self.config.test_branch,
+                    "commit_message": "test: add marker for MR",
+                    "actions": [
+                        {
+                            "action": "create",
+                            "file_path": "test-pr-marker.txt",
+                            "content": content,
+                        }
+                    ],
+                },
+            )
+
         pr = self.adapter.create_pull_request(
             title="gfo-test-pr",
             body="Integration test",

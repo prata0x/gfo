@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
-from gfo.exceptions import GfoError
+from gfo.exceptions import GfoError, NotFoundError
 from gfo.http import paginate_page_param
 
 from .base import (
@@ -351,4 +351,11 @@ class GitLabAdapter(GitServiceAdapter):
         return self._to_milestone(resp.json())
 
     def delete_milestone(self, *, number: int) -> None:
-        self._client.delete(f"{self._project_path()}/milestones/{number}")
+        # GitLab の DELETE は iid ではなくグローバル id が必要なため、
+        # iid (= number) でフィルタしてグローバル id を解決する。
+        resp = self._client.get(f"{self._project_path()}/milestones", params={"iid[]": number})
+        milestones = resp.json()
+        if not milestones:
+            raise NotFoundError(f"{self._project_path()}/milestones?iid[]={number}")
+        global_id = milestones[0]["id"]
+        self._client.delete(f"{self._project_path()}/milestones/{global_id}")

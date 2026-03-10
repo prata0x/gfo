@@ -58,7 +58,8 @@ class TestGitHubIntegration:
         assert repo.full_name == f"{self.config.owner}/{self.config.repo}"
 
     def test_02_repo_list(self) -> None:
-        repos = self.adapter.list_repositories(owner=self.config.owner, limit=10)
+        # owner 指定は公開リポジトリのみ返すため、認証済み一覧（プライベート含む）を使用
+        repos = self.adapter.list_repositories(limit=10)
         assert len(repos) > 0
         names = [r.name for r in repos]
         assert self.config.repo in names
@@ -101,9 +102,18 @@ class TestGitHubIntegration:
         self.__class__._issue_number = issue.number
 
     def test_08_issue_list(self) -> None:
+        import time
+
         assert self._issue_number is not None
-        issues = self.adapter.list_issues(state="open", limit=10)
-        numbers = [i.number for i in issues]
+        # GitHub API は private repo で作成直後の issue がリストに反映されるまで遅延がある場合がある
+        time.sleep(2)
+        numbers: list[int] = []
+        for _ in range(5):
+            issues = self.adapter.list_issues(state="open", limit=0)
+            numbers = [i.number for i in issues]
+            if self._issue_number in numbers:
+                break
+            time.sleep(2)
         assert self._issue_number in numbers
 
     def test_09_issue_view(self) -> None:
@@ -120,6 +130,28 @@ class TestGitHubIntegration:
     # --- Pull Request ---
 
     def test_11_pr_create(self) -> None:
+        import base64
+        import time
+
+        from gfo.exceptions import GfoError
+
+        # 前回マージ済みの場合はブランチに差分がないため、テストファイルを更新してコミットを追加する
+        content = base64.b64encode(f"test run {time.time()}".encode()).decode()
+        marker_path = f"{self.adapter._repos_path()}/contents/test-pr-marker.txt"
+        payload: dict = {
+            "message": "test: update marker for PR",
+            "content": content,
+            "branch": self.config.test_branch,
+        }
+        try:
+            existing = self.adapter._client.get(
+                marker_path, params={"ref": self.config.test_branch}
+            )
+            payload["sha"] = existing.json()["sha"]
+        except GfoError:
+            pass  # ファイルが存在しない場合は sha なしで新規作成
+        self.adapter._client.put(marker_path, json=payload)
+
         pr = self.adapter.create_pull_request(
             title="gfo-test-pr",
             body="Integration test",
@@ -158,6 +190,14 @@ class TestGitHubIntegration:
         assert release.tag == "v0.0.1-test"
 
     def test_16_release_list(self) -> None:
-        releases = self.adapter.list_releases(limit=10)
-        tags = [r.tag for r in releases]
+        import time
+
+        # GitHub API は作成直後のリリースがリストに反映されるまで遅延がある場合がある
+        tags: list[str] = []
+        for _ in range(5):
+            releases = self.adapter.list_releases(limit=0)
+            tags = [r.tag for r in releases]
+            if "v0.0.1-test" in tags:
+                break
+            time.sleep(2)
         assert "v0.0.1-test" in tags
