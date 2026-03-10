@@ -13,6 +13,20 @@ repos:
         language: system
         types: [python]
 
+      - id: mypy
+        name: mypy
+        entry: python -m mypy src/gfo
+        language: system
+        pass_filenames: false
+        types: [python]
+
+      - id: bandit
+        name: bandit
+        entry: python -m bandit -r src/gfo -c pyproject.toml
+        language: system
+        pass_filenames: false
+        types: [python]
+
       - id: pytest
         name: pytest
         entry: python -m pytest --tb=short -q

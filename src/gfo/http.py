@@ -7,7 +7,7 @@ import os
 import re
 import time
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlparse
 
@@ -41,9 +41,7 @@ class HttpClient:
         """
         auth_count = sum(x is not None for x in (auth_header, auth_params, basic_auth))
         if auth_count > 1:
-            raise ValueError(
-                "auth_header, auth_params, basic_auth are mutually exclusive."
-            )
+            raise ValueError("auth_header, auth_params, basic_auth are mutually exclusive.")
         self._base_url = base_url.rstrip("/")
         self._auth_params: dict[str, str] = auth_params or {}
         self._default_params: dict[str, str] = default_params or {}
@@ -99,11 +97,17 @@ class HttpClient:
         """
         url = self._base_url + path
         merged_params = {**self._default_params, **self._auth_params, **(params or {})}
-        return self._retry_loop(lambda: self._session.request(
-            method, url,
-            params=merged_params, json=json, data=data,
-            headers=headers, timeout=timeout,
-        ))
+        return self._retry_loop(
+            lambda: self._session.request(
+                method,
+                url,
+                params=merged_params,
+                json=json,
+                data=data,
+                headers=headers,
+                timeout=timeout,
+            )
+        )
 
     def get(self, path: str, **kwargs: Any) -> requests.Response:
         """GET リクエスト。"""
@@ -172,7 +176,7 @@ class HttpClient:
         # RFC 7231 HTTP-date 形式
         try:
             dt = email.utils.parsedate_to_datetime(value)
-            diff = int((dt - datetime.now(timezone.utc)).total_seconds())
+            diff = int((dt - datetime.now(UTC)).total_seconds())
             return max(1, min(diff, _MAX_RETRY_AFTER))
         except (ValueError, TypeError):
             return default
@@ -205,9 +209,11 @@ def _validate_same_origin(base_url: str, next_url: str) -> bool:
     target = urlparse(next_url)
     base_port = base.port or _DEFAULT_PORTS.get(base.scheme)
     target_port = target.port or _DEFAULT_PORTS.get(target.scheme)
-    return (base.scheme == target.scheme
-            and base.hostname == target.hostname
-            and base_port == target_port)
+    return (
+        base.scheme == target.scheme
+        and base.hostname == target.hostname
+        and base_port == target_port
+    )
 
 
 def paginate_link_header(
@@ -321,7 +327,7 @@ def paginate_response_body(
             resp = client.get(path, params=params)
             first = False
         else:
-            assert next_url is not None  # set at end of previous iteration before loop continues
+            assert next_url is not None  # nosec B101 - loop invariant: set before entering else branch
             resp = client.get_absolute(next_url)
 
         try:
