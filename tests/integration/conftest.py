@@ -44,7 +44,7 @@ class ServiceTestConfig:
 _TOKEN_ENV_MAP = {
     "github": "GFO_TEST_GITHUB_TOKEN",
     "gitlab": "GFO_TEST_GITLAB_TOKEN",
-    "bitbucket": "GFO_TEST_BITBUCKET_APP_PASSWORD",
+    "bitbucket": "GFO_TEST_BITBUCKET_TOKEN",
     "azure-devops": "GFO_TEST_AZURE_DEVOPS_PAT",
     "gitea": "GFO_TEST_GITEA_TOKEN",
     "forgejo": "GFO_TEST_FORGEJO_TOKEN",

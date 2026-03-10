@@ -21,7 +21,7 @@ _SERVICE_ENV_MAP: dict[str, str] = {
     "forgejo": "GITEA_TOKEN",
     "gogs": "GITEA_TOKEN",
     "gitbucket": "GITBUCKET_TOKEN",
-    "bitbucket": "BITBUCKET_APP_PASSWORD",
+    "bitbucket": "BITBUCKET_TOKEN",
     "backlog": "BACKLOG_API_KEY",
     "azure-devops": "AZURE_DEVOPS_PAT",
 }
@@ -137,9 +137,7 @@ def get_auth_status() -> list[dict[str, str]]:
     # credentials.toml のトークン
     tokens = load_tokens()
     for host in tokens:
-        result.append(
-            {"host": host, "status": "configured", "source": "credentials.toml"}
-        )
+        result.append({"host": host, "status": "configured", "source": "credentials.toml"})
         seen_hosts.add(host)
 
     # 環境変数で設定されているトークン（env_var ごとに 1 エントリ、重複を避ける）
@@ -166,9 +164,7 @@ def get_auth_status() -> list[dict[str, str]]:
     if os.environ.get("GFO_TOKEN"):
         host_key = "(all services)"
         if host_key not in seen_hosts:
-            result.append(
-                {"host": host_key, "status": "configured", "source": "env:GFO_TOKEN"}
-            )
+            result.append({"host": host_key, "status": "configured", "source": "env:GFO_TOKEN"})
 
     return result
 

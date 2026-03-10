@@ -2,24 +2,24 @@
 
 from __future__ import annotations
 
-from typing import Type
-
 from gfo.adapter.base import GitServiceAdapter
 from gfo.config import ProjectConfig
 from gfo.exceptions import ConfigError, UnsupportedServiceError
 
-_REGISTRY: dict[str, Type[GitServiceAdapter]] = {}
+_REGISTRY: dict[str, type[GitServiceAdapter]] = {}
 
 
 def register(service_type: str):
     """デコレータ。アダプタークラスをレジストリに登録する。"""
+
     def decorator(cls):
         _REGISTRY[service_type] = cls
         return cls
+
     return decorator
 
 
-def get_adapter_class(service_type: str) -> Type[GitServiceAdapter]:
+def get_adapter_class(service_type: str) -> type[GitServiceAdapter]:
     """サービス種別からアダプタークラスを返す。未登録なら UnsupportedServiceError。"""
     if service_type not in _REGISTRY:
         raise UnsupportedServiceError(service_type)
@@ -35,7 +35,7 @@ def create_http_client(service_type: str, api_url: str, token: str):
     elif service_type == "bitbucket":
         if ":" not in token:
             raise ConfigError(
-                "Bitbucket token must be in 'username:app-password' format. "
+                "Bitbucket token must be in 'email:api-token' format. "
                 "Run 'gfo auth login --host bitbucket.org' to reconfigure."
             )
         user, pw = token.split(":", 1)

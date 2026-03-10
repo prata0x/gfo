@@ -437,7 +437,7 @@ _SERVICE_ENV_MAP: dict[str, str] = {
     "forgejo":     "GITEA_TOKEN",
     "gogs":        "GITEA_TOKEN",
     "gitbucket":   "GITBUCKET_TOKEN",
-    "bitbucket":   "BITBUCKET_APP_PASSWORD",
+    "bitbucket":   "BITBUCKET_TOKEN",
     "backlog":     "BACKLOG_API_KEY",
     "azure-devops": "AZURE_DEVOPS_PAT",
 }
@@ -1222,7 +1222,7 @@ def create_adapter(config: ProjectConfig) -> GitServiceAdapter:
         elif stype == "bitbucket":
             if ":" not in token:
                 raise ConfigError(
-                    "Bitbucket token must be in 'username:app-password' format. "
+                    "Bitbucket token must be in 'email:api-token' format. "
                     "Run 'gfo auth login --host bitbucket.org' to reconfigure."
                 )
             user, pw = token.split(":", 1)

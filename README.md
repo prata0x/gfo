@@ -8,7 +8,7 @@
 |---|---|---|
 | GitHub | `github` | `GITHUB_TOKEN` |
 | GitLab | `gitlab` | `GITLAB_TOKEN` |
-| Bitbucket Cloud | `bitbucket` | `BITBUCKET_APP_PASSWORD` |
+| Bitbucket Cloud | `bitbucket` | `BITBUCKET_TOKEN` |
 | Azure DevOps | `azure-devops` | `AZURE_DEVOPS_PAT` |
 | Gitea | `gitea` | `GITEA_TOKEN` |
 | Forgejo | `forgejo` | `GITEA_TOKEN` |

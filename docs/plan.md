@@ -74,11 +74,11 @@ api_url = "https://myteam.backlog.com/api/v2"
 [tokens]
 "github.com" = "ghp_xxxx"
 "gitlab.example.com" = "glpat-xxxx"
-"bitbucket.org" = "user:app-password-xxxx"   # user:password 形式
+"bitbucket.org" = "email:api-token-xxxx"   # email:api-token 形式
 "myteam.backlog.com" = "backlog-api-key-xxxx"
 ```
 
-Bitbucket Cloud の App Password は `username:app-password` の形式で格納する。`auth.py` がコロンで分割し Basic Auth に渡す。
+Bitbucket Cloud の API Token は `email:api-token` の形式で格納する。`auth.py` がコロンで分割し Basic Auth に渡す。
 
 Windows: `%APPDATA%/gfo/` に配置。ファイル作成時に icacls で現在のユーザーのみにアクセス権を付与（ベストエフォート）。
 
@@ -101,7 +101,7 @@ git remote URL からの自動検出 (detect.py)
 ### 環境変数フォールバック (トークン)
 
 1. `credentials.toml` のホスト別トークン
-2. サービス固有: `GITHUB_TOKEN`, `GITLAB_TOKEN`, `GITEA_TOKEN`, `BITBUCKET_APP_PASSWORD`, `BACKLOG_API_KEY`, `AZURE_DEVOPS_PAT`
+2. サービス固有: `GITHUB_TOKEN`, `GITLAB_TOKEN`, `GITEA_TOKEN`, `BITBUCKET_TOKEN`, `BACKLOG_API_KEY`, `AZURE_DEVOPS_PAT`
 3. `GFO_TOKEN` (汎用フォールバック)
 
 ---

@@ -100,7 +100,7 @@ class TestCreateAdapter:
     def test_bitbucket_no_colon_raises(self, mock_resolve):
         self._register("bitbucket")
         config = _make_config("bitbucket")
-        with pytest.raises(ConfigError, match="username:app-password"):
+        with pytest.raises(ConfigError, match="email:api-token"):
             create_adapter(config)
 
     @patch("gfo.auth.resolve_token", return_value="azure-pat")
@@ -188,7 +188,7 @@ class TestCreateHttpClient:
         )
 
     def test_bitbucket_invalid_token_raises(self):
-        with pytest.raises(ConfigError, match="username:app-password"):
+        with pytest.raises(ConfigError, match="email:api-token"):
             create_http_client("bitbucket", "https://api.bitbucket.org/2.0", "nocolon")
 
     @patch("gfo.http.HttpClient")

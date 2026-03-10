@@ -8,7 +8,7 @@ import re
 import warnings
 from dataclasses import dataclass
 
-import requests
+import requests  # type: ignore[import-untyped]
 
 from gfo.exceptions import DetectionError
 from gfo.git_util import _mask_credentials, get_remote_url, git_config_get
@@ -43,30 +43,20 @@ _SSH_URL_RE = re.compile(
     r"^ssh://(?:[^\s@]+@)?(?P<host>[^/:]+)(?::(?P<port>\d+))?/(?P<path>.+?)(?:\.git)?/?$"
 )
 
-_SSH_SCP_RE = re.compile(
-    r"^(?:[^\s@]+@)?(?P<host>[^:]+):(?P<path>.+?)(?:\.git)?/?$"
-)
+_SSH_SCP_RE = re.compile(r"^(?:[^\s@]+@)?(?P<host>[^:]+):(?P<path>.+?)(?:\.git)?/?$")
 
 
 # ── パスパーサー正規表現 ──
 
 # Azure DevOps: {org}/{project}/_git/{repo} or v3/{org}/{project}/{repo}
-_AZURE_GIT_PATH_RE = re.compile(
-    r"^(?:(?P<org>[^/]+)/)?(?P<project>[^/]+)/_git/(?P<repo>[^/]+)$"
-)
-_AZURE_V3_PATH_RE = re.compile(
-    r"^v3/(?P<org>[^/]+)/(?P<project>[^/]+)/(?P<repo>[^/]+)$"
-)
+_AZURE_GIT_PATH_RE = re.compile(r"^(?:(?P<org>[^/]+)/)?(?P<project>[^/]+)/_git/(?P<repo>[^/]+)$")
+_AZURE_V3_PATH_RE = re.compile(r"^v3/(?P<org>[^/]+)/(?P<project>[^/]+)/(?P<repo>[^/]+)$")
 
 # Backlog HTTPS の URL パス（`git/{owner}/{repo}`）用パターン。
-_GIT_PATH_RE = re.compile(
-    r"^git/(?P<owner>[^/]+)/(?P<repo>[^/]+)$"
-)
+_GIT_PATH_RE = re.compile(r"^git/(?P<owner>[^/]+)/(?P<repo>[^/]+)$")
 _BACKLOG_PATH_RE = _GIT_PATH_RE
 
-_GENERIC_PATH_RE = re.compile(
-    r"^(?P<owner>.+)/(?P<repo>[^/]+)$"
-)
+_GENERIC_PATH_RE = re.compile(r"^(?P<owner>.+)/(?P<repo>[^/]+)$")
 
 
 # ── 既知ホストテーブル ──
@@ -204,7 +194,7 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
     #   Gogs    {"version": "0.x.x"}
     #   Gitea   {"version": "1.x.x", "go_version": "go1.x", ...}
     #   Forgejo {"version": "...", "forgejo": "...", "go_version": "..."}  (>= 1.20)
-    #           {"version": "...", "go_version": "...", "source_url": "https://codeberg.org/forgejo/forgejo"}  (旧版)
+    #           {"version": "...", "go_version": "...", "source_url": "..."}  (旧版 Forgejo)
     try:
         resp = requests.get(f"{base}/api/v1/version", timeout=5, verify=_VERIFY_SSL)
         if resp.status_code == 200:
@@ -221,7 +211,12 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
                 if "go-version" in data or "go_version" in data:
                     return "gitea"
                 # Gogs は version のみ持ち、go_version/forgejo を持たない
-                if "version" in data and "go-version" not in data and "go_version" not in data and "forgejo" not in data:
+                if (
+                    "version" in data
+                    and "go-version" not in data
+                    and "go_version" not in data
+                    and "forgejo" not in data
+                ):
                     return "gogs"
     except (requests.RequestException, ValueError):
         # ValueError: resp.json() が非 JSON レスポンスを受け取った場合

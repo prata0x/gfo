@@ -17,7 +17,7 @@
 |---|---|---|
 | GitHub | `github` | `GITHUB_TOKEN` |
 | GitLab | `gitlab` | `GITLAB_TOKEN` |
-| Bitbucket Cloud | `bitbucket` | `BITBUCKET_APP_PASSWORD`（`user:app-password` 形式） |
+| Bitbucket Cloud | `bitbucket` | `BITBUCKET_TOKEN`（`email:api-token` 形式） |
 | Azure DevOps | `azure-devops` | `AZURE_DEVOPS_PAT` |
 | Gitea | `gitea` | `GITEA_TOKEN` |
 | Forgejo | `forgejo` | `GITEA_TOKEN` |
@@ -216,7 +216,7 @@ except (KeyError, TypeError) as e:
 
 ### Bitbucket 固有
 
-- トークンは `username:app-password` 形式（コロン区切り）
+- トークンは `email:api-token` 形式（コロン区切り）
 - Basic 認証で送信
 - Issue の label フィルタは `component.name="{label}"` クエリパラメータ
 
