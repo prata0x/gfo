@@ -211,3 +211,25 @@ class TestInheritedOperations:
         issues = gogs_adapter.list_issues(limit=0)
         assert len(issues) == 3
         assert call_count["n"] == 2
+
+
+class TestDeleteInheritance:
+    """GiteaAdapter から継承した delete メソッドが動作することを確認する。"""
+
+    def test_delete_issue(self, mock_responses, gogs_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/issues/5",
+            status=204,
+        )
+        gogs_adapter.delete_issue(5)
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+    def test_delete_repository(self, mock_responses, gogs_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            REPOS,
+            status=204,
+        )
+        gogs_adapter.delete_repository()
+        assert mock_responses.calls[0].request.method == "DELETE"

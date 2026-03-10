@@ -747,3 +747,14 @@ class TestErrorHandling:
         )
         with pytest.raises(GfoError):
             bitbucket_adapter.get_repository()
+
+
+class TestDeleteRepository:
+    def test_delete(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            REPOS,
+            status=204,
+        )
+        bitbucket_adapter.delete_repository()
+        assert mock_responses.calls[0].request.method == "DELETE"

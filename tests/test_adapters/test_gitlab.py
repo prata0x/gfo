@@ -938,3 +938,26 @@ class TestDeleteMilestone:
             status=204,
         )
         gitlab_adapter.delete_milestone(number=3)
+
+
+class TestDeleteIssue:
+    def test_delete(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/issues/5",
+            status=204,
+        )
+        gitlab_adapter.delete_issue(5)
+        assert mock_responses.calls[0].request.method == "DELETE"
+        assert mock_responses.calls[0].request.url.endswith("/issues/5")
+
+
+class TestDeleteRepository:
+    def test_delete(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            PROJECT,
+            status=202,
+        )
+        gitlab_adapter.delete_repository()
+        assert mock_responses.calls[0].request.method == "DELETE"

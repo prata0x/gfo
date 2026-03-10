@@ -766,3 +766,44 @@ class TestErrorHandling:
         )
         with pytest.raises(GfoError):
             azure_devops_adapter.list_issues()
+
+
+class TestDeleteIssue:
+    def test_delete(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{WIT}/workitems/10",
+            status=200,
+        )
+        azure_devops_adapter.delete_issue(10)
+        assert mock_responses.calls[0].request.method == "DELETE"
+        assert "/workitems/10" in mock_responses.calls[0].request.url
+
+
+class TestDeleteRepository:
+    def test_delete(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            GIT,
+            json={"id": "repo-uuid-123", "name": "test-repo"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.DELETE,
+            f"{BASE}/git/repositories/repo-uuid-123",
+            status=204,
+        )
+        azure_devops_adapter.delete_repository()
+        assert mock_responses.calls[0].request.method == "GET"
+        assert mock_responses.calls[1].request.method == "DELETE"
+
+    def test_malformed_response_raises_gfo_error(self, mock_responses, azure_devops_adapter):
+        from gfo.exceptions import GfoError
+        mock_responses.add(
+            responses.GET,
+            GIT,
+            json={"incomplete": True},
+            status=200,
+        )
+        with pytest.raises(GfoError):
+            azure_devops_adapter.delete_repository()

@@ -372,6 +372,21 @@ class TestDeleteInheritance:
         )
         gitbucket_adapter.delete_milestone(number=3)
 
+    def test_delete_issue_raises_not_supported(self, gitbucket_adapter):
+        """GitBucket は issue delete 未対応（GitHub 継承）→ NotSupportedError。"""
+        from gfo.exceptions import NotSupportedError
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.delete_issue(1)
+
+    def test_delete_repository(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            REPOS,
+            status=204,
+        )
+        gitbucket_adapter.delete_repository()
+        assert mock_responses.calls[0].request.method == "DELETE"
+
 
 class TestParseResponse:
     """_parse_response のテスト。"""

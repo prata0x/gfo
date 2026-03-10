@@ -121,6 +121,9 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             json={"state": "closed"},
         )
 
+    def delete_issue(self, number: int) -> None:
+        self._client.delete(f"{self._repos_path()}/issues/{number}")
+
     # --- Repository ---
 
     def list_repositories(self, *, owner: str | None = None, limit: int = 30) -> list[Repository]:
@@ -143,6 +146,9 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         n = name if name is not None else self._repo
         resp = self._client.get(f"/repos/{quote(o, safe='')}/{quote(n, safe='')}")
         return self._to_repository(resp.json())
+
+    def delete_repository(self) -> None:
+        self._client.delete(self._repos_path())
 
     # --- Release ---
 

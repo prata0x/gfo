@@ -859,3 +859,27 @@ class TestErrorHandling:
         )
         with pytest.raises(GfoError):
             backlog_adapter.get_repository()
+
+
+class TestDeleteIssue:
+    def test_delete(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{BASE}/issues/TEST-3",
+            status=200,
+        )
+        backlog_adapter.delete_issue(3)
+        assert mock_responses.calls[0].request.method == "DELETE"
+        assert "/issues/TEST-3" in mock_responses.calls[0].request.url
+
+
+class TestDeleteRepository:
+    def test_delete(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{BASE}/projects/TEST/git/repositories/test-repo",
+            status=200,
+        )
+        backlog_adapter.delete_repository()
+        assert mock_responses.calls[0].request.method == "DELETE"
+        assert "/git/repositories/test-repo" in mock_responses.calls[0].request.url

@@ -387,3 +387,21 @@ class TestDeleteInheritance:
             status=204,
         )
         forgejo_adapter.delete_milestone(number=3)
+
+    def test_delete_issue(self, mock_responses, forgejo_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/issues/5",
+            status=204,
+        )
+        forgejo_adapter.delete_issue(5)
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+    def test_delete_repository(self, mock_responses, forgejo_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            REPOS,
+            status=204,
+        )
+        forgejo_adapter.delete_repository()
+        assert mock_responses.calls[0].request.method == "DELETE"

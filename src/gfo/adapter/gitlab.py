@@ -244,6 +244,9 @@ class GitLabAdapter(GitServiceAdapter):
             json={"state_event": "close"},
         )
 
+    def delete_issue(self, number: int) -> None:
+        self._client.delete(f"{self._project_path()}/issues/{number}")
+
     # --- Repository ---
 
     def list_repositories(self, *, owner: str | None = None, limit: int = 30) -> list[Repository]:
@@ -269,6 +272,9 @@ class GitLabAdapter(GitServiceAdapter):
         n = name if name is not None else self._repo
         resp = self._client.get(f"/projects/{quote(o + '/' + n, safe='')}")
         return self._to_repository(resp.json())
+
+    def delete_repository(self) -> None:
+        self._client.delete(self._project_path())
 
     # --- Release ---
 

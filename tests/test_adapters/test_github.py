@@ -778,3 +778,15 @@ class TestDeleteMilestone:
             status=204,
         )
         github_adapter.delete_milestone(number=3)
+
+
+class TestDeleteRepository:
+    def test_delete(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            REPOS,
+            status=204,
+        )
+        github_adapter.delete_repository()
+        assert mock_responses.calls[0].request.method == "DELETE"
+        assert mock_responses.calls[0].request.url.endswith("/repos/test-owner/test-repo")

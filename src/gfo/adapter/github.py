@@ -144,6 +144,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.get(f"/repos/{quote(o, safe='')}/{quote(n, safe='')}")
         return self._to_repository(resp.json())
 
+    def delete_repository(self) -> None:
+        self._client.delete(self._repos_path())
+
     # --- Release ---
 
     def list_releases(self, *, limit: int = 30) -> list[Release]:

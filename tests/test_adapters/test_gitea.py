@@ -778,3 +778,26 @@ class TestDeleteMilestone:
             status=204,
         )
         gitea_adapter.delete_milestone(number=3)
+
+
+class TestDeleteIssue:
+    def test_delete(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/issues/4",
+            status=204,
+        )
+        gitea_adapter.delete_issue(4)
+        assert mock_responses.calls[0].request.method == "DELETE"
+        assert mock_responses.calls[0].request.url.endswith("/issues/4")
+
+
+class TestDeleteRepository:
+    def test_delete(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            REPOS,
+            status=204,
+        )
+        gitea_adapter.delete_repository()
+        assert mock_responses.calls[0].request.method == "DELETE"

@@ -275,6 +275,9 @@ class BacklogAdapter(GitServiceAdapter):
     def close_issue(self, number: int) -> None:
         self._client.patch(f"/issues/{self._project_key}-{number}", json={"statusId": _STATUS_CLOSED_ID})
 
+    def delete_issue(self, number: int) -> None:
+        self._client.delete(f"/issues/{self._project_key}-{number}")
+
     # --- Repository ---
 
     def list_repositories(self, *, owner: str | None = None,
@@ -307,6 +310,12 @@ class BacklogAdapter(GitServiceAdapter):
             f"/projects/{self._project_key}/git/repositories/{urllib.parse.quote(n, safe='')}"
         )
         return self._to_repository(resp.json())
+
+    def delete_repository(self) -> None:
+        self._client.delete(
+            f"/projects/{self._project_key}/git/repositories/"
+            f"{urllib.parse.quote(self._repo, safe='')}"
+        )
 
     # --- NotSupported ---
 

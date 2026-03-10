@@ -273,6 +273,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             headers={"Content-Type": "application/json-patch+json"},
         )
 
+    def delete_issue(self, number: int) -> None:
+        self._client.delete(f"{self._wit_path()}/workitems/{number}")
+
     # --- Repository ---
 
     def list_repositories(self, *, owner: str | None = None,
@@ -300,6 +303,14 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         n = name if name is not None else self._repo
         resp = self._client.get(f"/git/repositories/{quote(n, safe='')}")
         return self._to_repository(resp.json(), self._project)
+
+    def delete_repository(self) -> None:
+        resp = self._client.get(self._git_path())
+        try:
+            repo_id = resp.json()["id"]
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        self._client.delete(f"/git/repositories/{repo_id}")
 
     # --- NotSupported ---
 
