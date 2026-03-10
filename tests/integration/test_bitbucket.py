@@ -87,9 +87,33 @@ class TestBitbucketIntegration:
     # --- Pull Request ---
 
     def test_11_pr_create(self) -> None:
+        import time
+
+        # 残留オープン PR を閉じる（前回テストが途中終了した場合の対応）
+        for pr in self.adapter.list_pull_requests(state="open"):
+            if pr.title == "gfo-test-pr":
+                try:
+                    self.adapter.close_pull_request(pr.number)
+                except Exception:
+                    pass
+
+        # 前回マージ済みで差分がない場合に備えてマーカーファイルを更新
+        # Bitbucket src API はマルチパートのため _session を直接使用する
+        content = f"test run {time.time()}\n"
+        self.adapter._client._session.post(
+            f"{self.adapter._client.base_url}{self.adapter._repos_path()}/src",
+            data={
+                "message": "test: update marker for PR",
+                "branch": self.config.test_branch,
+            },
+            files={"test-pr-marker.txt": ("test-pr-marker.txt", content.encode(), "text/plain")},
+        )
+
         pr = self.adapter.create_pull_request(
-            title="gfo-test-pr", body="Integration test",
-            base=self.config.default_branch, head=self.config.test_branch,
+            title="gfo-test-pr",
+            body="Integration test",
+            base=self.config.default_branch,
+            head=self.config.test_branch,
         )
         assert pr.state == "open"
         self.__class__._pr_number = pr.number

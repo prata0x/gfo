@@ -1,6 +1,11 @@
-"""Bitbucket Cloud アダプター。GitServiceAdapter の全メソッドを Bitbucket REST API v2 で実装する。"""
+"""Bitbucket Cloud アダプター。GitServiceAdapter の全メソッドを Bitbucket REST API v2 で実装する。"""  # noqa: E501
 
 from __future__ import annotations
+
+from urllib.parse import quote
+
+from gfo.exceptions import GfoError, NotSupportedError
+from gfo.http import paginate_response_body
 
 from .base import (
     GitServiceAdapter,
@@ -12,10 +17,6 @@ from .base import (
     Repository,
 )
 from .registry import register
-from urllib.parse import quote
-
-from gfo.exceptions import GfoError, NotSupportedError
-from gfo.http import paginate_response_body
 
 
 @register("bitbucket")
@@ -66,7 +67,9 @@ class BitbucketAdapter(GitServiceAdapter):
             assignees = [nickname] if nickname else []
 
             component = data.get("component")
-            labels = [component["name"]] if isinstance(component, dict) and component.get("name") else []
+            labels = (
+                [component["name"]] if isinstance(component, dict) and component.get("name") else []
+            )
 
             return Issue(
                 number=data["id"],
@@ -76,7 +79,9 @@ class BitbucketAdapter(GitServiceAdapter):
                 author=data["reporter"]["nickname"],
                 assignees=assignees,
                 labels=labels,
-                url=data["links"]["html"]["href"],
+                url=(
+                    (data["links"].get("html") or data["links"].get("self") or {}).get("href", "")
+                ),
                 created_at=data["created_on"],
                 updated_at=data.get("updated_on"),
             )
@@ -97,7 +102,9 @@ class BitbucketAdapter(GitServiceAdapter):
                 full_name=data["full_name"],
                 description=data.get("description"),
                 private=data.get("is_private", False),
-                default_branch=data.get("mainbranch", {}).get("name") if data.get("mainbranch") else None,
+                default_branch=data.get("mainbranch", {}).get("name")
+                if data.get("mainbranch")
+                else None,
                 clone_url=clone_url,
                 url=data["links"]["html"]["href"],
             )
@@ -112,14 +119,16 @@ class BitbucketAdapter(GitServiceAdapter):
         if state != "all":
             params["state"] = state_map.get(state, state.upper())
         results = paginate_response_body(
-            self._client, f"{self._repos_path()}/pullrequests",
-            params=params, limit=limit,
+            self._client,
+            f"{self._repos_path()}/pullrequests",
+            params=params,
+            limit=limit,
         )
         return [self._to_pull_request(r) for r in results]
 
-    def create_pull_request(self, *, title: str, body: str = "",
-                            base: str, head: str,
-                            draft: bool = False) -> PullRequest:
+    def create_pull_request(
+        self, *, title: str, body: str = "", base: str, head: str, draft: bool = False
+    ) -> PullRequest:
         payload = {
             "title": title,
             "description": body,
@@ -150,18 +159,21 @@ class BitbucketAdapter(GitServiceAdapter):
             f"{self._repos_path()}/pullrequests/{number}/decline",
         )
 
-    def get_pr_checkout_refspec(self, number: int, *,
-                                pr: PullRequest | None = None) -> str:
+    def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         if pr is None:
             pr = self.get_pull_request(number)
         return pr.source_branch
 
     # --- Issue ---
 
-    def list_issues(self, *, state: str = "open",
-                    assignee: str | None = None,
-                    label: str | None = None,
-                    limit: int = 30) -> list[Issue]:
+    def list_issues(
+        self,
+        *,
+        state: str = "open",
+        assignee: str | None = None,
+        label: str | None = None,
+        limit: int = 30,
+    ) -> list[Issue]:
         conditions: list[str] = []
         if state == "open":
             conditions.append('(state="new" OR state="open")')
@@ -181,14 +193,22 @@ class BitbucketAdapter(GitServiceAdapter):
         if conditions:
             params["q"] = " AND ".join(conditions)
         results = paginate_response_body(
-            self._client, f"{self._repos_path()}/issues",
-            params=params, limit=limit,
+            self._client,
+            f"{self._repos_path()}/issues",
+            params=params,
+            limit=limit,
         )
         return [self._to_issue(r) for r in results]
 
-    def create_issue(self, *, title: str, body: str = "",
-                     assignee: str | None = None,
-                     label: str | None = None, **kwargs) -> Issue:
+    def create_issue(
+        self,
+        *,
+        title: str,
+        body: str = "",
+        assignee: str | None = None,
+        label: str | None = None,
+        **kwargs,
+    ) -> Issue:
         payload: dict = {"title": title, "content": {"raw": body}}
         if assignee is not None:
             payload["assignee"] = {"nickname": assignee}
@@ -209,22 +229,25 @@ class BitbucketAdapter(GitServiceAdapter):
 
     # --- Repository ---
 
-    def list_repositories(self, *, owner: str | None = None,
-                          limit: int = 30) -> list[Repository]:
+    def list_repositories(self, *, owner: str | None = None, limit: int = 30) -> list[Repository]:
         o = owner if owner is not None else self._owner
         results = paginate_response_body(
-            self._client, f"/repositories/{quote(o, safe='')}", limit=limit,
+            self._client,
+            f"/repositories/{quote(o, safe='')}",
+            limit=limit,
         )
         return [self._to_repository(r) for r in results]
 
-    def create_repository(self, *, name: str, private: bool = False,
-                          description: str = "") -> Repository:
+    def create_repository(
+        self, *, name: str, private: bool = False, description: str = ""
+    ) -> Repository:
         payload = {"scm": "git", "is_private": private, "description": description}
-        resp = self._client.post(f"/repositories/{quote(self._owner, safe='')}/{quote(name, safe='')}", json=payload)
+        resp = self._client.post(
+            f"/repositories/{quote(self._owner, safe='')}/{quote(name, safe='')}", json=payload
+        )
         return self._to_repository(resp.json())
 
-    def get_repository(self, owner: str | None = None,
-                       name: str | None = None) -> Repository:
+    def get_repository(self, owner: str | None = None, name: str | None = None) -> Repository:
         o = owner if owner is not None else self._owner
         n = name if name is not None else self._repo
         resp = self._client.get(f"/repositories/{quote(o, safe='')}/{quote(n, safe='')}")
@@ -235,22 +258,29 @@ class BitbucketAdapter(GitServiceAdapter):
     def list_releases(self, *, limit: int = 30) -> list[Release]:
         raise NotSupportedError(self.service_name, "releases")
 
-    def create_release(self, *, tag: str, title: str = "",
-                       notes: str = "", draft: bool = False,
-                       prerelease: bool = False) -> Release:
+    def create_release(
+        self,
+        *,
+        tag: str,
+        title: str = "",
+        notes: str = "",
+        draft: bool = False,
+        prerelease: bool = False,
+    ) -> Release:
         raise NotSupportedError(self.service_name, "releases")
 
     def list_labels(self, *, limit: int = 0) -> list[Label]:
         raise NotSupportedError(self.service_name, "labels")
 
-    def create_label(self, *, name: str, color: str | None = None,
-                     description: str | None = None) -> Label:
+    def create_label(
+        self, *, name: str, color: str | None = None, description: str | None = None
+    ) -> Label:
         raise NotSupportedError(self.service_name, "labels")
 
     def list_milestones(self, *, limit: int = 0) -> list[Milestone]:
         raise NotSupportedError(self.service_name, "milestones")
 
-    def create_milestone(self, *, title: str,
-                         description: str | None = None,
-                         due_date: str | None = None) -> Milestone:
+    def create_milestone(
+        self, *, title: str, description: str | None = None, due_date: str | None = None
+    ) -> Milestone:
         raise NotSupportedError(self.service_name, "milestones")
