@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
+from gfo.exceptions import GfoError
+from gfo.http import paginate_page_param
+
 from .base import (
     GitServiceAdapter,
     Issue,
@@ -14,8 +17,6 @@ from .base import (
     Repository,
 )
 from .registry import register
-from gfo.exceptions import GfoError
-from gfo.http import paginate_page_param
 
 
 @register("gitlab")
@@ -30,7 +31,12 @@ class GitLabAdapter(GitServiceAdapter):
     @staticmethod
     def _to_pull_request(data: dict) -> PullRequest:
         try:
-            state_map = {"opened": "open", "closed": "closed", "merged": "merged", "locked": "closed"}
+            state_map = {
+                "opened": "open",
+                "closed": "closed",
+                "merged": "merged",
+                "locked": "closed",
+            }
             state = state_map.get(data["state"], data["state"])
 
             return PullRequest(
@@ -75,7 +81,7 @@ class GitLabAdapter(GitServiceAdapter):
     def _to_repository(data: dict) -> Repository:
         try:
             return Repository(
-                name=data["name"],
+                name=data["path"],
                 full_name=data["path_with_namespace"],
                 description=data.get("description"),
                 private=data.get("visibility") == "private",
@@ -135,14 +141,16 @@ class GitLabAdapter(GitServiceAdapter):
     def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]:
         params: dict = {"state": "opened" if state == "open" else state}
         results = paginate_page_param(
-            self._client, f"{self._project_path()}/merge_requests",
-            params=params, limit=limit,
+            self._client,
+            f"{self._project_path()}/merge_requests",
+            params=params,
+            limit=limit,
         )
         return [self._to_pull_request(r) for r in results]
 
-    def create_pull_request(self, *, title: str, body: str = "",
-                            base: str, head: str,
-                            draft: bool = False) -> PullRequest:
+    def create_pull_request(
+        self, *, title: str, body: str = "", base: str, head: str, draft: bool = False
+    ) -> PullRequest:
         payload = {
             "title": title,
             "description": body,
@@ -183,30 +191,41 @@ class GitLabAdapter(GitServiceAdapter):
             json={"state_event": "close"},
         )
 
-    def get_pr_checkout_refspec(self, number: int, *,
-                                pr: PullRequest | None = None) -> str:
+    def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         return f"refs/merge-requests/{number}/head"
 
     # --- Issue ---
 
-    def list_issues(self, *, state: str = "open",
-                    assignee: str | None = None,
-                    label: str | None = None,
-                    limit: int = 30) -> list[Issue]:
+    def list_issues(
+        self,
+        *,
+        state: str = "open",
+        assignee: str | None = None,
+        label: str | None = None,
+        limit: int = 30,
+    ) -> list[Issue]:
         params: dict = {"state": "opened" if state == "open" else state}
         if assignee is not None:
             params["assignee_username"] = assignee
         if label is not None:
             params["labels"] = label
         results = paginate_page_param(
-            self._client, f"{self._project_path()}/issues",
-            params=params, limit=limit,
+            self._client,
+            f"{self._project_path()}/issues",
+            params=params,
+            limit=limit,
         )
         return [self._to_issue(r) for r in results]
 
-    def create_issue(self, *, title: str, body: str = "",
-                     assignee: str | None = None,
-                     label: str | None = None, **kwargs) -> Issue:
+    def create_issue(
+        self,
+        *,
+        title: str,
+        body: str = "",
+        assignee: str | None = None,
+        label: str | None = None,
+        **kwargs,
+    ) -> Issue:
         payload: dict = {"title": title, "description": body}
         if assignee is not None:
             payload["assignee_username"] = assignee
@@ -227,8 +246,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- Repository ---
 
-    def list_repositories(self, *, owner: str | None = None,
-                          limit: int = 30) -> list[Repository]:
+    def list_repositories(self, *, owner: str | None = None, limit: int = 30) -> list[Repository]:
         if owner is not None:
             path = f"/users/{quote(owner, safe='')}/projects"
             params: dict = {}
@@ -238,15 +256,15 @@ class GitLabAdapter(GitServiceAdapter):
         results = paginate_page_param(self._client, path, params=params, limit=limit)
         return [self._to_repository(r) for r in results]
 
-    def create_repository(self, *, name: str, private: bool = False,
-                          description: str = "") -> Repository:
+    def create_repository(
+        self, *, name: str, private: bool = False, description: str = ""
+    ) -> Repository:
         visibility = "private" if private else "public"
         payload = {"name": name, "visibility": visibility, "description": description}
         resp = self._client.post("/projects", json=payload)
         return self._to_repository(resp.json())
 
-    def get_repository(self, owner: str | None = None,
-                       name: str | None = None) -> Repository:
+    def get_repository(self, owner: str | None = None, name: str | None = None) -> Repository:
         o = owner if owner is not None else self._owner
         n = name if name is not None else self._repo
         resp = self._client.get(f"/projects/{quote(o + '/' + n, safe='')}")
@@ -256,13 +274,21 @@ class GitLabAdapter(GitServiceAdapter):
 
     def list_releases(self, *, limit: int = 30) -> list[Release]:
         results = paginate_page_param(
-            self._client, f"{self._project_path()}/releases", limit=limit,
+            self._client,
+            f"{self._project_path()}/releases",
+            limit=limit,
         )
         return [self._to_release(r) for r in results]
 
-    def create_release(self, *, tag: str, title: str = "",
-                       notes: str = "", draft: bool = False,
-                       prerelease: bool = False) -> Release:
+    def create_release(
+        self,
+        *,
+        tag: str,
+        title: str = "",
+        notes: str = "",
+        draft: bool = False,
+        prerelease: bool = False,
+    ) -> Release:
         payload: dict = {
             "tag_name": tag,
             "name": title,
@@ -270,6 +296,9 @@ class GitLabAdapter(GitServiceAdapter):
         }
         if prerelease:
             payload["upcoming_release"] = True
+        # GitLab はタグが存在しない場合 ref (ブランチ名等) が必要
+        repo = self.get_repository()
+        payload["ref"] = repo.default_branch or "main"
         resp = self._client.post(f"{self._project_path()}/releases", json=payload)
         return self._to_release(resp.json())
 
@@ -277,13 +306,15 @@ class GitLabAdapter(GitServiceAdapter):
 
     def list_labels(self, *, limit: int = 0) -> list[Label]:
         results = paginate_page_param(
-            self._client, f"{self._project_path()}/labels",
+            self._client,
+            f"{self._project_path()}/labels",
             limit=limit,
         )
         return [self._to_label(r) for r in results]
 
-    def create_label(self, *, name: str, color: str | None = None,
-                     description: str | None = None) -> Label:
+    def create_label(
+        self, *, name: str, color: str | None = None, description: str | None = None
+    ) -> Label:
         payload: dict = {"name": name}
         if color is not None:
             payload["color"] = f"#{color.lstrip('#')}"
@@ -296,14 +327,15 @@ class GitLabAdapter(GitServiceAdapter):
 
     def list_milestones(self, *, limit: int = 0) -> list[Milestone]:
         results = paginate_page_param(
-            self._client, f"{self._project_path()}/milestones",
+            self._client,
+            f"{self._project_path()}/milestones",
             limit=limit,
         )
         return [self._to_milestone(r) for r in results]
 
-    def create_milestone(self, *, title: str,
-                         description: str | None = None,
-                         due_date: str | None = None) -> Milestone:
+    def create_milestone(
+        self, *, title: str, description: str | None = None, due_date: str | None = None
+    ) -> Milestone:
         payload: dict = {"title": title}
         if description is not None:
             payload["description"] = description

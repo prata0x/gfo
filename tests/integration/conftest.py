@@ -12,7 +12,7 @@ from gfo.adapter.registry import create_http_client, get_adapter_class
 # .env ファイルを読み込む（存在する場合）
 _ENV_FILE = Path(__file__).parent / ".env"
 if _ENV_FILE.exists():
-    for line in _ENV_FILE.read_text().splitlines():
+    for line in _ENV_FILE.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line or line.startswith("#"):
             continue
@@ -85,6 +85,11 @@ def get_service_config(service_type: str) -> ServiceTestConfig | None:
     if not api_url:
         if service_type in _DEFAULT_API_URLS:
             api_url = _DEFAULT_API_URLS[service_type]
+        elif service_type == "azure-devops":
+            # Azure DevOps はクラウドサービスのため host 不要
+            org = os.environ.get(f"GFO_TEST_{prefix}_ORG", "")
+            project = os.environ.get(f"GFO_TEST_{prefix}_PROJECT", "")
+            api_url = f"https://dev.azure.com/{org}/{project}/_apis"
         elif host:
             # セルフホスト向けのデフォルト構築
             if service_type in ("gitea", "forgejo", "gogs"):
@@ -93,10 +98,6 @@ def get_service_config(service_type: str) -> ServiceTestConfig | None:
                 api_url = f"http://{host}/api/v3"
             elif service_type == "gitlab":
                 api_url = f"http://{host}/api/v4"
-            elif service_type == "azure-devops":
-                org = os.environ.get(f"GFO_TEST_{prefix}_ORG", "")
-                project = os.environ.get(f"GFO_TEST_{prefix}_PROJECT", "")
-                api_url = f"https://dev.azure.com/{org}/{project}/_apis"
             elif service_type == "backlog":
                 api_url = f"https://{host}/api/v2"
             else:

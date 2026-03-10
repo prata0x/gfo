@@ -13,12 +13,12 @@ from gfo.adapter.gitlab import GitLabAdapter
 from gfo.adapter.registry import get_adapter_class
 from gfo.exceptions import AuthenticationError, NotFoundError, ServerError
 
-
 BASE = "https://gitlab.com/api/v4"
 PROJECT = f"{BASE}/projects/{quote('test-owner/test-repo', safe='')}"
 
 
 # --- サンプルデータ ---
+
 
 def _mr_data(*, iid=1, state="opened", draft=False):
     return {
@@ -53,6 +53,7 @@ def _issue_data(*, iid=1, state="opened"):
 def _repo_data(*, name="test-repo", path_with_namespace="test-owner/test-repo"):
     return {
         "name": name,
+        "path": name,
         "path_with_namespace": path_with_namespace,
         "description": "A test repo",
         "visibility": "public",
@@ -89,10 +90,12 @@ def _milestone_data(*, iid=1):
 
 # --- _project_path テスト ---
 
+
 class TestProjectPath:
     def test_basic_owner_repo(self):
         """通常の owner/repo が URL エンコードされる。"""
         from gfo.http import HttpClient
+
         client = HttpClient(BASE)
         adapter = GitLabAdapter(client, "test-owner", "test-repo")
         path = adapter._project_path()
@@ -101,6 +104,7 @@ class TestProjectPath:
     def test_three_level_subgroup(self):
         """3階層サブグループ owner/sub1/sub2 + repo が正しくエンコードされる。"""
         from gfo.http import HttpClient
+
         client = HttpClient(BASE)
         adapter = GitLabAdapter(client, "group/sub1/sub2", "myrepo")
         path = adapter._project_path()
@@ -109,6 +113,7 @@ class TestProjectPath:
 
 
 # --- 変換メソッドのテスト ---
+
 
 class TestToPullRequest:
     def test_open(self):
@@ -179,6 +184,7 @@ class TestToRelease:
     def test_non_dict_links_raises_gfo_error(self):
         """_links が dict 以外の truthy 値のとき AttributeError でなく GfoError になる。"""
         from gfo.exceptions import GfoError
+
         data = _release_data()
         data["_links"] = "not a dict"
         with pytest.raises(GfoError):
@@ -208,11 +214,14 @@ class TestToMilestone:
 
 # --- PR (MR) 系 ---
 
+
 class TestListPullRequests:
     def test_open(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.GET, f"{PROJECT}/merge_requests",
-            json=[_mr_data()], status=200,
+            responses.GET,
+            f"{PROJECT}/merge_requests",
+            json=[_mr_data()],
+            status=200,
         )
         prs = gitlab_adapter.list_pull_requests()
         assert len(prs) == 1
@@ -222,7 +231,8 @@ class TestListPullRequests:
 
     def test_merged_filter(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.GET, f"{PROJECT}/merge_requests",
+            responses.GET,
+            f"{PROJECT}/merge_requests",
             json=[_mr_data(iid=1, state="merged")],
             status=200,
         )
@@ -234,13 +244,17 @@ class TestListPullRequests:
 
     def test_pagination(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.GET, f"{PROJECT}/merge_requests",
-            json=[_mr_data(iid=1)], status=200,
+            responses.GET,
+            f"{PROJECT}/merge_requests",
+            json=[_mr_data(iid=1)],
+            status=200,
             headers={"X-Next-Page": "2"},
         )
         mock_responses.add(
-            responses.GET, f"{PROJECT}/merge_requests",
-            json=[_mr_data(iid=2)], status=200,
+            responses.GET,
+            f"{PROJECT}/merge_requests",
+            json=[_mr_data(iid=2)],
+            status=200,
         )
         prs = gitlab_adapter.list_pull_requests(limit=10)
         assert len(prs) == 2
@@ -248,8 +262,10 @@ class TestListPullRequests:
     def test_pagination_limit_truncates(self, mock_responses, gitlab_adapter):
         """limit=1 のとき 1 ページ目の 1 件で打ち切られる。"""
         mock_responses.add(
-            responses.GET, f"{PROJECT}/merge_requests",
-            json=[_mr_data(iid=1), _mr_data(iid=2)], status=200,
+            responses.GET,
+            f"{PROJECT}/merge_requests",
+            json=[_mr_data(iid=1), _mr_data(iid=2)],
+            status=200,
             headers={"X-Next-Page": "2"},
         )
         prs = gitlab_adapter.list_pull_requests(limit=1)
@@ -257,12 +273,13 @@ class TestListPullRequests:
         assert prs[0].number == 1
         assert len(mock_responses.calls) == 1  # 2 ページ目へのリクエストなし
 
-
     def test_all_state_sends_all_param(self, mock_responses, gitlab_adapter):
         """state='all' のとき state=all を API に送る（GitLab API は 'all' をサポートする）。"""
         mock_responses.add(
-            responses.GET, f"{PROJECT}/merge_requests",
-            json=[_mr_data(iid=1), _mr_data(iid=2, state="merged")], status=200,
+            responses.GET,
+            f"{PROJECT}/merge_requests",
+            json=[_mr_data(iid=1), _mr_data(iid=2, state="merged")],
+            status=200,
         )
         prs = gitlab_adapter.list_pull_requests(state="all")
         assert len(prs) == 2
@@ -273,11 +290,16 @@ class TestListPullRequests:
 class TestCreatePullRequest:
     def test_create(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.POST, f"{PROJECT}/merge_requests",
-            json=_mr_data(), status=201,
+            responses.POST,
+            f"{PROJECT}/merge_requests",
+            json=_mr_data(),
+            status=201,
         )
         pr = gitlab_adapter.create_pull_request(
-            title="MR !1", body="desc", base="main", head="feature",
+            title="MR !1",
+            body="desc",
+            base="main",
+            head="feature",
         )
         assert isinstance(pr, PullRequest)
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -287,11 +309,17 @@ class TestCreatePullRequest:
 
     def test_create_draft(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.POST, f"{PROJECT}/merge_requests",
-            json=_mr_data(draft=True), status=201,
+            responses.POST,
+            f"{PROJECT}/merge_requests",
+            json=_mr_data(draft=True),
+            status=201,
         )
         _ = gitlab_adapter.create_pull_request(
-            title="Draft", body="", base="main", head="feature", draft=True,
+            title="Draft",
+            body="",
+            base="main",
+            head="feature",
+            draft=True,
         )
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["draft"] is True
@@ -300,8 +328,10 @@ class TestCreatePullRequest:
 class TestGetPullRequest:
     def test_get(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.GET, f"{PROJECT}/merge_requests/42",
-            json=_mr_data(iid=42), status=200,
+            responses.GET,
+            f"{PROJECT}/merge_requests/42",
+            json=_mr_data(iid=42),
+            status=200,
         )
         pr = gitlab_adapter.get_pull_request(42)
         assert pr.number == 42
@@ -310,8 +340,10 @@ class TestGetPullRequest:
 class TestMergePullRequest:
     def test_merge(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.PUT, f"{PROJECT}/merge_requests/1/merge",
-            json={"state": "merged"}, status=200,
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1/merge",
+            json={"state": "merged"},
+            status=200,
         )
         gitlab_adapter.merge_pull_request(1)
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -319,8 +351,10 @@ class TestMergePullRequest:
 
     def test_merge_squash(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.PUT, f"{PROJECT}/merge_requests/1/merge",
-            json={"state": "merged"}, status=200,
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1/merge",
+            json={"state": "merged"},
+            status=200,
         )
         gitlab_adapter.merge_pull_request(1, method="squash")
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -330,8 +364,10 @@ class TestMergePullRequest:
     def test_merge_rebase_calls_rebase_endpoint(self, mock_responses, gitlab_adapter):
         """method="rebase" は /merge ではなく /rebase エンドポイントを呼ぶ。"""
         mock_responses.add(
-            responses.PUT, f"{PROJECT}/merge_requests/2/rebase",
-            json={}, status=200,
+            responses.PUT,
+            f"{PROJECT}/merge_requests/2/rebase",
+            json={},
+            status=200,
         )
         gitlab_adapter.merge_pull_request(2, method="rebase")
         assert len(mock_responses.calls) == 1
@@ -339,6 +375,7 @@ class TestMergePullRequest:
 
     def test_merge_invalid_method_raises(self, gitlab_adapter):
         from gfo.exceptions import GfoError
+
         with pytest.raises(GfoError, match="method must be one of"):
             gitlab_adapter.merge_pull_request(1, method="fast-forward")
 
@@ -346,8 +383,10 @@ class TestMergePullRequest:
 class TestClosePullRequest:
     def test_close(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.PUT, f"{PROJECT}/merge_requests/1",
-            json=_mr_data(state="closed"), status=200,
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1",
+            json=_mr_data(state="closed"),
+            status=200,
         )
         gitlab_adapter.close_pull_request(1)
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -361,10 +400,12 @@ class TestCheckoutRefspec:
 
 # --- Issue 系 ---
 
+
 class TestListIssues:
     def test_list(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.GET, f"{PROJECT}/issues",
+            responses.GET,
+            f"{PROJECT}/issues",
             json=[_issue_data(iid=1), _issue_data(iid=2)],
             status=200,
         )
@@ -373,8 +414,10 @@ class TestListIssues:
 
     def test_with_filters(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.GET, f"{PROJECT}/issues",
-            json=[_issue_data()], status=200,
+            responses.GET,
+            f"{PROJECT}/issues",
+            json=[_issue_data()],
+            status=200,
         )
         issues = gitlab_adapter.list_issues(assignee="dev1", label="bug")
         assert len(issues) == 1
@@ -382,12 +425,13 @@ class TestListIssues:
         assert "assignee_username=dev1" in req.url
         assert "labels=bug" in req.url
 
-
     def test_all_state_sends_all_param(self, mock_responses, gitlab_adapter):
         """state='all' のとき state=all を API に送る（GitLab API は 'all' をサポートする）。"""
         mock_responses.add(
-            responses.GET, f"{PROJECT}/issues",
-            json=[_issue_data(iid=1), _issue_data(iid=2)], status=200,
+            responses.GET,
+            f"{PROJECT}/issues",
+            json=[_issue_data(iid=1), _issue_data(iid=2)],
+            status=200,
         )
         issues = gitlab_adapter.list_issues(state="all")
         assert len(issues) == 2
@@ -398,8 +442,10 @@ class TestListIssues:
 class TestCreateIssue:
     def test_create(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.POST, f"{PROJECT}/issues",
-            json=_issue_data(), status=201,
+            responses.POST,
+            f"{PROJECT}/issues",
+            json=_issue_data(),
+            status=201,
         )
         issue = gitlab_adapter.create_issue(title="Issue #1", body="body")
         assert isinstance(issue, Issue)
@@ -409,11 +455,15 @@ class TestCreateIssue:
 
     def test_create_with_assignee_and_label(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.POST, f"{PROJECT}/issues",
-            json=_issue_data(), status=201,
+            responses.POST,
+            f"{PROJECT}/issues",
+            json=_issue_data(),
+            status=201,
         )
         gitlab_adapter.create_issue(
-            title="Issue", assignee="dev1", label="bug",
+            title="Issue",
+            assignee="dev1",
+            label="bug",
         )
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["assignee_username"] == "dev1"
@@ -423,8 +473,10 @@ class TestCreateIssue:
 class TestGetIssue:
     def test_get(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.GET, f"{PROJECT}/issues/5",
-            json=_issue_data(iid=5), status=200,
+            responses.GET,
+            f"{PROJECT}/issues/5",
+            json=_issue_data(iid=5),
+            status=200,
         )
         issue = gitlab_adapter.get_issue(5)
         assert issue.number == 5
@@ -433,8 +485,10 @@ class TestGetIssue:
 class TestCloseIssue:
     def test_close(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.PUT, f"{PROJECT}/issues/3",
-            json=_issue_data(iid=3, state="closed"), status=200,
+            responses.PUT,
+            f"{PROJECT}/issues/3",
+            json=_issue_data(iid=3, state="closed"),
+            status=200,
         )
         gitlab_adapter.close_issue(3)
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -443,19 +497,24 @@ class TestCloseIssue:
 
 # --- Repository 系 ---
 
+
 class TestListRepositories:
     def test_with_owner(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.GET, f"{BASE}/users/someone/projects",
-            json=[_repo_data()], status=200,
+            responses.GET,
+            f"{BASE}/users/someone/projects",
+            json=[_repo_data()],
+            status=200,
         )
         repos = gitlab_adapter.list_repositories(owner="someone")
         assert len(repos) == 1
 
     def test_no_owner(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.GET, f"{BASE}/projects",
-            json=[_repo_data()], status=200,
+            responses.GET,
+            f"{BASE}/projects",
+            json=[_repo_data()],
+            status=200,
         )
         repos = gitlab_adapter.list_repositories()
         assert len(repos) == 1
@@ -463,8 +522,10 @@ class TestListRepositories:
     def test_owner_with_special_chars_is_encoded(self, mock_responses, gitlab_adapter):
         """list_repositories(owner="...") で特殊文字が URL エンコードされる（R41-01）。"""
         mock_responses.add(
-            responses.GET, f"{BASE}/users/org%2Fsub/projects",
-            json=[_repo_data()], status=200,
+            responses.GET,
+            f"{BASE}/users/org%2Fsub/projects",
+            json=[_repo_data()],
+            status=200,
         )
         gitlab_adapter.list_repositories(owner="org/sub")
         assert "%2F" in mock_responses.calls[0].request.url
@@ -473,8 +534,10 @@ class TestListRepositories:
 class TestCreateRepository:
     def test_create(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.POST, f"{BASE}/projects",
-            json=_repo_data(), status=201,
+            responses.POST,
+            f"{BASE}/projects",
+            json=_repo_data(),
+            status=201,
         )
         repo = gitlab_adapter.create_repository(name="test-repo")
         assert isinstance(repo, Repository)
@@ -486,7 +549,8 @@ class TestCreateRepository:
 class TestGetRepository:
     def test_get(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.GET, f"{BASE}/projects/{quote('other/other-repo', safe='')}",
+            responses.GET,
+            f"{BASE}/projects/{quote('other/other-repo', safe='')}",
             json=_repo_data(name="other-repo", path_with_namespace="other/other-repo"),
             status=200,
         )
@@ -495,8 +559,10 @@ class TestGetRepository:
 
     def test_get_defaults(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.GET, f"{PROJECT}",
-            json=_repo_data(), status=200,
+            responses.GET,
+            f"{PROJECT}",
+            json=_repo_data(),
+            status=200,
         )
         repo = gitlab_adapter.get_repository()
         assert repo.full_name == "test-owner/test-repo"
@@ -504,11 +570,14 @@ class TestGetRepository:
 
 # --- Release 系 ---
 
+
 class TestListReleases:
     def test_list(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.GET, f"{PROJECT}/releases",
-            json=[_release_data()], status=200,
+            responses.GET,
+            f"{PROJECT}/releases",
+            json=[_release_data()],
+            status=200,
         )
         releases = gitlab_adapter.list_releases()
         assert len(releases) == 1
@@ -518,31 +587,50 @@ class TestListReleases:
 class TestCreateRelease:
     def test_create(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.POST, f"{PROJECT}/releases",
-            json=_release_data(), status=201,
+            responses.GET,
+            f"{PROJECT}",
+            json=_repo_data(),
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/releases",
+            json=_release_data(),
+            status=201,
         )
         rel = gitlab_adapter.create_release(tag="v1.0.0", title="Release v1.0.0")
         assert isinstance(rel, Release)
-        req_body = json.loads(mock_responses.calls[0].request.body)
+        req_body = json.loads(mock_responses.calls[1].request.body)
         assert req_body["tag_name"] == "v1.0.0"
+        assert req_body["ref"] == "main"
 
     def test_create_prerelease(self, mock_responses, gitlab_adapter):
         """prerelease=True のとき upcoming_release がペイロードに含まれる。"""
         mock_responses.add(
-            responses.POST, f"{PROJECT}/releases",
-            json=_release_data(), status=201,
+            responses.GET,
+            f"{PROJECT}",
+            json=_repo_data(),
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/releases",
+            json=_release_data(),
+            status=201,
         )
         gitlab_adapter.create_release(tag="v1.0.0-rc1", prerelease=True)
-        req_body = json.loads(mock_responses.calls[0].request.body)
+        req_body = json.loads(mock_responses.calls[1].request.body)
         assert req_body["upcoming_release"] is True
 
 
 # --- Label 系 ---
 
+
 class TestListLabels:
     def test_list(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.GET, f"{PROJECT}/labels",
+            responses.GET,
+            f"{PROJECT}/labels",
             json=[_label_data(), _label_data(name="enhancement")],
             status=200,
         )
@@ -553,14 +641,16 @@ class TestListLabels:
         """list_labels は limit=0 で全ページを取得する（30 件上限なし）。"""
         # 1 ページ目: 20 件 + X-Next-Page: 2
         mock_responses.add(
-            responses.GET, f"{PROJECT}/labels",
+            responses.GET,
+            f"{PROJECT}/labels",
             json=[_label_data(name=f"label-{i}") for i in range(20)],
             headers={"X-Next-Page": "2"},
             status=200,
         )
         # 2 ページ目: 1 件 + X-Next-Page なし（最終ページ）
         mock_responses.add(
-            responses.GET, f"{PROJECT}/labels",
+            responses.GET,
+            f"{PROJECT}/labels",
             json=[_label_data(name="last-label")],
             status=200,
         )
@@ -571,8 +661,10 @@ class TestListLabels:
 class TestCreateLabel:
     def test_create(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.POST, f"{PROJECT}/labels",
-            json=_label_data(), status=201,
+            responses.POST,
+            f"{PROJECT}/labels",
+            json=_label_data(),
+            status=201,
         )
         label = gitlab_adapter.create_label(name="bug", color="d73a4a")
         assert label.name == "bug"
@@ -581,7 +673,8 @@ class TestCreateLabel:
 
     def test_create_optional_fields(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.POST, f"{PROJECT}/labels",
+            responses.POST,
+            f"{PROJECT}/labels",
             json={"name": "minimal", "color": None, "description": None},
             status=201,
         )
@@ -593,8 +686,10 @@ class TestCreateLabel:
     def test_create_with_description(self, mock_responses, gitlab_adapter):
         """description を渡すとペイロードに含まれる。"""
         mock_responses.add(
-            responses.POST, f"{PROJECT}/labels",
-            json=_label_data(), status=201,
+            responses.POST,
+            f"{PROJECT}/labels",
+            json=_label_data(),
+            status=201,
         )
         gitlab_adapter.create_label(name="bug", color="d73a4a", description="Bug report")
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -603,11 +698,14 @@ class TestCreateLabel:
 
 # --- Milestone 系 ---
 
+
 class TestListMilestones:
     def test_list(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.GET, f"{PROJECT}/milestones",
-            json=[_milestone_data()], status=200,
+            responses.GET,
+            f"{PROJECT}/milestones",
+            json=[_milestone_data()],
+            status=200,
         )
         milestones = gitlab_adapter.list_milestones()
         assert len(milestones) == 1
@@ -616,13 +714,15 @@ class TestListMilestones:
     def test_list_fetches_all_pages(self, mock_responses, gitlab_adapter):
         """list_milestones は limit=0 で全ページを取得する（30 件上限なし）。"""
         mock_responses.add(
-            responses.GET, f"{PROJECT}/milestones",
+            responses.GET,
+            f"{PROJECT}/milestones",
             json=[_milestone_data() for _ in range(20)],
             headers={"X-Next-Page": "2"},
             status=200,
         )
         mock_responses.add(
-            responses.GET, f"{PROJECT}/milestones",
+            responses.GET,
+            f"{PROJECT}/milestones",
             json=[_milestone_data()],
             status=200,
         )
@@ -633,8 +733,10 @@ class TestListMilestones:
 class TestCreateMilestone:
     def test_create(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.POST, f"{PROJECT}/milestones",
-            json=_milestone_data(), status=201,
+            responses.POST,
+            f"{PROJECT}/milestones",
+            json=_milestone_data(),
+            status=201,
         )
         ms = gitlab_adapter.create_milestone(title="v1.0", due_date="2025-06-01")
         assert isinstance(ms, Milestone)
@@ -643,8 +745,10 @@ class TestCreateMilestone:
 
     def test_create_optional_fields(self, mock_responses, gitlab_adapter):
         mock_responses.add(
-            responses.POST, f"{PROJECT}/milestones",
-            json=_milestone_data(), status=201,
+            responses.POST,
+            f"{PROJECT}/milestones",
+            json=_milestone_data(),
+            status=201,
         )
         gitlab_adapter.create_milestone(title="v1.0")
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -654,8 +758,10 @@ class TestCreateMilestone:
     def test_create_with_description(self, mock_responses, gitlab_adapter):
         """description を渡すとペイロードに含まれる。"""
         mock_responses.add(
-            responses.POST, f"{PROJECT}/milestones",
-            json=_milestone_data(), status=201,
+            responses.POST,
+            f"{PROJECT}/milestones",
+            json=_milestone_data(),
+            status=201,
         )
         gitlab_adapter.create_milestone(title="v1.0", description="First stable release")
         req_body = json.loads(mock_responses.calls[0].request.body)
@@ -663,6 +769,7 @@ class TestCreateMilestone:
 
 
 # --- Registry ---
+
 
 class TestRegistry:
     def test_registered(self):
@@ -690,9 +797,12 @@ class TestErrorHandling:
     def test_malformed_pr_raises_gfo_error(self, mock_responses, gitlab_adapter):
         """_to_pull_request で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError
+
         mock_responses.add(
-            responses.GET, f"{PROJECT}/merge_requests/1",
-            json={"incomplete": True}, status=200,
+            responses.GET,
+            f"{PROJECT}/merge_requests/1",
+            json={"incomplete": True},
+            status=200,
         )
         with pytest.raises(GfoError):
             gitlab_adapter.get_pull_request(1)
@@ -700,9 +810,12 @@ class TestErrorHandling:
     def test_malformed_issue_raises_gfo_error(self, mock_responses, gitlab_adapter):
         """_to_issue で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError
+
         mock_responses.add(
-            responses.GET, f"{PROJECT}/issues/1",
-            json={"incomplete": True}, status=200,
+            responses.GET,
+            f"{PROJECT}/issues/1",
+            json={"incomplete": True},
+            status=200,
         )
         with pytest.raises(GfoError):
             gitlab_adapter.get_issue(1)
@@ -710,9 +823,12 @@ class TestErrorHandling:
     def test_malformed_milestone_raises_gfo_error(self, mock_responses, gitlab_adapter):
         """_to_milestone で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError
+
         mock_responses.add(
-            responses.GET, f"{PROJECT}/milestones",
-            json=[{"incomplete": True}], status=200,
+            responses.GET,
+            f"{PROJECT}/milestones",
+            json=[{"incomplete": True}],
+            status=200,
         )
         with pytest.raises(GfoError):
             gitlab_adapter.list_milestones()
@@ -720,9 +836,12 @@ class TestErrorHandling:
     def test_malformed_repository_raises_gfo_error(self, mock_responses, gitlab_adapter):
         """_to_repository で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError
+
         mock_responses.add(
-            responses.GET, f"{PROJECT}",
-            json={"incomplete": True}, status=200,
+            responses.GET,
+            f"{PROJECT}",
+            json={"incomplete": True},
+            status=200,
         )
         with pytest.raises(GfoError):
             gitlab_adapter.get_repository()
@@ -730,9 +849,12 @@ class TestErrorHandling:
     def test_malformed_release_raises_gfo_error(self, mock_responses, gitlab_adapter):
         """_to_release で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError
+
         mock_responses.add(
-            responses.GET, f"{PROJECT}/releases",
-            json=[{"incomplete": True}], status=200,
+            responses.GET,
+            f"{PROJECT}/releases",
+            json=[{"incomplete": True}],
+            status=200,
         )
         with pytest.raises(GfoError):
             gitlab_adapter.list_releases()
@@ -740,9 +862,12 @@ class TestErrorHandling:
     def test_malformed_label_raises_gfo_error(self, mock_responses, gitlab_adapter):
         """_to_label で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError
+
         mock_responses.add(
-            responses.GET, f"{PROJECT}/labels",
-            json=[{"incomplete": True}], status=200,
+            responses.GET,
+            f"{PROJECT}/labels",
+            json=[{"incomplete": True}],
+            status=200,
         )
         with pytest.raises(GfoError):
             gitlab_adapter.list_labels()
