@@ -216,6 +216,7 @@ Bitbucket Cloud は **スコープ付き API Token** を使用する（App Passw
    | `write:pullrequest:bitbucket` | PR 作成・マージ・クローズ |
    | `read:issue:bitbucket` | Issue 一覧・取得 |
    | `write:issue:bitbucket` | Issue 作成・状態変更 |
+   | `delete:issue:bitbucket` | `issue delete` に必要 |
 
    > **※** `write:repository:bitbucket` は gfo 本体の機能には不要。前回テストでの PR マージ後に `gfo-test-branch` と `main` の差分がなくなるため、テスト実行前にマーカーファイルをコミットして差分を作る処理（Bitbucket Src API 経由）に必要。
 5. Create してトークンをコピー
