@@ -210,8 +210,7 @@ Bitbucket Cloud は **スコープ付き API Token** を使用する（App Passw
    |---------|------|
    | `read:repository:bitbucket` | リポジトリ情報の読み取り・一覧 |
    | `write:repository:bitbucket` | テスト間でブランチに差分コミットを追加するため（※） |
-   | `create:repository:bitbucket` | `repo create` に必要 |
-   | `delete:repository:bitbucket` | `repo delete` に必要 |
+   | `admin:repository:bitbucket` | `repo create/delete` に必要 |
    | `read:pullrequest:bitbucket` | PR 一覧・取得 |
    | `write:pullrequest:bitbucket` | PR 作成・マージ・クローズ |
    | `read:issue:bitbucket` | Issue 一覧・取得 |
