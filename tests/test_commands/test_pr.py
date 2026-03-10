@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from gfo.adapter.base import PullRequest
 from gfo.commands import pr as pr_cmd
 from gfo.exceptions import ConfigError, NotFoundError
 from tests.test_commands.conftest import make_args

@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 import responses
 
-from gfo.detect import DetectResult, detect_from_url, detect_service, get_known_service_type, probe_unknown_host
+from gfo.detect import detect_from_url, detect_service, get_known_service_type, probe_unknown_host
 from gfo.exceptions import DetectionError
 
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from gfo.adapter.base import GitServiceAdapter, PullRequest
+from gfo.adapter.base import GitServiceAdapter
 from gfo.exceptions import NotSupportedError
 
 

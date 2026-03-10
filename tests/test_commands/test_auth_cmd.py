@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from unittest.mock import patch, call
+from unittest.mock import patch
 
 from unittest.mock import MagicMock
 from gfo.commands import auth_cmd, get_adapter, get_adapter_with_config
