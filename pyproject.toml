@@ -9,7 +9,7 @@ dependencies = ["requests"]
 gfo = "gfo.cli:main"
 
 [project.optional-dependencies]
-dev = ["pytest", "responses", "pytest-cov", "ruff", "bandit", "mypy"]
+dev = ["pytest", "responses", "pytest-cov", "ruff", "bandit", "mypy", "pre-commit"]
 
 [build-system]
 requires = ["hatchling"]
