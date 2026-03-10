@@ -31,6 +31,7 @@ fi
 
 echo ""
 echo "=== SaaS 統合テスト実行 ==="
+cd "$SCRIPT_DIR/../.."
 python -m pytest tests/integration/ -m saas -v --tb=short --no-cov
 
 echo ""

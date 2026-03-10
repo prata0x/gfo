@@ -240,6 +240,17 @@ class TestGitLabIntegration:
     def test_17_pr_close(self) -> None:
         import time
 
+        # マージ後にブランチが削除されている場合があるため再作成する
+        try:
+            self.adapter._client.get(
+                f"{self.adapter._project_path()}/repository/branches/{self.config.test_branch}"
+            )
+        except GfoError:
+            self.adapter._client.post(
+                f"{self.adapter._project_path()}/repository/branches",
+                json={"branch": self.config.test_branch, "ref": self.config.default_branch},
+            )
+
         content = f"close-marker-{int(time.time())}"
         try:
             self.adapter._client.post(
