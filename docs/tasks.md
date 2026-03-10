@@ -319,3 +319,81 @@ T-01 (setup)
 **アダプター間の継承依存**:
 - T-11 (GitHub) → T-18 (GitBucket)
 - T-15 (Gitea) → T-16 (Forgejo), T-17 (Gogs)
+- T-32 (base delete) → T-33〜T-36 (adapters) → T-37 (commands) → T-38 (cli) → T-39 (全テスト)
+
+---
+
+## Phase 8: 削除コマンド追加
+
+### T-32: adapter/base.py — delete メソッド定義
+- **参照**: design.md §2.8 ABC 定義（delete メソッド追記箇所）
+- **成果物**:
+  - `src/gfo/adapter/base.py` — `delete_release(tag)`, `delete_label(name)`, `delete_milestone(number)` を `GitServiceAdapter` に追加（デフォルト実装: `NotSupportedError`）
+- **依存**: T-09 (base ABC)
+- **検証**: `pytest tests/test_adapter_base.py`（存在確認テスト追加）
+
+### T-33: GitHub アダプター — delete メソッド実装
+- **参照**: design.md §2.10 GitHub アダプター（delete メソッド設計）
+- **成果物**:
+  - `src/gfo/adapter/github.py` — `delete_release`, `delete_label`, `delete_milestone` を実装
+  - `delete_release`: `GET {repos}/releases/tags/{tag}` → id 取得 → `DELETE {repos}/releases/{id}`
+  - `delete_label`: `DELETE {repos}/labels/{name}`
+  - `delete_milestone`: `DELETE {repos}/milestones/{number}`
+  - テスト追加: `tests/test_adapters/test_github.py`
+- **依存**: T-32
+- **検証**: `pytest tests/test_adapters/test_github.py`
+
+### T-34: GitLab アダプター — delete メソッド実装
+- **参照**: design.md §2.10 GitLab アダプター（delete メソッド設計）
+- **成果物**:
+  - `src/gfo/adapter/gitlab.py` — `delete_release`, `delete_label`, `delete_milestone` を実装
+  - `delete_release`: `DELETE {project}/releases/{tag}` (URL エンコード)
+  - `delete_label`: `DELETE {project}/labels/{name}` (URL エンコード)
+  - `delete_milestone`: `DELETE {project}/milestones/{number}`
+  - テスト追加: `tests/test_adapters/test_gitlab.py`
+- **依存**: T-32
+- **検証**: `pytest tests/test_adapters/test_gitlab.py`
+
+### T-35: Gitea アダプター — delete メソッド実装
+- **参照**: design.md §2.10 Gitea アダプター（delete メソッド設計）
+- **成果物**:
+  - `src/gfo/adapter/gitea.py` — `delete_release`, `delete_label`, `delete_milestone` を実装
+  - `delete_release`: `GET {repos}/releases/tags/{tag}` → id 取得 → `DELETE {repos}/releases/{id}`
+  - `delete_label`: `GET {repos}/labels` で name → id 解決 → `DELETE {repos}/labels/{id}`
+  - `delete_milestone`: `DELETE {repos}/milestones/{number}`
+  - テスト追加: `tests/test_adapters/test_gitea.py`
+- **依存**: T-32
+- **検証**: `pytest tests/test_adapters/test_gitea.py`
+
+### T-36: Forgejo/Gogs/GitBucket — delete メソッド（継承確認）
+- **成果物**:
+  - `src/gfo/adapter/gogs.py` — `delete_label`, `delete_milestone` に `NotSupportedError` を明示追加（label/milestone が元々非対応のため）
+  - Forgejo/GitBucket: 継承のみで動作確認（コード変更不要）
+  - テスト追加: `tests/test_adapters/test_forgejo.py`, `test_gitbucket.py`, `test_gogs.py`
+- **依存**: T-33（GitBucket継承元）, T-35（Forgejo/Gogs継承元）
+- **検証**: `pytest tests/test_adapters/test_forgejo.py tests/test_adapters/test_gitbucket.py tests/test_adapters/test_gogs.py`
+
+### T-37: commands/ — handle_delete 追加
+- **参照**: 既存の handle_create パターン（`src/gfo/commands/label.py`, `milestone.py`, `release.py`）
+- **成果物**:
+  - `src/gfo/commands/label.py` — `handle_delete(args, *, fmt)` を追加
+  - `src/gfo/commands/milestone.py` — `handle_delete(args, *, fmt)` を追加
+  - `src/gfo/commands/release.py` — `handle_delete(args, *, fmt)` を追加
+  - 成功時出力: `print(f"Deleted {resource} '{identifier}'.")`
+  - テスト追加: `tests/test_commands/test_label.py`, `test_milestone.py`, `test_release.py`
+- **依存**: T-32
+- **検証**: `pytest tests/test_commands/`
+
+### T-38: cli.py — delete サブコマンド登録
+- **参照**: design.md §2.7 cli.py（パーサー・ディスパッチテーブル追記箇所）
+- **成果物**:
+  - `src/gfo/cli.py` — `create_parser()` に label/milestone/release の delete パーサーを追加
+  - `_DISPATCH` テーブルに `("release", "delete")`, `("label", "delete")`, `("milestone", "delete")` を追加
+  - テスト追加: `tests/test_cli.py`
+- **依存**: T-37
+- **検証**: `pytest tests/test_cli.py`
+
+### T-39: 全テスト実行・カバレッジ確認
+- **成果物**: 全テスト通過確認
+- **依存**: T-32〜T-38
+- **検証**: `pytest --tb=short` で全テスト通過

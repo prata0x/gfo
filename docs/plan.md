@@ -118,9 +118,9 @@ gfo auth        # login/status
 gfo pr          # create/list/view/merge/close/checkout
 gfo issue       # create/list/view/close
 gfo repo        # create/clone/list/view
-gfo release     # create/list
-gfo label       # create/list
-gfo milestone   # create/list
+gfo release     # create/list/delete
+gfo label       # create/list/delete
+gfo milestone   # create/list/delete
 ```
 
 ---

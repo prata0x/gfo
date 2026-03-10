@@ -881,6 +881,9 @@ def create_parser() -> argparse.ArgumentParser:
     release_create.add_argument("--notes", default="")
     release_create.add_argument("--draft", action="store_true")
     release_create.add_argument("--prerelease", action="store_true")
+    # release delete
+    release_delete = release_sub.add_parser("delete")
+    release_delete.add_argument("tag")  # 位置引数（必須）
 
     # gfo label → サブサブコマンド
     label_parser = subparsers.add_parser("label")
@@ -892,6 +895,9 @@ def create_parser() -> argparse.ArgumentParser:
     label_create.add_argument("name")  # 位置引数（必須）
     label_create.add_argument("--color")
     label_create.add_argument("--description")
+    # label delete
+    label_delete = label_sub.add_parser("delete")
+    label_delete.add_argument("name")  # 位置引数（必須）
 
     # gfo milestone → サブサブコマンド
     milestone_parser = subparsers.add_parser("milestone")
@@ -903,7 +909,10 @@ def create_parser() -> argparse.ArgumentParser:
     milestone_create.add_argument("title")  # 位置引数（必須）
     milestone_create.add_argument("--description")
     milestone_create.add_argument("--due")
-    
+    # milestone delete
+    milestone_delete = milestone_sub.add_parser("delete")
+    milestone_delete.add_argument("number", type=int)  # 位置引数（必須）
+
     return parser
 
 
@@ -947,10 +956,13 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("repo", "view"):        commands.repo.handle_view,
     ("release", "list"):     commands.release.handle_list,
     ("release", "create"):   commands.release.handle_create,
+    ("release", "delete"):   commands.release.handle_delete,
     ("label", "list"):       commands.label.handle_list,
     ("label", "create"):     commands.label.handle_create,
+    ("label", "delete"):     commands.label.handle_delete,
     ("milestone", "list"):   commands.milestone.handle_list,
     ("milestone", "create"): commands.milestone.handle_create,
+    ("milestone", "delete"): commands.milestone.handle_delete,
 }
 ```
 
@@ -1145,6 +1157,17 @@ class GitServiceAdapter(ABC):
                        notes: str = "", draft: bool = False,
                        prerelease: bool = False) -> Release: ...
 
+    def delete_release(self, *, tag: str) -> None:
+        """リリースを削除する。
+
+        デフォルト実装は NotSupportedError を送出する（get_pr_checkout_refspec と同じパターン）。
+        対応サービス（GitHub, GitLab, Gitea, Forgejo, GitBucket）でオーバーライドする。
+
+        GitHub/Gitea: tag → release id の解決が必要（GET /releases/tags/{tag} で id を取得してから DELETE）。
+        GitLab: tag で直接 DELETE 可能。
+        """
+        raise NotSupportedError(self.service_name, "release delete")
+
     # --- Label ---
     @abstractmethod
     def list_labels(self) -> list[Label]: ...
@@ -1152,6 +1175,16 @@ class GitServiceAdapter(ABC):
     @abstractmethod
     def create_label(self, *, name: str, color: str | None = None,
                      description: str | None = None) -> Label: ...
+
+    def delete_label(self, *, name: str) -> None:
+        """ラベルを削除する。
+
+        デフォルト実装は NotSupportedError を送出する。
+        対応サービス（GitHub, GitLab, Gitea, Forgejo, GitBucket）でオーバーライドする。
+
+        Gitea: name での直接削除不可。list_labels() で id を解決してから DELETE する。
+        """
+        raise NotSupportedError(self.service_name, "label delete")
 
     # --- Milestone ---
     @abstractmethod
@@ -1161,6 +1194,14 @@ class GitServiceAdapter(ABC):
     def create_milestone(self, *, title: str,
                          description: str | None = None,
                          due_date: str | None = None) -> Milestone: ...
+
+    def delete_milestone(self, *, number: int) -> None:
+        """マイルストーンを削除する。
+
+        デフォルト実装は NotSupportedError を送出する。
+        対応サービス（GitHub, GitLab, Gitea, Forgejo, GitBucket）でオーバーライドする。
+        """
+        raise NotSupportedError(self.service_name, "milestone delete")
 
     # --- クラス変数 ---
     service_name: str  # 各サブクラスでクラス変数としてオーバーライド: service_name = "GitHub"
@@ -1331,6 +1372,20 @@ class GitHubAdapter(GitServiceAdapter):
     def get_pr_checkout_refspec(self, number: int, *,
                                 pr: PullRequest | None = None) -> str:
         return f"pull/{number}/head"
+
+    # delete メソッド（デフォルト実装オーバーライド）
+    def delete_release(self, *, tag: str) -> None:
+        # tag → release id の解決が必要
+        resp = self._client.get(f"{self._repos_path()}/releases/tags/{tag}")
+        release_id = resp.json()["id"]
+        self._client.delete(f"{self._repos_path()}/releases/{release_id}")
+
+    def delete_label(self, *, name: str) -> None:
+        # GitHub は name で直接 DELETE 可能
+        self._client.delete(f"{self._repos_path()}/labels/{name}")
+
+    def delete_milestone(self, *, number: int) -> None:
+        self._client.delete(f"{self._repos_path()}/milestones/{number}")
 ```
 
 #### GitLab アダプター (`adapter/gitlab.py`)
@@ -1356,6 +1411,19 @@ class GitLabAdapter(GitServiceAdapter):
     def get_pr_checkout_refspec(self, number: int, *,
                                 pr: PullRequest | None = None) -> str:
         return f"merge-requests/{number}/head"
+
+    # delete メソッド（デフォルト実装オーバーライド）
+    def delete_release(self, *, tag: str) -> None:
+        # GitLab は tag で直接 DELETE 可能（URL エンコード）
+        self._client.delete(f"{self._project_path()}/releases/{quote(tag, safe='')}")
+
+    def delete_label(self, *, name: str) -> None:
+        # GitLab は name で直接 DELETE 可能（URL エンコード）
+        self._client.delete(f"{self._project_path()}/labels/{quote(name, safe='')}")
+
+    def delete_milestone(self, *, number: int) -> None:
+        # number は milestone の iid（GitLab の内部 milestone id が必要な場合は list で解決）
+        self._client.delete(f"{self._project_path()}/milestones/{number}")
 ```
 
 #### Bitbucket Cloud アダプター (`adapter/bitbucket.py`)
@@ -1475,6 +1543,31 @@ class GiteaAdapter(GitServiceAdapter):
     def get_pr_checkout_refspec(self, number: int, *,
                                 pr: PullRequest | None = None) -> str:
         return f"pull/{number}/head"
+
+    # delete メソッド（デフォルト実装オーバーライド）
+    def delete_release(self, *, tag: str) -> None:
+        # Gitea は tag → release id の解決が必要
+        resp = self._client.get(f"{self._repos_path()}/releases/tags/{tag}")
+        release_id = resp.json()["id"]
+        self._client.delete(f"{self._repos_path()}/releases/{release_id}")
+
+    def delete_label(self, *, name: str) -> None:
+        # Gitea は name ではなく id で DELETE するため、list_labels() で id を解決
+        labels = self.list_labels()
+        for label in labels:
+            if label.name == name:
+                # list_labels() の raw レスポンスから id を取得するため別途 GET が必要
+                # 実際の実装では _list_labels_with_id() ヘルパー等で対応
+                resp = self._client.get(f"{self._repos_path()}/labels")
+                for raw in resp.json():
+                    if raw["name"] == name:
+                        self._client.delete(f"{self._repos_path()}/labels/{raw['id']}")
+                        return
+        from gfo.exceptions import NotFoundError
+        raise NotFoundError(f"Label '{name}' not found")
+
+    def delete_milestone(self, *, number: int) -> None:
+        self._client.delete(f"{self._repos_path()}/milestones/{number}")
 ```
 
 #### Forgejo アダプター (`adapter/forgejo.py`)
@@ -1526,11 +1619,23 @@ class GogsAdapter(GiteaAdapter):
     def create_label(self, *, name, color=None, description=None):
         raise NotSupportedError("Gogs", "label operations")
 
+    def delete_label(self, *, name):
+        raise NotSupportedError("Gogs", "label operations")
+
     def list_milestones(self):
         raise NotSupportedError("Gogs", "milestone operations")
 
     def create_milestone(self, *, title, description=None, due_date=None):
         raise NotSupportedError("Gogs", "milestone operations")
+
+    def delete_milestone(self, *, number):
+        raise NotSupportedError("Gogs", "milestone operations")
+
+    def delete_release(self, *, tag):
+        # Gogs の release delete は API 未確認。NotSupportedError でオーバーライドしない
+        # (Gitea 継承のデフォルト実装を使用: tag → id 解決 → DELETE)
+        # Gogs が release delete API を実装していない場合は後述の統合テストで確認する
+        super().delete_release(tag=tag)
 ```
 
 #### GitBucket アダプター (`adapter/gitbucket.py`)
