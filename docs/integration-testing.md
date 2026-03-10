@@ -207,9 +207,9 @@ Bitbucket Cloud は **スコープ付き API Token** を使用する（App Passw
 4. **Scopes** で以下を選択:
    | スコープ | 理由 |
    |---------|------|
-   | `repository` | リポジトリ情報の読み取り・一覧 |
-   | `pullrequest:write` | PR 作成・マージ・クローズ（`pullrequest` を包含） |
-   | `issue:write` | Issue 作成・状態変更（`issue` を包含） |
+   | `read:repository:bitbucket` | リポジトリ情報の読み取り・一覧 |
+   | `write:pullrequest:bitbucket` | PR 作成・マージ・クローズ |
+   | `write:issue:bitbucket` | Issue 作成・状態変更 |
 5. Create してトークンをコピー
 
 #### 環境変数
