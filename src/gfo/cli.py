@@ -7,6 +7,12 @@ import sys
 from collections.abc import Callable
 
 import gfo.commands.auth_cmd
+import gfo.commands.branch
+import gfo.commands.ci
+import gfo.commands.collaborator
+import gfo.commands.comment
+import gfo.commands.deploy_key
+import gfo.commands.file
 import gfo.commands.init
 import gfo.commands.issue
 import gfo.commands.label
@@ -14,6 +20,13 @@ import gfo.commands.milestone
 import gfo.commands.pr
 import gfo.commands.release
 import gfo.commands.repo
+import gfo.commands.review
+import gfo.commands.search
+import gfo.commands.status
+import gfo.commands.tag
+import gfo.commands.user
+import gfo.commands.webhook
+import gfo.commands.wiki
 from gfo import __version__
 from gfo.config import get_default_output_format
 from gfo.exceptions import GfoError, NotSupportedError
@@ -159,6 +172,188 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     milestone_delete = milestone_sub.add_parser("delete")
     milestone_delete.add_argument("number", type=int)
 
+    # gfo comment → サブサブコマンド
+    comment_parser = subparser_map["comment"] = subparsers.add_parser("comment")
+    comment_sub = comment_parser.add_subparsers(dest="subcommand")
+    comment_list = comment_sub.add_parser("list")
+    comment_list.add_argument("resource", choices=["pr", "issue"])
+    comment_list.add_argument("number", type=int)
+    comment_list.add_argument("--limit", type=_positive_int, default=30)
+    comment_create = comment_sub.add_parser("create")
+    comment_create.add_argument("resource", choices=["pr", "issue"])
+    comment_create.add_argument("number", type=int)
+    comment_create.add_argument("--body", required=True)
+    comment_update = comment_sub.add_parser("update")
+    comment_update.add_argument("comment_id", type=int)
+    comment_update.add_argument("--body", required=True)
+    comment_update.add_argument("--on", dest="on", choices=["pr", "issue"], required=True)
+    comment_delete = comment_sub.add_parser("delete")
+    comment_delete.add_argument("comment_id", type=int)
+    comment_delete.add_argument("--on", dest="on", choices=["pr", "issue"], required=True)
+
+    # gfo pr update（既存 pr に追加）
+    pr_update = pr_sub.add_parser("update")
+    pr_update.add_argument("number", type=int)
+    pr_update.add_argument("--title")
+    pr_update.add_argument("--body")
+    pr_update.add_argument("--base")
+
+    # gfo issue update（既存 issue に追加）
+    issue_update = issue_sub.add_parser("update")
+    issue_update.add_argument("number", type=int)
+    issue_update.add_argument("--title")
+    issue_update.add_argument("--body")
+    issue_update.add_argument("--assignee")
+    issue_update.add_argument("--label")
+
+    # gfo repo fork（既存 repo に追加）
+    repo_fork = repo_sub.add_parser("fork")
+    repo_fork.add_argument("--org")
+
+    # gfo review → サブサブコマンド
+    review_parser = subparser_map["review"] = subparsers.add_parser("review")
+    review_sub = review_parser.add_subparsers(dest="subcommand")
+    review_list = review_sub.add_parser("list")
+    review_list.add_argument("number", type=int)
+    review_create = review_sub.add_parser("create")
+    review_create.add_argument("number", type=int)
+    _review_group = review_create.add_mutually_exclusive_group(required=True)
+    _review_group.add_argument("--approve", action="store_true")
+    _review_group.add_argument("--request-changes", dest="request_changes", action="store_true")
+    _review_group.add_argument("--comment", action="store_true")
+    review_create.add_argument("--body", default="")
+
+    # gfo branch → サブサブコマンド
+    branch_parser = subparser_map["branch"] = subparsers.add_parser("branch")
+    branch_sub = branch_parser.add_subparsers(dest="subcommand")
+    branch_list = branch_sub.add_parser("list")
+    branch_list.add_argument("--limit", type=_positive_int, default=30)
+    branch_create = branch_sub.add_parser("create")
+    branch_create.add_argument("name")
+    branch_create.add_argument("--ref", required=True)
+    branch_delete = branch_sub.add_parser("delete")
+    branch_delete.add_argument("name")
+
+    # gfo tag → サブサブコマンド
+    tag_parser = subparser_map["tag"] = subparsers.add_parser("tag")
+    tag_sub = tag_parser.add_subparsers(dest="subcommand")
+    tag_list = tag_sub.add_parser("list")
+    tag_list.add_argument("--limit", type=_positive_int, default=30)
+    tag_create = tag_sub.add_parser("create")
+    tag_create.add_argument("name")
+    tag_create.add_argument("--ref", required=True)
+    tag_create.add_argument("--message", default="")
+    tag_delete = tag_sub.add_parser("delete")
+    tag_delete.add_argument("name")
+
+    # gfo status → サブサブコマンド
+    status_parser = subparser_map["status"] = subparsers.add_parser("status")
+    status_sub = status_parser.add_subparsers(dest="subcommand")
+    status_list = status_sub.add_parser("list")
+    status_list.add_argument("ref")
+    status_list.add_argument("--limit", type=_positive_int, default=30)
+    status_create = status_sub.add_parser("create")
+    status_create.add_argument("ref")
+    status_create.add_argument(
+        "--state", required=True, choices=["success", "failure", "pending", "error"]
+    )
+    status_create.add_argument("--context")
+    status_create.add_argument("--description")
+    status_create.add_argument("--url")
+
+    # gfo file → サブサブコマンド
+    file_parser = subparser_map["file"] = subparsers.add_parser("file")
+    file_sub = file_parser.add_subparsers(dest="subcommand")
+    file_get = file_sub.add_parser("get")
+    file_get.add_argument("path")
+    file_get.add_argument("--ref")
+    file_put = file_sub.add_parser("put")
+    file_put.add_argument("path")
+    file_put.add_argument("--message", required=True)
+    file_put.add_argument("--branch")
+    file_delete = file_sub.add_parser("delete")
+    file_delete.add_argument("path")
+    file_delete.add_argument("--message", required=True)
+    file_delete.add_argument("--branch")
+
+    # gfo webhook → サブサブコマンド
+    webhook_parser = subparser_map["webhook"] = subparsers.add_parser("webhook")
+    webhook_sub = webhook_parser.add_subparsers(dest="subcommand")
+    webhook_list = webhook_sub.add_parser("list")
+    webhook_list.add_argument("--limit", type=_positive_int, default=30)
+    webhook_create = webhook_sub.add_parser("create")
+    webhook_create.add_argument("--url", required=True)
+    webhook_create.add_argument("--event", action="append", required=True)
+    webhook_create.add_argument("--secret")
+    webhook_delete = webhook_sub.add_parser("delete")
+    webhook_delete.add_argument("id", type=int)
+
+    # gfo deploy-key → サブサブコマンド
+    deploy_key_parser = subparser_map["deploy-key"] = subparsers.add_parser("deploy-key")
+    deploy_key_sub = deploy_key_parser.add_subparsers(dest="subcommand")
+    deploy_key_list = deploy_key_sub.add_parser("list")
+    deploy_key_list.add_argument("--limit", type=_positive_int, default=30)
+    deploy_key_create = deploy_key_sub.add_parser("create")
+    deploy_key_create.add_argument("--title", required=True)
+    deploy_key_create.add_argument("--key", required=True)
+    deploy_key_create.add_argument("--read-write", dest="read_write", action="store_true")
+    deploy_key_delete = deploy_key_sub.add_parser("delete")
+    deploy_key_delete.add_argument("id", type=int)
+
+    # gfo collaborator → サブサブコマンド
+    collab_parser = subparser_map["collaborator"] = subparsers.add_parser("collaborator")
+    collab_sub = collab_parser.add_subparsers(dest="subcommand")
+    collab_list = collab_sub.add_parser("list")
+    collab_list.add_argument("--limit", type=_positive_int, default=30)
+    collab_add = collab_sub.add_parser("add")
+    collab_add.add_argument("username")
+    collab_add.add_argument("--permission", choices=["read", "write", "admin"], default="write")
+    collab_remove = collab_sub.add_parser("remove")
+    collab_remove.add_argument("username")
+
+    # gfo ci → サブサブコマンド
+    ci_parser = subparser_map["ci"] = subparsers.add_parser("ci")
+    ci_sub = ci_parser.add_subparsers(dest="subcommand")
+    ci_list = ci_sub.add_parser("list")
+    ci_list.add_argument("--ref")
+    ci_list.add_argument("--limit", type=_positive_int, default=30)
+    ci_view = ci_sub.add_parser("view")
+    ci_view.add_argument("id")
+    ci_cancel = ci_sub.add_parser("cancel")
+    ci_cancel.add_argument("id")
+
+    # gfo user → サブサブコマンド
+    user_parser = subparser_map["user"] = subparsers.add_parser("user")
+    user_sub = user_parser.add_subparsers(dest="subcommand")
+    user_sub.add_parser("whoami")
+
+    # gfo search → サブサブコマンド
+    search_parser = subparser_map["search"] = subparsers.add_parser("search")
+    search_sub = search_parser.add_subparsers(dest="subcommand")
+    search_repos = search_sub.add_parser("repos")
+    search_repos.add_argument("query")
+    search_repos.add_argument("--limit", type=_positive_int, default=30)
+    search_issues = search_sub.add_parser("issues")
+    search_issues.add_argument("query")
+    search_issues.add_argument("--limit", type=_positive_int, default=30)
+
+    # gfo wiki → サブサブコマンド
+    wiki_parser = subparser_map["wiki"] = subparsers.add_parser("wiki")
+    wiki_sub = wiki_parser.add_subparsers(dest="subcommand")
+    wiki_list = wiki_sub.add_parser("list")
+    wiki_list.add_argument("--limit", type=_positive_int, default=30)
+    wiki_view = wiki_sub.add_parser("view")
+    wiki_view.add_argument("id")
+    wiki_create = wiki_sub.add_parser("create")
+    wiki_create.add_argument("--title", required=True)
+    wiki_create.add_argument("--content", required=True)
+    wiki_update = wiki_sub.add_parser("update")
+    wiki_update.add_argument("id")
+    wiki_update.add_argument("--title")
+    wiki_update.add_argument("--content")
+    wiki_delete = wiki_sub.add_parser("delete")
+    wiki_delete.add_argument("id")
+
     return parser, subparser_map
 
 
@@ -172,16 +367,19 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("pr", "merge"): gfo.commands.pr.handle_merge,
     ("pr", "close"): gfo.commands.pr.handle_close,
     ("pr", "checkout"): gfo.commands.pr.handle_checkout,
+    ("pr", "update"): gfo.commands.pr.handle_update,
     ("issue", "list"): gfo.commands.issue.handle_list,
     ("issue", "create"): gfo.commands.issue.handle_create,
     ("issue", "view"): gfo.commands.issue.handle_view,
     ("issue", "close"): gfo.commands.issue.handle_close,
     ("issue", "delete"): gfo.commands.issue.handle_delete,
+    ("issue", "update"): gfo.commands.issue.handle_update,
     ("repo", "list"): gfo.commands.repo.handle_list,
     ("repo", "create"): gfo.commands.repo.handle_create,
     ("repo", "clone"): gfo.commands.repo.handle_clone,
     ("repo", "view"): gfo.commands.repo.handle_view,
     ("repo", "delete"): gfo.commands.repo.handle_delete,
+    ("repo", "fork"): gfo.commands.repo.handle_fork,
     ("release", "list"): gfo.commands.release.handle_list,
     ("release", "create"): gfo.commands.release.handle_create,
     ("release", "delete"): gfo.commands.release.handle_delete,
@@ -191,6 +389,43 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("milestone", "list"): gfo.commands.milestone.handle_list,
     ("milestone", "create"): gfo.commands.milestone.handle_create,
     ("milestone", "delete"): gfo.commands.milestone.handle_delete,
+    ("comment", "list"): gfo.commands.comment.handle_list,
+    ("comment", "create"): gfo.commands.comment.handle_create,
+    ("comment", "update"): gfo.commands.comment.handle_update,
+    ("comment", "delete"): gfo.commands.comment.handle_delete,
+    ("review", "list"): gfo.commands.review.handle_list,
+    ("review", "create"): gfo.commands.review.handle_create,
+    ("branch", "list"): gfo.commands.branch.handle_list,
+    ("branch", "create"): gfo.commands.branch.handle_create,
+    ("branch", "delete"): gfo.commands.branch.handle_delete,
+    ("tag", "list"): gfo.commands.tag.handle_list,
+    ("tag", "create"): gfo.commands.tag.handle_create,
+    ("tag", "delete"): gfo.commands.tag.handle_delete,
+    ("status", "list"): gfo.commands.status.handle_list,
+    ("status", "create"): gfo.commands.status.handle_create,
+    ("file", "get"): gfo.commands.file.handle_get,
+    ("file", "put"): gfo.commands.file.handle_put,
+    ("file", "delete"): gfo.commands.file.handle_delete,
+    ("webhook", "list"): gfo.commands.webhook.handle_list,
+    ("webhook", "create"): gfo.commands.webhook.handle_create,
+    ("webhook", "delete"): gfo.commands.webhook.handle_delete,
+    ("deploy-key", "list"): gfo.commands.deploy_key.handle_list,
+    ("deploy-key", "create"): gfo.commands.deploy_key.handle_create,
+    ("deploy-key", "delete"): gfo.commands.deploy_key.handle_delete,
+    ("collaborator", "list"): gfo.commands.collaborator.handle_list,
+    ("collaborator", "add"): gfo.commands.collaborator.handle_add,
+    ("collaborator", "remove"): gfo.commands.collaborator.handle_remove,
+    ("ci", "list"): gfo.commands.ci.handle_list,
+    ("ci", "view"): gfo.commands.ci.handle_view,
+    ("ci", "cancel"): gfo.commands.ci.handle_cancel,
+    ("user", "whoami"): gfo.commands.user.handle_whoami,
+    ("search", "repos"): gfo.commands.search.handle_repos,
+    ("search", "issues"): gfo.commands.search.handle_issues,
+    ("wiki", "list"): gfo.commands.wiki.handle_list,
+    ("wiki", "view"): gfo.commands.wiki.handle_view,
+    ("wiki", "create"): gfo.commands.wiki.handle_create,
+    ("wiki", "update"): gfo.commands.wiki.handle_update,
+    ("wiki", "delete"): gfo.commands.wiki.handle_delete,
 }
 
 

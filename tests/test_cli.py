@@ -279,7 +279,7 @@ def test_parser_format_option():
 
 
 def test_dispatch_table_has_28_entries():
-    assert len(_DISPATCH) == 28  # init(None) + 27 subcommands
+    assert len(_DISPATCH) == 68  # init(None) + 67 subcommands
 
 
 def test_dispatch_table_all_keys():
@@ -293,16 +293,19 @@ def test_dispatch_table_all_keys():
         ("pr", "merge"),
         ("pr", "close"),
         ("pr", "checkout"),
+        ("pr", "update"),
         ("issue", "list"),
         ("issue", "create"),
         ("issue", "view"),
         ("issue", "close"),
         ("issue", "delete"),
+        ("issue", "update"),
         ("repo", "list"),
         ("repo", "create"),
         ("repo", "clone"),
         ("repo", "view"),
         ("repo", "delete"),
+        ("repo", "fork"),
         ("release", "list"),
         ("release", "create"),
         ("release", "delete"),
@@ -312,6 +315,43 @@ def test_dispatch_table_all_keys():
         ("milestone", "list"),
         ("milestone", "create"),
         ("milestone", "delete"),
+        ("comment", "list"),
+        ("comment", "create"),
+        ("comment", "update"),
+        ("comment", "delete"),
+        ("review", "list"),
+        ("review", "create"),
+        ("branch", "list"),
+        ("branch", "create"),
+        ("branch", "delete"),
+        ("tag", "list"),
+        ("tag", "create"),
+        ("tag", "delete"),
+        ("status", "list"),
+        ("status", "create"),
+        ("file", "get"),
+        ("file", "put"),
+        ("file", "delete"),
+        ("webhook", "list"),
+        ("webhook", "create"),
+        ("webhook", "delete"),
+        ("deploy-key", "list"),
+        ("deploy-key", "create"),
+        ("deploy-key", "delete"),
+        ("collaborator", "list"),
+        ("collaborator", "add"),
+        ("collaborator", "remove"),
+        ("ci", "list"),
+        ("ci", "view"),
+        ("ci", "cancel"),
+        ("user", "whoami"),
+        ("search", "repos"),
+        ("search", "issues"),
+        ("wiki", "list"),
+        ("wiki", "view"),
+        ("wiki", "create"),
+        ("wiki", "update"),
+        ("wiki", "delete"),
     }
     assert set(_DISPATCH.keys()) == expected_keys
 
