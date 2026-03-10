@@ -17,7 +17,7 @@
 |---|---|---|
 | GitHub | `github` | `GITHUB_TOKEN` |
 | GitLab | `gitlab` | `GITLAB_TOKEN` |
-| Bitbucket Cloud | `bitbucket` | `BITBUCKET_TOKEN`（`email:api-token` 形式） |
+| Bitbucket Cloud | `bitbucket` | `BITBUCKET_TOKEN`（`email:api-token` 形式、スコープ付き API Token） |
 | Azure DevOps | `azure-devops` | `AZURE_DEVOPS_PAT` |
 | Gitea | `gitea` | `GITEA_TOKEN` |
 | Forgejo | `forgejo` | `GITEA_TOKEN` |
