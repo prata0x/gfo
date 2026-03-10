@@ -157,3 +157,19 @@ def handle_view(args: argparse.Namespace, *, fmt: str) -> None:
 
     repo = adapter.get_repository(owner, name)
     output(repo, fmt=fmt)
+
+
+def handle_delete(args: argparse.Namespace, *, fmt: str) -> None:
+    """gfo repo delete のハンドラ。"""
+    adapter = get_adapter()
+    repo_name = f"{adapter._owner}/{adapter._repo}"
+    if not getattr(args, "yes", False):
+        confirm = input(
+            f"Are you sure you want to delete repository '{repo_name}'? "
+            "This action cannot be undone. [y/N]: "
+        )
+        if confirm.lower() not in ("y", "yes"):
+            print("Aborted.")
+            return
+    adapter.delete_repository()
+    print(f"Deleted repository '{repo_name}'.")

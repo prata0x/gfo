@@ -189,6 +189,25 @@ def test_parser_repo_view_optional():
     assert args.repo is None
 
 
+def test_parser_repo_delete():
+    parser, _ = create_parser()
+    args = parser.parse_args(["repo", "delete"])
+    assert args.subcommand == "delete"
+    assert args.yes is False
+
+
+def test_parser_repo_delete_yes_flag():
+    parser, _ = create_parser()
+    args = parser.parse_args(["repo", "delete", "--yes"])
+    assert args.yes is True
+
+
+def test_parser_repo_delete_short_yes_flag():
+    parser, _ = create_parser()
+    args = parser.parse_args(["repo", "delete", "-y"])
+    assert args.yes is True
+
+
 def test_parser_release_list():
     parser, _ = create_parser()
     args = parser.parse_args(["release", "list"])
@@ -259,8 +278,8 @@ def test_parser_format_option():
 # ── _DISPATCH テーブルのテスト ──
 
 
-def test_dispatch_table_has_27_entries():
-    assert len(_DISPATCH) == 27  # init(None) + 26 subcommands
+def test_dispatch_table_has_28_entries():
+    assert len(_DISPATCH) == 28  # init(None) + 27 subcommands
 
 
 def test_dispatch_table_all_keys():
@@ -283,6 +302,7 @@ def test_dispatch_table_all_keys():
         ("repo", "create"),
         ("repo", "clone"),
         ("repo", "view"),
+        ("repo", "delete"),
         ("release", "list"),
         ("release", "create"),
         ("release", "delete"),

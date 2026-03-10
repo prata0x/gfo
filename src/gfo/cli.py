@@ -120,6 +120,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_clone.add_argument("--host")
     repo_view = repo_sub.add_parser("view")
     repo_view.add_argument("repo", nargs="?")  # ハンドラは args.repo を参照
+    repo_delete = repo_sub.add_parser("delete")
+    repo_delete.add_argument("--yes", "-y", action="store_true",
+                              help="Skip confirmation prompt")
 
     # gfo release → サブサブコマンド
     release_parser = subparser_map["release"] = subparsers.add_parser("release")
@@ -179,6 +182,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("repo", "create"): gfo.commands.repo.handle_create,
     ("repo", "clone"): gfo.commands.repo.handle_clone,
     ("repo", "view"): gfo.commands.repo.handle_view,
+    ("repo", "delete"): gfo.commands.repo.handle_delete,
     ("release", "list"): gfo.commands.release.handle_list,
     ("release", "create"): gfo.commands.release.handle_create,
     ("release", "delete"): gfo.commands.release.handle_delete,

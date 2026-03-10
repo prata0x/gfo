@@ -454,6 +454,52 @@ class TestHandleView:
                 repo_cmd.handle_view(args, fmt="table")
 
 
+class TestHandleDelete:
+    def test_delete_with_yes_flag(self, sample_config, mock_adapter, capsys):
+        args = make_args(yes=True)
+        mock_adapter._owner = "test-owner"
+        mock_adapter._repo = "test-repo"
+        with _patch_all(sample_config, mock_adapter):
+            repo_cmd.handle_delete(args, fmt="table")
+
+        mock_adapter.delete_repository.assert_called_once()
+        out = capsys.readouterr().out
+        assert "test-owner/test-repo" in out
+
+    def test_delete_confirmation_yes(self, sample_config, mock_adapter, capsys):
+        args = make_args(yes=False)
+        mock_adapter._owner = "test-owner"
+        mock_adapter._repo = "test-repo"
+        with _patch_all(sample_config, mock_adapter), \
+             patch("builtins.input", return_value="y"):
+            repo_cmd.handle_delete(args, fmt="table")
+
+        mock_adapter.delete_repository.assert_called_once()
+
+    def test_delete_confirmation_no(self, sample_config, mock_adapter, capsys):
+        args = make_args(yes=False)
+        mock_adapter._owner = "test-owner"
+        mock_adapter._repo = "test-repo"
+        with _patch_all(sample_config, mock_adapter), \
+             patch("builtins.input", return_value="n"):
+            repo_cmd.handle_delete(args, fmt="table")
+
+        mock_adapter.delete_repository.assert_not_called()
+        out = capsys.readouterr().out
+        assert "Aborted" in out
+
+    def test_delete_prints_success_message(self, sample_config, mock_adapter, capsys):
+        args = make_args(yes=True)
+        mock_adapter._owner = "my-org"
+        mock_adapter._repo = "my-repo"
+        with _patch_all(sample_config, mock_adapter):
+            repo_cmd.handle_delete(args, fmt="table")
+
+        out = capsys.readouterr().out
+        assert "Deleted repository" in out
+        assert "my-org/my-repo" in out
+
+
 class TestParseRepoArg:
     def test_valid_format(self):
         owner, name = repo_cmd._parse_repo_arg("owner/repo")
