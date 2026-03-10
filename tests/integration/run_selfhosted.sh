@@ -14,8 +14,8 @@ cleanup() {
     docker compose -f "$COMPOSE_FILE" down -v 2>/dev/null || true
 }
 
-# Ctrl+C 時もクリーンアップ
-trap cleanup EXIT
+# 正常終了・異常終了・Ctrl+C・SIGTERM すべてでクリーンアップ
+trap cleanup EXIT INT TERM
 
 echo "=== Docker Compose 起動 ==="
 docker compose -f "$COMPOSE_FILE" up -d
