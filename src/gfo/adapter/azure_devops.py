@@ -314,7 +314,8 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     def create_repository(
         self, *, name: str, private: bool = False, description: str = ""
     ) -> Repository:
-        payload = {"name": name, "project": {"id": self._project}}
+        # project はベース URL に含まれるため payload には含めない
+        payload = {"name": name}
         resp = self._client.post("/git/repositories", json=payload)
         return self._to_repository(resp.json(), self._project)
 

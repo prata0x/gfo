@@ -725,7 +725,8 @@ class TestCreateRepository:
         repo = azure_devops_adapter.create_repository(name="new-repo")
         assert isinstance(repo, Repository)
         req_body = json.loads(mock_responses.calls[0].request.body)
-        assert req_body["project"]["id"] == "test-project"
+        assert req_body["name"] == "new-repo"
+        assert "project" not in req_body  # project はベース URL に含まれるため不要
 
 
 class TestGetRepository:

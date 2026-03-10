@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from gfo.exceptions import NotSupportedError
+from gfo.exceptions import GfoError, NotSupportedError
 from tests.integration.conftest import ServiceTestConfig, create_test_adapter, get_service_config
 
 CONFIG = get_service_config("azure-devops")
@@ -106,9 +106,16 @@ class TestAzureDevOpsIntegration:
         assert pr.title == "gfo-test-pr"
 
     def test_14_pr_merge(self) -> None:
+        import time
+
         assert self._pr_number is not None
         self.adapter.merge_pull_request(self._pr_number, method="merge")
-        pr = self.adapter.get_pull_request(self._pr_number)
+        # Azure DevOps のマージは非同期の場合があるためポーリングして確認
+        for _ in range(10):
+            pr = self.adapter.get_pull_request(self._pr_number)
+            if pr.state == "merged":
+                break
+            time.sleep(1)
         assert pr.state == "merged"
 
     # --- Release (非対応) ---
@@ -132,30 +139,45 @@ class TestAzureDevOpsIntegration:
             params={"filter": f"heads/{self.config.test_branch}"},
         )
         old_object_id = refs_resp.json()["value"][0]["objectId"]
-        # コミット追加
-        self.adapter._client.post(
-            f"{self.adapter._git_path()}/pushes",
-            json={
-                "refUpdates": [
-                    {"name": f"refs/heads/{self.config.test_branch}", "oldObjectId": old_object_id}
-                ],
-                "commits": [
-                    {
-                        "comment": "test: add marker for close test",
-                        "changes": [
+        # コミット追加（ファイルが既存の場合は edit、なければ add）
+        for change_type in ("add", "edit"):
+            try:
+                self.adapter._client.post(
+                    f"{self.adapter._git_path()}/pushes",
+                    json={
+                        "refUpdates": [
                             {
-                                "changeType": "add",
-                                "item": {"path": "/test-close-marker.txt"},
-                                "newContent": {
-                                    "content": f"close-{int(time.time())}",
-                                    "contentType": "rawtext",
-                                },
+                                "name": f"refs/heads/{self.config.test_branch}",
+                                "oldObjectId": old_object_id,
                             }
                         ],
-                    }
-                ],
-            },
-        )
+                        "commits": [
+                            {
+                                "comment": "test: add marker for close test",
+                                "changes": [
+                                    {
+                                        "changeType": change_type,
+                                        "item": {"path": "/test-close-marker.txt"},
+                                        "newContent": {
+                                            "content": f"close-{int(time.time())}",
+                                            "contentType": "rawtext",
+                                        },
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                )
+                break
+            except GfoError:
+                if change_type == "edit":
+                    raise
+                # ファイル既存エラーの場合は edit で再試行するため objectId を再取得
+                refs_resp = self.adapter._client.get(
+                    f"{self.adapter._git_path()}/refs",
+                    params={"filter": f"heads/{self.config.test_branch}"},
+                )
+                old_object_id = refs_resp.json()["value"][0]["objectId"]
         pr = self.adapter.create_pull_request(
             title="gfo-test-pr-close",
             body="Integration test",
