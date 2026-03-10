@@ -172,3 +172,10 @@ def handle_delete(args: argparse.Namespace, *, fmt: str) -> None:
             return
     adapter.delete_repository()
     print(f"Deleted repository '{repo_name}'.")
+
+
+def handle_fork(args: argparse.Namespace, *, fmt: str) -> None:
+    """gfo repo fork のハンドラ。"""
+    adapter = get_adapter()
+    repo = adapter.fork_repository(organization=getattr(args, "org", None))
+    output(repo, fmt=fmt)

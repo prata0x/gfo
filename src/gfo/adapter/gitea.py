@@ -2,20 +2,30 @@
 
 from __future__ import annotations
 
+import base64
 from urllib.parse import quote
 
 from gfo.exceptions import NotFoundError
 from gfo.http import paginate_link_header
 
 from .base import (
+    Branch,
+    Comment,
+    CommitStatus,
+    DeployKey,
     GitHubLikeAdapter,
     GitServiceAdapter,
     Issue,
     Label,
     Milestone,
+    Pipeline,
     PullRequest,
     Release,
     Repository,
+    Review,
+    Tag,
+    Webhook,
+    WikiPage,
 )
 from .registry import register
 
@@ -239,3 +249,443 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def delete_milestone(self, *, number: int) -> None:
         self._client.delete(f"{self._repos_path()}/milestones/{number}")
+
+    # --- Comment ---
+
+    def list_comments(self, resource: str, number: int, *, limit: int = 30) -> list[Comment]:
+        # Gitea も GitHub と同様に issues/comments エンドポイントを使う
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/issues/{number}/comments",
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [self._to_comment(r) for r in results]
+
+    def create_comment(self, resource: str, number: int, *, body: str) -> Comment:
+        resp = self._client.post(
+            f"{self._repos_path()}/issues/{number}/comments",
+            json={"body": body},
+        )
+        return self._to_comment(resp.json())
+
+    def update_comment(self, resource: str, comment_id: int, *, body: str) -> Comment:
+        resp = self._client.patch(
+            f"{self._repos_path()}/issues/comments/{comment_id}",
+            json={"body": body},
+        )
+        return self._to_comment(resp.json())
+
+    def delete_comment(self, resource: str, comment_id: int) -> None:
+        self._client.delete(f"{self._repos_path()}/issues/comments/{comment_id}")
+
+    # --- PR update ---
+
+    def update_pull_request(
+        self,
+        number: int,
+        *,
+        title: str | None = None,
+        body: str | None = None,
+        base: str | None = None,
+    ) -> PullRequest:
+        payload: dict = {}
+        if title is not None:
+            payload["title"] = title
+        if body is not None:
+            payload["body"] = body
+        if base is not None:
+            payload["base"] = base
+        resp = self._client.patch(f"{self._repos_path()}/pulls/{number}", json=payload)
+        return self._to_pull_request(resp.json())
+
+    # --- Issue update ---
+
+    def update_issue(
+        self,
+        number: int,
+        *,
+        title: str | None = None,
+        body: str | None = None,
+        assignee: str | None = None,
+        label: str | None = None,
+    ) -> Issue:
+        payload: dict = {}
+        if title is not None:
+            payload["title"] = title
+        if body is not None:
+            payload["body"] = body
+        if assignee is not None:
+            payload["assignees"] = [assignee]
+        resp = self._client.patch(f"{self._repos_path()}/issues/{number}", json=payload)
+        return self._to_issue(resp.json())
+
+    # --- Review ---
+
+    def list_reviews(self, number: int) -> list[Review]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/pulls/{number}/reviews",
+            limit=0,
+            per_page_key="limit",
+        )
+        return [self._to_review(r) for r in results]
+
+    def create_review(self, number: int, *, state: str, body: str = "") -> Review:
+        payload: dict = {"event": state.upper()}
+        if body:
+            payload["body"] = body
+        resp = self._client.post(
+            f"{self._repos_path()}/pulls/{number}/reviews",
+            json=payload,
+        )
+        return self._to_review(resp.json())
+
+    # --- Branch ---
+
+    def list_branches(self, *, limit: int = 30) -> list[Branch]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/branches",
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [self._to_branch(r) for r in results]
+
+    def create_branch(self, *, name: str, ref: str) -> Branch:
+        resp = self._client.post(
+            f"{self._repos_path()}/branches",
+            json={"new_branch_name": name, "old_branch_name": ref},
+        )
+        return self._to_branch(resp.json())
+
+    def delete_branch(self, *, name: str) -> None:
+        self._client.delete(f"{self._repos_path()}/branches/{quote(name, safe='')}")
+
+    # --- Tag ---
+
+    def list_tags(self, *, limit: int = 30) -> list[Tag]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/tags",
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [self._to_tag(r) for r in results]
+
+    def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
+        payload: dict = {"tag_name": name, "target": ref}
+        if message:
+            payload["message"] = message
+        resp = self._client.post(f"{self._repos_path()}/tags", json=payload)
+        return self._to_tag(resp.json())
+
+    def delete_tag(self, *, name: str) -> None:
+        self._client.delete(f"{self._repos_path()}/tags/{quote(name, safe='')}")
+
+    # --- CommitStatus ---
+
+    def list_commit_statuses(self, ref: str, *, limit: int = 30) -> list[CommitStatus]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/statuses/{quote(ref, safe='')}",
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [self._to_commit_status(r) for r in results]
+
+    def create_commit_status(
+        self,
+        ref: str,
+        *,
+        state: str,
+        context: str = "",
+        description: str = "",
+        target_url: str = "",
+    ) -> CommitStatus:
+        payload: dict = {"state": state}
+        if context:
+            payload["context"] = context
+        if description:
+            payload["description"] = description
+        if target_url:
+            payload["target_url"] = target_url
+        resp = self._client.post(
+            f"{self._repos_path()}/statuses/{quote(ref, safe='')}",
+            json=payload,
+        )
+        return self._to_commit_status(resp.json())
+
+    # --- File ---
+
+    def get_file_content(self, path: str, *, ref: str | None = None) -> tuple[str, str]:
+        params: dict = {}
+        if ref is not None:
+            params["ref"] = ref
+        resp = self._client.get(
+            f"{self._repos_path()}/contents/{quote(path, safe='/')}",
+            params=params,
+        )
+        data = resp.json()
+        try:
+            content = base64.b64decode(data["content"]).decode("utf-8")
+            sha = data["sha"]
+        except (KeyError, TypeError) as e:
+            from gfo.exceptions import GfoError
+
+            raise GfoError(f"Unexpected API response: {e}") from e
+        return content, sha
+
+    def create_or_update_file(
+        self,
+        path: str,
+        *,
+        content: str,
+        message: str,
+        sha: str | None = None,
+        branch: str | None = None,
+    ) -> None:
+        payload: dict = {
+            "message": message,
+            "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
+        }
+        if sha is not None:
+            payload["sha"] = sha
+        if branch is not None:
+            payload["branch"] = branch
+        if sha is not None:
+            self._client.put(
+                f"{self._repos_path()}/contents/{quote(path, safe='/')}",
+                json=payload,
+            )
+        else:
+            self._client.post(
+                f"{self._repos_path()}/contents/{quote(path, safe='/')}",
+                json=payload,
+            )
+
+    def delete_file(
+        self,
+        path: str,
+        *,
+        sha: str,
+        message: str,
+        branch: str | None = None,
+    ) -> None:
+        payload: dict = {"message": message, "sha": sha}
+        if branch is not None:
+            payload["branch"] = branch
+        self._client.delete(
+            f"{self._repos_path()}/contents/{quote(path, safe='/')}",
+            json=payload,
+        )
+
+    # --- Fork ---
+
+    def fork_repository(self, *, organization: str | None = None) -> Repository:
+        payload: dict = {}
+        if organization is not None:
+            payload["organization"] = organization
+        resp = self._client.post(f"{self._repos_path()}/forks", json=payload)
+        return self._to_repository(resp.json())
+
+    # --- Webhook ---
+
+    def list_webhooks(self, *, limit: int = 30) -> list[Webhook]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/hooks",
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [self._to_webhook(r) for r in results]
+
+    def create_webhook(self, *, url: str, events: list[str], secret: str | None = None) -> Webhook:
+        config: dict = {"url": url, "content_type": "json"}
+        if secret is not None:
+            config["secret"] = secret
+        payload: dict = {"config": config, "events": events, "active": True, "type": "gitea"}
+        resp = self._client.post(f"{self._repos_path()}/hooks", json=payload)
+        return self._to_webhook(resp.json())
+
+    def delete_webhook(self, *, hook_id: int) -> None:
+        self._client.delete(f"{self._repos_path()}/hooks/{hook_id}")
+
+    # --- DeployKey ---
+
+    def list_deploy_keys(self, *, limit: int = 30) -> list[DeployKey]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/keys",
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [self._to_deploy_key(r) for r in results]
+
+    def create_deploy_key(self, *, title: str, key: str, read_only: bool = True) -> DeployKey:
+        payload = {"title": title, "key": key, "read_only": read_only}
+        resp = self._client.post(f"{self._repos_path()}/keys", json=payload)
+        return self._to_deploy_key(resp.json())
+
+    def delete_deploy_key(self, *, key_id: int) -> None:
+        self._client.delete(f"{self._repos_path()}/keys/{key_id}")
+
+    # --- Collaborator ---
+
+    def list_collaborators(self, *, limit: int = 30) -> list[str]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/collaborators",
+            limit=limit,
+            per_page_key="limit",
+        )
+        try:
+            return [r["login"] for r in results]
+        except (KeyError, TypeError) as e:
+            from gfo.exceptions import GfoError
+
+            raise GfoError(f"Unexpected API response: {e}") from e
+
+    def add_collaborator(self, *, username: str, permission: str = "write") -> None:
+        self._client.put(
+            f"{self._repos_path()}/collaborators/{quote(username, safe='')}",
+            json={"permission": permission},
+        )
+
+    def remove_collaborator(self, *, username: str) -> None:
+        self._client.delete(f"{self._repos_path()}/collaborators/{quote(username, safe='')}")
+
+    # --- Pipeline (Gitea Actions API - 1.19+) ---
+
+    def list_pipelines(self, *, ref: str | None = None, limit: int = 30) -> list[Pipeline]:
+        params: dict = {}
+        if ref is not None:
+            params["branch"] = ref
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/actions/runs",
+            params=params,
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [self._to_pipeline_data(r) for r in results]
+
+    def get_pipeline(self, pipeline_id: int | str) -> Pipeline:
+        resp = self._client.get(f"{self._repos_path()}/actions/runs/{pipeline_id}")
+        return self._to_pipeline_data(resp.json())
+
+    def cancel_pipeline(self, pipeline_id: int | str) -> None:
+        self._client.post(f"{self._repos_path()}/actions/runs/{pipeline_id}/cancel", json={})
+
+    @staticmethod
+    def _to_pipeline_data(data: dict) -> Pipeline:
+        from gfo.exceptions import GfoError
+
+        try:
+            status_map = {
+                "success": "success",
+                "failure": "failure",
+                "running": "running",
+                "waiting": "pending",
+                "queued": "pending",
+                "cancelled": "cancelled",
+            }
+            status = status_map.get(data.get("status", "queued"), "pending")
+            return Pipeline(
+                id=data["id"],
+                status=status,
+                ref=data.get("head_branch") or "",
+                url=data.get("html_url") or "",
+                created_at=data.get("created") or "",
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: {e}") from e
+
+    # --- User ---
+
+    def get_current_user(self) -> dict:
+        resp = self._client.get("/user")
+        return dict(resp.json())
+
+    # --- Search ---
+
+    def search_repositories(self, query: str, *, limit: int = 30) -> list[Repository]:
+        results = paginate_link_header(
+            self._client,
+            "/repos/search",
+            params={"q": query},
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [self._to_repository(r) for r in results]
+
+    def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/issues",
+            params={"type": "issues", "state": "open", "q": query},
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [self._to_issue(r) for r in results if not r.get("pull_request")]
+
+    # --- Wiki ---
+
+    def list_wiki_pages(self, *, limit: int = 30) -> list[WikiPage]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/wiki/pages",
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [self._to_wiki_page_data(r) for r in results]
+
+    def get_wiki_page(self, page_id: int | str) -> WikiPage:
+        resp = self._client.get(f"{self._repos_path()}/wiki/page/{quote(str(page_id), safe='')}")
+        return self._to_wiki_page_data(resp.json())
+
+    def create_wiki_page(self, *, title: str, content: str) -> WikiPage:
+        resp = self._client.post(
+            f"{self._repos_path()}/wiki/new",
+            json={"title": title, "content_format": "markdown", "content": content},
+        )
+        return self._to_wiki_page_data(resp.json())
+
+    def update_wiki_page(
+        self,
+        page_id: int | str,
+        *,
+        title: str | None = None,
+        content: str | None = None,
+    ) -> WikiPage:
+        # まず現在のページを取得
+        resp = self._client.get(f"{self._repos_path()}/wiki/page/{quote(str(page_id), safe='')}")
+        current = resp.json()
+        payload: dict = {
+            "title": title if title is not None else current.get("title", ""),
+            "content": content if content is not None else current.get("content", ""),
+            "content_format": "markdown",
+        }
+        resp = self._client.patch(
+            f"{self._repos_path()}/wiki/page/{quote(str(page_id), safe='')}",
+            json=payload,
+        )
+        return self._to_wiki_page_data(resp.json())
+
+    def delete_wiki_page(self, page_id: int | str) -> None:
+        self._client.delete(f"{self._repos_path()}/wiki/page/{quote(str(page_id), safe='')}")
+
+    @staticmethod
+    def _to_wiki_page_data(data: dict) -> WikiPage:
+        from gfo.exceptions import GfoError
+
+        try:
+            return WikiPage(
+                id=0,  # Gitea wiki には数値IDなし
+                title=data.get("title") or "",
+                content=data.get("content") or "",
+                url=data.get("html_url") or "",
+                updated_at=data.get("last_commit", {}).get("created"),
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: {e}") from e

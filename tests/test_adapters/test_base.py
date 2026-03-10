@@ -27,6 +27,12 @@ EXPECTED_ABSTRACT_METHODS = frozenset(
         "create_label",
         "list_milestones",
         "create_milestone",
+        "list_comments",
+        "create_comment",
+        "update_pull_request",
+        "update_issue",
+        "list_branches",
+        "create_branch",
     }
 )
 
@@ -88,6 +94,24 @@ class StubAdapter(GitServiceAdapter):
         return []
 
     def create_milestone(self, *, title, description=None, due_date=None):
+        return None  # type: ignore[return-value]
+
+    def list_comments(self, resource, number, *, limit=30):
+        return []
+
+    def create_comment(self, resource, number, *, body):
+        return None  # type: ignore[return-value]
+
+    def update_pull_request(self, number, *, title=None, body=None, base=None):
+        return None  # type: ignore[return-value]
+
+    def update_issue(self, number, *, title=None, body=None, assignee=None, label=None):
+        return None  # type: ignore[return-value]
+
+    def list_branches(self, *, limit=30):
+        return []
+
+    def create_branch(self, *, name, ref):
         return None  # type: ignore[return-value]
 
 

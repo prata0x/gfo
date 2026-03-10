@@ -15,7 +15,7 @@ import requests as _requests
 
 from gfo.exceptions import GfoError, NotSupportedError
 
-from .base import PullRequest, Release
+from .base import PullRequest, Release, Review
 from .github import GitHubAdapter
 from .registry import register
 
@@ -123,3 +123,11 @@ class GitBucketAdapter(GitHubAdapter):
         }
         resp = self._client.post(f"{self._repos_path()}/releases", json=payload)
         return self._to_release(self._parse_response(resp))
+
+    # --- Review（Reviews API なし）---
+
+    def list_reviews(self, number: int) -> list[Review]:
+        raise NotSupportedError("GitBucket", "review operations")
+
+    def create_review(self, number: int, *, state: str, body: str = "") -> Review:
+        raise NotSupportedError("GitBucket", "review operations")

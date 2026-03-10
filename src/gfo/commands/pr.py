@@ -61,3 +61,15 @@ def handle_checkout(args: argparse.Namespace, *, fmt: str) -> None:
     refspec = adapter.get_pr_checkout_refspec(args.number, pr=pr)
     gfo.git_util.git_fetch("origin", refspec)
     gfo.git_util.git_checkout_branch(pr.source_branch)
+
+
+def handle_update(args: argparse.Namespace, *, fmt: str) -> None:
+    """gfo pr update <number> のハンドラ。"""
+    adapter = get_adapter()
+    pr = adapter.update_pull_request(
+        args.number,
+        title=args.title,
+        body=args.body,
+        base=args.base,
+    )
+    output(pr, fmt=fmt)

@@ -266,6 +266,21 @@ class TestGitServiceAdapterDeleteDefaults:
 
             def create_milestone(self, *, title, description=None, due_date=None): ...
 
+            # Phase 1+ 追加抽象メソッドのスタブ
+            def list_comments(self, resource, number, *, limit=30):
+                return []
+
+            def create_comment(self, resource, number, *, body): ...
+
+            def update_pull_request(self, number, *, title=None, body=None, base=None): ...
+
+            def update_issue(self, number, *, title=None, body=None, assignee=None, label=None): ...
+
+            def list_branches(self, *, limit=30):
+                return []
+
+            def create_branch(self, *, name, ref): ...
+
         return MinimalAdapter(MagicMock(), "owner", "repo")
 
     def test_delete_issue_raises_not_supported(self):

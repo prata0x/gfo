@@ -7,7 +7,7 @@ from urllib.parse import quote
 
 from gfo.exceptions import NotSupportedError
 
-from .base import Label, Milestone, PullRequest, Release
+from .base import Comment, Label, Milestone, Pipeline, PullRequest, Release, Review
 from .gitea import GiteaAdapter
 from .registry import register
 
@@ -108,3 +108,42 @@ class GogsAdapter(GiteaAdapter):
 
     def delete_release(self, *, tag: str) -> None:
         raise NotSupportedError("Gogs", "release operations")
+
+    # --- PR update（PR 非対応）---
+
+    def update_pull_request(
+        self,
+        number: int,
+        *,
+        title: str | None = None,
+        body: str | None = None,
+        base: str | None = None,
+    ) -> PullRequest:
+        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+
+    # --- Comment（更新・削除は非対応）---
+
+    def update_comment(self, resource: str, comment_id: int, *, body: str) -> Comment:
+        raise NotSupportedError("Gogs", "comment update")
+
+    def delete_comment(self, resource: str, comment_id: int) -> None:
+        raise NotSupportedError("Gogs", "comment delete")
+
+    # --- Review（PR 非対応のため）---
+
+    def list_reviews(self, number: int) -> list[Review]:
+        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+
+    def create_review(self, number: int, *, state: str, body: str = "") -> Review:
+        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+
+    # --- Pipeline（CI なし）---
+
+    def list_pipelines(self, *, ref: str | None = None, limit: int = 30) -> list[Pipeline]:
+        raise NotSupportedError("Gogs", "ci operations")
+
+    def get_pipeline(self, pipeline_id: int | str) -> Pipeline:
+        raise NotSupportedError("Gogs", "ci operations")
+
+    def cancel_pipeline(self, pipeline_id: int | str) -> None:
+        raise NotSupportedError("Gogs", "ci operations")

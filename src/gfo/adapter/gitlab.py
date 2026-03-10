@@ -2,19 +2,29 @@
 
 from __future__ import annotations
 
+import base64
 from urllib.parse import quote
 
-from gfo.exceptions import GfoError, NotFoundError
+from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 from gfo.http import paginate_page_param
 
 from .base import (
+    Branch,
+    Comment,
+    CommitStatus,
+    DeployKey,
     GitServiceAdapter,
     Issue,
     Label,
     Milestone,
+    Pipeline,
     PullRequest,
     Release,
     Repository,
+    Review,
+    Tag,
+    Webhook,
+    WikiPage,
 )
 from .registry import register
 
@@ -365,3 +375,599 @@ class GitLabAdapter(GitServiceAdapter):
             raise NotFoundError(f"{self._project_path()}/milestones?iid[]={number}")
         global_id = milestones[0]["id"]
         self._client.delete(f"{self._project_path()}/milestones/{global_id}")
+
+    # --- 変換ヘルパー（追加分） ---
+
+    @staticmethod
+    def _to_comment(data: dict) -> Comment:
+        try:
+            author = data.get("author") or {}
+            return Comment(
+                id=data["id"],
+                body=data.get("body") or "",
+                author=author.get("username") or "",
+                url="",  # GitLab notes に html_url なし
+                created_at=data.get("created_at") or "",
+                updated_at=data.get("updated_at"),
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
+    def _to_review(data: dict) -> Review:
+        try:
+            state_map = {"approved": "approved", "unapproved": "changes_requested"}
+            raw_state = data.get("state", "approved")
+            return Review(
+                id=data.get("id") or 0,
+                state=state_map.get(raw_state, raw_state),
+                body="",
+                author=(data.get("user") or {}).get("username") or "",
+                url="",
+                submitted_at=data.get("submitted_at"),
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
+    def _to_branch(data: dict) -> Branch:
+        try:
+            commit = data.get("commit") or {}
+            return Branch(
+                name=data["name"],
+                sha=commit.get("id") or "",
+                protected=data.get("protected", False),
+                url=data.get("web_url") or "",
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
+    def _to_tag(data: dict) -> Tag:
+        try:
+            commit = data.get("commit") or {}
+            return Tag(
+                name=data["name"],
+                sha=commit.get("id") or "",
+                message=data.get("message") or "",
+                url=data.get("web_url") or "",
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
+    def _to_commit_status(data: dict) -> CommitStatus:
+        try:
+            state_map = {
+                "success": "success",
+                "failed": "failure",
+                "pending": "pending",
+                "running": "pending",
+                "canceled": "error",
+            }
+            raw = data.get("status", "pending")
+            return CommitStatus(
+                state=state_map.get(raw, raw),
+                context=data.get("name") or "",
+                description=data.get("description") or "",
+                target_url=data.get("target_url") or "",
+                created_at=data.get("created_at") or "",
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
+    def _to_webhook(data: dict) -> Webhook:
+        try:
+            # GitLab webhook の events は boolean フィールド集合
+            events = tuple(
+                k.replace("_events", "")
+                for k in (
+                    "push_events",
+                    "issues_events",
+                    "merge_requests_events",
+                    "tag_push_events",
+                    "note_events",
+                    "confidential_note_events",
+                    "job_events",
+                    "pipeline_events",
+                    "wiki_page_events",
+                    "releases_events",
+                )
+                if data.get(k, False)
+            )
+            return Webhook(
+                id=data["id"],
+                url=data.get("url") or "",
+                events=events,
+                active=data.get("enable_ssl_verification", True),
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
+    def _to_deploy_key(data: dict) -> DeployKey:
+        try:
+            return DeployKey(
+                id=data["id"],
+                title=data.get("title") or "",
+                key=data.get("key") or "",
+                read_only=not data.get("can_push", False),
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
+    def _to_pipeline(data: dict) -> Pipeline:
+        try:
+            status_map = {
+                "success": "success",
+                "failed": "failure",
+                "running": "running",
+                "pending": "pending",
+                "canceled": "cancelled",
+                "skipped": "cancelled",
+            }
+            raw = data.get("status", "pending")
+            return Pipeline(
+                id=data["id"],
+                status=status_map.get(raw, raw),
+                ref=data.get("ref") or "",
+                url=data.get("web_url") or "",
+                created_at=data.get("created_at") or "",
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
+    def _to_wiki_page(data: dict) -> WikiPage:
+        try:
+            return WikiPage(
+                id=0,  # GitLab Wiki には数値IDなし、slugを使う
+                title=data.get("title") or "",
+                content=data.get("content") or "",
+                url=data.get("web_url") or "",
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    # --- Comment ---
+
+    def list_comments(self, resource: str, number: int, *, limit: int = 30) -> list[Comment]:
+        if resource == "pr":
+            path = f"{self._project_path()}/merge_requests/{number}/notes"
+        else:
+            path = f"{self._project_path()}/issues/{number}/notes"
+        results = paginate_page_param(self._client, path, limit=limit)
+        return [self._to_comment(r) for r in results]
+
+    def create_comment(self, resource: str, number: int, *, body: str) -> Comment:
+        if resource == "pr":
+            path = f"{self._project_path()}/merge_requests/{number}/notes"
+        else:
+            path = f"{self._project_path()}/issues/{number}/notes"
+        resp = self._client.post(path, json={"body": body})
+        return self._to_comment(resp.json())
+
+    def update_comment(self, resource: str, comment_id: int, *, body: str) -> Comment:
+        raise NotSupportedError(
+            self.service_name, "comment update (GitLab requires issue/MR number)"
+        )
+
+    def delete_comment(self, resource: str, comment_id: int) -> None:
+        raise NotSupportedError(
+            self.service_name, "comment delete (GitLab requires issue/MR number)"
+        )
+
+    # --- PR update ---
+
+    def update_pull_request(
+        self,
+        number: int,
+        *,
+        title: str | None = None,
+        body: str | None = None,
+        base: str | None = None,
+    ) -> PullRequest:
+        payload: dict = {}
+        if title is not None:
+            payload["title"] = title
+        if body is not None:
+            payload["description"] = body
+        if base is not None:
+            payload["target_branch"] = base
+        resp = self._client.put(f"{self._project_path()}/merge_requests/{number}", json=payload)
+        return self._to_pull_request(resp.json())
+
+    # --- Issue update ---
+
+    def update_issue(
+        self,
+        number: int,
+        *,
+        title: str | None = None,
+        body: str | None = None,
+        assignee: str | None = None,
+        label: str | None = None,
+    ) -> Issue:
+        payload: dict = {}
+        if title is not None:
+            payload["title"] = title
+        if body is not None:
+            payload["description"] = body
+        if assignee is not None:
+            payload["assignee_username"] = assignee
+        if label is not None:
+            payload["labels"] = label
+        resp = self._client.put(f"{self._project_path()}/issues/{number}", json=payload)
+        return self._to_issue(resp.json())
+
+    # --- Review (Approvals) ---
+
+    def list_reviews(self, number: int) -> list[Review]:
+        resp = self._client.get(f"{self._project_path()}/merge_requests/{number}/approvals")
+        data = resp.json()
+        results = []
+        for approver in data.get("approved_by") or []:
+            user = approver.get("user") or {}
+            results.append(
+                Review(
+                    id=0,
+                    state="approved",
+                    body="",
+                    author=user.get("username") or "",
+                    url="",
+                )
+            )
+        return results
+
+    def create_review(self, number: int, *, state: str, body: str = "") -> Review:
+        if state.upper() == "APPROVE":
+            self._client.post(f"{self._project_path()}/merge_requests/{number}/approve", json={})
+            return Review(id=0, state="approved", body=body, author="", url="")
+        elif state.upper() == "REQUEST_CHANGES":
+            self._client.post(f"{self._project_path()}/merge_requests/{number}/unapprove", json={})
+            return Review(id=0, state="changes_requested", body=body, author="", url="")
+        else:
+            # コメントとして作成
+            resp = self._client.post(
+                f"{self._project_path()}/merge_requests/{number}/notes",
+                json={"body": body},
+            )
+            note = resp.json()
+            return Review(
+                id=note.get("id") or 0,
+                state="commented",
+                body=body,
+                author=(note.get("author") or {}).get("username") or "",
+                url="",
+            )
+
+    # --- Branch ---
+
+    def list_branches(self, *, limit: int = 30) -> list[Branch]:
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/repository/branches",
+            limit=limit,
+        )
+        return [self._to_branch(r) for r in results]
+
+    def create_branch(self, *, name: str, ref: str) -> Branch:
+        resp = self._client.post(
+            f"{self._project_path()}/repository/branches",
+            json={"branch": name, "ref": ref},
+        )
+        return self._to_branch(resp.json())
+
+    def delete_branch(self, *, name: str) -> None:
+        self._client.delete(f"{self._project_path()}/repository/branches/{quote(name, safe='')}")
+
+    # --- Tag ---
+
+    def list_tags(self, *, limit: int = 30) -> list[Tag]:
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/repository/tags",
+            limit=limit,
+        )
+        return [self._to_tag(r) for r in results]
+
+    def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
+        payload: dict = {"tag_name": name, "ref": ref}
+        if message:
+            payload["message"] = message
+        resp = self._client.post(f"{self._project_path()}/repository/tags", json=payload)
+        return self._to_tag(resp.json())
+
+    def delete_tag(self, *, name: str) -> None:
+        self._client.delete(f"{self._project_path()}/repository/tags/{quote(name, safe='')}")
+
+    # --- CommitStatus ---
+
+    def list_commit_statuses(self, ref: str, *, limit: int = 30) -> list[CommitStatus]:
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/repository/commits/{quote(ref, safe='')}/statuses",
+            limit=limit,
+        )
+        return [self._to_commit_status(r) for r in results]
+
+    def create_commit_status(
+        self,
+        ref: str,
+        *,
+        state: str,
+        context: str = "",
+        description: str = "",
+        target_url: str = "",
+    ) -> CommitStatus:
+        # GitLab: "success" / "failed" / "pending" / "running" / "canceled"
+        state_map = {
+            "success": "success",
+            "failure": "failed",
+            "error": "failed",
+            "pending": "pending",
+        }
+        gl_state = state_map.get(state, state)
+        payload: dict = {"state": gl_state}
+        if context:
+            payload["name"] = context
+        if description:
+            payload["description"] = description
+        if target_url:
+            payload["target_url"] = target_url
+        resp = self._client.post(
+            f"{self._project_path()}/statuses/{quote(ref, safe='')}",
+            json=payload,
+        )
+        return self._to_commit_status(resp.json())
+
+    # --- File ---
+
+    def get_file_content(self, path: str, *, ref: str | None = None) -> tuple[str, str]:
+        params: dict = {}
+        if ref is not None:
+            params["ref"] = ref
+        resp = self._client.get(
+            f"{self._project_path()}/repository/files/{quote(path, safe='')}",
+            params=params,
+        )
+        data = resp.json()
+        try:
+            content = base64.b64decode(data["content"]).decode("utf-8")
+            sha = data.get("blob_id") or data.get("commit_id") or ""
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: {e}") from e
+        return content, sha
+
+    def create_or_update_file(
+        self,
+        path: str,
+        *,
+        content: str,
+        message: str,
+        sha: str | None = None,
+        branch: str | None = None,
+    ) -> None:
+        payload: dict = {
+            "commit_message": message,
+            "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
+            "encoding": "base64",
+        }
+        if branch is not None:
+            payload["branch"] = branch
+        encoded_path = quote(path, safe="")
+        # sha の有無で create vs update を判定
+        if sha is not None:
+            self._client.put(
+                f"{self._project_path()}/repository/files/{encoded_path}",
+                json=payload,
+            )
+        else:
+            self._client.post(
+                f"{self._project_path()}/repository/files/{encoded_path}",
+                json=payload,
+            )
+
+    def delete_file(
+        self,
+        path: str,
+        *,
+        sha: str,
+        message: str,
+        branch: str | None = None,
+    ) -> None:
+        payload: dict = {"commit_message": message}
+        if branch is not None:
+            payload["branch"] = branch
+        self._client.delete(
+            f"{self._project_path()}/repository/files/{quote(path, safe='')}",
+            json=payload,
+        )
+
+    # --- Fork ---
+
+    def fork_repository(self, *, organization: str | None = None) -> Repository:
+        payload: dict = {}
+        if organization is not None:
+            payload["namespace_path"] = organization
+        resp = self._client.post(f"{self._project_path()}/fork", json=payload)
+        return self._to_repository(resp.json())
+
+    # --- Webhook ---
+
+    def list_webhooks(self, *, limit: int = 30) -> list[Webhook]:
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/hooks",
+            limit=limit,
+        )
+        return [self._to_webhook(r) for r in results]
+
+    def create_webhook(self, *, url: str, events: list[str], secret: str | None = None) -> Webhook:
+        payload: dict = {"url": url}
+        event_map = {
+            "push": "push_events",
+            "issues": "issues_events",
+            "merge_requests": "merge_requests_events",
+            "tag_push": "tag_push_events",
+            "note": "note_events",
+            "pipeline": "pipeline_events",
+            "job": "job_events",
+        }
+        for event in events:
+            key = event_map.get(event, f"{event}_events")
+            payload[key] = True
+        if secret is not None:
+            payload["token"] = secret
+        resp = self._client.post(f"{self._project_path()}/hooks", json=payload)
+        return self._to_webhook(resp.json())
+
+    def delete_webhook(self, *, hook_id: int) -> None:
+        self._client.delete(f"{self._project_path()}/hooks/{hook_id}")
+
+    # --- DeployKey ---
+
+    def list_deploy_keys(self, *, limit: int = 30) -> list[DeployKey]:
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/deploy_keys",
+            limit=limit,
+        )
+        return [self._to_deploy_key(r) for r in results]
+
+    def create_deploy_key(self, *, title: str, key: str, read_only: bool = True) -> DeployKey:
+        payload = {"title": title, "key": key, "can_push": not read_only}
+        resp = self._client.post(f"{self._project_path()}/deploy_keys", json=payload)
+        return self._to_deploy_key(resp.json())
+
+    def delete_deploy_key(self, *, key_id: int) -> None:
+        self._client.delete(f"{self._project_path()}/deploy_keys/{key_id}")
+
+    # --- Collaborator ---
+
+    def list_collaborators(self, *, limit: int = 30) -> list[str]:
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/members",
+            limit=limit,
+        )
+        try:
+            return [r["username"] for r in results]
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: {e}") from e
+
+    def add_collaborator(self, *, username: str, permission: str = "write") -> None:
+        # GitLab ではまずユーザー ID を取得する
+        resp = self._client.get("/users", params={"username": username})
+        users = resp.json()
+        if not users:
+            raise GfoError(f"User '{username}' not found")
+        user_id = users[0]["id"]
+        access_level_map = {"read": 20, "write": 30, "admin": 40}
+        access_level = access_level_map.get(permission, 30)
+        self._client.post(
+            f"{self._project_path()}/members",
+            json={"user_id": user_id, "access_level": access_level},
+        )
+
+    def remove_collaborator(self, *, username: str) -> None:
+        resp = self._client.get("/users", params={"username": username})
+        users = resp.json()
+        if not users:
+            raise GfoError(f"User '{username}' not found")
+        user_id = users[0]["id"]
+        self._client.delete(f"{self._project_path()}/members/{user_id}")
+
+    # --- Pipeline ---
+
+    def list_pipelines(self, *, ref: str | None = None, limit: int = 30) -> list[Pipeline]:
+        params: dict = {}
+        if ref is not None:
+            params["ref"] = ref
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/pipelines",
+            params=params,
+            limit=limit,
+        )
+        return [self._to_pipeline(r) for r in results]
+
+    def get_pipeline(self, pipeline_id: int | str) -> Pipeline:
+        resp = self._client.get(f"{self._project_path()}/pipelines/{pipeline_id}")
+        return self._to_pipeline(resp.json())
+
+    def cancel_pipeline(self, pipeline_id: int | str) -> None:
+        self._client.post(f"{self._project_path()}/pipelines/{pipeline_id}/cancel", json={})
+
+    # --- User ---
+
+    def get_current_user(self) -> dict:
+        resp = self._client.get("/user")
+        return dict(resp.json())
+
+    # --- Search ---
+
+    def search_repositories(self, query: str, *, limit: int = 30) -> list[Repository]:
+        results = paginate_page_param(
+            self._client,
+            "/projects",
+            params={"search": query, "owned": "false", "membership": "false"},
+            limit=limit,
+        )
+        return [self._to_repository(r) for r in results]
+
+    def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/issues",
+            params={"search": query},
+            limit=limit,
+        )
+        return [self._to_issue(r) for r in results]
+
+    # --- Wiki ---
+
+    def list_wiki_pages(self, *, limit: int = 30) -> list[WikiPage]:
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/wikis",
+            limit=limit,
+        )
+        return [self._to_wiki_page(r) for r in results]
+
+    def get_wiki_page(self, page_id: int | str) -> WikiPage:
+        resp = self._client.get(
+            f"{self._project_path()}/wikis/{quote(str(page_id), safe='')}",
+            params={"render_html": "false"},
+        )
+        return self._to_wiki_page(resp.json())
+
+    def create_wiki_page(self, *, title: str, content: str) -> WikiPage:
+        resp = self._client.post(
+            f"{self._project_path()}/wikis",
+            json={"title": title, "content": content},
+        )
+        return self._to_wiki_page(resp.json())
+
+    def update_wiki_page(
+        self,
+        page_id: int | str,
+        *,
+        title: str | None = None,
+        content: str | None = None,
+    ) -> WikiPage:
+        payload: dict = {}
+        if title is not None:
+            payload["title"] = title
+        if content is not None:
+            payload["content"] = content
+        resp = self._client.put(
+            f"{self._project_path()}/wikis/{quote(str(page_id), safe='')}",
+            json=payload,
+        )
+        return self._to_wiki_page(resp.json())
+
+    def delete_wiki_page(self, page_id: int | str) -> None:
+        self._client.delete(f"{self._project_path()}/wikis/{quote(str(page_id), safe='')}")

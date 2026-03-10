@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json as _json
 from urllib.parse import quote
 
@@ -9,13 +10,21 @@ from gfo.exceptions import GfoError, NotSupportedError
 from gfo.http import paginate_top_skip
 
 from .base import (
+    Branch,
+    Comment,
+    CommitStatus,
+    DeployKey,
     GitServiceAdapter,
     Issue,
     Label,
     Milestone,
+    Pipeline,
     PullRequest,
     Release,
     Repository,
+    Review,
+    Tag,
+    Webhook,
 )
 from .registry import register
 
@@ -363,3 +372,626 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         self, *, title: str, description: str | None = None, due_date: str | None = None
     ) -> Milestone:
         raise NotSupportedError(self.service_name, "milestones")
+
+    # --- 変換ヘルパー（追加型） ---
+
+    @staticmethod
+    def _to_comment(data: dict) -> Comment:
+        from gfo.exceptions import GfoError
+
+        try:
+            # PR Threads の場合は comments 配列の最初のコメント
+            if "comments" in data:
+                comment_data = (data.get("comments") or [{}])[0]
+            else:
+                comment_data = data
+            author = comment_data.get("author") or {}
+            return Comment(
+                id=comment_data.get("id") or data.get("id") or 0,
+                body=comment_data.get("content") or "",
+                author=author.get("uniqueName") or author.get("displayName") or "",
+                url="",
+                created_at=comment_data.get("publishedDate") or "",
+                updated_at=comment_data.get("lastUpdatedDate"),
+            )
+        except (KeyError, TypeError, AttributeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
+    def _to_review(data: dict) -> Review:
+        from gfo.exceptions import GfoError
+
+        try:
+            vote_map = {
+                10: "approved",
+                5: "approved",
+                0: "commented",
+                -5: "changes_requested",
+                -10: "changes_requested",
+            }
+            vote = data.get("vote", 0)
+            return Review(
+                id=data.get("id") or 0,
+                state=vote_map.get(vote, "commented"),
+                body="",
+                author=data.get("uniqueName") or data.get("displayName") or "",
+                url="",
+            )
+        except (KeyError, TypeError, AttributeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
+    def _to_branch(data: dict) -> Branch:
+        from gfo.exceptions import GfoError
+
+        try:
+            # AzDO: name は "refs/heads/xxx" 形式
+            name = data["name"]
+            if name.startswith("refs/heads/"):
+                name = name[len("refs/heads/") :]
+            return Branch(
+                name=name,
+                sha=(data.get("objectId") or ""),
+                protected=False,
+                url="",
+            )
+        except (KeyError, TypeError, AttributeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
+    def _to_tag(data: dict) -> Tag:
+        from gfo.exceptions import GfoError
+
+        try:
+            name = data.get("name", "")
+            if name.startswith("refs/tags/"):
+                name = name[len("refs/tags/") :]
+            return Tag(
+                name=name,
+                sha=data.get("objectId") or "",
+                message="",
+                url="",
+            )
+        except (KeyError, TypeError, AttributeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
+    def _to_commit_status(data: dict) -> CommitStatus:
+        from gfo.exceptions import GfoError
+
+        try:
+            state_map = {
+                "succeeded": "success",
+                "failed": "failure",
+                "pending": "pending",
+                "error": "error",
+                "notApplicable": "pending",
+                "notSet": "pending",
+            }
+            state_obj = data.get("state", {})
+            raw = state_obj if isinstance(state_obj, str) else state_obj.get("state", "pending")
+            genre = (data.get("context") or {}).get("genre") or ""
+            name = (data.get("context") or {}).get("name") or ""
+            context = f"{genre}/{name}" if genre else name
+            return CommitStatus(
+                state=state_map.get(raw, raw),
+                context=context,
+                description=data.get("description") or "",
+                target_url=data.get("targetUrl") or "",
+                created_at=data.get("creationDate") or "",
+            )
+        except (KeyError, TypeError, AttributeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
+    def _to_webhook(data: dict) -> Webhook:
+        from gfo.exceptions import GfoError
+
+        try:
+            events = tuple([data.get("eventType") or ""] if data.get("eventType") else [])
+            return Webhook(
+                id=data.get("id") or 0,
+                url=(data.get("consumerInputs") or {}).get("url") or "",
+                events=events,
+                active=data.get("status") == "enabled",
+            )
+        except (KeyError, TypeError, AttributeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
+    def _to_pipeline(data: dict) -> Pipeline:
+        from gfo.exceptions import GfoError
+
+        try:
+            status_map = {
+                "completed": lambda d: {
+                    "succeeded": "success",
+                    "failed": "failure",
+                    "canceled": "cancelled",
+                }.get(d.get("result", ""), "failure"),
+                "inProgress": lambda d: "running",
+                "notStarted": lambda d: "pending",
+                "cancelling": lambda d: "cancelled",
+            }
+            raw_status = data.get("status", "notStarted")
+            mapper = status_map.get(raw_status)
+            status = mapper(data) if mapper else raw_status
+            source_branch = _strip_refs_prefix(data.get("sourceBranch") or "")
+            return Pipeline(
+                id=data["id"],
+                status=status,
+                ref=source_branch,
+                url=data.get("_links", {}).get("web", {}).get("href") or "",
+                created_at=data.get("queueTime") or "",
+            )
+        except (KeyError, TypeError, AttributeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    # --- Comment ---
+
+    def list_comments(self, resource: str, number: int, *, limit: int = 30) -> list[Comment]:
+        if resource == "pr":
+            resp = self._client.get(f"{self._git_path()}/pullrequests/{number}/threads")
+            threads = resp.json().get("value", [])
+            result = []
+            for thread in threads:
+                for comment in thread.get("comments") or []:
+                    result.append(self._to_comment(comment))
+                    if limit > 0 and len(result) >= limit:
+                        return result
+            return result
+        else:
+            # Work Item コメントは /workitems/{id}/comments
+            resp = self._client.get(f"{self._wit_path()}/workitems/{number}/comments")
+            comments_data = resp.json().get("comments", [])
+            return [self._to_comment(c) for c in comments_data[: limit if limit > 0 else None]]
+
+    def create_comment(self, resource: str, number: int, *, body: str) -> Comment:
+        if resource == "pr":
+            # PR コメントは Thread を作成する
+            payload = {
+                "comments": [{"parentCommentId": 0, "content": body, "commentType": 1}],
+                "status": 1,
+            }
+            resp = self._client.post(
+                f"{self._git_path()}/pullrequests/{number}/threads", json=payload
+            )
+            return self._to_comment(resp.json())
+        else:
+            payload = {"text": body}
+            resp = self._client.post(
+                f"{self._wit_path()}/workitems/{number}/comments", json=payload
+            )
+            return self._to_comment(resp.json())
+
+    def update_comment(self, resource: str, comment_id: int, *, body: str) -> Comment:
+        # Azure DevOps のコメント更新は thread_id と comment_id の両方が必要で、comment_id のみでは不可
+        raise NotSupportedError(
+            self.service_name, "comment update (requires thread ID for PR comments)"
+        )
+
+    def delete_comment(self, resource: str, comment_id: int) -> None:
+        raise NotSupportedError(
+            self.service_name, "comment delete (requires thread ID for PR comments)"
+        )
+
+    # --- PR update ---
+
+    def update_pull_request(
+        self,
+        number: int,
+        *,
+        title: str | None = None,
+        body: str | None = None,
+        base: str | None = None,
+    ) -> PullRequest:
+        payload: dict = {}
+        if title is not None:
+            payload["title"] = title
+        if body is not None:
+            payload["description"] = body
+        if base is not None:
+            payload["targetRefName"] = _add_refs_prefix(base)
+        resp = self._client.patch(f"{self._git_path()}/pullrequests/{number}", json=payload)
+        return self._to_pull_request(resp.json())
+
+    # --- Issue update (Work Item patch) ---
+
+    def update_issue(
+        self,
+        number: int,
+        *,
+        title: str | None = None,
+        body: str | None = None,
+        assignee: str | None = None,
+        label: str | None = None,
+    ) -> Issue:
+        patch_ops = []
+        if title is not None:
+            patch_ops.append({"op": "replace", "path": "/fields/System.Title", "value": title})
+        if body is not None:
+            patch_ops.append({"op": "replace", "path": "/fields/System.Description", "value": body})
+        if assignee is not None:
+            patch_ops.append(
+                {"op": "replace", "path": "/fields/System.AssignedTo", "value": assignee}
+            )
+        if label is not None:
+            patch_ops.append({"op": "replace", "path": "/fields/System.Tags", "value": label})
+        resp = self._client.patch(
+            f"{self._wit_path()}/workitems/{number}",
+            data=_json.dumps(patch_ops),
+            headers={"Content-Type": "application/json-patch+json"},
+        )
+        return self._to_issue(resp.json())
+
+    # --- Review (Reviewers API) ---
+
+    def list_reviews(self, number: int) -> list[Review]:
+        resp = self._client.get(f"{self._git_path()}/pullrequests/{number}/reviewers")
+        reviewers = resp.json()
+        if not isinstance(reviewers, list):
+            reviewers = reviewers.get("value", [])
+        return [self._to_review(r) for r in reviewers]
+
+    def create_review(self, number: int, *, state: str, body: str = "") -> Review:
+        vote_map = {"APPROVE": 10, "REQUEST_CHANGES": -10, "COMMENT": 0}
+        vote = vote_map.get(state.upper(), 0)
+        # 現在のユーザーを取得してレビュアーとして追加
+        user_resp = self._client.get("/_apis/profile/profiles/me")
+        user_id = user_resp.json().get("id") or ""
+        payload = {"vote": vote}
+        resp = self._client.put(
+            f"{self._git_path()}/pullrequests/{number}/reviewers/{user_id}",
+            json=payload,
+        )
+        return self._to_review(resp.json())
+
+    # --- Branch ---
+
+    def list_branches(self, *, limit: int = 30) -> list[Branch]:
+        results = paginate_top_skip(
+            self._client,
+            f"{self._git_path()}/refs",
+            params={"filter": "heads/"},
+            limit=limit,
+            result_key="value",
+        )
+        return [self._to_branch(r) for r in results]
+
+    def create_branch(self, *, name: str, ref: str) -> Branch:
+        # AzDO はブランチ作成に push API を使う
+        payload = {
+            "refUpdates": [
+                {"name": f"refs/heads/{name}", "oldObjectId": "0" * 40, "newObjectId": ref}
+            ],
+            "commits": [],
+        }
+        self._client.post(f"{self._git_path()}/pushes", json=payload)
+        resp = self._client.get(
+            f"{self._git_path()}/refs",
+            params={"filter": f"heads/{name}"},
+        )
+        items = resp.json().get("value", [])
+        if not items:
+            from gfo.exceptions import GfoError
+
+            raise GfoError(f"Branch '{name}' not found after creation")
+        return self._to_branch(items[0])
+
+    def delete_branch(self, *, name: str) -> None:
+        # 現在の SHA を取得
+        resp = self._client.get(
+            f"{self._git_path()}/refs",
+            params={"filter": f"heads/{name}"},
+        )
+        items = resp.json().get("value", [])
+        if not items:
+            from gfo.exceptions import NotFoundError
+
+            raise NotFoundError(f"refs/heads/{name}")
+        sha = items[0]["objectId"]
+        payload = {
+            "refUpdates": [
+                {"name": f"refs/heads/{name}", "oldObjectId": sha, "newObjectId": "0" * 40}
+            ]
+        }
+        self._client.post(f"{self._git_path()}/refs", json=payload)
+
+    # --- Tag ---
+
+    def list_tags(self, *, limit: int = 30) -> list[Tag]:
+        results = paginate_top_skip(
+            self._client,
+            f"{self._git_path()}/refs",
+            params={"filter": "tags/"},
+            limit=limit,
+            result_key="value",
+        )
+        return [self._to_tag(r) for r in results]
+
+    def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
+        # Lightweight tag: refs/tags に ref を追加
+        payload = {
+            "refUpdates": [
+                {"name": f"refs/tags/{name}", "oldObjectId": "0" * 40, "newObjectId": ref}
+            ],
+            "commits": [],
+        }
+        self._client.post(f"{self._git_path()}/pushes", json=payload)
+        return Tag(name=name, sha=ref, message=message, url="")
+
+    def delete_tag(self, *, name: str) -> None:
+        resp = self._client.get(
+            f"{self._git_path()}/refs",
+            params={"filter": f"tags/{name}"},
+        )
+        items = resp.json().get("value", [])
+        if not items:
+            from gfo.exceptions import NotFoundError
+
+            raise NotFoundError(f"refs/tags/{name}")
+        sha = items[0]["objectId"]
+        payload = {
+            "refUpdates": [
+                {"name": f"refs/tags/{name}", "oldObjectId": sha, "newObjectId": "0" * 40}
+            ]
+        }
+        self._client.post(f"{self._git_path()}/refs", json=payload)
+
+    # --- CommitStatus ---
+
+    def list_commit_statuses(self, ref: str, *, limit: int = 30) -> list[CommitStatus]:
+        resp = self._client.get(f"{self._git_path()}/commits/{quote(ref, safe='')}/statuses")
+        statuses = resp.json()
+        if isinstance(statuses, dict):
+            statuses = statuses.get("value", [])
+        return [self._to_commit_status(s) for s in statuses[: limit if limit > 0 else None]]
+
+    def create_commit_status(
+        self,
+        ref: str,
+        *,
+        state: str,
+        context: str = "",
+        description: str = "",
+        target_url: str = "",
+    ) -> CommitStatus:
+        state_map = {
+            "success": "succeeded",
+            "failure": "failed",
+            "pending": "pending",
+            "error": "error",
+        }
+        parts = context.split("/", 1) if "/" in context else ["gfo", context]
+        payload: dict = {
+            "state": state_map.get(state, state),
+            "context": {"name": parts[-1], "genre": parts[0] if len(parts) > 1 else "gfo"},
+        }
+        if description:
+            payload["description"] = description
+        if target_url:
+            payload["targetUrl"] = target_url
+        resp = self._client.post(
+            f"{self._git_path()}/commits/{quote(ref, safe='')}/statuses",
+            json=payload,
+        )
+        return self._to_commit_status(resp.json())
+
+    # --- File (Azure DevOps Items API) ---
+
+    def get_file_content(self, path: str, *, ref: str | None = None) -> tuple[str, str]:
+        params: dict = {"path": path, "includeContent": "true"}
+        if ref is not None:
+            params["versionDescriptor.version"] = ref
+            params["versionDescriptor.versionType"] = "branch"
+        resp = self._client.get(f"{self._git_path()}/items", params=params)
+        data = resp.json()
+        try:
+            content = data.get("content") or ""
+            # objectId は blob SHA
+            sha = data.get("objectId") or ""
+        except (KeyError, TypeError, AttributeError) as e:
+            from gfo.exceptions import GfoError
+
+            raise GfoError(f"Unexpected API response: {e}") from e
+        return content, sha
+
+    def create_or_update_file(
+        self,
+        path: str,
+        *,
+        content: str,
+        message: str,
+        sha: str | None = None,
+        branch: str | None = None,
+    ) -> None:
+        # AzDO ではファイル作成/更新に pushes API を使う
+        branch = branch or "main"
+        # 既存ブランチの最新コミット SHA を取得
+        refs_resp = self._client.get(
+            f"{self._git_path()}/refs",
+            params={"filter": f"heads/{branch}"},
+        )
+        ref_items = refs_resp.json().get("value", [])
+        old_oid = ref_items[0]["objectId"] if ref_items else "0" * 40
+        change_type = 2 if sha else 1  # 1=add, 2=edit
+        payload = {
+            "refUpdates": [{"name": f"refs/heads/{branch}", "oldObjectId": old_oid}],
+            "commits": [
+                {
+                    "comment": message,
+                    "changes": [
+                        {
+                            "changeType": change_type,
+                            "item": {"path": f"/{path}" if not path.startswith("/") else path},
+                            "newContent": {
+                                "content": base64.b64encode(content.encode()).decode(),
+                                "contentType": "base64encoded",
+                            },
+                        }
+                    ],
+                }
+            ],
+        }
+        self._client.post(f"{self._git_path()}/pushes", json=payload)
+
+    def delete_file(
+        self,
+        path: str,
+        *,
+        sha: str,
+        message: str,
+        branch: str | None = None,
+    ) -> None:
+        branch = branch or "main"
+        refs_resp = self._client.get(
+            f"{self._git_path()}/refs",
+            params={"filter": f"heads/{branch}"},
+        )
+        ref_items = refs_resp.json().get("value", [])
+        old_oid = ref_items[0]["objectId"] if ref_items else "0" * 40
+        payload = {
+            "refUpdates": [{"name": f"refs/heads/{branch}", "oldObjectId": old_oid}],
+            "commits": [
+                {
+                    "comment": message,
+                    "changes": [
+                        {
+                            "changeType": 16,  # delete
+                            "item": {"path": f"/{path}" if not path.startswith("/") else path},
+                        }
+                    ],
+                }
+            ],
+        }
+        self._client.post(f"{self._git_path()}/pushes", json=payload)
+
+    # --- Webhook (Service Hooks) ---
+
+    def list_webhooks(self, *, limit: int = 30) -> list[Webhook]:
+        raise NotSupportedError(self.service_name, "webhook list (use Azure DevOps Service Hooks)")
+
+    def create_webhook(self, *, url: str, events: list[str], secret: str | None = None) -> Webhook:
+        raise NotSupportedError(
+            self.service_name, "webhook create (use Azure DevOps Service Hooks)"
+        )
+
+    def delete_webhook(self, *, hook_id: int) -> None:
+        raise NotSupportedError(
+            self.service_name, "webhook delete (use Azure DevOps Service Hooks)"
+        )
+
+    # --- DeployKey ---
+
+    def list_deploy_keys(self, *, limit: int = 30) -> list[DeployKey]:
+        raise NotSupportedError(
+            self.service_name, "deploy-key (Azure DevOps uses SSH keys at org level)"
+        )
+
+    def create_deploy_key(self, *, title: str, key: str, read_only: bool = True) -> DeployKey:
+        raise NotSupportedError(
+            self.service_name, "deploy-key (Azure DevOps uses SSH keys at org level)"
+        )
+
+    def delete_deploy_key(self, *, key_id: int) -> None:
+        raise NotSupportedError(
+            self.service_name, "deploy-key (Azure DevOps uses SSH keys at org level)"
+        )
+
+    # --- Collaborator ---
+
+    def list_collaborators(self, *, limit: int = 30) -> list[str]:
+        raise NotSupportedError(
+            self.service_name, "collaborator list (Azure DevOps uses teams/members)"
+        )
+
+    def add_collaborator(self, *, username: str, permission: str = "write") -> None:
+        raise NotSupportedError(
+            self.service_name, "collaborator add (Azure DevOps uses teams/members)"
+        )
+
+    def remove_collaborator(self, *, username: str) -> None:
+        raise NotSupportedError(
+            self.service_name, "collaborator remove (Azure DevOps uses teams/members)"
+        )
+
+    # --- Pipeline (Build API) ---
+
+    def list_pipelines(self, *, ref: str | None = None, limit: int = 30) -> list[Pipeline]:
+        params: dict = {}
+        if ref is not None:
+            params["branchName"] = f"refs/heads/{ref}" if not ref.startswith("refs/") else ref
+        results = paginate_top_skip(
+            self._client,
+            "/build/builds",
+            params=params,
+            limit=limit,
+            result_key="value",
+        )
+        return [self._to_pipeline(r) for r in results]
+
+    def get_pipeline(self, pipeline_id: int | str) -> Pipeline:
+        resp = self._client.get(f"/build/builds/{pipeline_id}")
+        return self._to_pipeline(resp.json())
+
+    def cancel_pipeline(self, pipeline_id: int | str) -> None:
+        self._client.patch(
+            f"/build/builds/{pipeline_id}",
+            data=_json.dumps([{"op": "replace", "path": "/status", "value": "cancelling"}]),
+            headers={"Content-Type": "application/json-patch+json"},
+        )
+
+    # --- User ---
+
+    def get_current_user(self) -> dict:
+        resp = self._client.get("/_apis/profile/profiles/me", params={"api-version": "7.1"})
+        return dict(resp.json())
+
+    # --- Search ---
+
+    def search_repositories(self, query: str, *, limit: int = 30) -> list[Repository]:
+        # AzDO でリポジトリ検索は /git/repositories でフィルタ
+        results = paginate_top_skip(
+            self._client,
+            "/git/repositories",
+            limit=0,
+            result_key="value",
+        )
+        filtered = [r for r in results if query.lower() in r.get("name", "").lower()]
+        return [
+            self._to_repository(r, self._project) for r in filtered[: limit if limit > 0 else None]
+        ]
+
+    def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
+        # WIQL を使って検索
+        wiql = f"SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '{_wiql_escape(self._project)}' AND [System.Title] CONTAINS '{_wiql_escape(query)}'"  # nosec B608
+        wiql_params = {"$top": limit} if limit > 0 else {"$top": 200}
+        wiql_resp = self._client.post(
+            f"{self._wit_path()}/wiql",
+            json={"query": wiql},
+            params=wiql_params,
+        )
+        wiql_body = wiql_resp.json()
+        if not isinstance(wiql_body, dict):
+            from gfo.exceptions import GfoError
+
+            raise GfoError(f"Unexpected API response: {type(wiql_body)}")
+        try:
+            ids = [wi["id"] for wi in wiql_body.get("workItems", [])]
+        except (KeyError, TypeError) as e:
+            from gfo.exceptions import GfoError
+
+            raise GfoError(f"Unexpected API response: {e}") from e
+        if not ids:
+            return []
+        ids_str = ",".join(str(x) for x in ids[: limit if limit > 0 else None])
+        resp = self._client.get(
+            f"{self._wit_path()}/workitems",
+            params={"ids": ids_str, "$expand": "None"},
+        )
+        batch_body = resp.json()
+        if not isinstance(batch_body, dict):
+            from gfo.exceptions import GfoError
+
+            raise GfoError(f"Unexpected API response: {type(batch_body)}")
+        return [self._to_issue(item) for item in batch_body.get("value", [])]
