@@ -11,13 +11,13 @@ class PullRequest:
     number: int
     title: str
     body: str | None
-    state: str          # "open" | "closed" | "merged"
+    state: str  # "open" | "closed" | "merged"
     author: str
     source_branch: str
     target_branch: str
     draft: bool
     url: str
-    created_at: str     # ISO 8601
+    created_at: str  # ISO 8601
     updated_at: str | None = None
 
 
@@ -26,7 +26,7 @@ class Issue:
     number: int
     title: str
     body: str | None
-    state: str          # "open" | "closed"
+    state: str  # "open" | "closed"
     author: str
     assignees: list[str]
     labels: list[str]
@@ -38,7 +38,7 @@ class Issue:
 @dataclass(frozen=True, slots=True)
 class Repository:
     name: str
-    full_name: str      # "owner/repo"
+    full_name: str  # "owner/repo"
     description: str | None
     private: bool
     default_branch: str | None
@@ -69,7 +69,7 @@ class Milestone:
     number: int
     title: str
     description: str | None
-    state: str          # "open" | "closed"
+    state: str  # "open" | "closed"
     due_date: str | None
 
 
@@ -115,9 +115,9 @@ class GitHubLikeAdapter(ABC):
                 body=data.get("body"),
                 state=data["state"],
                 author=data["user"]["login"],
-                assignees=[a["login"] for a in data.get("assignees", [])],
-                labels=[lb["name"] for lb in data.get("labels", [])],
-                url=data["html_url"],
+                assignees=[a["login"] for a in (data.get("assignees") or [])],
+                labels=[lb["name"] for lb in (data.get("labels") or [])],
+                url=data.get("html_url") or "",
                 created_at=data["created_at"],
                 updated_at=data.get("updated_at"),
             )
@@ -148,7 +148,7 @@ class GitHubLikeAdapter(ABC):
                 body=data.get("body"),
                 draft=data.get("draft", False),
                 prerelease=data.get("prerelease", False),
-                url=data["html_url"],
+                url=data.get("html_url") or "",
                 created_at=data["created_at"],
             )
         except (KeyError, TypeError) as e:
@@ -169,7 +169,7 @@ class GitHubLikeAdapter(ABC):
     def _to_milestone(data: dict) -> Milestone:
         try:
             return Milestone(
-                number=data["number"],
+                number=data.get("number") or data["id"],
                 title=data["title"],
                 description=data.get("description"),
                 state=data["state"],
@@ -194,26 +194,23 @@ class GitServiceAdapter(ABC):
 
     # --- PR ---
     @abstractmethod
-    def list_pull_requests(self, *, state: str = "open",
-                           limit: int = 30) -> list[PullRequest]: ...
+    def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]: ...
 
     @abstractmethod
-    def create_pull_request(self, *, title: str, body: str = "",
-                            base: str, head: str,
-                            draft: bool = False) -> PullRequest: ...
+    def create_pull_request(
+        self, *, title: str, body: str = "", base: str, head: str, draft: bool = False
+    ) -> PullRequest: ...
 
     @abstractmethod
     def get_pull_request(self, number: int) -> PullRequest: ...
 
     @abstractmethod
-    def merge_pull_request(self, number: int, *,
-                           method: str = "merge") -> None: ...
+    def merge_pull_request(self, number: int, *, method: str = "merge") -> None: ...
 
     @abstractmethod
     def close_pull_request(self, number: int) -> None: ...
 
-    def get_pr_checkout_refspec(self, number: int, *,
-                                pr: PullRequest | None = None) -> str:
+    def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         """PR チェックアウト用の refspec を返す。
 
         サブクラスでオーバーライド可能。
@@ -223,16 +220,25 @@ class GitServiceAdapter(ABC):
 
     # --- Issue ---
     @abstractmethod
-    def list_issues(self, *, state: str = "open",
-                    assignee: str | None = None,
-                    label: str | None = None,
-                    limit: int = 30) -> list[Issue]: ...
+    def list_issues(
+        self,
+        *,
+        state: str = "open",
+        assignee: str | None = None,
+        label: str | None = None,
+        limit: int = 30,
+    ) -> list[Issue]: ...
 
     @abstractmethod
-    def create_issue(self, *, title: str, body: str = "",
-                     assignee: str | None = None,
-                     label: str | None = None,
-                     **kwargs) -> Issue: ...
+    def create_issue(
+        self,
+        *,
+        title: str,
+        body: str = "",
+        assignee: str | None = None,
+        label: str | None = None,
+        **kwargs,
+    ) -> Issue: ...
 
     @abstractmethod
     def get_issue(self, number: int) -> Issue: ...
@@ -242,16 +248,17 @@ class GitServiceAdapter(ABC):
 
     # --- Repository ---
     @abstractmethod
-    def list_repositories(self, *, owner: str | None = None,
-                          limit: int = 30) -> list[Repository]: ...
+    def list_repositories(
+        self, *, owner: str | None = None, limit: int = 30
+    ) -> list[Repository]: ...
 
     @abstractmethod
-    def create_repository(self, *, name: str, private: bool = False,
-                          description: str = "") -> Repository: ...
+    def create_repository(
+        self, *, name: str, private: bool = False, description: str = ""
+    ) -> Repository: ...
 
     @abstractmethod
-    def get_repository(self, owner: str | None = None,
-                       name: str | None = None) -> Repository:
+    def get_repository(self, owner: str | None = None, name: str | None = None) -> Repository:
         """リポジトリ情報を取得する。
 
         owner, name が None の場合は self._owner, self._repo を使用する。
@@ -263,23 +270,30 @@ class GitServiceAdapter(ABC):
     def list_releases(self, *, limit: int = 30) -> list[Release]: ...
 
     @abstractmethod
-    def create_release(self, *, tag: str, title: str = "",
-                       notes: str = "", draft: bool = False,
-                       prerelease: bool = False) -> Release: ...
+    def create_release(
+        self,
+        *,
+        tag: str,
+        title: str = "",
+        notes: str = "",
+        draft: bool = False,
+        prerelease: bool = False,
+    ) -> Release: ...
 
     # --- Label ---
     @abstractmethod
     def list_labels(self, *, limit: int = 0) -> list[Label]: ...
 
     @abstractmethod
-    def create_label(self, *, name: str, color: str | None = None,
-                     description: str | None = None) -> Label: ...
+    def create_label(
+        self, *, name: str, color: str | None = None, description: str | None = None
+    ) -> Label: ...
 
     # --- Milestone ---
     @abstractmethod
     def list_milestones(self, *, limit: int = 0) -> list[Milestone]: ...
 
     @abstractmethod
-    def create_milestone(self, *, title: str,
-                         description: str | None = None,
-                         due_date: str | None = None) -> Milestone: ...
+    def create_milestone(
+        self, *, title: str, description: str | None = None, due_date: str | None = None
+    ) -> Milestone: ...

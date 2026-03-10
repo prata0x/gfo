@@ -10,6 +10,7 @@ Usage: python tests/integration/setup_services.py
 from __future__ import annotations
 
 import base64
+import re
 import sys
 import time
 from pathlib import Path
@@ -67,6 +68,7 @@ def append_env(key: str, value: str) -> None:
 # Gitea / Forgejo 共通
 # ---------------------------------------------------------------------------
 
+
 def setup_gitea_like(
     base_url: str,
     prefix: str,
@@ -86,15 +88,25 @@ def setup_gitea_like(
     wait_for_health(f"{api_url}/version")
     print(f"  [{prefix}] Service is ready.")
 
-    # 管理者ユーザー作成 (docker exec)
+    # 管理者ユーザー作成 (docker exec, -u git で非 root ユーザーとして実行)
     print(f"  [{prefix}] Creating admin user ...")
     result = subprocess.run(
         [
-            "docker", "exec", container_name,
-            admin_cmd, "admin", "user", "create",
-            "--username", ADMIN_USER,
-            "--password", ADMIN_PASS,
-            "--email", ADMIN_EMAIL,
+            "docker",
+            "exec",
+            "-u",
+            "git",
+            container_name,
+            admin_cmd,
+            "admin",
+            "user",
+            "create",
+            "--username",
+            ADMIN_USER,
+            "--password",
+            ADMIN_PASS,
+            "--email",
+            ADMIN_EMAIL,
             "--admin",
         ],
         capture_output=True,
@@ -137,6 +149,7 @@ def setup_gitea_like(
         json={
             "name": TEST_REPO,
             "auto_init": True,
+            "readme": "Default",
             "default_branch": "main",
             "description": "gfo integration test repository",
         },
@@ -208,6 +221,7 @@ def setup_forgejo() -> str:
 # ---------------------------------------------------------------------------
 # Gogs
 # ---------------------------------------------------------------------------
+
 
 def setup_gogs() -> str:
     """Gogs の初期セットアップを実行する。"""
@@ -285,6 +299,7 @@ def setup_gogs() -> str:
         json={
             "name": TEST_REPO,
             "auto_init": True,
+            "readme": "Default",
             "description": "gfo integration test repository",
         },
         timeout=10,
@@ -310,6 +325,7 @@ def setup_gogs() -> str:
 # GitBucket
 # ---------------------------------------------------------------------------
 
+
 def setup_gitbucket() -> str:
     """GitBucket の初期セットアップを実行する。"""
     base_url = "http://localhost:3003"
@@ -317,33 +333,74 @@ def setup_gitbucket() -> str:
     prefix = "GITBUCKET"
 
     print(f"  [{prefix}] Waiting for service at {base_url} ...")
-    wait_for_health(f"{api_url}/rate_limit")
+    wait_for_health(base_url)
     print(f"  [{prefix}] Service is ready.")
 
     # GitBucket はデフォルトで root/root の管理者が存在
     auth = (GITBUCKET_USER, GITBUCKET_PASS)
 
     # Personal access token 生成
-    print(f"  [{prefix}] Generating API token ...")
-    r = requests.post(
-        f"{api_url}/authorizations",
-        auth=auth,
-        json={"scopes": ["repo"], "note": "gfo-test"},
+    # GitBucket は /api/v3/authorizations を実装していないため Web UI 経由で取得する
+    print(f"  [{prefix}] Generating API token via Web UI ...")
+    session = requests.Session()
+    # ログイン
+    login_resp = session.post(
+        f"{base_url}/signin",
+        data={"userName": GITBUCKET_USER, "password": GITBUCKET_PASS},
+        allow_redirects=True,
         timeout=10,
     )
-    if r.status_code == 422 or r.status_code == 409:
-        # 既存トークンが存在するが取得できない — GitBucket は token 一覧 API がない
-        raise RuntimeError(
-            f"[{prefix}] Token 'gfo-test' already exists but cannot be retrieved. "
-            "Please delete the token manually via GitBucket Web UI or restart the container."
+    if login_resp.status_code not in (200, 302):
+        raise RuntimeError(f"[{prefix}] Login failed: {login_resp.status_code}")
+
+    # トークン生成フォームを POST (CSRF トークン不要)
+    token_resp = session.post(
+        f"{base_url}/{GITBUCKET_USER}/_personalToken",
+        data={"note": "gfo-test"},
+        allow_redirects=False,
+        timeout=10,
+    )
+    if token_resp.status_code != 302:
+        raise RuntimeError(f"[{prefix}] Token form POST failed: {token_resp.status_code}")
+
+    # リダイレクト先のページからトークン値を取得
+    app_page = session.get(f"{base_url}/{GITBUCKET_USER}/_application", timeout=10)
+
+    def _extract_token(html: str) -> str | None:
+        """生成済みトークンを HTML から抽出する（属性順序不問）。"""
+        m = re.search(r'id="generated-token"[^>]*value="([a-f0-9]{40})"', html)
+        if not m:
+            m = re.search(r'value="([a-f0-9]{40})"[^>]*id="generated-token"', html)
+        return m.group(1) if m else None
+
+    token = _extract_token(app_page.text)
+    if token is None:
+        # 既存トークンが存在する可能性 — 削除して再生成
+        delete_match = re.search(
+            r'href="/' + GITBUCKET_USER + r'/_personalToken/delete/(\d+)"',
+            app_page.text,
         )
-    elif r.ok:
-        token = r.json().get("token", "")
-        if not token:
-            raise RuntimeError(f"[{prefix}] Token generation succeeded but token value is empty.")
-        print(f"  [{prefix}] Token generated.")
-    else:
-        raise RuntimeError(f"[{prefix}] Token generation failed: {r.status_code} {r.text[:200]}")
+        if delete_match:
+            token_id = delete_match.group(1)
+            session.post(
+                f"{base_url}/{GITBUCKET_USER}/_personalToken/delete/{token_id}",
+                data={},
+                allow_redirects=True,
+                timeout=10,
+            )
+            # 再生成
+            session.post(
+                f"{base_url}/{GITBUCKET_USER}/_personalToken",
+                data={"note": "gfo-test"},
+                allow_redirects=False,
+                timeout=10,
+            )
+            app_page2 = session.get(f"{base_url}/{GITBUCKET_USER}/_application", timeout=10)
+            token = _extract_token(app_page2.text)
+        if token is None:
+            raise RuntimeError(f"[{prefix}] Could not extract token from Web UI response.")
+
+    print(f"  [{prefix}] Token generated.")
 
     # テスト用リポジトリ作成
     print(f"  [{prefix}] Creating test repository ...")
@@ -365,64 +422,74 @@ def setup_gitbucket() -> str:
     else:
         print(f"  [{prefix}] Repository creation: {r.status_code} {r.text[:200]}")
 
-    # テスト用ブランチ作成 (API でファイルを作成してブランチを分岐)
-    print(f"  [{prefix}] Creating test branch ...")
-    # まず main の SHA を取得
+    # デフォルトブランチを確認
+    default_branch = "master"  # GitBucket のデフォルト
     r = requests.get(
-        f"{api_url}/repos/{GITBUCKET_USER}/{TEST_REPO}/git/refs/heads/main",
+        f"{api_url}/repos/{GITBUCKET_USER}/{TEST_REPO}",
         auth=auth,
         timeout=10,
     )
     if r.ok:
-        sha = r.json().get("object", {}).get("sha", "")
-        if sha:
-            r2 = requests.post(
-                f"{api_url}/repos/{GITBUCKET_USER}/{TEST_REPO}/git/refs",
-                auth=auth,
-                json={"ref": f"refs/heads/{TEST_BRANCH}", "sha": sha},
-                timeout=10,
-            )
-            if r2.ok or r2.status_code == 422:
-                print(f"  [{prefix}] Branch ready.")
-                # テスト用ファイルを追加
-                content_b64 = base64.b64encode(b"test content for PR").decode()
-                requests.put(
-                    f"{api_url}/repos/{GITBUCKET_USER}/{TEST_REPO}/contents/test-branch-file.txt",
-                    auth=auth,
-                    json={
-                        "message": "test: add branch file",
-                        "content": content_b64,
-                        "branch": TEST_BRANCH,
-                    },
-                    timeout=10,
-                )
-            else:
-                print(f"  [{prefix}] Branch creation: {r2.status_code}")
-    else:
-        # master ブランチを試す
-        r = requests.get(
-            f"{api_url}/repos/{GITBUCKET_USER}/{TEST_REPO}/git/refs/heads/master",
-            auth=auth,
-            timeout=10,
+        default_branch = r.json().get("default_branch", "master")
+
+    # テスト用ブランチ作成 (git clone + push 方式 — API の git/refs は未サポート)
+    print(f"  [{prefix}] Creating test branch via git ...")
+    import shutil
+    import subprocess
+    import tempfile
+
+    tmpdir = tempfile.mkdtemp(prefix="gfo-gitbucket-")
+    try:
+        clone_url = f"http://{GITBUCKET_USER}:{GITBUCKET_PASS}@localhost:3003/git/{GITBUCKET_USER}/{TEST_REPO}.git"
+        result = subprocess.run(
+            ["git", "clone", clone_url, tmpdir + "/repo"],
+            capture_output=True,
+            text=True,
         )
-        if r.ok:
-            sha = r.json().get("object", {}).get("sha", "")
-            if sha:
-                requests.post(
-                    f"{api_url}/repos/{GITBUCKET_USER}/{TEST_REPO}/git/refs",
-                    auth=auth,
-                    json={"ref": f"refs/heads/{TEST_BRANCH}", "sha": sha},
-                    timeout=10,
-                )
-                print(f"  [{prefix}] Branch created from master.")
+        if result.returncode == 0:
+            repo_path = tmpdir + "/repo"
+            subprocess.run(
+                ["git", "-C", repo_path, "checkout", "-b", TEST_BRANCH],
+                capture_output=True,
+                text=True,
+            )
+            # テスト用ファイルを追加
+            branch_file = repo_path + "/test-branch-file.txt"
+            with open(branch_file, "w") as f:
+                f.write("test content for PR\n")
+            subprocess.run(["git", "-C", repo_path, "add", "."], capture_output=True, text=True)
+            subprocess.run(
+                ["git", "-C", repo_path, "commit", "-m", "test: add branch file"],
+                capture_output=True,
+                text=True,
+                env={
+                    **__import__("os").environ,
+                    "GIT_AUTHOR_NAME": "gfo-test",
+                    "GIT_AUTHOR_EMAIL": "test@test.local",
+                    "GIT_COMMITTER_NAME": "gfo-test",
+                    "GIT_COMMITTER_EMAIL": "test@test.local",
+                },
+            )
+            push_result = subprocess.run(
+                ["git", "-C", repo_path, "push", "origin", TEST_BRANCH],
+                capture_output=True,
+                text=True,
+            )
+            if push_result.returncode == 0:
+                print(f"  [{prefix}] Branch created from {default_branch}.")
+            else:
+                print(f"  [{prefix}] Branch push failed: {push_result.stderr.strip()}")
         else:
-            print(f"  [{prefix}] Could not find default branch.")
+            print(f"  [{prefix}] Clone failed: {result.stderr.strip()}")
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
     # 環境変数を書き出し
     append_env(f"GFO_TEST_{prefix}_TOKEN", token)
     append_env(f"GFO_TEST_{prefix}_HOST", "localhost:3003")
     append_env(f"GFO_TEST_{prefix}_OWNER", GITBUCKET_USER)
     append_env(f"GFO_TEST_{prefix}_REPO", TEST_REPO)
+    append_env(f"GFO_TEST_{prefix}_DEFAULT_BRANCH", default_branch)
 
     return token
 
@@ -430,6 +497,7 @@ def setup_gitbucket() -> str:
 # ---------------------------------------------------------------------------
 # メイン
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     print("=" * 60)

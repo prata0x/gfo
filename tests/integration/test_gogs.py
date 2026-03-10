@@ -94,18 +94,21 @@ class TestGogsIntegration:
     def test_12_pr_create_not_supported(self) -> None:
         with pytest.raises(NotSupportedError):
             self.adapter.create_pull_request(
-                title="test", base="main", head="test",
+                title="test",
+                base="main",
+                head="test",
             )
 
-    # --- Release ---
+    # --- Release (非対応 → NotSupportedError) ---
 
-    def test_13_release_create(self) -> None:
-        release = self.adapter.create_release(
-            tag="v0.0.1-test", title="Test Release", notes="Integration test",
-        )
-        assert release.tag == "v0.0.1-test"
+    def test_13_release_create_not_supported(self) -> None:
+        with pytest.raises(NotSupportedError):
+            self.adapter.create_release(
+                tag="v0.0.1-test",
+                title="Test Release",
+                notes="Integration test",
+            )
 
-    def test_14_release_list(self) -> None:
-        releases = self.adapter.list_releases(limit=10)
-        tags = [r.tag for r in releases]
-        assert "v0.0.1-test" in tags
+    def test_14_release_list_not_supported(self) -> None:
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_releases(limit=10)

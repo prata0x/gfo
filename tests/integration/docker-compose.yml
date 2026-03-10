@@ -20,7 +20,7 @@ services:
       retries: 30
 
   forgejo:
-    image: codeberg/forgejo:9
+    image: codeberg.org/forgejo/forgejo:9
     container_name: gfo-forgejo
     environment:
       - FORGEJO__database__DB_TYPE=sqlite3
@@ -54,7 +54,7 @@ services:
       retries: 30
 
   gitbucket:
-    image: gitbucket/gitbucket:4.40
+    image: gitbucket/gitbucket:latest
     container_name: gfo-gitbucket
     ports:
       - "3003:8080"
@@ -62,7 +62,7 @@ services:
     volumes:
       - gitbucket-data:/gitbucket
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v3/rate_limit"]
+      test: ["CMD", "curl", "-sf", "-o", "/dev/null", "http://localhost:8080/"]
       interval: 5s
       timeout: 3s
       retries: 30

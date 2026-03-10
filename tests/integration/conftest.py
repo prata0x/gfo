@@ -105,6 +105,7 @@ def get_service_config(service_type: str) -> ServiceTestConfig | None:
     if not host:
         # API URL からホスト名を推定
         from urllib.parse import urlparse
+
         parsed = urlparse(api_url)
         host = parsed.netloc or parsed.hostname or ""
 
@@ -115,6 +116,8 @@ def get_service_config(service_type: str) -> ServiceTestConfig | None:
     if service_type == "backlog":
         project_key = os.environ.get(f"GFO_TEST_{prefix}_PROJECT_KEY")
 
+    default_branch = os.environ.get(f"GFO_TEST_{prefix}_DEFAULT_BRANCH", "main")
+
     return ServiceTestConfig(
         service_type=service_type,
         host=host,
@@ -124,6 +127,7 @@ def get_service_config(service_type: str) -> ServiceTestConfig | None:
         token=token,
         organization=organization,
         project_key=project_key,
+        default_branch=default_branch,
     )
 
 
