@@ -645,9 +645,13 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return self._to_wiki_page_data(resp.json())
 
     def create_wiki_page(self, *, title: str, content: str) -> WikiPage:
+        # Gitea 1.22+: content は base64 エンコードが必要
         resp = self._client.post(
             f"{self._repos_path()}/wiki/new",
-            json={"title": title, "content_format": "markdown", "content": content},
+            json={
+                "title": title,
+                "content_base64": base64.b64encode(content.encode()).decode(),
+            },
         )
         return self._to_wiki_page_data(resp.json())
 
@@ -658,19 +662,29 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         title: str | None = None,
         content: str | None = None,
     ) -> WikiPage:
-        # まず現在のページを取得
+        # まず現在のページを取得してタイトルを継承
         resp = self._client.get(f"{self._repos_path()}/wiki/page/{quote(str(page_id), safe='')}")
         current = resp.json()
+        current_title = title if title is not None else current.get("title", "")
+        if content is not None:
+            current_content_b64 = base64.b64encode(content.encode()).decode()
+        else:
+            current_content_b64 = current.get("content_base64") or ""
         payload: dict = {
-            "title": title if title is not None else current.get("title", ""),
-            "content": content if content is not None else current.get("content", ""),
-            "content_format": "markdown",
+            "title": current_title,
+            "content_base64": current_content_b64,
         }
         resp = self._client.patch(
             f"{self._repos_path()}/wiki/page/{quote(str(page_id), safe='')}",
             json=payload,
         )
-        return self._to_wiki_page_data(resp.json())
+        # PATCH レスポンスの content がリクエスト値と一致しない場合（Gitea 1.22 バグ）はリクエスト値で上書き
+        result = self._to_wiki_page_data(resp.json())
+        if content is not None:
+            from dataclasses import replace
+
+            result = replace(result, content=content)
+        return result
 
     def delete_wiki_page(self, page_id: int | str) -> None:
         self._client.delete(f"{self._repos_path()}/wiki/page/{quote(str(page_id), safe='')}")
@@ -680,10 +694,18 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         from gfo.exceptions import GfoError
 
         try:
+            # Gitea 1.22+: content は content_base64（base64エンコード）
+            content_b64 = data.get("content_base64") or ""
+            if content_b64:
+                content = base64.b64decode(content_b64).decode("utf-8", errors="replace")
+            else:
+                content = data.get("content") or ""
+            # sub_url が存在すればそれを id として使用（Gitea 1.22+）
+            page_id: int | str = data.get("sub_url") or 0
             return WikiPage(
-                id=0,  # Gitea wiki には数値IDなし
+                id=page_id,
                 title=data.get("title") or "",
-                content=data.get("content") or "",
+                content=content,
                 url=data.get("html_url") or "",
                 updated_at=data.get("last_commit", {}).get("created"),
             )

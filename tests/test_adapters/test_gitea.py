@@ -303,9 +303,9 @@ class TestToBranch:
         data = _branch_data()
         del data["commit"]["sha"]
         data["commit"]["id"] = "fallback_sha"
-        # sha がない場合は空文字列（_to_branch は sha のみ参照）
+        # sha がない場合は commit.id にフォールバック（Gitea/Gogs 系との互換）
         branch = GiteaAdapter._to_branch(data)
-        assert branch.sha == ""
+        assert branch.sha == "fallback_sha"
 
 
 class TestToTag:

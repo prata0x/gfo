@@ -7,7 +7,19 @@ from urllib.parse import quote
 
 from gfo.exceptions import NotSupportedError
 
-from .base import Comment, Label, Milestone, Pipeline, PullRequest, Release, Review
+from .base import (
+    Comment,
+    CommitStatus,
+    Label,
+    Milestone,
+    Pipeline,
+    PullRequest,
+    Release,
+    Review,
+    Tag,
+    Webhook,
+    WikiPage,
+)
 from .gitea import GiteaAdapter
 from .registry import register
 
@@ -147,3 +159,102 @@ class GogsAdapter(GiteaAdapter):
 
     def cancel_pipeline(self, pipeline_id: int | str) -> None:
         raise NotSupportedError("Gogs", "ci operations")
+
+    # --- Tag（Gogs 0.13: create/delete 未対応）---
+
+    def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
+        raise NotSupportedError("Gogs", "tag creation")
+
+    def delete_tag(self, *, name: str) -> None:
+        raise NotSupportedError("Gogs", "tag deletion")
+
+    # --- Branch（Gogs 0.13: POST/DELETE 未対応）---
+
+    def create_branch(self, *, name: str, ref: str):
+        raise NotSupportedError("Gogs", "branch creation")
+
+    def delete_branch(self, *, name: str) -> None:
+        raise NotSupportedError("Gogs", "branch deletion")
+
+    # --- CommitStatus（Gogs 0.13 未対応）---
+
+    def create_commit_status(
+        self,
+        ref: str,
+        *,
+        state: str,
+        context: str = "",
+        description: str = "",
+        target_url: str = "",
+    ) -> CommitStatus:
+        raise NotSupportedError("Gogs", "commit status")
+
+    def list_commit_statuses(self, ref: str, *, limit: int = 30) -> list[CommitStatus]:
+        raise NotSupportedError("Gogs", "commit status")
+
+    # --- File CRUD（Gogs 0.13: POST/DELETE 未対応）---
+
+    def create_or_update_file(
+        self,
+        path: str,
+        *,
+        content: str,
+        message: str,
+        sha: str | None = None,
+        branch: str | None = None,
+    ) -> None:
+        raise NotSupportedError("Gogs", "file write operations")
+
+    def delete_file(
+        self,
+        path: str,
+        *,
+        sha: str,
+        message: str,
+        branch: str | None = None,
+    ) -> None:
+        raise NotSupportedError("Gogs", "file write operations")
+
+    # --- Webhook（type: "gogs" を使用）---
+
+    def create_webhook(
+        self,
+        *,
+        url: str,
+        events: list[str] | None = None,
+        secret: str | None = None,
+    ) -> Webhook:
+        config: dict = {"url": url, "content_type": "json"}
+        if secret is not None:
+            config["secret"] = secret
+        payload: dict = {
+            "config": config,
+            "events": events or ["push"],
+            "active": True,
+            "type": "gogs",
+        }
+        resp = self._client.post(f"{self._repos_path()}/hooks", json=payload)
+        return self._to_webhook(resp.json())
+
+    # --- Wiki（Gogs 0.13 未対応）---
+
+    def list_wiki_pages(self, *, limit: int = 30) -> list[WikiPage]:
+        raise NotSupportedError("Gogs", "wiki operations")
+
+    def get_wiki_page(self, page_id: int | str) -> WikiPage:
+        raise NotSupportedError("Gogs", "wiki operations")
+
+    def create_wiki_page(self, *, title: str, content: str) -> WikiPage:
+        raise NotSupportedError("Gogs", "wiki operations")
+
+    def update_wiki_page(
+        self,
+        page_id: int | str,
+        *,
+        title: str | None = None,
+        content: str | None = None,
+    ) -> WikiPage:
+        raise NotSupportedError("Gogs", "wiki operations")
+
+    def delete_wiki_page(self, page_id: int | str) -> None:
+        raise NotSupportedError("Gogs", "wiki operations")

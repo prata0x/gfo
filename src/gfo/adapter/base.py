@@ -136,7 +136,7 @@ class DeployKey:
 
 @dataclass(frozen=True, slots=True)
 class WikiPage:
-    id: int
+    id: int | str  # 数値 ID または sub_url 文字列（Gitea 系）
     title: str
     content: str
     url: str
@@ -298,7 +298,7 @@ class GitHubLikeAdapter(ABC):
     def _to_branch(data: dict) -> Branch:
         try:
             commit = data.get("commit") or {}
-            sha = commit.get("sha") or ""
+            sha = commit.get("sha") or commit.get("id") or ""
             return Branch(
                 name=data["name"],
                 sha=sha,
@@ -325,8 +325,10 @@ class GitHubLikeAdapter(ABC):
     @staticmethod
     def _to_commit_status(data: dict) -> CommitStatus:
         try:
+            # GitHub は "state"、Gitea は "status" を使用する
+            state = data.get("state") or data.get("status") or ""
             return CommitStatus(
-                state=data["state"],
+                state=state,
                 context=data.get("context") or "",
                 description=data.get("description") or "",
                 target_url=data.get("target_url") or "",

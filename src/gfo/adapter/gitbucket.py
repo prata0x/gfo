@@ -14,8 +14,9 @@ import urllib.parse
 import requests as _requests
 
 from gfo.exceptions import GfoError, NotSupportedError
+from gfo.http import paginate_link_header
 
-from .base import PullRequest, Release, Review
+from .base import Issue, PullRequest, Release, Repository, Review, Tag, WikiPage
 from .github import GitHubAdapter
 from .registry import register
 
@@ -101,6 +102,27 @@ class GitBucketAdapter(GitHubAdapter):
         """GitBucket は DELETE /repos API 未実装のため非対応。"""
         raise NotSupportedError("GitBucket", "repo delete")
 
+    # --- Tag（/tags エンドポイントが二重エンコード JSON を返すため /git/refs/tags を使用）---
+
+    def list_tags(self, *, limit: int = 30) -> list[Tag]:
+        """GitBucket の GET /tags は二重エンコード JSON を返すため GET /git/refs/tags を使用。"""
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/git/refs/tags",
+            limit=limit,
+        )
+        tags = []
+        for item in results:
+            ref = item.get("ref", "")
+            name = ref[len("refs/tags/") :] if ref.startswith("refs/tags/") else ref
+            sha = (item.get("object") or {}).get("sha") or ""
+            tags.append(Tag(name=name, sha=sha, message="", url=""))
+        return tags
+
+    def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
+        """GitBucket は POST /git/refs 未実装のため非対応。"""
+        raise NotSupportedError("GitBucket", "tag creation via API (use git push)")
+
     def delete_release(self, *, tag: str) -> None:
         """GitBucket はリリースをタグ名で直接削除する（数値 ID を返さないため）。"""
         self._client.delete(f"{self._repos_path()}/releases/{urllib.parse.quote(tag, safe='')}")
@@ -123,6 +145,51 @@ class GitBucketAdapter(GitHubAdapter):
         }
         resp = self._client.post(f"{self._repos_path()}/releases", json=payload)
         return self._to_release(self._parse_response(resp))
+
+    # --- Issue update（PATCH /issues/{number} 未実装）---
+
+    def update_issue(
+        self,
+        number: int,
+        *,
+        title: str | None = None,
+        body: str | None = None,
+        state: str | None = None,
+        assignee: str | None = None,
+        label: str | None = None,
+    ) -> Issue:
+        raise NotSupportedError("GitBucket", "issue update")
+
+    # --- Search（検索 API 未実装）---
+
+    def search_repositories(self, query: str, *, limit: int = 30) -> list[Repository]:
+        raise NotSupportedError("GitBucket", "search operations")
+
+    def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
+        raise NotSupportedError("GitBucket", "search operations")
+
+    # --- Wiki（GitBucket 未実装）---
+
+    def list_wiki_pages(self, *, limit: int = 30) -> list[WikiPage]:
+        raise NotSupportedError("GitBucket", "wiki operations")
+
+    def get_wiki_page(self, page_id: int | str) -> WikiPage:
+        raise NotSupportedError("GitBucket", "wiki operations")
+
+    def create_wiki_page(self, *, title: str, content: str) -> WikiPage:
+        raise NotSupportedError("GitBucket", "wiki operations")
+
+    def update_wiki_page(
+        self,
+        page_id: int | str,
+        *,
+        title: str | None = None,
+        content: str | None = None,
+    ) -> WikiPage:
+        raise NotSupportedError("GitBucket", "wiki operations")
+
+    def delete_wiki_page(self, page_id: int | str) -> None:
+        raise NotSupportedError("GitBucket", "wiki operations")
 
     # --- Review（Reviews API なし）---
 
