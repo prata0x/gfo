@@ -1,3 +1,5 @@
+[English](README.md)
+
 # gfo – Git Forge Operator
 
 複数の Git ホスティングサービスを **統一コマンド** で操作する CLI ツール。
@@ -71,7 +73,7 @@ export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
 gfo auth status
 ```
 
-各サービスのトークン作成手順（必要なスコープ・権限）は [docs/authentication.md](docs/authentication.md) を参照してください。
+各サービスのトークン作成手順（必要なスコープ・権限）は [docs/authentication.ja.md](docs/authentication.ja.md) を参照してください。
 
 ## コマンド一覧
 
@@ -99,7 +101,7 @@ gfo auth status
 | `gfo search` | `repos`, `issues` | リポジトリ・Issue 検索 |
 | `gfo wiki` | `list`, `view`, `create`, `update`, `delete` | Wiki 操作 |
 
-各コマンドの詳細なオプション・使用例は [docs/commands.md](docs/commands.md) を参照してください。
+各コマンドの詳細なオプション・使用例は [docs/commands.ja.md](docs/commands.ja.md) を参照してください。
 
 ### グローバルオプション
 
@@ -170,7 +172,7 @@ pytest tests/test_commands/test_pr.py
 - **セルフホスト**（Gitea / Forgejo / Gogs / GitBucket）: Docker さえあれば自動実行可能
 - **SaaS**（GitHub / GitLab / Bitbucket / Azure DevOps）: 各サービスのアカウントと API トークンが必要
 
-詳細なセットアップ手順は [docs/integration-testing.md](docs/integration-testing.md) を参照してください。
+詳細なセットアップ手順は [docs/integration-testing.ja.md](docs/integration-testing.ja.md) を参照してください。
 
 ```bash
 # セルフホストテスト（Docker 自動起動・クリーンアップ込み）
