@@ -182,6 +182,10 @@ bash tests/integration/run_selfhosted.sh
 bash tests/integration/run_saas.sh
 ```
 
+## コントリビューション
+
+このプロジェクトは 0BSD ライセンスで提供しています。Issue の報告は歓迎しますが、対応・修正を保証するものではありません。Pull Request は受け付けていません。自由にフォークしてご利用ください。
+
 ## ライセンス
 
 0BSD
