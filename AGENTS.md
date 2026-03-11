@@ -79,4 +79,4 @@ pytest
 pytest tests/test_commands/test_pr.py -v
 ```
 
-カバレッジ: 1058 テスト、99%（`__main__.py` の 4 行のみ未カバー）
+カバレッジ: 1570 テスト、99%（`__main__.py` の 4 行のみ未カバー）
