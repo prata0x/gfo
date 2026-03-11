@@ -8,10 +8,25 @@ from urllib.parse import quote
 import pytest
 import responses
 
-from gfo.adapter.base import Issue, Milestone, PullRequest, Release, Repository
+from gfo.adapter.base import (
+    Branch,
+    Comment,
+    CommitStatus,
+    DeployKey,
+    Issue,
+    Milestone,
+    Pipeline,
+    PullRequest,
+    Release,
+    Repository,
+    Review,
+    Tag,
+    Webhook,
+    WikiPage,
+)
 from gfo.adapter.gitlab import GitLabAdapter
 from gfo.adapter.registry import get_adapter_class
-from gfo.exceptions import AuthenticationError, NotFoundError, ServerError
+from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError, ServerError
 
 BASE = "https://gitlab.com/api/v4"
 PROJECT = f"{BASE}/projects/{quote('test-owner/test-repo', safe='')}"
@@ -85,6 +100,92 @@ def _milestone_data(*, iid=1):
         "description": "milestone desc",
         "state": "active",
         "due_date": "2025-06-01",
+    }
+
+
+def _comment_data(*, comment_id=10):
+    return {
+        "id": comment_id,
+        "body": "A comment",
+        "author": {"username": "commenter"},
+        "web_url": f"https://gitlab.com/test-owner/test-repo/-/issues/1#note_{comment_id}",
+        "created_at": "2025-01-01T00:00:00Z",
+        "updated_at": "2025-01-02T00:00:00Z",
+    }
+
+
+def _review_data_approved():
+    """GitLab の approvals レスポンス。"""
+    return {
+        "approved_by": [
+            {"user": {"username": "reviewer1"}},
+        ]
+    }
+
+
+def _branch_data(*, name="feature", sha="abc123"):
+    return {
+        "name": name,
+        "commit": {"id": sha},
+        "web_url": f"https://gitlab.com/test-owner/test-repo/-/tree/{name}",
+        "protected": False,
+    }
+
+
+def _tag_data(*, name="v1.0.0", sha="def456"):
+    return {
+        "name": name,
+        "commit": {"id": sha, "message": "Release"},
+    }
+
+
+def _commit_status_data(*, state="success", name="ci/test"):
+    return {
+        "status": state,
+        "name": name,
+        "description": "Tests passed",
+        "target_url": "https://ci.example.com/build/1",
+        "created_at": "2025-01-01T00:00:00Z",
+    }
+
+
+def _webhook_data(*, hook_id=100):
+    return {
+        "id": hook_id,
+        "url": "https://example.com/hook",
+        "push_events": True,
+        "issues_events": False,
+        "merge_requests_events": False,
+        "token": "",
+        "enable_ssl_verification": True,
+    }
+
+
+def _deploy_key_data(*, key_id=200):
+    return {
+        "id": key_id,
+        "title": "Deploy Key",
+        "key": "ssh-rsa AAAA...",
+        "can_push": False,
+    }
+
+
+def _pipeline_data(*, pipeline_id=300, status="success"):
+    return {
+        "id": pipeline_id,
+        "status": status,
+        "ref": "main",
+        "web_url": f"https://gitlab.com/test-owner/test-repo/-/pipelines/{pipeline_id}",
+        "created_at": "2025-01-01T00:00:00Z",
+    }
+
+
+def _wiki_page_data(*, slug="home"):
+    return {
+        "slug": slug,
+        "title": slug.capitalize(),
+        "content": f"# {slug.capitalize()}",
+        "web_url": f"https://gitlab.com/test-owner/test-repo/-/wikis/{slug}",
     }
 
 
@@ -961,3 +1062,858 @@ class TestDeleteRepository:
         )
         gitlab_adapter.delete_repository()
         assert mock_responses.calls[0].request.method == "DELETE"
+
+
+# --- Comment 系 ---
+
+
+class TestListComments:
+    def test_list_issue(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/issues/1/notes",
+            json=[_comment_data()],
+            status=200,
+        )
+        comments = gitlab_adapter.list_comments("issue", 1)
+        assert len(comments) == 1
+        assert isinstance(comments[0], Comment)
+
+    def test_list_pr(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests/1/notes",
+            json=[_comment_data()],
+            status=200,
+        )
+        comments = gitlab_adapter.list_comments("pr", 1)
+        assert len(comments) == 1
+
+
+class TestCreateComment:
+    def test_create_issue(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/issues/1/notes",
+            json=_comment_data(),
+            status=201,
+        )
+        comment = gitlab_adapter.create_comment("issue", 1, body="Hello")
+        assert isinstance(comment, Comment)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["body"] == "Hello"
+
+    def test_create_pr(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/merge_requests/1/notes",
+            json=_comment_data(),
+            status=201,
+        )
+        comment = gitlab_adapter.create_comment("pr", 1, body="LGTM")
+        assert isinstance(comment, Comment)
+
+
+class TestUpdateCommentNotSupported:
+    def test_raises(self, gitlab_adapter):
+        with pytest.raises(NotSupportedError):
+            gitlab_adapter.update_comment("pr", 10, body="Updated")
+
+
+class TestDeleteCommentNotSupported:
+    def test_raises(self, gitlab_adapter):
+        with pytest.raises(NotSupportedError):
+            gitlab_adapter.delete_comment("pr", 10)
+
+
+# --- PR Update / Issue Update ---
+
+
+class TestUpdatePullRequest:
+    def test_update_title(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1",
+            json=_mr_data(),
+            status=200,
+        )
+        pr = gitlab_adapter.update_pull_request(1, title="New Title")
+        assert isinstance(pr, PullRequest)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["title"] == "New Title"
+
+    def test_update_body(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1",
+            json=_mr_data(),
+            status=200,
+        )
+        gitlab_adapter.update_pull_request(1, body="New desc")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["description"] == "New desc"
+
+    def test_update_base(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1",
+            json=_mr_data(),
+            status=200,
+        )
+        gitlab_adapter.update_pull_request(1, base="develop")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["target_branch"] == "develop"
+
+
+class TestUpdateIssue:
+    def test_update_title(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/issues/1",
+            json=_issue_data(),
+            status=200,
+        )
+        issue = gitlab_adapter.update_issue(1, title="New Title")
+        assert isinstance(issue, Issue)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["title"] == "New Title"
+
+    def test_update_assignee(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/issues/1",
+            json=_issue_data(),
+            status=200,
+        )
+        gitlab_adapter.update_issue(1, assignee="devuser")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["assignee_username"] == "devuser"
+
+
+# --- Review 系 ---
+
+
+class TestListReviews:
+    def test_list(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests/1/approvals",
+            json=_review_data_approved(),
+            status=200,
+        )
+        reviews = gitlab_adapter.list_reviews(1)
+        assert len(reviews) == 1
+        assert isinstance(reviews[0], Review)
+        assert reviews[0].state == "approved"
+
+
+class TestCreateReview:
+    def test_approve(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/merge_requests/1/approve",
+            json={"approved": True},
+            status=201,
+        )
+        gitlab_adapter.create_review(1, state="approve")
+        assert mock_responses.calls[0].request.method == "POST"
+
+    def test_request_changes(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/merge_requests/1/unapprove",
+            json={"approved": False},
+            status=201,
+        )
+        gitlab_adapter.create_review(1, state="request_changes")
+
+    def test_comment_state(self, mock_responses, gitlab_adapter):
+        """COMMENT 状態（else 分岐）はノートとして作成し state="commented" を返す。"""
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/merge_requests/1/notes",
+            json={"id": 42, "author": {"username": "commenter"}, "body": "LGTM"},
+            status=201,
+        )
+        review = gitlab_adapter.create_review(1, state="COMMENT", body="LGTM")
+        assert review.state == "commented"
+        assert review.id == 42
+
+
+# --- Branch 系 ---
+
+
+class TestListBranches:
+    def test_list(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/repository/branches",
+            json=[_branch_data()],
+            status=200,
+        )
+        branches = gitlab_adapter.list_branches()
+        assert len(branches) == 1
+        assert isinstance(branches[0], Branch)
+        assert branches[0].name == "feature"
+
+
+class TestCreateBranch:
+    def test_create(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/repository/branches",
+            json=_branch_data(name="new-branch"),
+            status=201,
+        )
+        branch = gitlab_adapter.create_branch(name="new-branch", ref="main")
+        assert isinstance(branch, Branch)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["branch"] == "new-branch"
+        assert req_body["ref"] == "main"
+
+
+class TestDeleteBranch:
+    def test_delete(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/repository/branches/feature",
+            status=204,
+        )
+        gitlab_adapter.delete_branch(name="feature")
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+
+# --- Tag 系 ---
+
+
+class TestListTags:
+    def test_list(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/repository/tags",
+            json=[_tag_data()],
+            status=200,
+        )
+        tags = gitlab_adapter.list_tags()
+        assert len(tags) == 1
+        assert isinstance(tags[0], Tag)
+        assert tags[0].name == "v1.0.0"
+
+
+class TestCreateTag:
+    def test_create(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/repository/tags",
+            json=_tag_data(name="v2.0.0"),
+            status=201,
+        )
+        tag = gitlab_adapter.create_tag(name="v2.0.0", ref="main")
+        assert isinstance(tag, Tag)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["tag_name"] == "v2.0.0"
+        assert req_body["ref"] == "main"
+
+
+class TestDeleteTag:
+    def test_delete(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/repository/tags/v1.0.0",
+            status=204,
+        )
+        gitlab_adapter.delete_tag(name="v1.0.0")
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+
+# --- CommitStatus 系 ---
+
+
+class TestListCommitStatuses:
+    def test_list(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/repository/commits/abc123/statuses",
+            json=[_commit_status_data()],
+            status=200,
+        )
+        statuses = gitlab_adapter.list_commit_statuses("abc123")
+        assert len(statuses) == 1
+        assert isinstance(statuses[0], CommitStatus)
+
+
+class TestCreateCommitStatus:
+    def test_create(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/statuses/abc123",
+            json=_commit_status_data(),
+            status=201,
+        )
+        status = gitlab_adapter.create_commit_status("abc123", state="success", context="ci/test")
+        assert isinstance(status, CommitStatus)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["state"] == "success"
+        assert req_body["name"] == "ci/test"
+
+
+# --- File 系 ---
+
+
+class TestGetFileContent:
+    def test_get(self, mock_responses, gitlab_adapter):
+        import base64 as _b64
+
+        content_b64 = _b64.b64encode(b"file content").decode()
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/repository/files/README.md",
+            json={"content": content_b64, "blob_id": "sha1", "commit_id": "sha1"},
+            status=200,
+        )
+        content, sha = gitlab_adapter.get_file_content("README.md")
+        assert content == "file content"
+
+
+class TestCreateOrUpdateFile:
+    def test_create_new(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/repository/files/new-file.md",
+            json={"file_name": "new-file.md", "branch": "main"},
+            status=201,
+        )
+        gitlab_adapter.create_or_update_file(
+            "new-file.md", content="new content", message="Add file"
+        )
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["commit_message"] == "Add file"
+
+    def test_update_existing(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/repository/files/existing.md",
+            json={"file_name": "existing.md", "branch": "main"},
+            status=200,
+        )
+        gitlab_adapter.create_or_update_file(
+            "existing.md", content="updated", message="Update", sha="oldsha"
+        )
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["commit_message"] == "Update"
+
+
+class TestDeleteFile:
+    def test_delete(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/repository/files/to-delete.md",
+            status=204,
+        )
+        gitlab_adapter.delete_file("to-delete.md", sha="filsha", message="Delete file")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["commit_message"] == "Delete file"
+
+
+# --- Fork 系 ---
+
+
+class TestForkRepository:
+    def test_fork(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/fork",
+            json=_repo_data(),
+            status=202,
+        )
+        repo = gitlab_adapter.fork_repository()
+        assert isinstance(repo, Repository)
+
+    def test_fork_with_org(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/fork",
+            json=_repo_data(),
+            status=202,
+        )
+        gitlab_adapter.fork_repository(organization="myorg")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["namespace_path"] == "myorg"
+
+
+# --- Webhook 系 ---
+
+
+class TestListWebhooks:
+    def test_list(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/hooks",
+            json=[_webhook_data()],
+            status=200,
+        )
+        webhooks = gitlab_adapter.list_webhooks()
+        assert len(webhooks) == 1
+        assert isinstance(webhooks[0], Webhook)
+
+
+class TestCreateWebhook:
+    def test_create(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/hooks",
+            json=_webhook_data(),
+            status=201,
+        )
+        webhook = gitlab_adapter.create_webhook(url="https://example.com/hook", events=["push"])
+        assert isinstance(webhook, Webhook)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["url"] == "https://example.com/hook"
+        assert req_body["push_events"] is True
+
+
+class TestDeleteWebhook:
+    def test_delete(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/hooks/100",
+            status=204,
+        )
+        gitlab_adapter.delete_webhook(hook_id=100)
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+
+# --- DeployKey 系 ---
+
+
+class TestListDeployKeys:
+    def test_list(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/deploy_keys",
+            json=[_deploy_key_data()],
+            status=200,
+        )
+        keys = gitlab_adapter.list_deploy_keys()
+        assert len(keys) == 1
+        assert isinstance(keys[0], DeployKey)
+
+
+class TestCreateDeployKey:
+    def test_create(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/deploy_keys",
+            json=_deploy_key_data(),
+            status=201,
+        )
+        key = gitlab_adapter.create_deploy_key(
+            title="Deploy Key", key="ssh-rsa AAAA...", read_only=True
+        )
+        assert isinstance(key, DeployKey)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["can_push"] is False
+
+
+class TestDeleteDeployKey:
+    def test_delete(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/deploy_keys/200",
+            status=204,
+        )
+        gitlab_adapter.delete_deploy_key(key_id=200)
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+
+# --- Collaborator 系 ---
+
+
+class TestListCollaborators:
+    def test_list(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/members",
+            json=[{"username": "collab1"}, {"username": "collab2"}],
+            status=200,
+        )
+        collabs = gitlab_adapter.list_collaborators()
+        assert collabs == ["collab1", "collab2"]
+
+
+class TestAddCollaborator:
+    def test_add(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/users",
+            json=[{"id": 42, "username": "newuser"}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/members",
+            json={"id": 42, "username": "newuser", "access_level": 40},
+            status=201,
+        )
+        gitlab_adapter.add_collaborator(username="newuser")
+        assert mock_responses.calls[1].request.method == "POST"
+
+
+class TestRemoveCollaborator:
+    def test_remove(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/users",
+            json=[{"id": 42, "username": "olduser"}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/members/42",
+            status=204,
+        )
+        gitlab_adapter.remove_collaborator(username="olduser")
+        assert mock_responses.calls[1].request.method == "DELETE"
+
+
+# --- Pipeline 系 ---
+
+
+class TestListPipelines:
+    def test_list(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/pipelines",
+            json=[_pipeline_data()],
+            status=200,
+        )
+        pipelines = gitlab_adapter.list_pipelines()
+        assert len(pipelines) == 1
+        assert isinstance(pipelines[0], Pipeline)
+
+    def test_with_ref(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/pipelines",
+            json=[_pipeline_data()],
+            status=200,
+        )
+        gitlab_adapter.list_pipelines(ref="main")
+        req = mock_responses.calls[0].request
+        assert "ref=main" in req.url
+
+
+class TestGetPipeline:
+    def test_get(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/pipelines/300",
+            json=_pipeline_data(pipeline_id=300),
+            status=200,
+        )
+        pipeline = gitlab_adapter.get_pipeline(300)
+        assert isinstance(pipeline, Pipeline)
+        assert pipeline.id == 300
+
+
+class TestCancelPipeline:
+    def test_cancel(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/pipelines/300/cancel",
+            json=_pipeline_data(pipeline_id=300, status="canceled"),
+            status=200,
+        )
+        gitlab_adapter.cancel_pipeline(300)
+        assert mock_responses.calls[0].request.method == "POST"
+
+
+# --- User / Search 系 ---
+
+
+class TestGetCurrentUser:
+    def test_get(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/user",
+            json={"username": "testuser", "id": 1},
+            status=200,
+        )
+        user = gitlab_adapter.get_current_user()
+        assert user["username"] == "testuser"
+
+
+class TestSearchRepositories:
+    def test_search(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects",
+            json=[_repo_data()],
+            status=200,
+        )
+        repos = gitlab_adapter.search_repositories("test")
+        assert len(repos) >= 1
+        assert isinstance(repos[0], Repository)
+
+
+class TestSearchIssues:
+    def test_search(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/issues",
+            json=[_issue_data()],
+            status=200,
+        )
+        issues = gitlab_adapter.search_issues("bug")
+        assert len(issues) == 1
+        assert isinstance(issues[0], Issue)
+
+
+# --- Wiki 系 ---
+
+
+class TestListWikiPages:
+    def test_list(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/wikis",
+            json=[_wiki_page_data()],
+            status=200,
+        )
+        pages = gitlab_adapter.list_wiki_pages()
+        assert len(pages) == 1
+        assert isinstance(pages[0], WikiPage)
+
+
+class TestGetWikiPage:
+    def test_get(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/wikis/home",
+            json=_wiki_page_data(slug="home"),
+            status=200,
+        )
+        page = gitlab_adapter.get_wiki_page("home")
+        assert isinstance(page, WikiPage)
+        assert page.title == "Home"
+
+
+class TestCreateWikiPage:
+    def test_create(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/wikis",
+            json=_wiki_page_data(),
+            status=201,
+        )
+        page = gitlab_adapter.create_wiki_page(title="Home", content="# Home")
+        assert isinstance(page, WikiPage)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["title"] == "Home"
+
+
+class TestUpdateWikiPage:
+    def test_update(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/wikis/home",
+            json=_wiki_page_data(),
+            status=200,
+        )
+        page = gitlab_adapter.update_wiki_page("home", title="Home", content="Updated")
+        assert isinstance(page, WikiPage)
+
+
+class TestDeleteWikiPage:
+    def test_delete(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/wikis/home",
+            status=204,
+        )
+        gitlab_adapter.delete_wiki_page("home")
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+
+# --- 変換ヘルパー単体テスト ---
+
+
+class TestToComment:
+    def test_basic(self):
+        data = {
+            "id": 10,
+            "body": "A comment",
+            "author": {"username": "commenter"},
+            "created_at": "2025-01-01T00:00:00Z",
+        }
+        comment = GitLabAdapter._to_comment(data)
+        assert isinstance(comment, Comment)
+        assert comment.id == 10
+        assert comment.body == "A comment"
+        assert comment.author == "commenter"
+
+
+class TestToReview:
+    def test_approved(self):
+        data = {"id": 1, "state": "approved", "user": {"username": "reviewer1"}}
+        review = GitLabAdapter._to_review(data)
+        assert isinstance(review, Review)
+        assert review.state == "approved"
+
+    def test_unapproved(self):
+        data = {"id": 2, "state": "unapproved", "user": {"username": "reviewer2"}}
+        review = GitLabAdapter._to_review(data)
+        assert isinstance(review, Review)
+        assert review.state == "changes_requested"
+
+
+class TestToBranch:
+    def test_basic(self):
+        data = {
+            "name": "feature",
+            "commit": {"id": "abc123"},
+            "protected": False,
+        }
+        branch = GitLabAdapter._to_branch(data)
+        assert isinstance(branch, Branch)
+        assert branch.name == "feature"
+        assert branch.sha == "abc123"
+
+
+class TestToTag:
+    def test_basic(self):
+        data = {
+            "name": "v1.0.0",
+            "commit": {"id": "def456"},
+            "message": "Release v1.0.0",
+        }
+        tag = GitLabAdapter._to_tag(data)
+        assert isinstance(tag, Tag)
+        assert tag.name == "v1.0.0"
+        assert tag.sha == "def456"
+        assert tag.message == "Release v1.0.0"
+
+
+class TestToCommitStatus:
+    def test_success(self):
+        data = {
+            "status": "success",
+            "name": "ci/test",
+            "description": "Tests passed",
+            "target_url": "https://ci.example.com/1",
+            "created_at": "2025-01-01T00:00:00Z",
+        }
+        cs = GitLabAdapter._to_commit_status(data)
+        assert isinstance(cs, CommitStatus)
+        assert cs.state == "success"
+        assert cs.context == "ci/test"
+
+    def test_failed(self):
+        data = {"status": "failed", "name": "ci/test", "created_at": "2025-01-01T00:00:00Z"}
+        cs = GitLabAdapter._to_commit_status(data)
+        assert cs.state == "failure"
+
+    def test_running(self):
+        data = {"status": "running", "name": "ci/test", "created_at": "2025-01-01T00:00:00Z"}
+        cs = GitLabAdapter._to_commit_status(data)
+        assert cs.state == "pending"
+
+    def test_pending(self):
+        data = {"status": "pending", "name": "ci/test", "created_at": "2025-01-01T00:00:00Z"}
+        cs = GitLabAdapter._to_commit_status(data)
+        assert cs.state == "pending"
+
+
+class TestToWebhook:
+    def test_basic(self):
+        data = {
+            "id": 100,
+            "url": "https://example.com/hook",
+            "push_events": True,
+            "issues_events": True,
+            "merge_requests_events": False,
+            "tag_push_events": False,
+            "note_events": False,
+            "confidential_note_events": False,
+            "job_events": False,
+            "pipeline_events": False,
+            "wiki_page_events": False,
+            "releases_events": False,
+            "enable_ssl_verification": True,
+        }
+        webhook = GitLabAdapter._to_webhook(data)
+        assert isinstance(webhook, Webhook)
+        assert webhook.id == 100
+        assert webhook.url == "https://example.com/hook"
+        assert "push" in webhook.events
+        assert "issues" in webhook.events
+        assert "merge_requests" not in webhook.events
+
+
+class TestToDeployKey:
+    def test_basic(self):
+        data = {
+            "id": 200,
+            "title": "Deploy Key",
+            "key": "ssh-rsa AAAA...",
+            "can_push": False,
+        }
+        dk = GitLabAdapter._to_deploy_key(data)
+        assert isinstance(dk, DeployKey)
+        assert dk.id == 200
+        assert dk.title == "Deploy Key"
+        assert dk.key == "ssh-rsa AAAA..."
+
+    def test_can_push_true(self):
+        data = {"id": 201, "title": "RW Key", "key": "ssh-rsa BBBB...", "can_push": True}
+        dk = GitLabAdapter._to_deploy_key(data)
+        assert dk.read_only is False
+
+    def test_can_push_false(self):
+        data = {"id": 202, "title": "RO Key", "key": "ssh-rsa CCCC...", "can_push": False}
+        dk = GitLabAdapter._to_deploy_key(data)
+        assert dk.read_only is True
+
+
+class TestToPipeline:
+    def test_basic(self):
+        data = {
+            "id": 300,
+            "status": "success",
+            "ref": "main",
+            "web_url": "https://gitlab.com/test-owner/test-repo/-/pipelines/300",
+            "created_at": "2025-01-01T00:00:00Z",
+        }
+        pipeline = GitLabAdapter._to_pipeline(data)
+        assert isinstance(pipeline, Pipeline)
+        assert pipeline.id == 300
+        assert pipeline.status == "success"
+
+    def test_failed_status(self):
+        data = {"id": 301, "status": "failed", "ref": "main", "created_at": "2025-01-01T00:00:00Z"}
+        pipeline = GitLabAdapter._to_pipeline(data)
+        assert pipeline.status == "failure"
+
+    def test_running_status(self):
+        data = {
+            "id": 302,
+            "status": "running",
+            "ref": "main",
+            "created_at": "2025-01-01T00:00:00Z",
+        }
+        pipeline = GitLabAdapter._to_pipeline(data)
+        assert pipeline.status == "running"
+
+
+class TestToWikiPage:
+    def test_basic(self):
+        data = {
+            "slug": "home",
+            "title": "Home",
+            "content": "# Home",
+            "web_url": "https://gitlab.com/test-owner/test-repo/-/wikis/home",
+        }
+        page = GitLabAdapter._to_wiki_page(data)
+        assert isinstance(page, WikiPage)
+        assert page.title == "Home"
+        assert page.content == "# Home"

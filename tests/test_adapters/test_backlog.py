@@ -8,13 +8,23 @@ import pytest
 import responses
 
 from gfo.adapter.backlog import BacklogAdapter
-from gfo.adapter.base import Issue, PullRequest, Repository
+from gfo.adapter.base import (
+    Branch,
+    Comment,
+    Issue,
+    PullRequest,
+    Repository,
+    Tag,
+    Webhook,
+    WikiPage,
+)
 from gfo.adapter.registry import get_adapter_class
 from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError, ServerError
 
 BASE = "https://example.backlog.com/api/v2"
 PR_PATH = f"{BASE}/projects/TEST/git/repositories/test-repo/pullRequests"
 ISSUES_PATH = f"{BASE}/issues"
+REPO_PATH = f"{BASE}/projects/TEST/git/repositories/test-repo"
 
 
 # --- サンプルデータ ---
@@ -1069,3 +1079,582 @@ class TestDeleteRepository:
         backlog_adapter.delete_repository()
         assert mock_responses.calls[0].request.method == "DELETE"
         assert "/git/repositories/test-repo" in mock_responses.calls[0].request.url
+
+
+# --- サンプルデータ（拡張） ---
+
+
+def _comment_data_bl(*, comment_id=10):
+    return {
+        "id": comment_id,
+        "content": "A comment",
+        "createdUser": {"userId": 1, "name": "commenter"},
+        "created": "2025-01-01T00:00:00Z",
+        "updated": "2025-01-02T00:00:00Z",
+    }
+
+
+def _branch_data_bl(*, name="feature", sha="abc123"):
+    return {
+        "name": name,
+        "commit": {"id": sha},
+    }
+
+
+def _tag_data_bl(*, name="v1.0.0", sha="def456"):
+    return {
+        "name": name,
+        "commit": {"id": sha},
+    }
+
+
+def _webhook_data_bl(*, hook_id=100):
+    return {
+        "id": hook_id,
+        "hookUrl": "https://example.com/hook",
+        "events": [{"type": "push_git"}],
+        "allEvent": False,
+    }
+
+
+def _wiki_data(*, wiki_id=1):
+    return {
+        "id": wiki_id,
+        "name": "Home",
+        "content": "# Home",
+    }
+
+
+# --- Comment 系 ---
+
+
+class TestListComments:
+    def test_list_pr(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PR_PATH}/1/comments",
+            json=[_comment_data_bl()],
+            status=200,
+        )
+        comments = backlog_adapter.list_comments("pr", 1)
+        assert len(comments) == 1
+        assert isinstance(comments[0], Comment)
+        assert comments[0].body == "A comment"
+
+    def test_list_issue(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/issues/TEST-1/comments",
+            json=[_comment_data_bl()],
+            status=200,
+        )
+        comments = backlog_adapter.list_comments("issue", 1)
+        assert len(comments) == 1
+
+
+class TestCreateComment:
+    def test_create_pr(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PR_PATH}/1/comments",
+            json=_comment_data_bl(),
+            status=201,
+        )
+        comment = backlog_adapter.create_comment("pr", 1, body="Hello")
+        assert isinstance(comment, Comment)
+
+    def test_create_issue(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/issues/TEST-1/comments",
+            json=_comment_data_bl(),
+            status=201,
+        )
+        comment = backlog_adapter.create_comment("issue", 1, body="Hello")
+        assert isinstance(comment, Comment)
+
+
+class TestUpdateComment:
+    def test_update_pr(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{PR_PATH}/comments/10",
+            json=_comment_data_bl(),
+            status=200,
+        )
+        comment = backlog_adapter.update_comment("pr", 10, body="Updated")
+        assert isinstance(comment, Comment)
+
+    def test_update_issue(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/issues/comments/10",
+            json=_comment_data_bl(),
+            status=200,
+        )
+        comment = backlog_adapter.update_comment("issue", 10, body="Updated")
+        assert isinstance(comment, Comment)
+
+
+class TestDeleteComment:
+    def test_delete_pr(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{PR_PATH}/comments/10",
+            json=_comment_data_bl(),
+            status=200,
+        )
+        backlog_adapter.delete_comment("pr", 10)
+
+    def test_delete_issue(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{BASE}/issues/comments/10",
+            json=_comment_data_bl(),
+            status=200,
+        )
+        backlog_adapter.delete_comment("issue", 10)
+
+
+# --- PR Update / Issue Update ---
+
+
+class TestUpdatePullRequest:
+    def test_update_title(self, mock_responses, backlog_adapter):
+        # update_pull_request は PATCH 後に _resolve_merged_status_id() を呼ぶ
+        mock_responses.add(
+            responses.PATCH,
+            f"{PR_PATH}/1",
+            json=_pr_data(),
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 5, "name": "Merged"}],
+            status=200,
+        )
+        pr = backlog_adapter.update_pull_request(1, title="New Title")
+        assert isinstance(pr, PullRequest)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["summary"] == "New Title"
+
+    def test_update_body(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{PR_PATH}/1",
+            json=_pr_data(),
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 5, "name": "Merged"}],
+            status=200,
+        )
+        backlog_adapter.update_pull_request(1, body="New desc")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["description"] == "New desc"
+
+
+class TestUpdateIssue:
+    def test_update_title(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/issues/TEST-1",
+            json=_issue_data(),
+            status=200,
+        )
+        issue = backlog_adapter.update_issue(1, title="New Title")
+        assert isinstance(issue, Issue)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["summary"] == "New Title"
+
+
+# --- Branch 系 ---
+
+
+class TestListBranches:
+    def test_list(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPO_PATH}/branches",
+            json=[_branch_data_bl()],
+            status=200,
+        )
+        branches = backlog_adapter.list_branches()
+        assert len(branches) == 1
+        assert isinstance(branches[0], Branch)
+        assert branches[0].name == "feature"
+
+
+class TestCreateBranch:
+    def test_create(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPO_PATH}/branches",
+            json=_branch_data_bl(name="new-branch"),
+            status=201,
+        )
+        branch = backlog_adapter.create_branch(name="new-branch", ref="main")
+        assert isinstance(branch, Branch)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["name"] == "new-branch"
+        assert req_body["startPoint"] == "main"
+
+
+class TestDeleteBranch:
+    def test_delete(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPO_PATH}/branches/feature",
+            json=_branch_data_bl(),
+            status=200,
+        )
+        backlog_adapter.delete_branch(name="feature")
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+
+# --- Tag 系 ---
+
+
+class TestListTags:
+    def test_list(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPO_PATH}/tags",
+            json=[_tag_data_bl()],
+            status=200,
+        )
+        tags = backlog_adapter.list_tags()
+        assert len(tags) == 1
+        assert isinstance(tags[0], Tag)
+        assert tags[0].name == "v1.0.0"
+
+
+class TestCreateTag:
+    def test_create(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPO_PATH}/tags",
+            json=_tag_data_bl(name="v2.0.0"),
+            status=201,
+        )
+        tag = backlog_adapter.create_tag(name="v2.0.0", ref="main")
+        assert isinstance(tag, Tag)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["name"] == "v2.0.0"
+        assert req_body["startPoint"] == "main"
+
+
+# --- Webhook 系 ---
+
+
+class TestListWebhooks:
+    def test_list(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/webhooks",
+            json=[_webhook_data_bl()],
+            status=200,
+        )
+        webhooks = backlog_adapter.list_webhooks()
+        assert len(webhooks) == 1
+        assert isinstance(webhooks[0], Webhook)
+
+
+class TestCreateWebhook:
+    def test_create(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/projects/TEST/webhooks",
+            json=_webhook_data_bl(),
+            status=201,
+        )
+        webhook = backlog_adapter.create_webhook(
+            url="https://example.com/hook", events=["push_git"]
+        )
+        assert isinstance(webhook, Webhook)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["hookUrl"] == "https://example.com/hook"
+
+
+class TestDeleteWebhook:
+    def test_delete(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{BASE}/projects/TEST/webhooks/100",
+            json=_webhook_data_bl(),
+            status=200,
+        )
+        backlog_adapter.delete_webhook(hook_id=100)
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+
+# --- Collaborator 系 ---
+
+
+class TestListCollaborators:
+    def test_list(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/users",
+            json=[{"userId": 1, "name": "user1"}, {"userId": 2, "name": "user2"}],
+            status=200,
+        )
+        collabs = backlog_adapter.list_collaborators()
+        assert len(collabs) == 2
+        # BacklogAdapter._collaborators は userId フィールドを返す
+        assert 1 in collabs or "1" in collabs
+
+
+class TestAddCollaborator:
+    def test_add(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/projects/TEST/users",
+            json={"userId": 42, "name": "newuser"},
+            status=201,
+        )
+        backlog_adapter.add_collaborator(username="newuser")
+        assert mock_responses.calls[0].request.method == "POST"
+
+
+class TestRemoveCollaborator:
+    def test_remove(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{BASE}/projects/TEST/users",
+            json={"userId": 42, "name": "olduser"},
+            status=200,
+        )
+        backlog_adapter.remove_collaborator(username="olduser")
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+
+# --- User / Search 系 ---
+
+
+class TestGetCurrentUser:
+    def test_get(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/users/myself",
+            json={"userId": 1, "name": "testuser"},
+            status=200,
+        )
+        user = backlog_adapter.get_current_user()
+        assert user["name"] == "testuser"
+
+
+class TestSearchRepositories:
+    def test_search(self, mock_responses, backlog_adapter):
+        # search_repositories はプロジェクト内全リポジトリ取得 + フィルタ
+        # /projects/TEST/git/repositories (特定リポジトリなし)
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/git/repositories",
+            json=[_repo_data()],
+            status=200,
+        )
+        repos = backlog_adapter.search_repositories("test-repo")
+        assert isinstance(repos, list)
+
+
+class TestSearchIssues:
+    def test_search(self, mock_responses, backlog_adapter):
+        # _ensure_project_id が必要
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST",
+            json={"id": 123, "projectKey": "TEST"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/issues",
+            json=[_issue_data()],
+            status=200,
+        )
+        issues = backlog_adapter.search_issues("bug")
+        assert isinstance(issues, list)
+
+
+# --- Wiki 系 ---
+
+
+class TestListWikiPages:
+    def test_list(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/wikis",
+            json=[_wiki_data()],
+            status=200,
+        )
+        pages = backlog_adapter.list_wiki_pages()
+        assert len(pages) == 1
+        assert isinstance(pages[0], WikiPage)
+
+
+class TestGetWikiPage:
+    def test_get(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/wikis/1",
+            json=_wiki_data(wiki_id=1),
+            status=200,
+        )
+        page = backlog_adapter.get_wiki_page(1)
+        assert isinstance(page, WikiPage)
+        assert page.title == "Home"
+
+
+class TestCreateWikiPage:
+    def test_create(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST",
+            json={"id": 123, "projectKey": "TEST"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/wikis",
+            json=_wiki_data(),
+            status=201,
+        )
+        page = backlog_adapter.create_wiki_page(title="Home", content="# Home")
+        assert isinstance(page, WikiPage)
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["name"] == "Home"
+
+
+class TestUpdateWikiPage:
+    def test_update(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/wikis/1",
+            json=_wiki_data(),
+            status=200,
+        )
+        page = backlog_adapter.update_wiki_page(1, title="Home", content="Updated")
+        assert isinstance(page, WikiPage)
+
+
+class TestDeleteWikiPage:
+    def test_delete(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{BASE}/wikis/1",
+            json=_wiki_data(),
+            status=200,
+        )
+        backlog_adapter.delete_wiki_page(1)
+
+
+# --- 変換メソッドのテスト（追加） ---
+
+
+class TestToComment:
+    def test_basic(self):
+        """id, body(content), author(createdUser.userId) の正常変換。"""
+        data = _comment_data_bl(comment_id=10)
+        comment = BacklogAdapter._to_comment(data)
+        assert isinstance(comment, Comment)
+        assert comment.id == 10
+        assert comment.body == "A comment"
+        # createdUser.userId は数値 1 → str として格納される（or そのまま）
+        assert str(comment.author) == "1"
+
+    def test_empty_content(self):
+        """content が None の場合は空文字になる。"""
+        data = {"id": 5, "content": None, "createdUser": {"userId": "u1"}, "created": ""}
+        comment = BacklogAdapter._to_comment(data)
+        assert comment.body == ""
+
+    def test_no_created_user(self):
+        """createdUser が None の場合は author が空文字になる。"""
+        data = {"id": 7, "content": "hello", "createdUser": None, "created": ""}
+        comment = BacklogAdapter._to_comment(data)
+        assert comment.author == ""
+
+
+class TestToBranch:
+    def test_basic(self):
+        """name と commit_sha（commit.id）の正常変換。"""
+        data = _branch_data_bl(name="feature", sha="abc123")
+        branch = BacklogAdapter._to_branch(data)
+        assert isinstance(branch, Branch)
+        assert branch.name == "feature"
+        assert branch.sha == "abc123"
+
+    def test_no_commit(self):
+        """commit フィールドがない場合は sha が空文字になる。"""
+        data = {"name": "main", "commit": {}}
+        branch = BacklogAdapter._to_branch(data)
+        assert branch.name == "main"
+        assert branch.sha == ""
+
+
+class TestToTag:
+    def test_basic(self):
+        """name と commit_sha（commit.id）の正常変換。"""
+        data = _tag_data_bl(name="v1.0.0", sha="def456")
+        tag = BacklogAdapter._to_tag(data)
+        assert isinstance(tag, Tag)
+        assert tag.name == "v1.0.0"
+        assert tag.sha == "def456"
+
+    def test_no_commit(self):
+        """commit フィールドがない場合は sha が空文字になる。"""
+        data = {"name": "v0.1.0", "commit": {}}
+        tag = BacklogAdapter._to_tag(data)
+        assert tag.name == "v0.1.0"
+        assert tag.sha == ""
+
+
+class TestToWebhook:
+    def test_basic(self):
+        """id, url(hookUrl), events の正常変換。"""
+        data = _webhook_data_bl(hook_id=100)
+        hook = BacklogAdapter._to_webhook(data)
+        assert isinstance(hook, Webhook)
+        assert hook.id == 100
+        assert hook.url == "https://example.com/hook"
+        assert isinstance(hook.events, tuple)
+
+    def test_no_events(self):
+        """events フィールドがない場合は空タプルになる。"""
+        data = {"id": 200, "hookUrl": "https://example.com/hook2"}
+        hook = BacklogAdapter._to_webhook(data)
+        assert hook.id == 200
+        assert hook.events == ()
+
+    def test_always_active(self):
+        """Backlog webhook は常に active=True になる。"""
+        data = _webhook_data_bl(hook_id=300)
+        hook = BacklogAdapter._to_webhook(data)
+        assert hook.active is True
+
+
+class TestToWikiPage:
+    def test_basic(self):
+        """id, name(title), content の正常変換。"""
+        data = _wiki_data(wiki_id=1)
+        page = BacklogAdapter._to_wiki_page(data)
+        assert isinstance(page, WikiPage)
+        assert page.id == 1
+        assert page.title == "Home"
+        assert page.content == "# Home"
+
+    def test_empty_content(self):
+        """content が None の場合は空文字になる。"""
+        data = {"id": 2, "name": "Page2", "content": None}
+        page = BacklogAdapter._to_wiki_page(data)
+        assert page.content == ""
+
+    def test_empty_name(self):
+        """name が None の場合は title が空文字になる。"""
+        data = {"id": 3, "name": None, "content": "body"}
+        page = BacklogAdapter._to_wiki_page(data)
+        assert page.title == ""

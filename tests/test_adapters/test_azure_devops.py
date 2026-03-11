@@ -13,7 +13,17 @@ from gfo.adapter.azure_devops import (
     _add_refs_prefix,
     _strip_refs_prefix,
 )
-from gfo.adapter.base import Issue, PullRequest, Repository
+from gfo.adapter.base import (
+    Branch,
+    Comment,
+    CommitStatus,
+    Issue,
+    Pipeline,
+    PullRequest,
+    Repository,
+    Review,
+    Tag,
+)
 from gfo.adapter.registry import get_adapter_class
 from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError, ServerError
 
@@ -925,3 +935,717 @@ class TestDeleteRepository:
         )
         with pytest.raises(GfoError):
             azure_devops_adapter.delete_repository()
+
+
+# --- サンプルデータ（拡張） ---
+
+
+def _comment_data(*, comment_id=10):
+    return {
+        "id": comment_id,
+        "content": "A comment",
+        "author": {"uniqueName": "commenter@example.com"},
+        "publishedDate": "2025-01-01T00:00:00Z",
+        "lastUpdatedDate": "2025-01-02T00:00:00Z",
+    }
+
+
+def _thread_data(*, comment_id=10):
+    return {
+        "id": 1,
+        "comments": [_comment_data(comment_id=comment_id)],
+        "status": "active",
+    }
+
+
+def _review_data(*, reviewer_id="abc-123", vote=10):
+    return {
+        "id": reviewer_id,
+        "uniqueName": "reviewer@example.com",
+        "displayName": "Reviewer",
+        "vote": vote,
+        "url": f"https://dev.azure.com/test-org/test-project/_apis/git/repositories/test-repo/pullrequests/1/reviewers/{reviewer_id}",
+    }
+
+
+def _branch_data_az(*, name="feature", sha="abc123"):
+    return {
+        "name": f"refs/heads/{name}",
+        "objectId": sha,
+    }
+
+
+def _tag_data_az(*, name="v1.0.0", sha="def456"):
+    return {
+        "name": f"refs/tags/{name}",
+        "objectId": sha,
+    }
+
+
+def _commit_status_data(*, state="succeeded", context_name="test", context_genre="ci"):
+    return {
+        "state": state,
+        "context": {"name": context_name, "genre": context_genre},
+        "description": "Tests passed",
+        "targetUrl": "https://ci.example.com/build/1",
+        "creationDate": "2025-01-01T00:00:00Z",
+    }
+
+
+def _pipeline_data_az(*, run_id=300, status="completed", result="succeeded"):
+    return {
+        "id": run_id,
+        "status": status,
+        "result": result,
+        "sourceBranch": "refs/heads/main",
+        "_links": {
+            "web": {
+                "href": f"https://dev.azure.com/test-org/test-project/_build/results?buildId={run_id}"
+            }
+        },
+        "queueTime": "2025-01-01T00:00:00Z",
+    }
+
+
+# --- Comment 系 ---
+
+
+class TestListComments:
+    def test_list_pr(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests/1/threads",
+            json={"value": [_thread_data()], "count": 1},
+            status=200,
+        )
+        comments = azure_devops_adapter.list_comments("pr", 1)
+        assert len(comments) == 1
+        assert isinstance(comments[0], Comment)
+
+    def test_list_issue(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems/1/comments",
+            json={"comments": [_comment_data()], "count": 1},
+            status=200,
+        )
+        comments = azure_devops_adapter.list_comments("issue", 1)
+        assert len(comments) == 1
+
+
+class TestCreateComment:
+    def test_create_pr(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{GIT}/pullrequests/1/threads",
+            json=_thread_data(),
+            status=201,
+        )
+        comment = azure_devops_adapter.create_comment("pr", 1, body="A comment")
+        assert isinstance(comment, Comment)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["comments"][0]["content"] == "A comment"
+
+    def test_create_issue(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{WIT}/workitems/1/comments",
+            json=_comment_data(),
+            status=201,
+        )
+        comment = azure_devops_adapter.create_comment("issue", 1, body="A comment")
+        assert isinstance(comment, Comment)
+
+
+class TestUpdateCommentNotSupported:
+    def test_raises(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.update_comment("pr", 10, body="Updated")
+
+
+class TestDeleteCommentNotSupported:
+    def test_raises(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.delete_comment("pr", 10)
+
+
+# --- PR Update / Issue Update ---
+
+
+class TestUpdatePullRequest:
+    def test_update_title(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{GIT}/pullrequests/1",
+            json=_pr_data(),
+            status=200,
+        )
+        pr = azure_devops_adapter.update_pull_request(1, title="New Title")
+        assert isinstance(pr, PullRequest)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["title"] == "New Title"
+
+    def test_update_base(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{GIT}/pullrequests/1",
+            json=_pr_data(),
+            status=200,
+        )
+        azure_devops_adapter.update_pull_request(1, base="develop")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["targetRefName"] == "refs/heads/develop"
+
+
+class TestUpdateIssue:
+    def test_update_title(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{WIT}/workitems/1",
+            json=_issue_data(),
+            status=200,
+        )
+        issue = azure_devops_adapter.update_issue(1, title="New Title")
+        assert isinstance(issue, Issue)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        patch_op = next((op for op in req_body if op["path"] == "/fields/System.Title"), None)
+        assert patch_op is not None
+        assert patch_op["value"] == "New Title"
+
+
+# --- Review 系 ---
+
+
+class TestListReviews:
+    def test_list(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests/1/reviewers",
+            json={"value": [_review_data()], "count": 1},
+            status=200,
+        )
+        reviews = azure_devops_adapter.list_reviews(1)
+        assert len(reviews) == 1
+        assert isinstance(reviews[0], Review)
+        assert reviews[0].state == "approved"
+
+
+class TestCreateReview:
+    def test_approve(self, mock_responses, azure_devops_adapter):
+        # まず現在のユーザー情報を取得
+        # base_url = .../test-project/_apis なので path=/_apis/profile/profiles/me が結合される
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/_apis/profile/profiles/me",
+            json={"publicAlias": "testuser", "id": "user-id-123"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{GIT}/pullrequests/1/reviewers/user-id-123",
+            json=_review_data(vote=10),
+            status=200,
+        )
+        azure_devops_adapter.create_review(1, state="approve")
+        put_body = json.loads(mock_responses.calls[1].request.body)
+        assert put_body["vote"] == 10
+
+
+# --- Branch 系 ---
+
+
+class TestListBranches:
+    def test_list(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/refs",
+            json={"value": [_branch_data_az()], "count": 1},
+            status=200,
+        )
+        branches = azure_devops_adapter.list_branches()
+        assert len(branches) == 1
+        assert isinstance(branches[0], Branch)
+        assert branches[0].name == "feature"
+
+
+class TestCreateBranch:
+    def test_create(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{GIT}/pushes",
+            json={"refUpdates": [{"name": "refs/heads/new-branch", "newObjectId": "abc123"}]},
+            status=201,
+        )
+        # create_branch の実装は pushes 後に refs を GET して Branch を返す
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/refs",
+            json={"value": [_branch_data_az(name="new-branch", sha="abc123")], "count": 1},
+            status=200,
+        )
+        branch = azure_devops_adapter.create_branch(name="new-branch", ref="abc123")
+        assert isinstance(branch, Branch)
+
+
+class TestDeleteBranch:
+    def test_delete(self, mock_responses, azure_devops_adapter):
+        # まず SHA を取得するため refs を取得
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/refs",
+            json={"value": [_branch_data_az(name="feature", sha="abc123")], "count": 1},
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{GIT}/refs",
+            json={"value": [{"success": True}]},
+            status=200,
+        )
+        azure_devops_adapter.delete_branch(name="feature")
+
+
+# --- Tag 系 ---
+
+
+class TestListTags:
+    def test_list(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/refs",
+            json={"value": [_tag_data_az()], "count": 1},
+            status=200,
+        )
+        tags = azure_devops_adapter.list_tags()
+        assert len(tags) == 1
+        assert isinstance(tags[0], Tag)
+        assert tags[0].name == "v1.0.0"
+
+
+class TestCreateTag:
+    def test_create(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{GIT}/pushes",
+            json={"refUpdates": [{"name": "refs/tags/v2.0.0", "newObjectId": "abc123"}]},
+            status=201,
+        )
+        tag = azure_devops_adapter.create_tag(name="v2.0.0", ref="abc123")
+        assert isinstance(tag, Tag)
+
+
+# --- CommitStatus 系 ---
+
+
+class TestListCommitStatuses:
+    def test_list(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/commits/abc123/statuses",
+            json={"value": [_commit_status_data()], "count": 1},
+            status=200,
+        )
+        statuses = azure_devops_adapter.list_commit_statuses("abc123")
+        assert len(statuses) == 1
+        assert isinstance(statuses[0], CommitStatus)
+        assert statuses[0].state == "success"
+
+
+class TestCreateCommitStatus:
+    def test_create(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{GIT}/commits/abc123/statuses",
+            json=_commit_status_data(),
+            status=201,
+        )
+        status = azure_devops_adapter.create_commit_status(
+            "abc123", state="success", context="ci/test"
+        )
+        assert isinstance(status, CommitStatus)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["state"] == "succeeded"
+
+
+# --- File 系 ---
+
+
+class TestGetFileContent:
+    def test_get(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/items",
+            json={"content": "file content", "objectId": "sha123"},
+            status=200,
+        )
+        content, sha = azure_devops_adapter.get_file_content("README.md")
+        assert content == "file content"
+        assert sha == "sha123"
+
+
+class TestCreateOrUpdateFile:
+    def test_create(self, mock_responses, azure_devops_adapter):
+        # create_or_update_file は refs を GET してから pushes を POST する
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/refs",
+            json={"value": [_branch_data_az(name="main", sha="abc123")], "count": 1},
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{GIT}/pushes",
+            json={"refUpdates": [], "commits": []},
+            status=201,
+        )
+        azure_devops_adapter.create_or_update_file(
+            "new-file.md", content="content", message="Add file"
+        )
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["commits"][0]["comment"] == "Add file"
+
+
+class TestDeleteFile:
+    def test_delete(self, mock_responses, azure_devops_adapter):
+        # delete_file も refs を GET してから pushes を POST する
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/refs",
+            json={"value": [_branch_data_az(name="main", sha="abc123")], "count": 1},
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{GIT}/pushes",
+            json={"refUpdates": [], "commits": []},
+            status=201,
+        )
+        azure_devops_adapter.delete_file("to-delete.md", sha="", message="Delete")
+        assert mock_responses.calls[1].request.method == "POST"
+
+
+# --- Webhook/DeployKey/Collaborator: NotSupportedError ---
+
+
+class TestWebhookNotSupported:
+    def test_list_raises(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.list_webhooks()
+
+    def test_create_raises(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.create_webhook(url="https://example.com", events=["push"])
+
+    def test_delete_raises(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.delete_webhook(hook_id=1)
+
+
+class TestDeployKeyNotSupported:
+    def test_list_raises(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.list_deploy_keys()
+
+
+class TestCollaboratorNotSupported:
+    def test_list_raises(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.list_collaborators()
+
+
+# --- Pipeline 系 ---
+
+
+class TestListPipelines:
+    def test_list(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/build/builds",
+            json={"value": [_pipeline_data_az()], "count": 1},
+            status=200,
+        )
+        pipelines = azure_devops_adapter.list_pipelines()
+        assert len(pipelines) == 1
+        assert isinstance(pipelines[0], Pipeline)
+
+    def test_with_ref(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/build/builds",
+            json={"value": [_pipeline_data_az()], "count": 1},
+            status=200,
+        )
+        azure_devops_adapter.list_pipelines(ref="main")
+        req = mock_responses.calls[0].request
+        assert "branchName" in req.url or "refs%2Fheads%2Fmain" in req.url or "main" in req.url
+
+
+class TestGetPipeline:
+    def test_get(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/build/builds/300",
+            json=_pipeline_data_az(run_id=300),
+            status=200,
+        )
+        pipeline = azure_devops_adapter.get_pipeline(300)
+        assert isinstance(pipeline, Pipeline)
+        assert pipeline.id == 300
+
+
+class TestCancelPipeline:
+    def test_cancel(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/build/builds/300",
+            json=_pipeline_data_az(run_id=300, status="cancelling"),
+            status=200,
+        )
+        azure_devops_adapter.cancel_pipeline(300)
+        assert mock_responses.calls[0].request.method == "PATCH"
+
+
+# --- User / Search 系 ---
+
+
+class TestGetCurrentUser:
+    def test_get(self, mock_responses, azure_devops_adapter):
+        # get_current_user は path=/_apis/profile/profiles/me を使う
+        # base_url = .../test-project/_apis なので実際のURLは _apis/_apis/profile/profiles/me
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/_apis/profile/profiles/me",
+            json={"publicAlias": "testuser", "id": "user-id-123"},
+            status=200,
+        )
+        user = azure_devops_adapter.get_current_user()
+        assert user["publicAlias"] == "testuser"
+
+
+class TestSearchRepositories:
+    def test_search(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/git/repositories",
+            json={"value": [_repo_data()], "count": 1},
+            status=200,
+        )
+        repos = azure_devops_adapter.search_repositories("test")
+        assert isinstance(repos, list)
+
+
+class TestSearchIssues:
+    def test_search(self, mock_responses, azure_devops_adapter):
+        # WIQL POST
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/wit/wiql",
+            json={"workItems": [{"id": 1, "url": "..."}]},
+            status=200,
+        )
+        # バッチ GET
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems",
+            json={"value": [_issue_data()], "count": 1},
+            status=200,
+        )
+        issues = azure_devops_adapter.search_issues("bug")
+        assert isinstance(issues, list)
+
+
+# --- 変換メソッドのテスト（追加） ---
+
+
+class TestToComment:
+    def test_basic_comment(self):
+        """通常のコメントデータ（comments キーなし）を正常変換する。"""
+        data = _comment_data(comment_id=10)
+        comment = AzureDevOpsAdapter._to_comment(data)
+        assert isinstance(comment, Comment)
+        assert comment.id == 10
+        assert comment.body == "A comment"
+        assert comment.author == "commenter@example.com"
+
+    def test_thread_comment(self):
+        """PR Thread 形式（comments 配列を含む）を正常変換する。"""
+        data = _thread_data(comment_id=20)
+        comment = AzureDevOpsAdapter._to_comment(data)
+        assert isinstance(comment, Comment)
+        assert comment.id == 20
+        assert comment.body == "A comment"
+        assert comment.author == "commenter@example.com"
+
+    def test_display_name_fallback(self):
+        """author に uniqueName がなく displayName のみの場合のフォールバック。"""
+        data = {
+            "id": 30,
+            "content": "body",
+            "author": {"displayName": "Display User"},
+            "publishedDate": "2025-01-01T00:00:00Z",
+        }
+        comment = AzureDevOpsAdapter._to_comment(data)
+        assert comment.author == "Display User"
+
+
+class TestToReview:
+    def test_approved(self):
+        """vote=10 → approved に変換される。"""
+        data = _review_data(vote=10)
+        review = AzureDevOpsAdapter._to_review(data)
+        assert isinstance(review, Review)
+        assert review.state == "approved"
+        assert review.author == "reviewer@example.com"
+
+    def test_rejected(self):
+        """vote=-10 → changes_requested に変換される。"""
+        data = _review_data(vote=-10)
+        review = AzureDevOpsAdapter._to_review(data)
+        assert review.state == "changes_requested"
+
+    def test_no_vote(self):
+        """vote=0 → commented に変換される。"""
+        data = _review_data(vote=0)
+        review = AzureDevOpsAdapter._to_review(data)
+        assert review.state == "commented"
+
+    def test_weak_approved(self):
+        """vote=5 → approved に変換される。"""
+        data = _review_data(vote=5)
+        review = AzureDevOpsAdapter._to_review(data)
+        assert review.state == "approved"
+
+    def test_weak_rejected(self):
+        """vote=-5 → changes_requested に変換される。"""
+        data = _review_data(vote=-5)
+        review = AzureDevOpsAdapter._to_review(data)
+        assert review.state == "changes_requested"
+
+
+class TestToBranch:
+    def test_basic(self):
+        """refs/heads/ プレフィックスを strip して Branch を返す。"""
+        data = _branch_data_az(name="feature", sha="abc123")
+        branch = AzureDevOpsAdapter._to_branch(data)
+        assert isinstance(branch, Branch)
+        assert branch.name == "feature"
+        assert branch.sha == "abc123"
+
+    def test_name_without_prefix(self):
+        """refs/heads/ プレフィックスがない場合もそのまま name を返す。"""
+        data = {"name": "main", "objectId": "def456"}
+        branch = AzureDevOpsAdapter._to_branch(data)
+        assert branch.name == "main"
+        assert branch.sha == "def456"
+
+
+class TestToTag:
+    def test_basic(self):
+        """refs/tags/ プレフィックスを strip して Tag を返す。"""
+        data = _tag_data_az(name="v1.0.0", sha="def456")
+        tag = AzureDevOpsAdapter._to_tag(data)
+        assert isinstance(tag, Tag)
+        assert tag.name == "v1.0.0"
+        assert tag.sha == "def456"
+
+    def test_name_without_prefix(self):
+        """refs/tags/ プレフィックスがない場合もそのまま name を返す。"""
+        data = {"name": "v2.0.0", "objectId": "abc123"}
+        tag = AzureDevOpsAdapter._to_tag(data)
+        assert tag.name == "v2.0.0"
+        assert tag.sha == "abc123"
+
+
+class TestToCommitStatus:
+    def test_basic(self):
+        """context.name/genre, state の正常変換。"""
+        data = _commit_status_data(state="succeeded", context_name="build", context_genre="ci")
+        status = AzureDevOpsAdapter._to_commit_status(data)
+        assert isinstance(status, CommitStatus)
+        assert status.state == "success"
+        assert status.context == "ci/build"
+        assert status.description == "Tests passed"
+
+    def test_failed_state(self):
+        """state=failed → failure に変換される。"""
+        data = _commit_status_data(state="failed", context_name="test", context_genre="")
+        status = AzureDevOpsAdapter._to_commit_status(data)
+        assert status.state == "failure"
+        # genre が空の場合 context は name のみ
+        assert status.context == "test"
+
+    def test_pending_state(self):
+        """state=pending → pending に変換される。"""
+        data = _commit_status_data(state="pending", context_name="build", context_genre="ci")
+        status = AzureDevOpsAdapter._to_commit_status(data)
+        assert status.state == "pending"
+
+
+class TestToPipeline:
+    def test_completed_succeeded(self):
+        """status=completed, result=succeeded → success。"""
+        data = _pipeline_data_az(status="completed", result="succeeded")
+        pipeline = AzureDevOpsAdapter._to_pipeline(data)
+        assert isinstance(pipeline, Pipeline)
+        assert pipeline.status == "success"
+
+    def test_completed_failed(self):
+        """status=completed, result=failed → failure。"""
+        data = _pipeline_data_az(status="completed", result="failed")
+        pipeline = AzureDevOpsAdapter._to_pipeline(data)
+        assert pipeline.status == "failure"
+
+    def test_in_progress(self):
+        """status=inProgress → running。"""
+        data = _pipeline_data_az(status="inProgress", result="")
+        pipeline = AzureDevOpsAdapter._to_pipeline(data)
+        assert pipeline.status == "running"
+
+    def test_not_started(self):
+        """status=notStarted → pending。"""
+        data = _pipeline_data_az(status="notStarted", result="")
+        pipeline = AzureDevOpsAdapter._to_pipeline(data)
+        assert pipeline.status == "pending"
+
+    def test_cancelling(self):
+        """status=cancelling → cancelled。"""
+        data = _pipeline_data_az(status="cancelling", result="")
+        pipeline = AzureDevOpsAdapter._to_pipeline(data)
+        assert pipeline.status == "cancelled"
+
+
+class TestDeleteTag:
+    def test_basic(self, mock_responses, azure_devops_adapter):
+        """refs GET でオブジェクト ID 取得 → refs POST で削除の 2 ステップフロー。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/refs",
+            json={"value": [_tag_data_az(name="v1.0.0", sha="def456")], "count": 1},
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{GIT}/refs",
+            json={"value": [{"success": True}]},
+            status=200,
+        )
+        azure_devops_adapter.delete_tag(name="v1.0.0")
+        # POST リクエストのボディに oldObjectId=def456, newObjectId=000...0 を確認
+        import json as _json
+
+        post_body = _json.loads(mock_responses.calls[1].request.body)
+        ref_update = post_body["refUpdates"][0]
+        assert ref_update["name"] == "refs/tags/v1.0.0"
+        assert ref_update["oldObjectId"] == "def456"
+        assert ref_update["newObjectId"] == "0" * 40
+
+    def test_not_found(self, mock_responses, azure_devops_adapter):
+        """タグが存在しない場合は NotFoundError を raise する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/refs",
+            json={"value": [], "count": 0},
+            status=200,
+        )
+        with pytest.raises(NotFoundError):
+            azure_devops_adapter.delete_tag(name="nonexistent")

@@ -12,7 +12,13 @@ from gfo.adapter.base import Issue, PullRequest, Release, Repository
 from gfo.adapter.gitbucket import GitBucketAdapter
 from gfo.adapter.github import GitHubAdapter
 from gfo.adapter.registry import get_adapter_class
-from gfo.exceptions import AuthenticationError, GfoError, NotFoundError, ServerError
+from gfo.exceptions import (
+    AuthenticationError,
+    GfoError,
+    NotFoundError,
+    NotSupportedError,
+    ServerError,
+)
 
 BASE = "https://gitbucket.example.com/api/v3"
 REPOS = f"{BASE}/repos/test-owner/test-repo"
@@ -379,6 +385,22 @@ class TestDeleteInheritance:
 
         with pytest.raises(NotSupportedError):
             gitbucket_adapter.delete_repository()
+
+
+class TestNotSupported:
+    """GitBucket は一部の操作を NotSupportedError で拒否する。"""
+
+    def test_delete_repository_raises(self, gitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.delete_repository()
+
+    def test_list_reviews_raises(self, gitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.list_reviews(1)
+
+    def test_create_review_raises(self, gitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.create_review(1, state="approve")
 
 
 class TestParseResponse:

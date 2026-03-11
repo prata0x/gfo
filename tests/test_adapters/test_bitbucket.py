@@ -8,7 +8,19 @@ from urllib.parse import unquote, unquote_plus
 import pytest
 import responses
 
-from gfo.adapter.base import Issue, PullRequest, Repository
+from gfo.adapter.base import (
+    Branch,
+    Comment,
+    CommitStatus,
+    DeployKey,
+    Issue,
+    Pipeline,
+    PullRequest,
+    Repository,
+    Review,
+    Tag,
+    Webhook,
+)
 from gfo.adapter.bitbucket import BitbucketAdapter
 from gfo.adapter.registry import get_adapter_class
 from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError, ServerError
@@ -758,3 +770,789 @@ class TestDeleteRepository:
         )
         bitbucket_adapter.delete_repository()
         assert mock_responses.calls[0].request.method == "DELETE"
+
+
+# --- サンプルデータ（拡張） ---
+
+
+def _comment_data(*, comment_id=10):
+    return {
+        "id": comment_id,
+        "content": {"raw": "A comment"},
+        "user": {"nickname": "commenter"},
+        "links": {
+            "html": {
+                "href": "https://bitbucket.org/test-workspace/test-repo/issues/1/_/diff#comment-10"
+            }
+        },
+        "created_on": "2025-01-01T00:00:00Z",
+        "updated_on": "2025-01-02T00:00:00Z",
+    }
+
+
+def _review_data_participants():
+    """PR の participants を含む PR レスポンス。"""
+    return {
+        **_pr_data(),
+        "participants": [
+            {"user": {"nickname": "reviewer1"}, "approved": True, "role": "REVIEWER"},
+            {"user": {"nickname": "author1"}, "approved": False, "role": "AUTHOR"},
+        ],
+    }
+
+
+def _branch_data(*, name="feature", sha="abc123"):
+    return {
+        "name": name,
+        "target": {"hash": sha},
+        "links": {"html": {"href": f"https://bitbucket.org/test-workspace/test-repo/src/{name}"}},
+    }
+
+
+def _tag_data(*, name="v1.0.0", sha="def456"):
+    return {
+        "name": name,
+        "target": {"hash": sha},
+        "message": "Release",
+    }
+
+
+def _commit_status_data(*, state="SUCCESSFUL", key="ci/test"):
+    return {
+        "state": state,
+        "key": key,
+        "description": "Tests passed",
+        "url": "https://ci.example.com/build/1",
+        "created_on": "2025-01-01T00:00:00Z",
+    }
+
+
+def _webhook_data(*, hook_id="{abc-123}"):
+    return {
+        "uuid": hook_id,
+        "url": "https://example.com/hook",
+        "events": ["repo:push"],
+        "active": True,
+    }
+
+
+def _deploy_key_data(*, key_id=200):
+    return {
+        "id": key_id,
+        "label": "Deploy Key",
+        "key": "ssh-rsa AAAA...",
+        "can_push": False,
+    }
+
+
+def _pipeline_data(*, pipeline_id=300):
+    return {
+        "uuid": str(pipeline_id),
+        "state": {
+            "name": "COMPLETED",
+            "result": {"name": "SUCCESSFUL"},
+        },
+        "target": {"ref_name": "main"},
+        "links": {
+            "self": {
+                "href": f"https://bitbucket.org/test-workspace/test-repo/addon/pipelines/home#!/results/{pipeline_id}"
+            }
+        },
+        "created_on": "2025-01-01T00:00:00Z",
+    }
+
+
+# --- Comment 系 ---
+
+
+class TestListComments:
+    def test_list_issue(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues/1/comments",
+            json={"values": [_comment_data()], "pagelen": 10},
+            status=200,
+        )
+        comments = bitbucket_adapter.list_comments("issue", 1)
+        assert len(comments) == 1
+        assert isinstance(comments[0], Comment)
+        assert comments[0].body == "A comment"
+
+    def test_list_pr(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests/1/comments",
+            json={"values": [_comment_data()], "pagelen": 10},
+            status=200,
+        )
+        comments = bitbucket_adapter.list_comments("pr", 1)
+        assert len(comments) == 1
+
+
+class TestCreateComment:
+    def test_create(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/issues/1/comments",
+            json=_comment_data(),
+            status=201,
+        )
+        comment = bitbucket_adapter.create_comment("issue", 1, body="A comment")
+        assert isinstance(comment, Comment)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["content"]["raw"] == "A comment"
+
+
+class TestUpdateComment:
+    def test_update_issue(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/issues/comments/10",
+            json=_comment_data(),
+            status=200,
+        )
+        comment = bitbucket_adapter.update_comment("issue", 10, body="Updated")
+        assert isinstance(comment, Comment)
+
+    def test_update_pr_raises_not_supported(self, bitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.update_comment("pr", 10, body="Updated")
+
+
+class TestDeleteComment:
+    def test_delete_issue(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/issues/comments/10",
+            status=204,
+        )
+        bitbucket_adapter.delete_comment("issue", 10)
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+    def test_delete_pr_raises_not_supported(self, bitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.delete_comment("pr", 10)
+
+
+# --- PR Update / Issue Update ---
+
+
+class TestUpdatePullRequest:
+    def test_update_title(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/pullrequests/1",
+            json=_pr_data(),
+            status=200,
+        )
+        pr = bitbucket_adapter.update_pull_request(1, title="New Title")
+        assert isinstance(pr, PullRequest)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["title"] == "New Title"
+
+    def test_update_base(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/pullrequests/1",
+            json=_pr_data(),
+            status=200,
+        )
+        bitbucket_adapter.update_pull_request(1, base="develop")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["destination"]["branch"]["name"] == "develop"
+
+
+class TestUpdateIssue:
+    def test_update_title(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/issues/1",
+            json=_issue_data(),
+            status=200,
+        )
+        issue = bitbucket_adapter.update_issue(1, title="New Title")
+        assert isinstance(issue, Issue)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["title"] == "New Title"
+
+    def test_update_assignee(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/issues/1",
+            json=_issue_data(),
+            status=200,
+        )
+        bitbucket_adapter.update_issue(1, assignee="devuser")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["assignee"]["nickname"] == "devuser"
+
+
+# --- Review 系 ---
+
+
+class TestListReviews:
+    def test_list(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests/1",
+            json=_review_data_participants(),
+            status=200,
+        )
+        reviews = bitbucket_adapter.list_reviews(1)
+        assert len(reviews) == 1
+        assert isinstance(reviews[0], Review)
+        assert reviews[0].state == "approved"
+
+
+class TestCreateReview:
+    def test_approve(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pullrequests/1/approve",
+            json={"approved": True, "user": {"nickname": "reviewer"}},
+            status=200,
+        )
+        bitbucket_adapter.create_review(1, state="approve")
+        assert mock_responses.calls[0].request.method == "POST"
+
+    def test_request_changes(self, mock_responses, bitbucket_adapter):
+        """REQUEST_CHANGES 分岐は /request-changes エンドポイントを呼ぶ。"""
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pullrequests/1/request-changes",
+            json={},
+            status=200,
+        )
+        review = bitbucket_adapter.create_review(1, state="REQUEST_CHANGES", body="Needs work")
+        assert review.state == "changes_requested"
+        assert mock_responses.calls[0].request.method == "POST"
+
+
+# --- Branch 系 ---
+
+
+class TestListBranches:
+    def test_list(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/refs/branches",
+            json={"values": [_branch_data()], "pagelen": 10},
+            status=200,
+        )
+        branches = bitbucket_adapter.list_branches()
+        assert len(branches) == 1
+        assert isinstance(branches[0], Branch)
+        assert branches[0].name == "feature"
+
+
+class TestCreateBranch:
+    def test_create(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/refs/branches",
+            json=_branch_data(name="new-branch"),
+            status=201,
+        )
+        branch = bitbucket_adapter.create_branch(name="new-branch", ref="abc123")
+        assert isinstance(branch, Branch)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["name"] == "new-branch"
+        assert req_body["target"]["hash"] == "abc123"
+
+
+class TestDeleteBranch:
+    def test_delete(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/refs/branches/feature",
+            status=204,
+        )
+        bitbucket_adapter.delete_branch(name="feature")
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+
+# --- Tag 系 ---
+
+
+class TestListTags:
+    def test_list(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/refs/tags",
+            json={"values": [_tag_data()], "pagelen": 10},
+            status=200,
+        )
+        tags = bitbucket_adapter.list_tags()
+        assert len(tags) == 1
+        assert isinstance(tags[0], Tag)
+        assert tags[0].name == "v1.0.0"
+
+
+class TestCreateTag:
+    def test_create(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/refs/tags",
+            json=_tag_data(name="v2.0.0"),
+            status=201,
+        )
+        tag = bitbucket_adapter.create_tag(name="v2.0.0", ref="abc123")
+        assert isinstance(tag, Tag)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["name"] == "v2.0.0"
+
+
+class TestDeleteTag:
+    def test_delete(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/refs/tags/v1.0.0",
+            status=204,
+        )
+        bitbucket_adapter.delete_tag(name="v1.0.0")
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+
+# --- CommitStatus 系 ---
+
+
+class TestListCommitStatuses:
+    def test_list(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/commit/abc123/statuses",
+            json={"values": [_commit_status_data()], "pagelen": 10},
+            status=200,
+        )
+        statuses = bitbucket_adapter.list_commit_statuses("abc123")
+        assert len(statuses) == 1
+        assert isinstance(statuses[0], CommitStatus)
+        assert statuses[0].state == "success"
+
+
+class TestCreateCommitStatus:
+    def test_create(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/commit/abc123/statuses/build",
+            json=_commit_status_data(),
+            status=201,
+        )
+        status = bitbucket_adapter.create_commit_status(
+            "abc123", state="success", context="ci/test"
+        )
+        assert isinstance(status, CommitStatus)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["state"] == "SUCCESSFUL"
+        assert req_body["key"] == "ci/test"
+
+
+# --- File 系 ---
+
+
+class TestGetFileContent:
+    def test_get(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/src/main/README.md",
+            body="file content",
+            status=200,
+        )
+        content, sha = bitbucket_adapter.get_file_content("README.md", ref="main")
+        assert content == "file content"
+        assert sha == ""
+
+
+class TestCreateOrUpdateFile:
+    def test_create(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/src",
+            status=201,
+        )
+        bitbucket_adapter.create_or_update_file(
+            "new-file.md", content="new content", message="Add file"
+        )
+        assert mock_responses.calls[0].request.method == "POST"
+
+
+class TestDeleteFile:
+    def test_delete(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/src",
+            status=201,
+        )
+        bitbucket_adapter.delete_file("to-delete.md", sha="", message="Delete file")
+        assert mock_responses.calls[0].request.method == "POST"
+
+
+# --- Fork 系 ---
+
+
+class TestForkRepository:
+    def test_fork(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/forks",
+            json=_repo_data(),
+            status=201,
+        )
+        repo = bitbucket_adapter.fork_repository()
+        assert isinstance(repo, Repository)
+
+    def test_fork_with_org(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/forks",
+            json=_repo_data(),
+            status=201,
+        )
+        bitbucket_adapter.fork_repository(organization="myworkspace")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["workspace"]["slug"] == "myworkspace"
+
+
+# --- Webhook 系 ---
+
+
+class TestListWebhooks:
+    def test_list(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/hooks",
+            json={"values": [_webhook_data()], "pagelen": 10},
+            status=200,
+        )
+        webhooks = bitbucket_adapter.list_webhooks()
+        assert len(webhooks) == 1
+        assert isinstance(webhooks[0], Webhook)
+
+
+class TestCreateWebhook:
+    def test_create(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/hooks",
+            json=_webhook_data(),
+            status=201,
+        )
+        webhook = bitbucket_adapter.create_webhook(
+            url="https://example.com/hook", events=["repo:push"]
+        )
+        assert isinstance(webhook, Webhook)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["url"] == "https://example.com/hook"
+        assert "repo:push" in req_body["events"]
+
+
+class TestDeleteWebhook:
+    def test_delete(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/hooks/abc-123",
+            status=204,
+        )
+        bitbucket_adapter.delete_webhook(hook_id="abc-123")
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+
+# --- DeployKey 系 ---
+
+
+class TestListDeployKeys:
+    def test_list(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/deploy-keys",
+            json={"values": [_deploy_key_data()], "pagelen": 10},
+            status=200,
+        )
+        keys = bitbucket_adapter.list_deploy_keys()
+        assert len(keys) == 1
+        assert isinstance(keys[0], DeployKey)
+
+
+class TestCreateDeployKey:
+    def test_create(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/deploy-keys",
+            json=_deploy_key_data(),
+            status=201,
+        )
+        key = bitbucket_adapter.create_deploy_key(
+            title="Deploy Key", key="ssh-rsa AAAA...", read_only=True
+        )
+        assert isinstance(key, DeployKey)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["label"] == "Deploy Key"
+
+
+class TestDeleteDeployKey:
+    def test_delete(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/deploy-keys/200",
+            status=204,
+        )
+        bitbucket_adapter.delete_deploy_key(key_id=200)
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+
+# --- Collaborator 系 ---
+
+
+class TestListCollaborators:
+    def test_list(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/workspaces/test-workspace/members",
+            json={
+                "values": [{"user": {"nickname": "collab1"}}, {"user": {"nickname": "collab2"}}],
+                "pagelen": 10,
+            },
+            status=200,
+        )
+        collabs = bitbucket_adapter.list_collaborators()
+        assert "collab1" in collabs
+
+
+class TestAddCollaboratorNotSupported:
+    def test_raises(self, bitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.add_collaborator(username="newuser")
+
+
+class TestRemoveCollaboratorNotSupported:
+    def test_raises(self, bitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.remove_collaborator(username="olduser")
+
+
+# --- Pipeline 系 ---
+
+
+class TestListPipelines:
+    def test_list(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pipelines",
+            json={"values": [_pipeline_data()], "pagelen": 10},
+            status=200,
+        )
+        pipelines = bitbucket_adapter.list_pipelines()
+        assert len(pipelines) == 1
+        assert isinstance(pipelines[0], Pipeline)
+
+
+class TestGetPipeline:
+    def test_get(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pipelines/300",
+            json=_pipeline_data(pipeline_id=300),
+            status=200,
+        )
+        pipeline = bitbucket_adapter.get_pipeline(300)
+        assert isinstance(pipeline, Pipeline)
+
+
+class TestCancelPipeline:
+    def test_cancel(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pipelines/300/stopPipeline",
+            status=204,
+        )
+        bitbucket_adapter.cancel_pipeline(300)
+        assert mock_responses.calls[0].request.method == "POST"
+
+
+# --- User / Search 系 ---
+
+
+class TestGetCurrentUser:
+    def test_get(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/user",
+            json={"nickname": "testuser", "uuid": "{abc}"},
+            status=200,
+        )
+        user = bitbucket_adapter.get_current_user()
+        assert user["nickname"] == "testuser"
+
+
+class TestSearchRepositories:
+    def test_search(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/repositories/test-workspace",
+            json={"values": [_repo_data()], "pagelen": 10},
+            status=200,
+        )
+        repos = bitbucket_adapter.search_repositories("test")
+        assert len(repos) >= 1
+        assert isinstance(repos[0], Repository)
+
+
+class TestSearchIssues:
+    def test_search(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"values": [_issue_data()], "pagelen": 10},
+            status=200,
+        )
+        issues = bitbucket_adapter.search_issues("bug")
+        assert len(issues) >= 1
+        assert isinstance(issues[0], Issue)
+
+
+# --- 変換ヘルパー単体テスト ---
+
+
+class TestToComment:
+    def test_basic(self):
+        data = {
+            "id": 10,
+            "content": {"raw": "A comment"},
+            "user": {"nickname": "commenter"},
+            "created_on": "2025-01-01T00:00:00Z",
+        }
+        comment = BitbucketAdapter._to_comment(data)
+        assert isinstance(comment, Comment)
+        assert comment.id == 10
+        assert comment.body == "A comment"
+        assert comment.author == "commenter"
+
+
+class TestToBranch:
+    def test_basic(self):
+        data = {
+            "name": "feature",
+            "target": {"hash": "abc123"},
+        }
+        branch = BitbucketAdapter._to_branch(data)
+        assert isinstance(branch, Branch)
+        assert branch.name == "feature"
+        assert branch.sha == "abc123"
+
+
+class TestToTag:
+    def test_basic(self):
+        data = {
+            "name": "v1.0.0",
+            "target": {"hash": "def456"},
+        }
+        tag = BitbucketAdapter._to_tag(data)
+        assert isinstance(tag, Tag)
+        assert tag.name == "v1.0.0"
+        assert tag.sha == "def456"
+
+    def test_with_message(self):
+        data = {
+            "name": "v2.0.0",
+            "target": {"hash": "ghi789"},
+            "message": "Release v2.0.0",
+        }
+        tag = BitbucketAdapter._to_tag(data)
+        assert tag.message == "Release v2.0.0"
+
+
+class TestToCommitStatus:
+    def test_successful(self):
+        data = {
+            "state": "SUCCESSFUL",
+            "key": "ci/test",
+            "description": "Tests passed",
+            "url": "https://ci.example.com/1",
+            "created_on": "2025-01-01T00:00:00Z",
+        }
+        cs = BitbucketAdapter._to_commit_status(data)
+        assert isinstance(cs, CommitStatus)
+        assert cs.state == "success"
+        assert cs.context == "ci/test"
+
+    def test_failed(self):
+        data = {"state": "FAILED", "key": "ci/test", "created_on": "2025-01-01T00:00:00Z"}
+        cs = BitbucketAdapter._to_commit_status(data)
+        assert cs.state == "failure"
+
+    def test_inprogress(self):
+        data = {"state": "INPROGRESS", "key": "ci/test", "created_on": "2025-01-01T00:00:00Z"}
+        cs = BitbucketAdapter._to_commit_status(data)
+        assert cs.state == "pending"
+
+
+class TestToWebhook:
+    def test_basic(self):
+        data = {
+            "uuid": "{abc-123}",
+            "url": "https://example.com/hook",
+            "events": ["repo:push", "pullrequest:created"],
+            "active": True,
+        }
+        webhook = BitbucketAdapter._to_webhook(data)
+        assert isinstance(webhook, Webhook)
+        assert webhook.id == "abc-123"
+        assert webhook.url == "https://example.com/hook"
+        assert "repo:push" in webhook.events
+        assert "pullrequest:created" in webhook.events
+
+
+class TestToDeployKey:
+    def test_basic(self):
+        data = {
+            "id": 200,
+            "label": "Deploy Key",
+            "key": "ssh-rsa AAAA...",
+        }
+        dk = BitbucketAdapter._to_deploy_key(data)
+        assert isinstance(dk, DeployKey)
+        assert dk.id == 200
+        assert dk.title == "Deploy Key"
+        assert dk.key == "ssh-rsa AAAA..."
+
+
+class TestToPipeline:
+    def test_successful(self):
+        data = {
+            "build_number": 1,
+            "state": {
+                "stage": {"name": "COMPLETED"},
+                "result": {"name": "SUCCESSFUL"},
+            },
+            "target": {"ref_name": "main"},
+            "created_on": "2025-01-01T00:00:00Z",
+        }
+        pipeline = BitbucketAdapter._to_pipeline(data)
+        assert isinstance(pipeline, Pipeline)
+        assert pipeline.status == "success"
+
+    def test_failed(self):
+        data = {
+            "build_number": 2,
+            "state": {
+                "stage": {"name": "COMPLETED"},
+                "result": {"name": "FAILED"},
+            },
+            "target": {"ref_name": "main"},
+            "created_on": "2025-01-01T00:00:00Z",
+        }
+        pipeline = BitbucketAdapter._to_pipeline(data)
+        assert pipeline.status == "failure"
+
+    def test_in_progress(self):
+        data = {
+            "build_number": 3,
+            "state": {
+                "stage": {"name": "IN_PROGRESS"},
+                "result": None,
+            },
+            "target": {"ref_name": "feature"},
+            "created_on": "2025-01-01T00:00:00Z",
+        }
+        pipeline = BitbucketAdapter._to_pipeline(data)
+        assert pipeline.status == "running"

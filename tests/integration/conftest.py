@@ -132,6 +132,13 @@ def get_service_config(service_type: str) -> ServiceTestConfig | None:
     )
 
 
+# テスト用 SSH 公開鍵（deploy key CRUD テスト用のフィクスチャ）
+TEST_SSH_PUBLIC_KEY = (
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGFo4KrH6TBXJ0/E2Y4OzE0y3GW9I1BbEdI0lTVxU+Y2 "
+    "gfo-integration-test"
+)
+
+
 def create_test_adapter(config: ServiceTestConfig) -> GitServiceAdapter:
     """ServiceTestConfig からアダプターインスタンスを生成する。"""
     client = create_http_client(config.service_type, config.api_url, config.token)

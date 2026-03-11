@@ -153,7 +153,7 @@ def setup_gitea_like(
             "name": TEST_REPO,
             "auto_init": True,
             "readme": "Default",
-            "default_branch": "main",
+            "default_branch": "master",
             "description": "gfo integration test repository",
         },
         timeout=10,
@@ -169,7 +169,7 @@ def setup_gitea_like(
     r = requests.post(
         f"{api_url}/repos/{ADMIN_USER}/{TEST_REPO}/branches",
         headers=headers,
-        json={"new_branch_name": TEST_BRANCH, "old_branch_name": "main"},
+        json={"new_branch_name": TEST_BRANCH, "old_branch_name": "master"},
         timeout=10,
     )
     if r.status_code == 409:

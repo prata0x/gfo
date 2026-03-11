@@ -29,6 +29,31 @@ class TestAzureDevOpsIntegration:
         cls.config = CONFIG
         cls._issue_number: int | None = None
         cls._pr_number: int | None = None
+        cls._update_issue_number: int | None = None
+        cls._update_pr_number: int | None = None
+        cls._update_issue_comment_id: int | None = None
+        cls._head_sha: str | None = None
+
+    @classmethod
+    def teardown_class(cls) -> None:
+        try:
+            cls.adapter.delete_branch(name="gfo-test-branch-temp")
+        except Exception:
+            pass
+        try:
+            cls.adapter.delete_tag(name="v0.0.2-test")
+        except Exception:
+            pass
+        if cls._update_issue_number is not None:
+            try:
+                cls.adapter.delete_issue(cls._update_issue_number)
+            except Exception:
+                pass
+        if cls._update_pr_number is not None:
+            try:
+                cls.adapter.close_pull_request(cls._update_pr_number)
+            except Exception:
+                pass
 
     # --- Repository ---
 
@@ -245,3 +270,299 @@ class TestAzureDevOpsIntegration:
                 except Exception:
                     pass
             raise
+
+    # --- update_issue ---
+
+    def test_23_update_issue(self) -> None:
+        """Issue (Work Item) の title 更新テスト。"""
+        issue = self.adapter.create_issue(
+            title="gfo-test-update-issue",
+            body="original body",
+        )
+        self.__class__._update_issue_number = issue.number
+        updated = self.adapter.update_issue(
+            issue.number,
+            title="gfo-test-update-issue-updated",
+        )
+        assert updated.title == "gfo-test-update-issue-updated"
+
+    # --- update_pr ---
+
+    def test_24_update_pr(self) -> None:
+        """PR の title 更新テスト。"""
+        import time
+
+        # test_branch に差分を追加
+        refs_resp = self.adapter._client.get(
+            f"{self.adapter._git_path()}/refs",
+            params={"filter": f"heads/{self.config.test_branch}"},
+        )
+        old_object_id = refs_resp.json()["value"][0]["objectId"]
+        for change_type in ("add", "edit"):
+            try:
+                self.adapter._client.post(
+                    f"{self.adapter._git_path()}/pushes",
+                    json={
+                        "refUpdates": [
+                            {
+                                "name": f"refs/heads/{self.config.test_branch}",
+                                "oldObjectId": old_object_id,
+                            }
+                        ],
+                        "commits": [
+                            {
+                                "comment": "test: add marker for update_pr test",
+                                "changes": [
+                                    {
+                                        "changeType": change_type,
+                                        "item": {"path": "/test-update-pr-marker.txt"},
+                                        "newContent": {
+                                            "content": f"update-pr-{int(time.time())}",
+                                            "contentType": "rawtext",
+                                        },
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                )
+                break
+            except GfoError:
+                if change_type == "edit":
+                    raise
+                refs_resp = self.adapter._client.get(
+                    f"{self.adapter._git_path()}/refs",
+                    params={"filter": f"heads/{self.config.test_branch}"},
+                )
+                old_object_id = refs_resp.json()["value"][0]["objectId"]
+
+        # 既存オープン PR を閉じる
+        for pr in self.adapter.list_pull_requests(state="open"):
+            if pr.title in ("gfo-test-update-pr", "gfo-test-update-pr-updated"):
+                try:
+                    self.adapter.close_pull_request(pr.number)
+                except Exception:
+                    pass
+
+        pr = self.adapter.create_pull_request(
+            title="gfo-test-update-pr",
+            body="Integration test",
+            base=self.config.default_branch,
+            head=self.config.test_branch,
+        )
+        self.__class__._update_pr_number = pr.number
+        updated = self.adapter.update_pull_request(
+            pr.number,
+            title="gfo-test-update-pr-updated",
+        )
+        assert updated.title == "gfo-test-update-pr-updated"
+
+    # --- create_comment (issue) + list_comments ---
+
+    def test_25_issue_comment_create(self) -> None:
+        """Issue コメント作成テスト。"""
+        assert self._update_issue_number is not None
+        comment = self.adapter.create_comment(
+            "issue", self._update_issue_number, body="test comment body"
+        )
+        assert comment.body == "test comment body"
+        self.__class__._update_issue_comment_id = comment.id
+
+    def test_26_issue_comment_list(self) -> None:
+        """Issue コメント一覧テスト。"""
+        assert self._update_issue_number is not None
+        comments = self.adapter.list_comments("issue", self._update_issue_number)
+        assert any(c.id == self._update_issue_comment_id for c in comments)
+
+    # --- update_comment (NSE) + delete_comment (NSE) ---
+
+    def test_27_comment_update_not_supported(self) -> None:
+        """Azure DevOps は comment update 非対応。"""
+        assert self._update_issue_comment_id is not None
+        with pytest.raises(NotSupportedError):
+            self.adapter.update_comment("issue", self._update_issue_comment_id, body="updated")
+
+    def test_28_comment_delete_not_supported(self) -> None:
+        """Azure DevOps は comment delete 非対応。"""
+        assert self._update_issue_comment_id is not None
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_comment("issue", self._update_issue_comment_id)
+
+    # --- create_comment (pr) + list_comments (pr) ---
+
+    def test_29_pr_comment(self) -> None:
+        """PR にコメント作成・一覧取得テスト。"""
+        assert self._update_pr_number is not None
+        comment = self.adapter.create_comment("pr", self._update_pr_number, body="pr comment body")
+        assert comment.body == "pr comment body"
+        comments = self.adapter.list_comments("pr", self._update_pr_number)
+        assert isinstance(comments, list)
+
+    # --- review ---
+
+    def test_30_review(self) -> None:
+        """PR に review 作成・一覧テスト。"""
+        assert self._update_pr_number is not None
+        review = self.adapter.create_review(self._update_pr_number, state="COMMENT", body="")
+        assert review is not None
+        reviews = self.adapter.list_reviews(self._update_pr_number)
+        assert isinstance(reviews, list)
+
+    # --- cleanup ---
+
+    def test_31_cleanup_updates(self) -> None:
+        """update_issue/update_pr のクリーンアップ。"""
+        if self._update_issue_number is not None:
+            self.adapter.close_issue(self._update_issue_number)
+        if self._update_pr_number is not None:
+            self.adapter.close_pull_request(self._update_pr_number)
+
+    # --- list_branches + create_branch + delete_branch ---
+
+    def test_32_list_branches(self) -> None:
+        """ブランチ一覧テスト。"""
+        branches = self.adapter.list_branches()
+        names = [b.name for b in branches]
+        assert self.config.default_branch in names
+
+    def test_33_create_branch(self) -> None:
+        """ブランチ作成テスト。AzDO は ref に commit hash を要求する。"""
+        refs_resp = self.adapter._client.get(
+            f"{self.adapter._git_path()}/refs",
+            params={"filter": f"heads/{self.config.default_branch}"},
+        )
+        head_sha = refs_resp.json()["value"][0]["objectId"]
+        branch = self.adapter.create_branch(
+            name="gfo-test-branch-temp",
+            ref=head_sha,
+        )
+        assert branch.name == "gfo-test-branch-temp"
+
+    def test_34_delete_branch(self) -> None:
+        """ブランチ削除テスト。"""
+        self.adapter.delete_branch(name="gfo-test-branch-temp")
+        branches_after = self.adapter.list_branches()
+        assert not any(b.name == "gfo-test-branch-temp" for b in branches_after)
+
+    # --- create_tag + list_tags + delete_tag ---
+
+    def test_35_create_tag(self) -> None:
+        """タグ作成テスト。AzDO は ref に commit hash を要求する。"""
+        refs_resp = self.adapter._client.get(
+            f"{self.adapter._git_path()}/refs",
+            params={"filter": f"heads/{self.config.default_branch}"},
+        )
+        head_sha = refs_resp.json()["value"][0]["objectId"]
+        self.__class__._head_sha = head_sha
+        tag = self.adapter.create_tag(name="v0.0.2-test", ref=head_sha)
+        assert tag.name == "v0.0.2-test"
+
+    def test_36_list_tags(self) -> None:
+        """タグ一覧テスト。"""
+        tags = self.adapter.list_tags()
+        assert any(t.name == "v0.0.2-test" for t in tags)
+
+    def test_37_delete_tag(self) -> None:
+        """タグ削除テスト。"""
+        self.adapter.delete_tag(name="v0.0.2-test")
+        tags_after = self.adapter.list_tags()
+        assert not any(t.name == "v0.0.2-test" for t in tags_after)
+
+    # --- create_commit_status + list_commit_statuses ---
+
+    def test_38_create_commit_status(self) -> None:
+        """コミットステータス作成テスト。"""
+        assert self._head_sha is not None
+        status = self.adapter.create_commit_status(
+            self._head_sha,
+            state="success",
+            context="gfo-ci/test",
+            description="Integration test status",
+        )
+        assert status.state == "success"
+
+    def test_39_list_commit_statuses(self) -> None:
+        """コミットステータス一覧テスト。"""
+        assert self._head_sha is not None
+        statuses = self.adapter.list_commit_statuses(self._head_sha)
+        assert isinstance(statuses, list)
+
+    # --- file CRUD ---
+
+    def test_40_file_crud(self) -> None:
+        """ファイルの作成・取得・更新・削除テスト。"""
+        self.adapter.create_or_update_file(
+            "gfo-test-file.txt",
+            content="hello gfo",
+            message="test: create gfo-test-file.txt",
+            branch=self.config.test_branch,
+        )
+        content, sha = self.adapter.get_file_content(
+            "gfo-test-file.txt", ref=self.config.test_branch
+        )
+        assert content == "hello gfo"
+        self.adapter.create_or_update_file(
+            "gfo-test-file.txt",
+            content="updated gfo",
+            message="test: update gfo-test-file.txt",
+            sha=sha,
+            branch=self.config.test_branch,
+        )
+        content2, sha2 = self.adapter.get_file_content(
+            "gfo-test-file.txt", ref=self.config.test_branch
+        )
+        assert content2 == "updated gfo"
+        self.adapter.delete_file(
+            "gfo-test-file.txt",
+            sha=sha2,
+            message="test: delete gfo-test-file.txt",
+            branch=self.config.test_branch,
+        )
+
+    # --- webhook NSE ---
+
+    def test_41_webhook_not_supported(self) -> None:
+        """Azure DevOps は webhook 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_webhooks()
+        with pytest.raises(NotSupportedError):
+            self.adapter.create_webhook(url="https://example.com/webhook", events=["push"])
+
+    # --- deploy_key NSE ---
+
+    def test_42_deploy_key_not_supported(self) -> None:
+        """Azure DevOps は deploy key 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_deploy_keys()
+        with pytest.raises(NotSupportedError):
+            self.adapter.create_deploy_key(title="test", key="ssh-ed25519 AAAA test")
+
+    # --- get_current_user ---
+
+    def test_43_get_current_user(self) -> None:
+        """現在のユーザー情報取得テスト。"""
+        user = self.adapter.get_current_user()
+        assert isinstance(user, dict)
+        assert "id" in user or "displayName" in user
+
+    # --- search + misc ---
+
+    def test_44_search_and_misc(self) -> None:
+        """search_repositories, search_issues, collaborators NSE, wiki NSE テスト。"""
+        repos = self.adapter.search_repositories(self.config.repo[:4], limit=5)
+        assert isinstance(repos, list)
+        issues = self.adapter.search_issues("gfo-test", limit=5)
+        assert isinstance(issues, list)
+        # list_collaborators は NSE
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_collaborators()
+        # wiki は NSE
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_wiki_pages()
+        with pytest.raises(NotSupportedError):
+            self.adapter.create_wiki_page(title="test", content="test")
+        # get_pr_checkout_refspec テスト
+        prs = self.adapter.list_pull_requests(state="open", limit=1)
+        if prs:
+            refspec = self.adapter.get_pr_checkout_refspec(prs[0].number)
+            assert isinstance(refspec, str)
