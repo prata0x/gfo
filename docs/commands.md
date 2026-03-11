@@ -310,17 +310,24 @@ gfo repo create my-new-repo --private --description "My project"
 gfo repo create my-new-repo --host gitea.example.com
 ```
 
+> **注意**: Azure DevOps と Backlog は事前に `gfo init` で設定が必要です。
+> - Azure DevOps: `organization` と `project` を設定してください
+> - Backlog: `project_key` を設定してください
+
 ### gfo repo clone
 
 ```
-gfo repo clone REPO [--host HOST]
+gfo repo clone REPO [--host HOST] [--project PROJECT]
 ```
 
 `REPO` は `owner/name` 形式で指定します。
 
+`--project` は Azure DevOps でプロジェクト名を指定する場合に使用します。`gfo init` で設定済みの場合は省略できます。
+
 ```bash
 gfo repo clone alice/my-project
 gfo repo clone alice/my-project --host gitea.example.com
+gfo repo clone my-repo --host dev.azure.com --project MyProject
 ```
 
 ### gfo repo view
