@@ -723,10 +723,10 @@ class BitbucketAdapter(GitServiceAdapter):
     # --- Collaborator ---
 
     def list_collaborators(self, *, limit: int = 30) -> list[str]:
-        # Bitbucket ではリポジトリのメンバー取得は workspace members 経由
+        # リポジトリレベルのコラボレーター一覧（read:repository:bitbucket スコープで取得可能）
         results = paginate_response_body(
             self._client,
-            f"/workspaces/{quote(self._owner, safe='')}/members",
+            f"/repositories/{quote(self._owner, safe='')}/{quote(self._repo, safe='')}/permissions-config/users",
             limit=limit,
         )
         try:

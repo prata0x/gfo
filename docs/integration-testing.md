@@ -210,7 +210,7 @@ Bitbucket Cloud は **スコープ付き API Token** を使用する（App Passw
 4. **Scopes** で以下を選択:
    | スコープ | 理由 |
    |---------|------|
-   | `read:repository:bitbucket` | リポジトリ情報の読み取り・一覧 |
+   | `read:repository:bitbucket` | リポジトリ情報の読み取り・一覧・`list_collaborators` |
    | `write:repository:bitbucket` | テスト間でブランチに差分コミットを追加するため（※） |
    | `admin:repository:bitbucket` | `repo create` に必要 |
    | `delete:repository:bitbucket` | `repo delete` に必要 |
@@ -225,7 +225,7 @@ Bitbucket Cloud は **スコープ付き API Token** を使用する（App Passw
    | `read:ssh-key:bitbucket` | デプロイキー一覧取得 |
    | `write:ssh-key:bitbucket` | デプロイキー作成・更新 |
    | `delete:ssh-key:bitbucket` | デプロイキー削除 |
-   | `read:user:bitbucket` | `get_current_user` および `list_collaborators` に必要 |
+   | `read:user:bitbucket` | `get_current_user` に必要 |
 
    > **※** `write:repository:bitbucket` は gfo 本体の機能には不要。前回テストでの PR マージ後に `gfo-test-branch` と `main` の差分がなくなるため、テスト実行前にマーカーファイルをコミットして差分を作る処理（Bitbucket Src API 経由）に必要。
 5. Create してトークンをコピー

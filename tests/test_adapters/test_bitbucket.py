@@ -1298,7 +1298,7 @@ class TestListCollaborators:
     def test_list(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
             responses.GET,
-            f"{BASE}/workspaces/test-workspace/members",
+            f"{REPOS}/permissions-config/users",
             json={
                 "values": [{"user": {"nickname": "collab1"}}, {"user": {"nickname": "collab2"}}],
                 "pagelen": 10,
