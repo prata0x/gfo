@@ -508,7 +508,20 @@ ssh://git@gitlab.com/{owner}/{repo}.git
 
 ---
 
-## 15. 統合テスト環境変数
+## 15. 非対応機能
+
+以下の操作は GitLab API の制約により `NotSupportedError` を返す。
+
+| メソッド | 理由 |
+|---|---|
+| `update_comment` | GitLab の Notes API は更新時に issue/MR の `iid` が必要（`PUT /projects/{id}/issues/{iid}/notes/{note_id}`）だが、gfo の `update_comment` シグネチャは `comment_id` のみを受け取るため実装不可 |
+| `delete_comment` | 同上（`DELETE /projects/{id}/issues/{iid}/notes/{note_id}`） |
+
+> **補足**: gfo の `update_comment(resource, comment_id, *, body)` / `delete_comment(resource, comment_id)` シグネチャは issue/MR の番号を受け取らない設計のため、GitLab の Notes エンドポイントに必要なパスパラメータを組み立てられない。
+
+---
+
+## 16. 統合テスト環境変数
 
 SaaS（gitlab.com）を対象とした統合テストで使用する環境変数。
 `tests/integration/.env` に設定する。

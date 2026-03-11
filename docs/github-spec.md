@@ -418,7 +418,28 @@ git@github.com:{owner}/{repo}.git
 
 ---
 
-## 14. 統合テスト環境変数
+## 14. 非対応機能
+
+以下の操作は GitHub REST API が対応していないため `NotSupportedError` を返す。
+
+| メソッド | 理由 |
+|---|---|
+| `delete_issue` | GitHub REST API に Issue 削除エンドポイントが存在しない（GraphQL API でのみ可能） |
+| `list_wiki_pages` | GitHub REST API は Wiki 読み取り API を提供しない |
+| `get_wiki_page` | 同上 |
+| `create_wiki_page` | 同上 |
+| `update_wiki_page` | 同上 |
+| `delete_wiki_page` | 同上 |
+
+Wiki 操作を行う場合は、リポジトリの Wiki を git clone して直接操作する必要がある:
+
+```bash
+git clone https://github.com/{owner}/{repo}.wiki.git
+```
+
+---
+
+## 15. 統合テスト環境変数
 
 `tests/integration/.env` に設定する（`.env.example` を参照）。
 
