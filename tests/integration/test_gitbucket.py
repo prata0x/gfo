@@ -584,26 +584,14 @@ class TestGitBucketIntegration:
 
     # --- deploy_key CRUD ---
 
-    def test_42_deploy_key_crud(self) -> None:
-        """デプロイキーの作成・一覧・削除テスト。GitBucket が未対応の場合はスキップ。"""
-        try:
-            for k in self.adapter.list_deploy_keys():
-                if k.title == "gfo-test-deploy-key":
-                    self.adapter.delete_deploy_key(key_id=k.id)
-        except Exception:
-            pytest.skip("GitBucket: deploy_key API not supported")
-        try:
-            key = self.adapter.create_deploy_key(
-                title="gfo-test-deploy-key",
-                key=TEST_SSH_PUBLIC_KEY,
-            )
-        except Exception:
-            pytest.skip("GitBucket: create_deploy_key not supported")
-        assert key.title == "gfo-test-deploy-key"
-        self.__class__._deploy_key_id = key.id
-        keys = self.adapter.list_deploy_keys()
-        assert any(k.id == self._deploy_key_id for k in keys)
-        self.adapter.delete_deploy_key(key_id=self._deploy_key_id)
+    def test_42_deploy_key_not_supported(self) -> None:
+        """GitBucket は deploy key API 未実装のため NotSupportedError を返す。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_deploy_keys()
+        with pytest.raises(NotSupportedError):
+            self.adapter.create_deploy_key(title="test", key=TEST_SSH_PUBLIC_KEY)
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_deploy_key(key_id=1)
 
     # --- get_current_user ---
 

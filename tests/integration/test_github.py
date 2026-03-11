@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from gfo.exceptions import AuthenticationError, GfoError, NotSupportedError
+from gfo.exceptions import GfoError, NotSupportedError
 from tests.integration.conftest import (
     TEST_SSH_PUBLIC_KEY,
     ServiceTestConfig,
@@ -531,20 +531,17 @@ class TestGitHubIntegration:
     # --- create_commit_status ---
 
     def test_38_create_commit_status(self) -> None:
-        """コミットステータスを作成するテスト（トークンに commit_statuses write がない場合はスキップ）。"""
+        """コミットステータスを作成するテスト。"""
         branch_resp = self.adapter._client.get(
             f"{self.adapter._repos_path()}/branches/{self.config.default_branch}"
         )
         self.__class__._head_sha = branch_resp.json()["commit"]["sha"]
-        try:
-            status = self.adapter.create_commit_status(
-                self._head_sha,
-                state="success",
-                context="gfo-ci/test",
-                description="Integration test status",
-            )
-        except AuthenticationError:
-            pytest.skip("Token does not have commit_statuses write permission")
+        status = self.adapter.create_commit_status(
+            self._head_sha,
+            state="success",
+            context="gfo-ci/test",
+            description="Integration test status",
+        )
         assert status.state == "success"
 
     # --- list_commit_statuses ---
@@ -552,10 +549,7 @@ class TestGitHubIntegration:
     def test_39_list_commit_statuses(self) -> None:
         """コミットステータス一覧を取得するテスト。"""
         assert self._head_sha is not None
-        try:
-            statuses = self.adapter.list_commit_statuses(self._head_sha)
-        except AuthenticationError:
-            pytest.skip("Token does not have commit_statuses read permission")
+        statuses = self.adapter.list_commit_statuses(self._head_sha)
         assert isinstance(statuses, list)
 
     # --- file CRUD ---
@@ -605,20 +599,17 @@ class TestGitHubIntegration:
     # --- webhook CRUD ---
 
     def test_41_webhook_crud(self) -> None:
-        """Webhook の作成・一覧・削除テスト（トークンに webhook admin がない場合はスキップ）。"""
+        """Webhook の作成・一覧・削除テスト。"""
         try:
             for h in self.adapter.list_webhooks():
                 if h.url == "https://example.com/webhook":
                     self.adapter.delete_webhook(hook_id=h.id)
         except Exception:
             pass
-        try:
-            hook = self.adapter.create_webhook(
-                url="https://example.com/webhook",
-                events=["push"],
-            )
-        except AuthenticationError:
-            pytest.skip("Token does not have webhook (admin:repo_hook) permission")
+        hook = self.adapter.create_webhook(
+            url="https://example.com/webhook",
+            events=["push"],
+        )
         assert hook.url == "https://example.com/webhook"
         self.__class__._webhook_id = hook.id
         hooks = self.adapter.list_webhooks()

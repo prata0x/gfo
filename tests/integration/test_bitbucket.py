@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from gfo.exceptions import AuthenticationError, NotSupportedError
+from gfo.exceptions import NotSupportedError
 from tests.integration.conftest import (
     TEST_SSH_PUBLIC_KEY,
     ServiceTestConfig,
@@ -497,20 +497,17 @@ class TestBitbucketIntegration:
     # --- webhook CRUD ---
 
     def test_41_webhook_crud(self) -> None:
-        """Webhook の作成・一覧・削除テスト（トークンに webhook スコープがない場合はスキップ）。"""
+        """Webhook の作成・一覧・削除テスト。"""
         try:
             for h in self.adapter.list_webhooks():
                 if h.url == "https://example.com/webhook":
                     self.adapter.delete_webhook(hook_id=h.id)
         except Exception:
             pass
-        try:
-            hook = self.adapter.create_webhook(
-                url="https://example.com/webhook",
-                events=["repo:push"],
-            )
-        except AuthenticationError:
-            pytest.skip("Token does not have webhook scope")
+        hook = self.adapter.create_webhook(
+            url="https://example.com/webhook",
+            events=["repo:push"],
+        )
         self.__class__._webhook_id = hook.id
         hooks = self.adapter.list_webhooks()
         assert any(h.id == self._webhook_id for h in hooks)
@@ -522,20 +519,17 @@ class TestBitbucketIntegration:
     # --- deploy_key CRUD ---
 
     def test_42_deploy_key_crud(self) -> None:
-        """デプロイキーの作成・一覧・削除テスト（トークンに deploy-keys スコープがない場合はスキップ）。"""
+        """デプロイキーの作成・一覧・削除テスト。"""
         try:
             for k in self.adapter.list_deploy_keys():
                 if k.title == "gfo-test-deploy-key":
                     self.adapter.delete_deploy_key(key_id=k.id)
         except Exception:
             pass
-        try:
-            key = self.adapter.create_deploy_key(
-                title="gfo-test-deploy-key",
-                key=TEST_SSH_PUBLIC_KEY,
-            )
-        except AuthenticationError:
-            pytest.skip("Token does not have deploy-keys scope")
+        key = self.adapter.create_deploy_key(
+            title="gfo-test-deploy-key",
+            key=TEST_SSH_PUBLIC_KEY,
+        )
         self.__class__._deploy_key_id = key.id
         keys = self.adapter.list_deploy_keys()
         assert any(k.id == self._deploy_key_id for k in keys)
@@ -547,11 +541,8 @@ class TestBitbucketIntegration:
     # --- get_current_user ---
 
     def test_43_get_current_user(self) -> None:
-        """現在のユーザー情報取得テスト（トークンに account スコープがない場合はスキップ）。"""
-        try:
-            user = self.adapter.get_current_user()
-        except AuthenticationError:
-            pytest.skip("Token does not have account scope")
+        """現在のユーザー情報取得テスト。"""
+        user = self.adapter.get_current_user()
         assert isinstance(user, dict)
         assert "account_id" in user or "username" in user or "nickname" in user
 
@@ -563,11 +554,8 @@ class TestBitbucketIntegration:
         assert isinstance(repos, list)
         issues = self.adapter.search_issues("gfo-test", limit=5)
         assert isinstance(issues, list)
-        try:
-            collaborators = self.adapter.list_collaborators()
-            assert isinstance(collaborators, list)
-        except AuthenticationError:
-            pass  # account スコープなしの場合はスキップ
+        collaborators = self.adapter.list_collaborators()
+        assert isinstance(collaborators, list)
         # PR が存在すれば checkout refspec テスト
         prs = self.adapter.list_pull_requests(state="open", limit=1)
         if prs:

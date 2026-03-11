@@ -354,16 +354,20 @@ Wiki の読み取り、作成、更新
 |---|---|
 | `repo list` / `repo view` | **Code**: Read |
 | `repo create` | **Code**: Read & write |
+| `repo delete` | **Code**: Read, write, & manage |
 | `pr list` / `pr view` | **Code**: Read |
 | `pr create` / `pr merge` / `pr close` | **Code**: Read & write |
 | `issue list` / `issue view` | **Work Items**: Read |
 | `issue create` / `issue close` | **Work Items**: Read & write |
+| `issue delete` | **Work Items**: Read, write, & manage |
+| `create_review` / `get_current_user` | **Member Entitlement Management**: Read |
 
 統合テスト用の最小構成:
 
 ```
-Code:       Read & write
-Work Items: Read & write
+Code:                          Read, write, & manage
+Work Items:                    Read, write, & manage
+Member Entitlement Management: Read
 ```
 
 ---

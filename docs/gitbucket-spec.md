@@ -37,6 +37,9 @@ GitServiceAdapter (ABC)
 | `close_issue()` | `PATCH /issues/{number}` 未実装のため Web UI エンドポイント経由に変更 |
 | `_to_release()` | `created_at` / `html_url` フィールドが省略されるためフォールバック対応 |
 | `create_release()` | レスポンスが JSON 二重エンコード文字列のため `_parse_response()` を挟む |
+| `list_deploy_keys()` | deploy key API 未実装のため `NotSupportedError` を送出 |
+| `create_deploy_key()` | 同上 |
+| `delete_deploy_key()` | 同上 |
 
 ### GitBucket 固有ヘルパーメソッド
 
@@ -226,7 +229,13 @@ def _to_release(data: dict) -> Release:
     )
 ```
 
-### 5-4. ブランチ作成: POST /git/refs 未サポート
+### 5-4. Deploy key: API 未実装
+
+GitBucket は `/api/v3/repos/{owner}/{repo}/keys` エンドポイントを実装していない。`GiteaAdapter`（親クラス）から継承したメソッドを呼び出すと HTTP 500 が返る。
+
+`GitBucketAdapter` では `list_deploy_keys()` / `create_deploy_key()` / `delete_deploy_key()` をオーバーライドし、無条件で `NotSupportedError("GitBucket", "deploy key operations")` を送出する。
+
+### 5-5. ブランチ作成: POST /git/refs 未サポート
 
 GitBucket は `POST /api/v3/repos/{owner}/{repo}/git/refs` が正常に動作しない（HTTP 500 を返す）。
 

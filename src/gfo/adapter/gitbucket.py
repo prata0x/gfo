@@ -16,7 +16,7 @@ import requests as _requests
 from gfo.exceptions import GfoError, NotSupportedError
 from gfo.http import paginate_link_header
 
-from .base import Issue, PullRequest, Release, Repository, Review, Tag, WikiPage
+from .base import DeployKey, Issue, PullRequest, Release, Repository, Review, Tag, WikiPage
 from .github import GitHubAdapter
 from .registry import register
 
@@ -198,3 +198,14 @@ class GitBucketAdapter(GitHubAdapter):
 
     def create_review(self, number: int, *, state: str, body: str = "") -> Review:
         raise NotSupportedError("GitBucket", "review operations")
+
+    # --- Deploy key（GitBucket 未実装）---
+
+    def list_deploy_keys(self, *, limit: int = 30) -> list[DeployKey]:
+        raise NotSupportedError("GitBucket", "deploy key operations")
+
+    def create_deploy_key(self, *, title: str, key: str, read_only: bool = True) -> DeployKey:
+        raise NotSupportedError("GitBucket", "deploy key operations")
+
+    def delete_deploy_key(self, *, key_id: int) -> None:
+        raise NotSupportedError("GitBucket", "deploy key operations")

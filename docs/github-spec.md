@@ -143,6 +143,7 @@ Fine-grained PAT を使用する場合の最小 permission 早見表。
 |---|---|
 | `repo list` / `repo view` | `Metadata: read`（自動付与）, `Contents: read` |
 | `repo create` | `Administration: write` |
+| `repo delete` | `Administration: write` |
 | `pr list` / `pr view` | `Pull requests: read` |
 | `pr create` | `Pull requests: write`, `Contents: read`（ブランチ参照） |
 | `pr merge` | `Pull requests: write` |
@@ -156,6 +157,8 @@ Fine-grained PAT を使用する場合の最小 permission 早見表。
 | `release delete` | `Contents: write` |
 | `label list` / `label create` / `label delete` | `Issues: read` / `Issues: write` |
 | `milestone list` / `milestone create` / `milestone delete` | `Issues: read` / `Issues: write` |
+| `create_commit_status` / `list_commit_statuses` | `Commit statuses: read / write` |
+| `list_webhooks` / `create_webhook` / `delete_webhook` | `Webhooks: read / write` |
 | 統合テスト用ファイルコミット（Contents API） | `Contents: write` |
 
 > **統合テストの補足**: PR テストではマージ後にテストブランチに差分がなくなる。次回テスト実行前に Contents API（`PUT /repos/{owner}/{repo}/contents/{path}`）でマーカーファイルをコミットして差分を作る。この処理に `Contents: write` が必要。gfo 本体の機能としては不要。
@@ -439,6 +442,9 @@ git@github.com:{owner}/{repo}.git
 | `Contents` | read / write | ブランチ参照・テスト用ファイルコミット |
 | `Issues` | read / write | Issue 作成・参照・クローズ |
 | `Pull requests` | read / write | PR 作成・参照・マージ |
+| `Administration` | read / write | `repo delete` に必要 |
+| `Commit statuses` | read / write | コミットステータスの作成・一覧 |
+| `Webhooks` | read / write | Webhook CRUD テスト |
 | `Metadata` | read | リポジトリ情報参照（自動付与） |
 
 リリース・ラベル・マイルストーンのテストも実行する場合は以下も追加:

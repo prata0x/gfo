@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from gfo.exceptions import AuthenticationError, GfoError, NotSupportedError
+from gfo.exceptions import GfoError, NotSupportedError
 from tests.integration.conftest import ServiceTestConfig, create_test_adapter, get_service_config
 
 CONFIG = get_service_config("azure-devops")
@@ -414,12 +414,9 @@ class TestAzureDevOpsIntegration:
     # --- review ---
 
     def test_30_review(self) -> None:
-        """PR に review 作成・一覧テスト（connectionData 401 の場合はスキップ）。"""
+        """PR に review 作成・一覧テスト。"""
         assert self._update_pr_number is not None
-        try:
-            review = self.adapter.create_review(self._update_pr_number, state="COMMENT", body="")
-        except AuthenticationError:
-            pytest.skip("connectionData endpoint not accessible with this PAT")
+        review = self.adapter.create_review(self._update_pr_number, state="COMMENT", body="")
         assert review is not None
         reviews = self.adapter.list_reviews(self._update_pr_number)
         assert isinstance(reviews, list)
@@ -568,11 +565,8 @@ class TestAzureDevOpsIntegration:
     # --- get_current_user ---
 
     def test_43_get_current_user(self) -> None:
-        """現在のユーザー情報取得テスト（connectionData 401 の場合はスキップ）。"""
-        try:
-            user = self.adapter.get_current_user()
-        except AuthenticationError:
-            pytest.skip("connectionData endpoint not accessible with this PAT")
+        """現在のユーザー情報取得テスト。"""
+        user = self.adapter.get_current_user()
         assert isinstance(user, dict)
         assert "id" in user or "displayName" in user
 

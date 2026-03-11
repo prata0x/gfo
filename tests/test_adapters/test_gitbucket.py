@@ -402,6 +402,18 @@ class TestNotSupported:
         with pytest.raises(NotSupportedError):
             gitbucket_adapter.create_review(1, state="approve")
 
+    def test_list_deploy_keys_raises(self, gitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.list_deploy_keys()
+
+    def test_create_deploy_key_raises(self, gitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.create_deploy_key(title="test", key="ssh-ed25519 AAAA test")
+
+    def test_delete_deploy_key_raises(self, gitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.delete_deploy_key(key_id=1)
+
 
 class TestParseResponse:
     """_parse_response のテスト。"""
