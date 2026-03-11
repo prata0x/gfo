@@ -444,7 +444,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         message: str,
         sha: str | None = None,
         branch: str | None = None,
-    ) -> None:
+    ) -> str | None:
         payload: dict = {
             "message": message,
             "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
@@ -454,15 +454,17 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         if branch is not None:
             payload["branch"] = branch
         if sha is not None:
-            self._client.put(
+            resp = self._client.put(
                 f"{self._repos_path()}/contents/{quote(path, safe='/')}",
                 json=payload,
             )
         else:
-            self._client.post(
+            resp = self._client.post(
                 f"{self._repos_path()}/contents/{quote(path, safe='/')}",
                 json=payload,
             )
+        sha = (resp.json().get("commit") or {}).get("sha")
+        return str(sha) if sha else None
 
     def delete_file(
         self,

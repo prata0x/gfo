@@ -1295,14 +1295,15 @@ class TestCreateOrUpdateFile:
         mock_responses.add(
             responses.POST,
             f"{GIT}/pushes",
-            json={"refUpdates": [], "commits": []},
+            json={"refUpdates": [], "commits": [{"commitId": "commit-sha-xyz"}]},
             status=201,
         )
-        azure_devops_adapter.create_or_update_file(
+        result = azure_devops_adapter.create_or_update_file(
             "new-file.md", content="content", message="Add file"
         )
         req_body = json.loads(mock_responses.calls[1].request.body)
         assert req_body["commits"][0]["comment"] == "Add file"
+        assert result == "commit-sha-xyz"
 
 
 class TestDeleteFile:

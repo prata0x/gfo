@@ -1367,28 +1367,36 @@ class TestCreateOrUpdateFile:
         mock_responses.add(
             responses.PUT,
             f"{REPOS}/contents/new-file.md",
-            json={"content": {"name": "new-file.md", "sha": "newsha"}},
+            json={
+                "content": {"name": "new-file.md", "sha": "newsha"},
+                "commit": {"sha": "commit-abc123"},
+            },
             status=201,
         )
-        github_adapter.create_or_update_file(
+        result = github_adapter.create_or_update_file(
             "new-file.md", content="new content", message="Add file"
         )
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["message"] == "Add file"
         assert req_body["content"] == content_b64
+        assert result == "commit-abc123"
 
     def test_update_existing(self, mock_responses, github_adapter):
         mock_responses.add(
             responses.PUT,
             f"{REPOS}/contents/existing.md",
-            json={"content": {"name": "existing.md", "sha": "updatedsha"}},
+            json={
+                "content": {"name": "existing.md", "sha": "updatedsha"},
+                "commit": {"sha": "commit-updated"},
+            },
             status=200,
         )
-        github_adapter.create_or_update_file(
+        result = github_adapter.create_or_update_file(
             "existing.md", content="updated content", message="Update file", sha="oldsha"
         )
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["sha"] == "oldsha"
+        assert result == "commit-updated"
 
 
 class TestDeleteFile:

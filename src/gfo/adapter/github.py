@@ -445,7 +445,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         message: str,
         sha: str | None = None,
         branch: str | None = None,
-    ) -> None:
+    ) -> str | None:
         payload: dict = {
             "message": message,
             "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
@@ -454,10 +454,12 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["sha"] = sha
         if branch is not None:
             payload["branch"] = branch
-        self._client.put(
+        resp = self._client.put(
             f"{self._repos_path()}/contents/{quote(path, safe='/')}",
             json=payload,
         )
+        sha = (resp.json().get("commit") or {}).get("sha")
+        return str(sha) if sha else None
 
     def delete_file(
         self,

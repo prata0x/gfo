@@ -749,7 +749,7 @@ class GitLabAdapter(GitServiceAdapter):
         message: str,
         sha: str | None = None,
         branch: str | None = None,
-    ) -> None:
+    ) -> str | None:
         payload: dict = {
             "commit_message": message,
             "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
@@ -769,6 +769,8 @@ class GitLabAdapter(GitServiceAdapter):
                 f"{self._project_path()}/repository/files/{encoded_path}",
                 json=payload,
             )
+        # GitLab の files API は commit SHA を返さない
+        return None
 
     def delete_file(
         self,

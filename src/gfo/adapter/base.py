@@ -591,7 +591,8 @@ class GitServiceAdapter(ABC):
         message: str,
         sha: str | None = None,
         branch: str | None = None,
-    ) -> None:
+    ) -> str | None:
+        """ファイルを作成または更新する。Returns: commit SHA（サービスが返さない場合は None）。"""
         raise NotSupportedError(self.service_name, "file put")
 
     def delete_file(

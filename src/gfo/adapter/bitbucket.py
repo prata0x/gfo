@@ -650,12 +650,14 @@ class BitbucketAdapter(GitServiceAdapter):
         message: str,
         sha: str | None = None,
         branch: str | None = None,
-    ) -> None:
+    ) -> str | None:
         # Bitbucket は multipart form data で送信
         data: dict = {path: content, "message": message}
         if branch is not None:
             data["branch"] = branch
         self._client.post(f"{self._repos_path()}/src", data=data)
+        # Bitbucket src API は commit SHA を返さない
+        return None
 
     def delete_file(
         self,

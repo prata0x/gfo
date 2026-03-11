@@ -806,7 +806,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         message: str,
         sha: str | None = None,
         branch: str | None = None,
-    ) -> None:
+    ) -> str | None:
         # AzDO ではファイル作成/更新に pushes API を使う
         branch = branch or "main"
         # 既存ブランチの最新コミット SHA を取得
@@ -835,7 +835,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 }
             ],
         }
-        self._client.post(f"{self._git_path()}/pushes", json=payload)
+        resp = self._client.post(f"{self._git_path()}/pushes", json=payload)
+        commits = resp.json().get("commits", [])
+        return commits[0].get("commitId") if commits else None
 
     def delete_file(
         self,
