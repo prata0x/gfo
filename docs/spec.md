@@ -698,87 +698,10 @@ Forgejo → Gitea、GitBucket → GitHub の継承関係があるため、Protoc
 | GitBucket | `{host}/api/v3` | `Authorization: token {token}` | GitHub |
 | Backlog | `{host}/api/v2` | `?apiKey={key}`（クエリパラメータ） | — |
 
-### 6.3 主要 API エンドポイント
+### 6.3 API エンドポイント
 
-#### GitHub / GitBucket
-
-GitBucket は GitHub のサブセット。
-
-| 操作 | メソッド | エンドポイント |
-|------|---------|--------------|
-| PR 一覧 | `GET` | `/repos/{owner}/{repo}/pulls` |
-| PR 作成 | `POST` | `/repos/{owner}/{repo}/pulls` |
-| PR マージ | `PUT` | `/repos/{owner}/{repo}/pulls/{n}/merge` |
-| Issue 一覧 | `GET` | `/repos/{owner}/{repo}/issues` |
-| Issue 作成 | `POST` | `/repos/{owner}/{repo}/issues` |
-
-#### GitLab
-
-プロジェクト ID は `owner%2Frepo`（URL エンコード）で代用する。サブグループが複数階層ある場合も同様にエンコードする（例: `group%2Fsub1%2Fsub2%2Fproject`）。
-
-| 操作 | メソッド | エンドポイント |
-|------|---------|--------------|
-| MR 一覧 | `GET` | `/projects/{id}/merge_requests` |
-| MR 作成 | `POST` | `/projects/{id}/merge_requests` |
-| MR マージ | `PUT` | `/projects/{id}/merge_requests/{iid}/merge` |
-| Issue 一覧 | `GET` | `/projects/{id}/issues` |
-
-#### Bitbucket Cloud
-
-| 操作 | メソッド | エンドポイント |
-|------|---------|--------------|
-| PR 一覧 | `GET` | `/repositories/{workspace}/{repo}/pullrequests` |
-| PR 作成 | `POST` | `/repositories/{workspace}/{repo}/pullrequests` |
-| PR マージ | `POST` | `/repositories/{workspace}/{repo}/pullrequests/{id}/merge` |
-| Issue 一覧 | `GET` | `/repositories/{workspace}/{repo}/issues` |
-
-#### Azure DevOps (v7.1)
-
-全リクエストに `api-version=7.1` クエリパラメータを付与する。
-
-| 操作 | メソッド | エンドポイント | 備考 |
-|------|---------|--------------|------|
-| PR 一覧 | `GET` | `/_apis/git/repositories/{repoId}/pullrequests` | `searchCriteria.status` でフィルタ。`$top` + `$skip` でページネーション |
-| PR 作成 | `POST` | `/_apis/git/repositories/{repoId}/pullrequests` | Body: `sourceRefName`, `targetRefName`（`refs/heads/` prefix 付き）, `title`, `description` |
-| PR 取得 | `GET` | `/_apis/git/repositories/{repoId}/pullrequests/{id}` | |
-| PR マージ | `PATCH` | `/_apis/git/repositories/{repoId}/pullrequests/{id}` | `status: "completed"` + `completionOptions.mergeStrategy` |
-| PR クローズ | `PATCH` | `/_apis/git/repositories/{repoId}/pullrequests/{id}` | `status: "abandoned"` |
-| Work Item 検索 | `POST` | `/_apis/wit/wiql` | WIQL クエリ言語。ID 一覧取得 → バッチ取得の 2 段階 |
-| Work Item 作成 | `POST` | `/_apis/wit/workitems/$Task` | JSON Patch 形式。Content-Type: `application/json-patch+json` |
-| Work Item 取得 | `GET` | `/_apis/wit/workitems/{id}` | |
-| Work Item 更新 | `PATCH` | `/_apis/wit/workitems/{id}` | JSON Patch 形式 |
-| Repo 一覧 | `GET` | `/_apis/git/repositories` | |
-
-#### Gitea / Forgejo
-
-| 操作 | メソッド | エンドポイント |
-|------|---------|--------------|
-| PR 一覧 | `GET` | `/repos/{owner}/{repo}/pulls` |
-| PR 作成 | `POST` | `/repos/{owner}/{repo}/pulls` |
-| PR マージ | `POST` | `/repos/{owner}/{repo}/pulls/{index}/merge` |
-| Issue 一覧 | `GET` | `/repos/{owner}/{repo}/issues` |
-
-#### Gogs
-
-Gitea 互換だが **PR API なし**。
-
-| 操作 | メソッド | エンドポイント |
-|------|---------|--------------|
-| Issue 一覧 | `GET` | `/repos/{owner}/{repo}/issues` |
-| Issue 作成 | `POST` | `/repos/{owner}/{repo}/issues` |
-| Repo 一覧 | `GET` | `/user/repos` |
-| Release 一覧 | `GET` | `/repos/{owner}/{repo}/releases` |
-| PR 操作 | — | API なし。Web URL を表示して案内 |
-
-#### Backlog
-
-| 操作 | メソッド | エンドポイント | 備考 |
-|------|---------|--------------|------|
-| PR 一覧 | `GET` | `/projects/{key}/git/repositories/{repo}/pullRequests` | |
-| PR 作成 | `POST` | `/projects/{key}/git/repositories/{repo}/pullRequests` | |
-| PR マージ | — | API なし | Web URL を表示して案内 |
-| Issue 一覧 | `GET` | `/issues?projectId[]={id}` | |
-| Issue 作成 | `POST` | `/issues` | `issueTypeId`, `priorityId` 必須（事前自動取得） |
+詳細なエンドポイント一覧は各サービス別 spec §5 を参照:
+`github-spec.md §5`、`gitlab-spec.md §5`、`bitbucket-spec.md §5`、`azure-devops-spec.md §5`、`gitea-spec.md §5`、`backlog-spec.md §5`、`gitbucket-spec.md §5`
 
 ### 6.4 ページネーション方式
 
@@ -793,116 +716,19 @@ Gitea 互換だが **PR API なし**。
 | GitBucket | Link header | GitHub 互換 |
 | Backlog | オフセットベース | `count` + `offset` パラメータ |
 
-`http.py` に共通ページネーションヘルパーを実装する:
-- `paginate_link_header()` — GitHub / Gitea / GitBucket 用
-- `paginate_offset()` — Backlog 用
-- 各アダプターで適切なヘルパーを使用する
+サービス別のページネーション詳細は各サービス別 spec §9 を参照。
 
 ---
 
 ## 7. サービス固有仕様
 
-### 7.1 Azure DevOps
+サービス固有の詳細は各サービス別 spec §8 を参照:
+`azure-devops-spec.md §8`（階層構造）、`backlog-spec.md §8`（Project Key）、`gitbucket-spec.md §8`（非互換点）
 
-#### 3 階層構造
+PR `--state merged` のサービス別マッピング、Gogs/Backlog の固有挙動は
+`gitea-spec.md §6`、`backlog-spec.md §6`、`gitea-spec.md §11` を参照。
 
-Organization > Project > Repository の 3 階層で構成される。
-
-- git remote URL からパース: `https://dev.azure.com/{org}/{project}/_git/{repo}` または `https://{org}.visualstudio.com/{project}/_git/{repo}`
-- git config に `gfo.organization` キーを追加で保存する
-
-```ini
-[gfo]
-    type = azure-devops
-    host = dev.azure.com
-    organization = myorg
-    project = myproject
-```
-
-#### repositoryId の解決
-
-`repositoryId`（GUID）はリポジトリ名から動的に解決する。初回 API 呼び出し時に `GET /_apis/git/repositories` でリポジトリ一覧を取得し、名前が一致するリポジトリの ID をキャッシュする。
-
-#### 認証
-
-Basic Auth を使用する。ユーザー名は空文字、パスワードに PAT を使用する。
-
-```
-Authorization: Basic base64(:{PAT})
-```
-
-#### Work Items（Issue マッピング）
-
-| gfo コマンド | Azure DevOps API | 備考 |
-|-------------|-----------------|------|
-| `gfo issue list` | `POST wiql`（WIQL 検索） | デフォルト: State != 'Closed'。WIQL の `$top` で取得 ID 数を制限する（デフォルト上限 200 件）。`--limit` が 200 以下の場合は WIQL の `$top` に `--limit` を指定する。200 件を超える場合はバッチ取得 API（`GET workitems?ids=...`、一度に最大 200 件）を複数回呼び出す |
-| `gfo issue create` | `POST workitems/$Task` | デフォルト type=Task。`--type Bug\|Task\|"User Story"` で変更可 |
-| `gfo issue view` | `GET workitems/{id}` | |
-| `gfo issue close` | `PATCH workitems/{id}` | State → Closed（JSON Patch 形式） |
-
-#### PR マージ戦略マッピング
-
-| `--method` | `completionOptions.mergeStrategy` |
-|-----------|-----------------------------------|
-| `merge` | `noFastForward` |
-| `squash` | `squash` |
-| `rebase` | `rebase` |
-
-#### ブランチ名の処理
-
-PR 作成時に `sourceRefName` / `targetRefName` に `refs/heads/` prefix を自動付与する。
-PR 取得時に `refs/heads/` prefix を除去してデータモデルに格納する。
-
-#### State 正規化
-
-プロセステンプレートにより完了状態の名前が異なる（Agile: Closed, Scrum: Done, Basic: Done）。
-
-| `--state` | WIQL 条件 |
-|-----------|----------|
-| `open` | `State NOT IN ('Closed', 'Done', 'Removed')` |
-| `closed` | `State IN ('Closed', 'Done')` |
-
-#### PR 状態マッピング
-
-| gfo | Azure DevOps |
-|-----|-------------|
-| `open` | `active` |
-| `closed` | `abandoned` |
-| `merged` | `completed` |
-
-### 7.2 Backlog
-
-- **PR マージ**: API なし。`gfo pr merge` は Web URL を表示して案内する
-- **Issue 作成**: `issueTypeId` と `priorityId` が必須。`gfo issue create` 時にプロジェクト情報を自動取得しデフォルト選択する。`--type` / `--priority` オプションでの指定も可能
-- **URL 形式**: `https://<space>.backlog.com/git/<PROJECT>/<REPO>.git`
-- **認証**: API キーをクエリパラメータに付与する（`?apiKey={key}`）
-
-### 7.3 Gogs
-
-- **PR 操作**: API なし。`gfo pr list/create/view/merge/close/checkout` はすべて `NotSupportedError` を発生させ、Web URL を案内する
-- **対応リソース**: Issue, Repository, Release は Gitea 互換 API で動作する（Gogs が Gitea の前身であり、エンドポイントパスが同一）。Label と Milestone は Gogs API に存在しないため `NotSupportedError` とする
-- **アダプター実装**: `GiteaAdapter` を継承し、PR / Label / Milestone 関連メソッドをオーバーライドする
-- **自動検出**: `/api/v1/version` のレスポンス内容で Gitea / Forgejo / Gogs を区別する
-
-### 7.4 PR `--state merged` のサービス別マッピング
-
-| サービス | マッピング方法 |
-|---------|--------------|
-| GitHub / GitBucket | `state=closed` で取得後、`merged_at` の有無で判別 |
-| GitLab | `state=merged` がネイティブに存在 |
-| Bitbucket Cloud | `state=MERGED` |
-| Azure DevOps | `searchCriteria.status=completed` |
-| Gitea / Forgejo | `state=closed` で取得後、`merged` フィールドで判別 |
-| Gogs | PR API なし（`NotSupportedError`） |
-| Backlog | `GET /projects/{key}/statuses` で PR ステータス一覧を取得し、name に `"merged"` を含む（大文字小文字無視）エントリの statusId を使用して `statusId[]` に指定 |
-
-### 7.5 Bitbucket Cloud
-
-- **認証**: スコープ付き API Token。`email:api-token` を `credentials.toml` に格納し、コロンで分割して Basic Auth に渡す
-- **必要スコープ**: `read:repository:bitbucket`（リポジトリ読み取り）、`read:pullrequest:bitbucket` / `write:pullrequest:bitbucket`（PR 一覧・作成・マージ・クローズ）、`read:issue:bitbucket` / `write:issue:bitbucket`（Issue 一覧・作成・状態変更）。統合テストのみ `write:repository:bitbucket` が追加で必要
-- **トークン取得先**: https://id.atlassian.com/manage-profile/security/api-tokens
-
-### 7.6 機能対応マトリクス
+### 7.1 機能対応マトリクス
 
 | サービス | PR | Issue | Repo | Release | Label | Milestone |
 |---------|:--:|:-----:|:----:|:-------:|:-----:|:---------:|
