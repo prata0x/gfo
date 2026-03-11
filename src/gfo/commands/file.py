@@ -6,6 +6,7 @@ import argparse
 import sys
 
 from gfo.commands import get_adapter
+from gfo.exceptions import NotFoundError
 
 
 def handle_get(args: argparse.Namespace, *, fmt: str) -> None:
@@ -28,7 +29,7 @@ def handle_put(args: argparse.Namespace, *, fmt: str) -> None:
     sha: str | None = None
     try:
         _, sha = adapter.get_file_content(args.path, ref=args.branch)
-    except Exception:
+    except NotFoundError:
         sha = None
     adapter.create_or_update_file(
         args.path,

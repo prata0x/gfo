@@ -3,15 +3,13 @@
 GitBucket は GitHub API v3 互換の自己ホスト型 Git サーバー。
 ただし以下の非互換がある:
 - create_pull_request / create_release: レスポンスが JSON 二重エンコード文字列
-- close_issue: PATCH /issues/{number} が未実装 → Web UI エンドポイントで代替
+- close_issue: PATCH /issues/{number} が未実装のため非対応
 """
 
 from __future__ import annotations
 
 import json
 import urllib.parse
-
-import requests as _requests
 
 from gfo.exceptions import GfoError, NotSupportedError
 from gfo.http import paginate_link_header
@@ -57,28 +55,8 @@ class GitBucketAdapter(GitHubAdapter):
     # --- Issue ---
 
     def close_issue(self, number: int) -> None:
-        """GitBucket は PATCH /issues/{number} 未実装のため Web UI 経由でクローズする。"""
-        web_url = self._web_base_url()
-        session = _requests.Session()
-        # Basic 認証でログイン（GitBucket のデフォルト管理者 root/root）
-        login_resp = session.post(
-            f"{web_url}/signin",
-            data={"userName": "root", "password": "root"},  # nosec B105
-            allow_redirects=True,
-            timeout=10,
-        )
-        if login_resp.status_code not in (200, 302):
-            raise GfoError(f"GitBucket: login failed: {login_resp.status_code}")
-
-        # issue_comments/state エンドポイントでクローズ
-        close_resp = session.post(
-            f"{web_url}/{self._owner}/{self._repo}/issue_comments/state",
-            data={"issueId": str(number), "action": "close"},
-            allow_redirects=False,
-            timeout=10,
-        )
-        if close_resp.status_code not in (302, 200):
-            raise GfoError(f"GitBucket: close_issue failed: HTTP {close_resp.status_code}")
+        """GitBucket は PATCH /issues/{number} 未実装のため非対応。"""
+        raise NotSupportedError("GitBucket", "issue close")
 
     # --- Release ---
 

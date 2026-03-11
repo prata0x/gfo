@@ -140,7 +140,15 @@ def handle_clone(args: argparse.Namespace, *, fmt: str) -> None:
     """gfo repo clone のハンドラ。"""
     host, service_type = _resolve_host_without_repo(getattr(args, "host", None))
     owner, name = _parse_repo_arg(args.repo)
-    url = build_clone_url(service_type, host, owner, name)
+    project: str | None = getattr(args, "project", None)
+    if service_type == "azure-devops" and project is None:
+        try:
+            cfg = resolve_project_config()
+            if cfg.service_type == "azure-devops":
+                project = cfg.project_key
+        except ConfigError:
+            pass
+    url = build_clone_url(service_type, host, owner, name, project=project)
     git_clone(url)
 
 

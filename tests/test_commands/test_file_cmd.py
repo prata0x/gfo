@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from gfo.commands import file as file_cmd
-from gfo.exceptions import NotFoundError
+from gfo.exceptions import NetworkError, NotFoundError
 from tests.test_commands.conftest import make_args
 
 
@@ -58,6 +60,17 @@ class TestHandlePut:
         adapter.create_or_update_file.assert_called_once_with(
             "new.txt", content="hello", message="Add file", sha=None, branch=None
         )
+
+    def test_non_not_found_error_propagates(self):
+        """NotFoundError 以外の例外（ネットワークエラー等）はそのまま伝播する。"""
+        adapter = MagicMock()
+        adapter.get_file_content.side_effect = NetworkError("connection failed")
+        args = make_args(path="secret.txt", message="Update", branch=None)
+        with _patch(adapter):
+            with patch("gfo.commands.file.sys.stdin") as mock_stdin:
+                mock_stdin.read.return_value = "data"
+                with pytest.raises(NetworkError):
+                    file_cmd.handle_put(args, fmt="table")
 
 
 class TestHandleDelete:

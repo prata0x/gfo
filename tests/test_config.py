@@ -274,8 +274,15 @@ def test_build_clone_url_bitbucket():
 
 
 def test_build_clone_url_azure_devops():
+    """project 未指定時は owner にフォールバック。"""
     url = build_clone_url("azure-devops", "dev.azure.com", "myorg", "repo")
     assert url == "https://dev.azure.com/myorg/myorg/_git/repo"
+
+
+def test_build_clone_url_azure_devops_with_project():
+    """project を明示指定した場合は正しく反映される。"""
+    url = build_clone_url("azure-devops", "dev.azure.com", "myorg", "repo", project="myproj")
+    assert url == "https://dev.azure.com/myorg/myproj/_git/repo"
 
 
 def test_build_clone_url_gitlab():

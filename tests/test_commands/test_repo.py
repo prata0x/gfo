@@ -483,7 +483,43 @@ class TestHandleClone:
         mock_clone.assert_called_once_with("https://gitea.example.com/owner/myrepo.git")
 
     def test_azure_devops_url(self):
+        """project 未解決時は owner にフォールバック。"""
         args = make_args(host="dev.azure.com", repo="myorg/myrepo")
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("dev.azure.com", "azure-devops"),
+            ),
+            patch("gfo.commands.repo.resolve_project_config", side_effect=ConfigError("no config")),
+            patch("gfo.commands.repo.git_clone") as mock_clone,
+        ):
+            repo_cmd.handle_clone(args, fmt="table")
+
+        mock_clone.assert_called_once_with("https://dev.azure.com/myorg/myorg/_git/myrepo")
+
+    def test_azure_devops_url_with_resolved_project(self):
+        """resolve_project_config から project が取得できた場合に URL に反映される。"""
+        from gfo.config import ProjectConfig
+
+        mock_cfg = MagicMock(spec=ProjectConfig)
+        mock_cfg.service_type = "azure-devops"
+        mock_cfg.project_key = "myproj"
+        args = make_args(host="dev.azure.com", repo="myorg/myrepo")
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("dev.azure.com", "azure-devops"),
+            ),
+            patch("gfo.commands.repo.resolve_project_config", return_value=mock_cfg),
+            patch("gfo.commands.repo.git_clone") as mock_clone,
+        ):
+            repo_cmd.handle_clone(args, fmt="table")
+
+        mock_clone.assert_called_once_with("https://dev.azure.com/myorg/myproj/_git/myrepo")
+
+    def test_azure_devops_url_with_project_arg(self):
+        """--project 引数を明示した場合は resolve_project_config を呼ばずそのまま使用する。"""
+        args = make_args(host="dev.azure.com", repo="myorg/myrepo", project="explicit-proj")
         with (
             patch(
                 "gfo.commands.repo._resolve_host_without_repo",
@@ -493,7 +529,7 @@ class TestHandleClone:
         ):
             repo_cmd.handle_clone(args, fmt="table")
 
-        mock_clone.assert_called_once_with("https://dev.azure.com/myorg/myorg/_git/myrepo")
+        mock_clone.assert_called_once_with("https://dev.azure.com/myorg/explicit-proj/_git/myrepo")
 
     def test_forgejo_url(self):
         args = make_args(host="codeberg.org", repo="owner/myrepo")

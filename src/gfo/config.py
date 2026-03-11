@@ -205,7 +205,9 @@ def save_project_config(config: ProjectConfig, cwd: str | None = None) -> None:
 # ── URL 構築ヘルパー ──
 
 
-def build_clone_url(service_type: str, host: str, owner: str, name: str) -> str:
+def build_clone_url(
+    service_type: str, host: str, owner: str, name: str, *, project: str | None = None
+) -> str:
     """サービス種別・ホスト・owner/name から clone 用 HTTPS URL を構築する。"""
     if not owner or not name:
         raise ConfigError(
@@ -214,8 +216,8 @@ def build_clone_url(service_type: str, host: str, owner: str, name: str) -> str:
     if service_type in ("github", "bitbucket"):
         return f"https://{host}/{owner}/{name}.git"
     if service_type == "azure-devops":
-        # owner = org。project は owner と同一と仮定（単一プロジェクト構成）
-        return f"https://dev.azure.com/{owner}/{owner}/_git/{name}"
+        effective_project = project if project is not None else owner
+        return f"https://{host}/{owner}/{effective_project}/_git/{name}"
     if service_type in ("gitlab", "gitea", "forgejo", "gogs"):
         return f"https://{host}/{owner}/{name}.git"
     if service_type in ("gitbucket", "backlog"):

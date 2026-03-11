@@ -131,6 +131,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_clone = repo_sub.add_parser("clone")
     repo_clone.add_argument("repo")  # ハンドラは args.repo を参照
     repo_clone.add_argument("--host")
+    repo_clone.add_argument("--project")  # Azure DevOps 用プロジェクト名
     repo_view = repo_sub.add_parser("view")
     repo_view.add_argument("repo", nargs="?")  # ハンドラは args.repo を参照
     repo_delete = repo_sub.add_parser("delete")

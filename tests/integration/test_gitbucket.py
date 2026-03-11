@@ -70,11 +70,7 @@ class TestGitBucketIntegration:
                 cls.adapter.delete_deploy_key(key_id=cls._deploy_key_id)
         except Exception:
             pass
-        try:
-            if cls._update_issue_number is not None:
-                cls.adapter.close_issue(cls._update_issue_number)
-        except Exception:
-            pass
+        # close_issue は NotSupportedError のため teardown では省略
         try:
             if cls._update_pr_number is not None:
                 cls.adapter.close_pull_request(cls._update_pr_number)
@@ -140,10 +136,10 @@ class TestGitBucketIntegration:
         assert issue.title == "gfo-test-issue"
 
     def test_10_issue_close(self) -> None:
+        """GitBucket は PATCH /issues/{number} 未実装のため close_issue は NotSupportedError。"""
         assert self._issue_number is not None
-        self.adapter.close_issue(self._issue_number)
-        issue = self.adapter.get_issue(self._issue_number)
-        assert issue.state == "closed"
+        with pytest.raises(NotSupportedError):
+            self.adapter.close_issue(self._issue_number)
 
     # --- Pull Request ---
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json as json_mod
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 import responses
@@ -464,41 +464,11 @@ class TestWebBaseUrl:
 
 
 class TestCloseIssue:
-    """close_issue のテスト（Web UI 経由）。"""
+    """close_issue は PATCH /issues/{number} 未実装のため NotSupportedError を返す。"""
 
-    def _make_session(self, login_status=200, close_status=302):
-        session = MagicMock()
-        login_resp = MagicMock()
-        login_resp.status_code = login_status
-        close_resp = MagicMock()
-        close_resp.status_code = close_status
-        session.post.side_effect = [login_resp, close_resp]
-        return session
-
-    def test_close_success(self, gitbucket_adapter):
-        session = self._make_session(login_status=200, close_status=302)
-        with patch("gfo.adapter.gitbucket._requests.Session", return_value=session):
+    def test_close_issue_raises_not_supported(self, gitbucket_adapter):
+        with pytest.raises(NotSupportedError):
             gitbucket_adapter.close_issue(1)
-
-    def test_close_success_with_302_login(self, gitbucket_adapter):
-        session = self._make_session(login_status=302, close_status=200)
-        with patch("gfo.adapter.gitbucket._requests.Session", return_value=session):
-            gitbucket_adapter.close_issue(5)
-
-    def test_login_failure_raises_gfo_error(self, gitbucket_adapter):
-        session = MagicMock()
-        login_resp = MagicMock()
-        login_resp.status_code = 500
-        session.post.return_value = login_resp
-        with patch("gfo.adapter.gitbucket._requests.Session", return_value=session):
-            with pytest.raises(GfoError, match="login failed"):
-                gitbucket_adapter.close_issue(1)
-
-    def test_close_failure_raises_gfo_error(self, gitbucket_adapter):
-        session = self._make_session(login_status=200, close_status=500)
-        with patch("gfo.adapter.gitbucket._requests.Session", return_value=session):
-            with pytest.raises(GfoError, match="close_issue failed"):
-                gitbucket_adapter.close_issue(1)
 
 
 class TestToRelease:
