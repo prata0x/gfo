@@ -643,6 +643,10 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return [self._to_repository(r) for r in results]
 
     def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
+        # GitHub search/issues には is:issue または is:pull-request が必須
+        search_query = (
+            query if ("is:issue" in query or "is:pull-request" in query) else f"is:issue {query}"
+        )
         # /search/issues はレスポンスが {"items": [...]} 形式のためページネーション手動実装
         results: list[dict] = []
         per_page = min(limit, 30) if limit > 0 else 30
@@ -650,7 +654,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         while True:
             resp = self._client.get(
                 "/search/issues",
-                params={"q": query, "per_page": per_page, "page": page},
+                params={"q": search_query, "per_page": per_page, "page": page},
             )
             body = resp.json()
             page_data: list[dict] = body.get("items", []) if isinstance(body, dict) else []

@@ -1132,12 +1132,12 @@ class TestListReviews:
 
 class TestCreateReview:
     def test_approve(self, mock_responses, azure_devops_adapter):
-        # まず現在のユーザー情報を取得
-        # base_url = .../test-project/_apis なので path=/_apis/profile/profiles/me が結合される
+        # まず connectionData から現在のユーザー情報を取得
+        # base_url = .../test-project/_apis なので /connectionData が結合される
         mock_responses.add(
             responses.GET,
-            f"{BASE}/_apis/profile/profiles/me",
-            json={"publicAlias": "testuser", "id": "user-id-123"},
+            f"{BASE}/connectionData",
+            json={"authenticatedUser": {"id": "user-id-123", "providerDisplayName": "testuser"}},
             status=200,
         )
         mock_responses.add(
@@ -1170,13 +1170,13 @@ class TestListBranches:
 
 class TestCreateBranch:
     def test_create(self, mock_responses, azure_devops_adapter):
+        # create_branch は refs POST 後に refs GET して Branch を返す
         mock_responses.add(
             responses.POST,
-            f"{GIT}/pushes",
-            json={"refUpdates": [{"name": "refs/heads/new-branch", "newObjectId": "abc123"}]},
-            status=201,
+            f"{GIT}/refs",
+            json=[{"name": "refs/heads/new-branch", "newObjectId": "abc123"}],
+            status=200,
         )
-        # create_branch の実装は pushes 後に refs を GET して Branch を返す
         mock_responses.add(
             responses.GET,
             f"{GIT}/refs",
@@ -1224,11 +1224,12 @@ class TestListTags:
 
 class TestCreateTag:
     def test_create(self, mock_responses, azure_devops_adapter):
+        # create_tag は refs POST を使う（pushes は commit が必要なため使用しない）
         mock_responses.add(
             responses.POST,
-            f"{GIT}/pushes",
-            json={"refUpdates": [{"name": "refs/tags/v2.0.0", "newObjectId": "abc123"}]},
-            status=201,
+            f"{GIT}/refs",
+            json=[{"name": "refs/tags/v2.0.0", "newObjectId": "abc123"}],
+            status=200,
         )
         tag = azure_devops_adapter.create_tag(name="v2.0.0", ref="abc123")
         assert isinstance(tag, Tag)
@@ -1410,16 +1411,17 @@ class TestCancelPipeline:
 
 class TestGetCurrentUser:
     def test_get(self, mock_responses, azure_devops_adapter):
-        # get_current_user は path=/_apis/profile/profiles/me を使う
-        # base_url = .../test-project/_apis なので実際のURLは _apis/_apis/profile/profiles/me
+        # get_current_user は /connectionData を使う
+        # base_url = .../test-project/_apis なので結合後 /_apis/connectionData
         mock_responses.add(
             responses.GET,
-            f"{BASE}/_apis/profile/profiles/me",
-            json={"publicAlias": "testuser", "id": "user-id-123"},
+            f"{BASE}/connectionData",
+            json={"authenticatedUser": {"id": "user-id-123", "providerDisplayName": "testuser"}},
             status=200,
         )
         user = azure_devops_adapter.get_current_user()
-        assert user["publicAlias"] == "testuser"
+        assert user["login"] == "testuser"
+        assert user["id"] == "user-id-123"
 
 
 class TestSearchRepositories:
@@ -1626,15 +1628,15 @@ class TestDeleteTag:
         mock_responses.add(
             responses.POST,
             f"{GIT}/refs",
-            json={"value": [{"success": True}]},
+            json=[{"success": True}],
             status=200,
         )
         azure_devops_adapter.delete_tag(name="v1.0.0")
-        # POST リクエストのボディに oldObjectId=def456, newObjectId=000...0 を確認
+        # POST リクエストのボディに oldObjectId=def456, newObjectId=000...0 を確認（配列形式）
         import json as _json
 
         post_body = _json.loads(mock_responses.calls[1].request.body)
-        ref_update = post_body["refUpdates"][0]
+        ref_update = post_body[0]
         assert ref_update["name"] == "refs/tags/v1.0.0"
         assert ref_update["oldObjectId"] == "def456"
         assert ref_update["newObjectId"] == "0" * 40

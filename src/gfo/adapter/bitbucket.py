@@ -452,18 +452,16 @@ class BitbucketAdapter(GitServiceAdapter):
         return self._to_comment(resp.json())
 
     def update_comment(self, resource: str, comment_id: int, *, body: str) -> Comment:
-        if resource == "pr":
-            # Bitbucket PR comment update には PR number が必要だが comment_id のみでは不可
-            raise NotSupportedError(self.service_name, "PR comment update (requires PR number)")
-        path = f"{self._repos_path()}/issues/comments/{comment_id}"
-        payload = {"content": {"raw": body}}
-        resp = self._client.put(path, json=payload)
-        return self._to_comment(resp.json())
+        # Bitbucket issue/PR comment update には issue_number/PR_number が URL に必要だが
+        # このシグネチャでは持てないため NSE
+        raise NotSupportedError(
+            self.service_name, "comment update (requires issue/PR number in URL)"
+        )
 
     def delete_comment(self, resource: str, comment_id: int) -> None:
-        if resource == "pr":
-            raise NotSupportedError(self.service_name, "PR comment delete (requires PR number)")
-        self._client.delete(f"{self._repos_path()}/issues/comments/{comment_id}")
+        raise NotSupportedError(
+            self.service_name, "comment delete (requires issue/PR number in URL)"
+        )
 
     # --- PR update ---
 
@@ -623,11 +621,10 @@ class BitbucketAdapter(GitServiceAdapter):
         payload: dict = {
             "state": state_map.get(state, "INPROGRESS"),
             "key": context or "gfo",
+            "url": target_url or "https://example.com",  # Bitbucket は url 必須
         }
         if description:
             payload["description"] = description
-        if target_url:
-            payload["url"] = target_url
         resp = self._client.post(
             f"{self._repos_path()}/commit/{quote(ref, safe='')}/statuses/build",
             json=payload,

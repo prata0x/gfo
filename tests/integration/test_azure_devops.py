@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from gfo.exceptions import GfoError, NotSupportedError
+from gfo.exceptions import AuthenticationError, GfoError, NotSupportedError
 from tests.integration.conftest import ServiceTestConfig, create_test_adapter, get_service_config
 
 CONFIG = get_service_config("azure-devops")
@@ -44,6 +44,19 @@ class TestAzureDevOpsIntegration:
             cls.adapter.delete_tag(name="v0.0.2-test")
         except Exception:
             pass
+        # 前回テストで残ったファイルのクリーンアップ
+        for branch in [cls.config.test_branch, cls.config.default_branch]:
+            try:
+                _, sha = cls.adapter.get_file_content("gfo-test-file.txt", ref=branch)
+                if sha:
+                    cls.adapter.delete_file(
+                        "gfo-test-file.txt",
+                        sha=sha,
+                        message="cleanup: gfo-test-file.txt",
+                        branch=branch,
+                    )
+            except Exception:
+                pass
         if cls._update_issue_number is not None:
             try:
                 cls.adapter.delete_issue(cls._update_issue_number)
@@ -401,9 +414,12 @@ class TestAzureDevOpsIntegration:
     # --- review ---
 
     def test_30_review(self) -> None:
-        """PR に review 作成・一覧テスト。"""
+        """PR に review 作成・一覧テスト（connectionData 401 の場合はスキップ）。"""
         assert self._update_pr_number is not None
-        review = self.adapter.create_review(self._update_pr_number, state="COMMENT", body="")
+        try:
+            review = self.adapter.create_review(self._update_pr_number, state="COMMENT", body="")
+        except AuthenticationError:
+            pytest.skip("connectionData endpoint not accessible with this PAT")
         assert review is not None
         reviews = self.adapter.list_reviews(self._update_pr_number)
         assert isinstance(reviews, list)
@@ -491,6 +507,18 @@ class TestAzureDevOpsIntegration:
 
     def test_40_file_crud(self) -> None:
         """ファイルの作成・取得・更新・削除テスト。"""
+        # 前回テストで残ったファイルを先にクリーンアップ
+        try:
+            _, sha = self.adapter.get_file_content("gfo-test-file.txt", ref=self.config.test_branch)
+            if sha:
+                self.adapter.delete_file(
+                    "gfo-test-file.txt",
+                    sha=sha,
+                    message="cleanup: gfo-test-file.txt",
+                    branch=self.config.test_branch,
+                )
+        except Exception:
+            pass
         self.adapter.create_or_update_file(
             "gfo-test-file.txt",
             content="hello gfo",
@@ -540,8 +568,11 @@ class TestAzureDevOpsIntegration:
     # --- get_current_user ---
 
     def test_43_get_current_user(self) -> None:
-        """現在のユーザー情報取得テスト。"""
-        user = self.adapter.get_current_user()
+        """現在のユーザー情報取得テスト（connectionData 401 の場合はスキップ）。"""
+        try:
+            user = self.adapter.get_current_user()
+        except AuthenticationError:
+            pytest.skip("connectionData endpoint not accessible with this PAT")
         assert isinstance(user, dict)
         assert "id" in user or "displayName" in user
 

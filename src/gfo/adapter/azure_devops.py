@@ -385,10 +385,11 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 comment_data = (data.get("comments") or [{}])[0]
             else:
                 comment_data = data
-            author = comment_data.get("author") or {}
+            # PR thread は author, content フィールド / Work Item comment は createdBy, text フィールド
+            author = comment_data.get("author") or comment_data.get("createdBy") or {}
             return Comment(
                 id=comment_data.get("id") or data.get("id") or 0,
-                body=comment_data.get("content") or "",
+                body=comment_data.get("content") or comment_data.get("text") or "",
                 author=author.get("uniqueName") or author.get("displayName") or "",
                 url="",
                 created_at=comment_data.get("publishedDate") or "",
@@ -541,8 +542,11 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                         return result
             return result
         else:
-            # Work Item コメントは /workitems/{id}/comments
-            resp = self._client.get(f"{self._wit_path()}/workitems/{number}/comments")
+            # Work Item コメントは 7.1-preview.3 が必要
+            resp = self._client.get(
+                f"{self._wit_path()}/workitems/{number}/comments",
+                params={"api-version": "7.1-preview.3"},
+            )
             comments_data = resp.json().get("comments", [])
             return [self._to_comment(c) for c in comments_data[: limit if limit > 0 else None]]
 
@@ -559,8 +563,11 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             return self._to_comment(resp.json())
         else:
             payload = {"text": body}
+            # Work Item コメントは 7.1-preview.3 が必要
             resp = self._client.post(
-                f"{self._wit_path()}/workitems/{number}/comments", json=payload
+                f"{self._wit_path()}/workitems/{number}/comments",
+                json=payload,
+                params={"api-version": "7.1-preview.3"},
             )
             return self._to_comment(resp.json())
 
@@ -636,9 +643,10 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     def create_review(self, number: int, *, state: str, body: str = "") -> Review:
         vote_map = {"APPROVE": 10, "REQUEST_CHANGES": -10, "COMMENT": 0}
         vote = vote_map.get(state.upper(), 0)
-        # 現在のユーザーを取得してレビュアーとして追加
-        user_resp = self._client.get("/_apis/profile/profiles/me")
-        user_id = user_resp.json().get("id") or ""
+        # connectionData から現在のユーザーを取得（profile API は組織スコープ外のため使用不可）
+        # base_url が /_apis を含むので /connectionData のみ指定
+        user_resp = self._client.get("/connectionData")
+        user_id = (user_resp.json().get("authenticatedUser") or {}).get("id") or ""
         payload = {"vote": vote}
         resp = self._client.put(
             f"{self._git_path()}/pullrequests/{number}/reviewers/{user_id}",
@@ -659,14 +667,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         return [self._to_branch(r) for r in results]
 
     def create_branch(self, *, name: str, ref: str) -> Branch:
-        # AzDO はブランチ作成に push API を使う
-        payload = {
-            "refUpdates": [
-                {"name": f"refs/heads/{name}", "oldObjectId": "0" * 40, "newObjectId": ref}
-            ],
-            "commits": [],
-        }
-        self._client.post(f"{self._git_path()}/pushes", json=payload)
+        # AzDO refs 更新 API でブランチを作成（pushes API は commit が必要なので使用しない）
+        payload = [{"name": f"refs/heads/{name}", "oldObjectId": "0" * 40, "newObjectId": ref}]
+        self._client.post(f"{self._git_path()}/refs", json=payload)
         resp = self._client.get(
             f"{self._git_path()}/refs",
             params={"filter": f"heads/{name}"},
@@ -690,11 +693,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
             raise NotFoundError(f"refs/heads/{name}")
         sha = items[0]["objectId"]
-        payload = {
-            "refUpdates": [
-                {"name": f"refs/heads/{name}", "oldObjectId": sha, "newObjectId": "0" * 40}
-            ]
-        }
+        payload = [{"name": f"refs/heads/{name}", "oldObjectId": sha, "newObjectId": "0" * 40}]
         self._client.post(f"{self._git_path()}/refs", json=payload)
 
     # --- Tag ---
@@ -710,14 +709,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         return [self._to_tag(r) for r in results]
 
     def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
-        # Lightweight tag: refs/tags に ref を追加
-        payload = {
-            "refUpdates": [
-                {"name": f"refs/tags/{name}", "oldObjectId": "0" * 40, "newObjectId": ref}
-            ],
-            "commits": [],
-        }
-        self._client.post(f"{self._git_path()}/pushes", json=payload)
+        # Lightweight tag: refs 更新 API でタグを作成
+        payload = [{"name": f"refs/tags/{name}", "oldObjectId": "0" * 40, "newObjectId": ref}]
+        self._client.post(f"{self._git_path()}/refs", json=payload)
         return Tag(name=name, sha=ref, message=message, url="")
 
     def delete_tag(self, *, name: str) -> None:
@@ -731,11 +725,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
             raise NotFoundError(f"refs/tags/{name}")
         sha = items[0]["objectId"]
-        payload = {
-            "refUpdates": [
-                {"name": f"refs/tags/{name}", "oldObjectId": sha, "newObjectId": "0" * 40}
-            ]
-        }
+        payload = [{"name": f"refs/tags/{name}", "oldObjectId": sha, "newObjectId": "0" * 40}]
         self._client.post(f"{self._git_path()}/refs", json=payload)
 
     # --- CommitStatus ---
@@ -780,7 +770,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     # --- File (Azure DevOps Items API) ---
 
     def get_file_content(self, path: str, *, ref: str | None = None) -> tuple[str, str]:
-        params: dict = {"path": path, "includeContent": "true"}
+        params: dict = {"path": path, "includeContent": "true", "$format": "json"}
         if ref is not None:
             params["versionDescriptor.version"] = ref
             params["versionDescriptor.versionType"] = "branch"
@@ -944,8 +934,16 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     # --- User ---
 
     def get_current_user(self) -> dict:
-        resp = self._client.get("/_apis/profile/profiles/me", params={"api-version": "7.1"})
-        return dict(resp.json())
+        # /_apis/profile/profiles/me は組織スコープ外のため connectionData を使用
+        # base_url が /_apis を含むので /connectionData のみ指定
+        resp = self._client.get("/connectionData")
+        data = resp.json()
+        user = data.get("authenticatedUser") or {}
+        return {
+            "id": user.get("id", ""),
+            "displayName": user.get("providerDisplayName", ""),
+            "login": user.get("providerDisplayName", ""),
+        }
 
     # --- Search ---
 

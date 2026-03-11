@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from gfo.exceptions import NotSupportedError
+from gfo.exceptions import AuthenticationError, NotSupportedError
 from tests.integration.conftest import (
     TEST_SSH_PUBLIC_KEY,
     ServiceTestConfig,
@@ -352,23 +352,22 @@ class TestBitbucketIntegration:
         comments = self.adapter.list_comments("issue", self._update_issue_number)
         assert any(c.id == self._update_issue_comment_id for c in comments)
 
-    # --- update_comment (issue) + delete_comment (issue) ---
-    # Bitbucket: issue comment は update/delete 可、PR comment は NSE
+    # --- update_comment / delete_comment (NSE) ---
+    # Bitbucket: issue comment update/delete には URL に issue_number が必要なため NSE
 
     def test_27_issue_comment_update(self) -> None:
-        """Issue コメントの更新テスト。"""
-        assert self._update_issue_comment_id is not None
-        updated = self.adapter.update_comment(
-            "issue", self._update_issue_comment_id, body="updated comment"
-        )
-        assert updated.body == "updated comment"
+        """Bitbucket は comment update が NSE（issue_number が URL に必要）。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.update_comment("issue", 1, body="updated")
+        with pytest.raises(NotSupportedError):
+            self.adapter.update_comment("pr", 1, body="updated")
 
     def test_28_issue_comment_delete(self) -> None:
-        """Issue コメントの削除テスト。"""
-        assert self._update_issue_comment_id is not None
-        self.adapter.delete_comment("issue", self._update_issue_comment_id)
-        comments = self.adapter.list_comments("issue", self._update_issue_number)
-        assert not any(c.id == self._update_issue_comment_id for c in comments)
+        """Bitbucket は comment delete が NSE（issue_number が URL に必要）。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_comment("issue", 1)
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_comment("pr", 1)
 
     # --- create_comment (pr) + list_comments (pr) ---
 
@@ -498,17 +497,20 @@ class TestBitbucketIntegration:
     # --- webhook CRUD ---
 
     def test_41_webhook_crud(self) -> None:
-        """Webhook の作成・一覧・削除テスト。"""
+        """Webhook の作成・一覧・削除テスト（トークンに webhook スコープがない場合はスキップ）。"""
         try:
             for h in self.adapter.list_webhooks():
                 if h.url == "https://example.com/webhook":
                     self.adapter.delete_webhook(hook_id=h.id)
         except Exception:
             pass
-        hook = self.adapter.create_webhook(
-            url="https://example.com/webhook",
-            events=["repo:push"],
-        )
+        try:
+            hook = self.adapter.create_webhook(
+                url="https://example.com/webhook",
+                events=["repo:push"],
+            )
+        except AuthenticationError:
+            pytest.skip("Token does not have webhook scope")
         self.__class__._webhook_id = hook.id
         hooks = self.adapter.list_webhooks()
         assert any(h.id == self._webhook_id for h in hooks)
@@ -520,17 +522,20 @@ class TestBitbucketIntegration:
     # --- deploy_key CRUD ---
 
     def test_42_deploy_key_crud(self) -> None:
-        """デプロイキーの作成・一覧・削除テスト。"""
+        """デプロイキーの作成・一覧・削除テスト（トークンに deploy-keys スコープがない場合はスキップ）。"""
         try:
             for k in self.adapter.list_deploy_keys():
                 if k.title == "gfo-test-deploy-key":
                     self.adapter.delete_deploy_key(key_id=k.id)
         except Exception:
             pass
-        key = self.adapter.create_deploy_key(
-            title="gfo-test-deploy-key",
-            key=TEST_SSH_PUBLIC_KEY,
-        )
+        try:
+            key = self.adapter.create_deploy_key(
+                title="gfo-test-deploy-key",
+                key=TEST_SSH_PUBLIC_KEY,
+            )
+        except AuthenticationError:
+            pytest.skip("Token does not have deploy-keys scope")
         self.__class__._deploy_key_id = key.id
         keys = self.adapter.list_deploy_keys()
         assert any(k.id == self._deploy_key_id for k in keys)
@@ -542,8 +547,11 @@ class TestBitbucketIntegration:
     # --- get_current_user ---
 
     def test_43_get_current_user(self) -> None:
-        """現在のユーザー情報取得テスト。"""
-        user = self.adapter.get_current_user()
+        """現在のユーザー情報取得テスト（トークンに account スコープがない場合はスキップ）。"""
+        try:
+            user = self.adapter.get_current_user()
+        except AuthenticationError:
+            pytest.skip("Token does not have account scope")
         assert isinstance(user, dict)
         assert "account_id" in user or "username" in user or "nickname" in user
 
@@ -555,8 +563,11 @@ class TestBitbucketIntegration:
         assert isinstance(repos, list)
         issues = self.adapter.search_issues("gfo-test", limit=5)
         assert isinstance(issues, list)
-        collaborators = self.adapter.list_collaborators()
-        assert isinstance(collaborators, list)
+        try:
+            collaborators = self.adapter.list_collaborators()
+            assert isinstance(collaborators, list)
+        except AuthenticationError:
+            pass  # account スコープなしの場合はスキップ
         # PR が存在すれば checkout refspec テスト
         prs = self.adapter.list_pull_requests(state="open", limit=1)
         if prs:
