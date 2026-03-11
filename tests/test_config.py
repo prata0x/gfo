@@ -55,6 +55,28 @@ def test_get_config_dir_unix():
         assert result == Path.home() / ".config" / "gfo"
 
 
+def test_get_config_dir_unix_xdg_config_home():
+    """XDG_CONFIG_HOME が設定されている場合はそのパスを使う。"""
+    with (
+        patch("gfo.config.sys") as mock_sys,
+        patch.dict("os.environ", {"XDG_CONFIG_HOME": "/custom/path"}),
+    ):
+        mock_sys.platform = "linux"
+        result = get_config_dir()
+        assert result == Path("/custom/path") / "gfo"
+
+
+def test_get_config_dir_unix_xdg_config_home_empty():
+    """XDG_CONFIG_HOME が空文字のときはデフォルトの ~/.config/gfo にフォールバックする。"""
+    with (
+        patch("gfo.config.sys") as mock_sys,
+        patch.dict("os.environ", {"XDG_CONFIG_HOME": ""}),
+    ):
+        mock_sys.platform = "linux"
+        result = get_config_dir()
+        assert result == Path.home() / ".config" / "gfo"
+
+
 # ── get_config_path / get_credentials_path ──
 
 

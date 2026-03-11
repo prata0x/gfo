@@ -35,7 +35,10 @@ def get_config_dir() -> Path:
         if appdata:
             return Path(appdata) / "gfo"
         return Path.home() / "AppData" / "Roaming" / "gfo"
-    return Path.home() / ".config" / "gfo"  # type: ignore[unreachable]
+    xdg_config_home = os.environ.get("XDG_CONFIG_HOME", "").strip()  # type: ignore[unreachable]
+    if xdg_config_home:
+        return Path(xdg_config_home) / "gfo"
+    return Path.home() / ".config" / "gfo"
 
 
 def get_config_path() -> Path:
