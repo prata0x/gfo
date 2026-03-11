@@ -26,7 +26,7 @@
 ## インストール
 
 ```bash
-pip install -e ".[dev]"
+pip install gfo
 ```
 
 **動作要件**: Python 3.11 以上
