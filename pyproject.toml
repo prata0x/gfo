@@ -2,6 +2,7 @@
 name = "gfo"
 version = "0.1.0"
 description = "Git Forge Operator – a unified CLI for GitHub, GitLab, and more"
+license = "0BSD"
 requires-python = ">=3.11"
 dependencies = ["requests"]
 

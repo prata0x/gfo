@@ -182,4 +182,4 @@ bash tests/integration/run_saas.sh
 
 ## ライセンス
 
-MIT
+0BSD
