@@ -186,6 +186,10 @@ bash tests/integration/run_saas.sh
 
 This project is provided under the 0BSD license. Issues may be filed, but responses and fixes are not guaranteed. Pull requests are not accepted. Feel free to fork and use it as you wish.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
 0BSD

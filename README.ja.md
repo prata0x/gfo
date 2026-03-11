@@ -186,6 +186,10 @@ bash tests/integration/run_saas.sh
 
 このプロジェクトは 0BSD ライセンスで提供しています。Issue の報告は歓迎しますが、対応・修正を保証するものではありません。Pull Request は受け付けていません。自由にフォークしてご利用ください。
 
+## 変更履歴
+
+[CHANGELOG.ja.md](CHANGELOG.ja.md) を参照してください。
+
 ## ライセンス
 
 0BSD
