@@ -8,11 +8,11 @@
 |---|------|---------|------|:---:|
 | 1 | [browse](01-browse.md) | `gfo browse` | リポジトリ・PR・Issue をブラウザで開く | 全 9 |
 | 2 | [jq フィルタ](02-jq-filter.md) | `--jq` オプション | JSON 出力に jq 式でフィルタをかける | 全共通 |
-| 3 | [SSH Key 管理](03-ssh-key.md) | `gfo ssh-key` | ユーザー SSH 公開鍵の list / create / delete | 5+ |
-| 4 | [Organization 管理](04-org.md) | `gfo org` | 所属組織の一覧・メンバー・リポジトリ操作 | 5+ |
-| 5 | [通知管理](05-notification.md) | `gfo notification` | インボックス通知の一覧・既読化 | 3+ |
-| 6 | [ブランチ保護](06-branch-protect.md) | `gfo branch protect` | ブランチ保護ルールの確認・設定 | 3+ |
-| 7 | [Secret / Variable](07-secret-variable.md) | `gfo secret` / `gfo variable` | CI/CD シークレット・変数の管理 | 2+ |
+| 3 | [SSH Key 管理](03-ssh-key.md) | `gfo ssh-key` | ユーザー SSH 公開鍵の list / create / delete | 6 |
+| 4 | [Organization 管理](04-org.md) | `gfo org` | 所属組織の一覧・メンバー・リポジトリ操作 | 7 |
+| 5 | [通知管理](05-notification.md) | `gfo notification` | インボックス通知の一覧・既読化 | 5 |
+| 6 | [ブランチ保護](06-branch-protect.md) | `gfo branch-protect` | ブランチ保護ルールの確認・設定 | 6 |
+| 7 | [Secret / Variable](07-secret-variable.md) | `gfo secret` / `gfo variable` | CI/CD シークレット・変数の管理 | 5 |
 
 ## 優先度の根拠
 
