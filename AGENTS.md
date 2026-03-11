@@ -208,6 +208,22 @@ except (KeyError, TypeError) as e:
 - コマンドテストの引数生成は `tests/test_commands/conftest.py` の `make_args()` を使用
 - テストファイルは `tests/test_adapters/test_{service}.py` および `tests/test_commands/test_{command}.py` に配置
 
+### File 操作（create_or_update_file）
+
+`create_or_update_file` の戻り値は `str | None`。**commit SHA を返せるアダプターは必ず返すこと。**
+
+理由: ファイル書き込み直後に `get_file_content(ref=branch)` で読み返すと、一部サービス（GitHub など）で
+ブランチ HEAD の伝播遅延が発生し古いコンテンツが返る。commit SHA を `ref` に指定すれば
+オブジェクトを直接参照するため常に確定的に読める。
+
+| アダプター | 返す値 |
+|---|---|
+| GitHub / Gitea / Forgejo | `commit.sha`（PUT/POST レスポンス） |
+| Azure DevOps | `commits[0].commitId`（pushes API レスポンス） |
+| GitLab / Bitbucket / その他 | `None`（API が SHA を返さない） |
+
+新しいアダプターを実装する際は、API が commit SHA を返すか確認し、可能なら `str` で返すこと。
+
 ### Azure DevOps 固有
 
 - コンストラクタに `organization` と `project_key` が必要

@@ -418,7 +418,47 @@ git@github.com:{owner}/{repo}.git
 
 ---
 
-## 14. 非対応機能
+## 14. File 操作の注意点
+
+### エンドポイント
+
+```
+PUT /repos/{owner}/{repo}/contents/{path}
+```
+
+新規作成・既存更新ともに同じエンドポイントを使用する。既存ファイル更新時は `sha`（blob SHA）が必須。
+
+### レスポンスから commit SHA を取得する
+
+```json
+{
+  "commit": { "sha": "abc123..." },
+  "content": { "sha": "blob-sha..." }
+}
+```
+
+`commit.sha` はコミット SHA、`content.sha` は blob SHA（ファイルの SHA）。
+`create_or_update_file()` は `commit.sha` を返す。
+
+### 読み書き整合性（ブランチ伝播遅延）
+
+ファイル書き込み直後に `GET /contents/{path}?ref={branch}` で読み返すと、
+GitHub の CDN キャッシュ／ブランチ HEAD 解決の遅延により**古いコンテンツが返ることがある**。
+
+回避策: `create_or_update_file()` が返す commit SHA を `ref` に指定して読み返す。
+
+```python
+commit_sha = adapter.create_or_update_file("file.txt", content="updated", sha=old_sha)
+# commit SHA を ref に使えばブランチキャッシュを完全にバイパスできる
+content, _ = adapter.get_file_content("file.txt", ref=commit_sha)
+```
+
+ブランチ参照（`ref=branch`）では整合性が保証されないため、更新内容を即座に検証する場合は
+必ず commit SHA を使うこと。
+
+---
+
+## 15. 非対応機能
 
 以下の操作は GitHub REST API が対応していないため `NotSupportedError` を返す。
 
@@ -439,7 +479,7 @@ git clone https://github.com/{owner}/{repo}.wiki.git
 
 ---
 
-## 15. 統合テスト環境変数
+## 16. 統合テスト環境変数
 
 `tests/integration/.env` に設定する（`.env.example` を参照）。
 
