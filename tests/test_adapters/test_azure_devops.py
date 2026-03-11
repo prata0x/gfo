@@ -1132,11 +1132,10 @@ class TestListReviews:
 
 class TestCreateReview:
     def test_approve(self, mock_responses, azure_devops_adapter):
-        # まず connectionData から現在のユーザー情報を取得
-        # base_url = .../test-project/_apis なので /connectionData が結合される
+        # connectionData は組織スコープ URL（プロジェクトスコープ BASE とは別）
         mock_responses.add(
             responses.GET,
-            f"{BASE}/connectionData",
+            "https://dev.azure.com/test-org/_apis/connectionData",
             json={"authenticatedUser": {"id": "user-id-123", "providerDisplayName": "testuser"}},
             status=200,
         )
@@ -1411,11 +1410,10 @@ class TestCancelPipeline:
 
 class TestGetCurrentUser:
     def test_get(self, mock_responses, azure_devops_adapter):
-        # get_current_user は /connectionData を使う
-        # base_url = .../test-project/_apis なので結合後 /_apis/connectionData
+        # get_current_user は connectionData を使う（組織スコープ URL）
         mock_responses.add(
             responses.GET,
-            f"{BASE}/connectionData",
+            "https://dev.azure.com/test-org/_apis/connectionData",
             json={"authenticatedUser": {"id": "user-id-123", "providerDisplayName": "testuser"}},
             status=200,
         )

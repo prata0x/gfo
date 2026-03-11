@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 import json as _json
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 from gfo.exceptions import GfoError, NotSupportedError
 from gfo.http import paginate_top_skip
@@ -640,12 +640,24 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             reviewers = reviewers.get("value", [])
         return [self._to_review(r) for r in reviewers]
 
+    def _connection_data_url(self) -> str:
+        """組織レベルの connectionData エンドポイント URL を返す。
+
+        base_url は `https://dev.azure.com/{org}/{project}/_apis` のようなプロジェクト
+        スコープ URL だが、connectionData は組織スコープ
+        (`https://dev.azure.com/{org}/_apis/connectionData`) で呼ぶ必要がある。
+        """
+        parsed = urlparse(self._client.base_url)
+        return f"{parsed.scheme}://{parsed.netloc}/{self._org}/_apis/connectionData"
+
     def create_review(self, number: int, *, state: str, body: str = "") -> Review:
         vote_map = {"APPROVE": 10, "REQUEST_CHANGES": -10, "COMMENT": 0}
         vote = vote_map.get(state.upper(), 0)
-        # connectionData から現在のユーザーを取得（profile API は組織スコープ外のため使用不可）
-        # base_url が /_apis を含むので /connectionData のみ指定
-        user_resp = self._client.get("/connectionData")
+        # connectionData は組織スコープのため get_absolute で組織レベル URL を直接指定
+        # connectionData は api-version=7.1-preview が必要（7.1 だと 400 エラー）
+        user_resp = self._client.get_absolute(
+            self._connection_data_url(), params={"api-version": "7.1-preview"}
+        )
         user_id = (user_resp.json().get("authenticatedUser") or {}).get("id") or ""
         payload = {"vote": vote}
         resp = self._client.put(
@@ -935,8 +947,11 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     def get_current_user(self) -> dict:
         # /_apis/profile/profiles/me は組織スコープ外のため connectionData を使用
-        # base_url が /_apis を含むので /connectionData のみ指定
-        resp = self._client.get("/connectionData")
+        # connectionData は組織スコープのため get_absolute で組織レベル URL を直接指定
+        # connectionData は api-version=7.1-preview が必要（7.1 だと 400 エラー）
+        resp = self._client.get_absolute(
+            self._connection_data_url(), params={"api-version": "7.1-preview"}
+        )
         data = resp.json()
         user = data.get("authenticatedUser") or {}
         return {

@@ -360,14 +360,15 @@ Wiki の読み取り、作成、更新
 | `issue list` / `issue view` | **Work Items**: Read |
 | `issue create` / `issue close` | **Work Items**: Read & write |
 | `issue delete` | **Work Items**: Read, write, & manage |
-| `create_review` / `get_current_user` | **Member Entitlement Management**: Read |
+| `create_review` / `get_current_user` | 特定スコープ不要（任意の有効な PAT でアクセス可能） |
+
+> **`create_review` / `get_current_user` の実装詳細**: 内部で `GET https://dev.azure.com/{org}/_apis/connectionData?api-version=7.1-preview` を呼び出す。このエンドポイントは**組織スコープ**であり、プロジェクトスコープ URL（`/{org}/{project}/_apis/connectionData`）では動作しない。また `api-version=7.1` では 400 エラーになるため `7.1-preview` を指定する。
 
 統合テスト用の最小構成:
 
 ```
-Code:                          Read, write, & manage
-Work Items:                    Read, write, & manage
-Member Entitlement Management: Read
+Code:       Read, write, & manage
+Work Items: Read, write, & manage
 ```
 
 ---
@@ -426,6 +427,18 @@ https://dev.azure.com/{organization}/{project}/_apis/...
 | リポジトリ一覧 | `GET` | `/git/repositories` |
 | リポジトリ作成 | `POST` | `/git/repositories` |
 | リポジトリ取得 | `GET` | `/git/repositories/{repo}` |
+
+### connectionData（組織スコープ・スコープ不要）
+
+`create_review` と `get_current_user` が使用する認証ユーザー情報取得エンドポイント。
+
+| 操作 | メソッド | エンドポイント |
+|---|---|---|
+| 接続情報取得 | `GET` | `https://dev.azure.com/{org}/_apis/connectionData?api-version=7.1-preview` |
+
+- プロジェクトスコープの base_url とは別に**組織レベル URL** を直接指定する
+- `api-version` は `7.1-preview` が必要（`7.1` では HTTP 400）
+- `authenticatedUser.id` から現在のユーザー ID を取得し、`create_review` で reviewer として追加する
 
 ---
 

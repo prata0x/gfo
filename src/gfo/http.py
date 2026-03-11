@@ -129,13 +129,16 @@ class HttpClient:
         """DELETE リクエスト。"""
         return self.request("DELETE", path, **kwargs)
 
-    def get_absolute(self, url: str, *, timeout: int = 30) -> requests.Response:
+    def get_absolute(
+        self, url: str, *, params: dict | None = None, timeout: int = 30
+    ) -> requests.Response:
         """絶対 URL に対して GET リクエストを実行する。認証パラメータ・リトライを適用する。
 
+        params を指定すると default_params を上書きできる（異なる api-version が必要な場合等）。
         429 レートリミット時は Retry-After 秒待機して最大 max_retries 回再送する。
         再送後も 429 が継続する場合は RateLimitError を呼び出し元に伝播する。
         """
-        merged_params = {**self._default_params, **self._auth_params}
+        merged_params = {**self._default_params, **self._auth_params, **(params or {})}
         return self._retry_loop(
             lambda: self._session.get(url, params=merged_params, timeout=timeout)
         )
