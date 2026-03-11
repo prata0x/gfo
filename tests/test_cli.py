@@ -278,7 +278,7 @@ def test_parser_format_option():
 # ── _DISPATCH テーブルのテスト ──
 
 
-def test_dispatch_table_has_28_entries():
+def test_dispatch_table_has_68_entries():
     assert len(_DISPATCH) == 68  # init(None) + 67 subcommands
 
 

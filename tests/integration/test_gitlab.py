@@ -253,13 +253,19 @@ class TestGitLabIntegration:
         # "can_be_merged" になるまで最大 10 秒待機する
         import time
 
+        merge_status = None
         for _ in range(10):
             resp = self.adapter._client.get(
                 f"{self.adapter._project_path()}/merge_requests/{self._pr_number}"
             )
-            if resp.json().get("merge_status") == "can_be_merged":
+            merge_status = resp.json().get("merge_status")
+            if merge_status == "can_be_merged":
                 break
             time.sleep(1)
+        if merge_status != "can_be_merged":
+            pytest.fail(
+                f"MR merge_status が 10 秒以内に 'can_be_merged' にならなかった: {merge_status}"
+            )
         self.adapter.merge_pull_request(self._pr_number, method="merge")
         pr = self.adapter.get_pull_request(self._pr_number)
         assert pr.state == "merged"
@@ -542,15 +548,6 @@ class TestGitLabIntegration:
         assert isinstance(
             reviews, list
         )  # COMMENT は approvals リストに出ないため len チェックしない
-
-    # --- cleanup ---
-
-    def test_31_cleanup_updates(self) -> None:
-        """test_23 の Issue と test_24 の MR をクリーンアップする。"""
-        if self._update_issue_number is not None:
-            self.adapter.close_issue(self._update_issue_number)
-        if self._update_pr_number is not None:
-            self.adapter.close_pull_request(self._update_pr_number)
 
     # --- list_branches ---
 

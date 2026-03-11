@@ -174,11 +174,8 @@ class TestHandleCreate:
         self.adapter.create_milestone.side_effect = RuntimeError("API error")
         args = make_args(title="v1.0", description=None, due=None)
         with _patch_all(sample_config, self.adapter):
-            try:
+            with pytest.raises(RuntimeError, match="API error"):
                 milestone_cmd.handle_create(args, fmt="table")
-                assert False, "例外が伝播されるべき"
-            except RuntimeError as e:
-                assert "API error" in str(e)
 
     def test_create_args_forwarded_correctly(self, sample_config):
         args = make_args(title="v4.0", description="Major release", due="2026-12-31")

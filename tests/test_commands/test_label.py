@@ -162,11 +162,8 @@ class TestHandleCreate:
         self.adapter.create_label.side_effect = RuntimeError("API error")
         args = make_args(name="bug", color="#d73a4a", description=None)
         with _patch_all(sample_config, self.adapter):
-            try:
+            with pytest.raises(RuntimeError, match="API error"):
                 label_cmd.handle_create(args, fmt="table")
-                assert False, "例外が伝播されるべき"
-            except RuntimeError as e:
-                assert "API error" in str(e)
 
     def test_create_name_forwarded_correctly(self, sample_config):
         args = make_args(name="wontfix", color="#ffffff", description="Will not fix")

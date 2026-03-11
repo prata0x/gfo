@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 from gfo.commands import file as file_cmd
+from gfo.exceptions import NotFoundError
 from tests.test_commands.conftest import make_args
 
 
@@ -48,7 +49,7 @@ class TestHandlePut:
     def test_creates_new_file(self):
         adapter = MagicMock()
         # get_file_content が失敗する場合（新規ファイル）→ sha=None
-        adapter.get_file_content.side_effect = Exception("not found")
+        adapter.get_file_content.side_effect = NotFoundError()
         args = make_args(path="new.txt", message="Add file", branch=None)
         with _patch(adapter):
             with patch("gfo.commands.file.sys.stdin") as mock_stdin:

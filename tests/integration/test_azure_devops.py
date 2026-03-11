@@ -421,15 +421,6 @@ class TestAzureDevOpsIntegration:
         reviews = self.adapter.list_reviews(self._update_pr_number)
         assert isinstance(reviews, list)
 
-    # --- cleanup ---
-
-    def test_31_cleanup_updates(self) -> None:
-        """update_issue/update_pr のクリーンアップ。"""
-        if self._update_issue_number is not None:
-            self.adapter.close_issue(self._update_issue_number)
-        if self._update_pr_number is not None:
-            self.adapter.close_pull_request(self._update_pr_number)
-
     # --- list_branches + create_branch + delete_branch ---
 
     def test_32_list_branches(self) -> None:

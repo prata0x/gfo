@@ -461,15 +461,6 @@ class TestGiteaIntegration:
         reviews = self.adapter.list_reviews(self._update_pr_number)
         assert len(reviews) > 0
 
-    # --- cleanup ---
-
-    def test_31_cleanup_updates(self) -> None:
-        """test_23 の Issue と test_24 の PR をクリーンアップする。"""
-        if self._update_issue_number is not None:
-            self.adapter.close_issue(self._update_issue_number)
-        if self._update_pr_number is not None:
-            self.adapter.close_pull_request(self._update_pr_number)
-
     # --- list_branches ---
 
     def test_32_list_branches(self) -> None:

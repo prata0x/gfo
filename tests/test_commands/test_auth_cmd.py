@@ -90,9 +90,8 @@ class TestHandleLogin_ErrorCases:
             auth_cmd.handle_login(args, fmt="table")
 
         captured = capsys.readouterr()
-        assert captured.err.strip() != ""
         # stderr に何らかの警告が出力されること
-        assert len(captured.err) > 0
+        assert captured.err.strip() != ""
 
     def test_no_token_option_no_warning(self, capsys):
         """--token なし（getpass 経由）では stderr への警告が出ない。"""

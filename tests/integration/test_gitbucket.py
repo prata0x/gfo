@@ -375,15 +375,6 @@ class TestGitBucketIntegration:
         with pytest.raises(NotSupportedError):
             self.adapter.list_reviews(self._update_pr_number)
 
-    # --- cleanup ---
-
-    def test_31_cleanup_updates(self) -> None:
-        """test_23 の Issue と test_24 の PR をクリーンアップする。"""
-        if self._update_issue_number is not None:
-            self.adapter.close_issue(self._update_issue_number)
-        if self._update_pr_number is not None:
-            self.adapter.close_pull_request(self._update_pr_number)
-
     # --- list_branches ---
 
     def test_32_list_branches(self) -> None:
@@ -549,16 +540,17 @@ class TestGitBucketIntegration:
             "gfo-test-file.txt", ref=self.config.test_branch
         )
         assert content2 == "updated gfo"
-        # GitBucket は delete_file (DELETE /contents) 未対応のため try/except
-        try:
+        # GitBucket は delete_file (DELETE /contents) 未対応のため GfoError を期待
+        # （GitHub アダプタ経由で呼ばれ、404 → NotFoundError が発生する）
+        from gfo.exceptions import GfoError
+
+        with pytest.raises(GfoError):
             self.adapter.delete_file(
                 "gfo-test-file.txt",
                 sha=sha2,
                 message="test: delete gfo-test-file.txt",
                 branch=self.config.test_branch,
             )
-        except Exception:
-            pass
 
     # --- webhook CRUD ---
 
