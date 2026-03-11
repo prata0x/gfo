@@ -177,6 +177,20 @@ def test_parser_repo_clone_dest_repo():
     assert args.repo == "owner/repo"
 
 
+def test_parser_repo_clone_project_arg():
+    """--project 引数が正しく parse される。"""
+    parser, _ = create_parser()
+    args = parser.parse_args(["repo", "clone", "owner/repo", "--project", "myproj"])
+    assert args.project == "myproj"
+
+
+def test_parser_repo_clone_project_default_none():
+    """--project 未指定時は None。"""
+    parser, _ = create_parser()
+    args = parser.parse_args(["repo", "clone", "owner/repo"])
+    assert args.project is None
+
+
 def test_parser_repo_view_dest_repo():
     parser, _ = create_parser()
     args = parser.parse_args(["repo", "view", "owner/repo"])

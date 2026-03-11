@@ -285,6 +285,18 @@ def test_build_clone_url_azure_devops_with_project():
     assert url == "https://dev.azure.com/myorg/myproj/_git/repo"
 
 
+def test_build_clone_url_azure_devops_custom_host():
+    """非既定ホストでも host がそのまま URL に使われる。"""
+    url = build_clone_url("azure-devops", "azure.example.com", "myorg", "repo", project="myproj")
+    assert url == "https://azure.example.com/myorg/myproj/_git/repo"
+
+
+def test_build_default_api_url_azure_devops_custom_host():
+    """非既定ホストでも host がそのまま API URL に使われる。"""
+    url = build_default_api_url("azure-devops", "azure.example.com", "myorg", "myproj")
+    assert url == "https://azure.example.com/myorg/myproj/_apis"
+
+
 def test_build_clone_url_gitlab():
     url = build_clone_url("gitlab", "gitlab.com", "owner", "repo")
     assert url == "https://gitlab.com/owner/repo.git"

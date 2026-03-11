@@ -247,7 +247,7 @@ def build_default_api_url(
             )
         if not project:
             raise ConfigError("Azure DevOps requires a project. Run 'gfo init' first to configure.")
-        return f"https://dev.azure.com/{organization}/{project}/_apis"
+        return f"https://{host}/{organization}/{project}/_apis"
     if service_type in ("gitea", "forgejo", "gogs"):
         return f"https://{host}/api/v1"
     if service_type == "gitbucket":

@@ -61,6 +61,19 @@ class TestHandlePut:
             "new.txt", content="hello", message="Add file", sha=None, branch=None
         )
 
+    def test_updates_existing_file_with_sha(self):
+        """既存ファイル更新時に get_file_content で取得した SHA が渡される。"""
+        adapter = MagicMock()
+        adapter.get_file_content.return_value = ("old content", "abc123")
+        args = make_args(path="existing.txt", message="Update file", branch=None)
+        with _patch(adapter):
+            with patch("gfo.commands.file.sys.stdin") as mock_stdin:
+                mock_stdin.read.return_value = "new content"
+                file_cmd.handle_put(args, fmt="table")
+        adapter.create_or_update_file.assert_called_once_with(
+            "existing.txt", content="new content", message="Update file", sha="abc123", branch=None
+        )
+
     def test_non_not_found_error_propagates(self):
         """NotFoundError 以外の例外（ネットワークエラー等）はそのまま伝播する。"""
         adapter = MagicMock()

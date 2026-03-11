@@ -531,6 +531,20 @@ class TestHandleClone:
 
         mock_clone.assert_called_once_with("https://dev.azure.com/myorg/explicit-proj/_git/myrepo")
 
+    def test_azure_devops_custom_host_url(self):
+        """非既定ホスト (azure.example.com) が clone URL に反映される。"""
+        args = make_args(host="azure.example.com", repo="myorg/myrepo", project="myproj")
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("azure.example.com", "azure-devops"),
+            ),
+            patch("gfo.commands.repo.git_clone") as mock_clone,
+        ):
+            repo_cmd.handle_clone(args, fmt="table")
+
+        mock_clone.assert_called_once_with("https://azure.example.com/myorg/myproj/_git/myrepo")
+
     def test_forgejo_url(self):
         args = make_args(host="codeberg.org", repo="owner/myrepo")
         with (
