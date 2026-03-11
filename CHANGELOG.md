@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.1] - 2026-03-11
+
+### Changed
+
+- Add PyPI metadata (readme, keywords, classifiers, urls)
+- Add CHANGELOG and link from README
+
 ## [0.1.0] - 2026-03-11
 
 ### Added
