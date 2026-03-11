@@ -52,7 +52,7 @@ GitServiceAdapter (ABC)
 
 ## 3. 認証
 
-### トークンヘッダー方式
+### 形式
 
 GitBucket は `Authorization: token {token}` ヘッダーで認証する（GitHub API v3 互換）。
 
@@ -62,7 +62,7 @@ Authorization: token <40桁の16進数文字列>
 
 `registry.py` の `create_http_client()` が `auth_header={"Authorization": f"token {token}"}` として `HttpClient` に渡す。
 
-### credentials.toml への格納形式
+### credentials.toml への格納
 
 ```toml
 [tokens]
@@ -71,7 +71,7 @@ Authorization: token <40桁の16進数文字列>
 
 ホスト名は `lower()` で正規化される（`auth.py`）。カスタムポートを使用する場合はホスト部分を `hostname:port` 形式で記述する。
 
-### トークン発行手順
+### トークン発行
 
 GitBucket は `POST /api/v3/authorizations` を実装していないため、Personal Access Token は **Web UI** 経由で取得する。
 
@@ -84,7 +84,7 @@ GitBucket は `POST /api/v3/authorizations` を実装していないため、Per
 
 ---
 
-## 4. API エンドポイント
+## 5. API エンドポイント
 
 パス変数 `{owner}` / `{repo}` は URL エンコード済みの値を使用する（`_repos_path()` が `urllib.parse.quote` を適用）。
 
@@ -105,7 +105,7 @@ GitBucket は `POST /api/v3/authorizations` を実装していないため、Per
 | Issue 一覧 | `GET` | `/api/v3/repos/{owner}/{repo}/issues` |
 | Issue 作成 | `POST` | `/api/v3/repos/{owner}/{repo}/issues` |
 | Issue 取得 | `GET` | `/api/v3/repos/{owner}/{repo}/issues/{number}` |
-| Issue クローズ | Web UI | `POST /{owner}/{repo}/issue_comments/state` （API 未実装） |
+| Issue クローズ | Web UI | `POST /{owner}/{repo}/issue_comments/state`（API 未実装） |
 
 ### Repository
 
@@ -142,9 +142,25 @@ GitBucket は `POST /api/v3/authorizations` を実装していないため、Per
 
 ---
 
-## 5. GitHub との非互換点・特殊対応
+## 6. 状態マッピング
 
-### 5-1. PR create / Release create: JSON 二重エンコード
+GitBucket は GitHub API v3 互換のため、状態マッピングは GitHub と同一（`github-spec.md §6` を参照）。
+
+PR の `state` は `open` / `closed` の 2 値。マージ済みかどうかは `merged_at` フィールドの有無で判定する。
+
+---
+
+## 7. 機能別仕様
+
+GitBucket は GitHub API v3 互換のため、基本的な機能仕様は GitHub と同一（`github-spec.md §7` を参照）。
+
+GitBucket 固有の非互換点・特殊対応は §8 を参照。
+
+---
+
+## 8. 固有仕様
+
+### PR create / Release create: JSON 二重エンコード
 
 `POST /pulls` および `POST /releases` のレスポンスボディが `dict` ではなく **JSON 文字列（文字列として JSON が埋め込まれた形式）** で返ってくる場合がある。
 
@@ -168,7 +184,7 @@ def _parse_response(self, resp) -> dict:
 
 `create_pull_request()` と `create_release()` は `resp.json()` の代わりに `self._parse_response(resp)` を使用する。`list_*` / `get_*` 系メソッドは GitHub から継承したまま（二重エンコードは create 系のみで発生）。
 
-### 5-2. Issue close: PATCH /issues/{number} 未実装
+### Issue close: PATCH /issues/{number} 未実装
 
 GitHub API では Issue クローズに `PATCH /repos/{owner}/{repo}/issues/{number}` を使用するが、GitBucket はこのエンドポイントを実装していない。
 
@@ -211,7 +227,7 @@ def _web_base_url(self) -> str:
     return f"{parsed.scheme}://{parsed.hostname}{port_str}"
 ```
 
-### 5-3. Release: created_at / html_url フィールドの欠落
+### Release: created_at / html_url フィールドの欠落
 
 GitBucket のリリースレスポンスには `created_at` と `html_url` フィールドが省略される場合がある。`GitHubLikeAdapter._to_release()` は `created_at` を必須フィールドとして参照するため、`GitBucketAdapter._to_release()` でオーバーライドし `.get()` によるフォールバックを適用する。
 
@@ -229,13 +245,7 @@ def _to_release(data: dict) -> Release:
     )
 ```
 
-### 5-4. Deploy key: API 未実装
-
-GitBucket は `/api/v3/repos/{owner}/{repo}/keys` エンドポイントを実装していない。`GiteaAdapter`（親クラス）から継承したメソッドを呼び出すと HTTP 500 が返る。
-
-`GitBucketAdapter` では `list_deploy_keys()` / `create_deploy_key()` / `delete_deploy_key()` をオーバーライドし、無条件で `NotSupportedError("GitBucket", "deploy key operations")` を送出する。
-
-### 5-5. ブランチ作成: POST /git/refs 未サポート
+### ブランチ作成: POST /git/refs 未サポート
 
 GitBucket は `POST /api/v3/repos/{owner}/{repo}/git/refs` が正常に動作しない（HTTP 500 を返す）。
 
@@ -252,7 +262,7 @@ git -C /tmp/repo push origin gfo-test-branch
 
 ---
 
-## 6. ページネーション
+## 9. ページネーション
 
 GitBucket は GitHub 互換の **RFC 5988 `Link` ヘッダー** 方式のページネーションをサポートする。
 
@@ -269,7 +279,7 @@ Link: <http://localhost:3003/api/v3/repos/root/test/issues?page=2>; rel="next",
 
 ---
 
-## 7. URL パターン
+## 10. URL パターン
 
 ### API URL
 
@@ -299,9 +309,23 @@ GitBucket のデフォルトブランチは `master`（GitHub や Gitea の `mai
 
 ---
 
-## 8. セルフホスト統合テスト
+## 11. 非対応機能
+
+以下の操作は GitBucket API の制約により `NotSupportedError` を返す。
+
+| メソッド | 理由 |
+|---|---|
+| `list_deploy_keys()` | `/api/v3/repos/{owner}/{repo}/keys` エンドポイントが未実装（HTTP 500 を返す） |
+| `create_deploy_key()` | 同上 |
+| `delete_deploy_key()` | 同上 |
+
+---
+
+## 12. 統合テスト
 
 ### 環境変数
+
+`tests/integration/.env` に設定する。`setup_services.py` 実行時に自動追記される。
 
 | 変数名 | 内容 | 例 |
 |---|---|---|
@@ -311,11 +335,9 @@ GitBucket のデフォルトブランチは `master`（GitHub や Gitea の `mai
 | `GFO_TEST_GITBUCKET_REPO` | テスト用リポジトリ名 | `gfo-integration-test` |
 | `GFO_TEST_GITBUCKET_DEFAULT_BRANCH` | デフォルトブランチ名 | `master` |
 
-上記変数は `setup_services.py` 実行時に `tests/integration/.env` へ自動追記される。
+### サービス固有の注意事項
 
-### Docker Compose ポート
-
-`tests/integration/docker-compose.yml` での定義:
+#### Docker Compose ポート
 
 | コンテナ名 | イメージ | ホストポート | コンテナポート | 用途 |
 |---|---|---|---|---|
@@ -324,27 +346,19 @@ GitBucket のデフォルトブランチは `master`（GitHub や Gitea の `mai
 
 ヘルスチェック: `curl -sf -o /dev/null http://localhost:8080/`
 
-### 統合テスト実行方法
+#### テスト実行方法
 
 ```bash
-cd tests/integration
-bash run_selfhosted.sh   # Docker Compose 起動 + setup_services.py + pytest
-```
+# ワンショット実行
+bash tests/integration/run_selfhosted.sh
 
-または個別実行:
-
-```bash
-# Docker Compose 起動
+# 個別実行
 docker compose -f tests/integration/docker-compose.yml up -d
-
-# セットアップ（トークン・リポジトリ・ブランチ作成）
 python tests/integration/setup_services.py
-
-# テスト実行
 pytest tests/integration/test_gitbucket.py -v -m "integration and selfhosted"
 ```
 
-### テストマーク
+#### テストマーク
 
 ```python
 pytestmark = [

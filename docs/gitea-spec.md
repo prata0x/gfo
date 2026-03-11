@@ -44,7 +44,7 @@ API パス・認証・ページネーションはすべて Gitea と同一。
 
 ## 3. 認証
 
-### ヘッダー形式
+### 形式
 
 ```
 Authorization: token {ACCESS_TOKEN}
@@ -68,7 +68,7 @@ elif service_type in ("gitea", "forgejo", "gogs", "gitbucket"):
 
 ホスト名はすべて小文字（`lower()`）で正規化される。
 
-### トークン発行先
+### トークン発行
 
 | サービス | 発行場所 |
 |---|---|
@@ -80,12 +80,12 @@ API 経由での発行は `POST /users/{username}/tokens`（Basic Auth 必須）
 
 ---
 
-## 4. API エンドポイント
+## 5. API エンドポイント
 
 すべてのパスは `{base_url}/repos/{owner}/{repo}` を起点とする。
 URL エンコードには `urllib.parse.quote(safe='')` を使用する。
 
-### 4.1 Pull Request
+### Pull Request
 
 | 操作 | メソッド | パス |
 |---|---|---|
@@ -95,7 +95,7 @@ URL エンコードには `urllib.parse.quote(safe='')` を使用する。
 | マージ | POST | `/repos/{owner}/{repo}/pulls/{number}/merge` |
 | クローズ | PATCH | `/repos/{owner}/{repo}/pulls/{number}` |
 
-### 4.2 Issue
+### Issue
 
 | 操作 | メソッド | パス |
 |---|---|---|
@@ -104,7 +104,7 @@ URL エンコードには `urllib.parse.quote(safe='')` を使用する。
 | 取得 | GET | `/repos/{owner}/{repo}/issues/{number}` |
 | クローズ | PATCH | `/repos/{owner}/{repo}/issues/{number}` |
 
-### 4.3 Repository
+### Repository
 
 | 操作 | メソッド | パス |
 |---|---|---|
@@ -113,7 +113,7 @@ URL エンコードには `urllib.parse.quote(safe='')` を使用する。
 | 作成 | POST | `/user/repos` |
 | 取得 | GET | `/repos/{owner}/{repo}` |
 
-### 4.4 Release
+### Release
 
 | 操作 | メソッド | パス |
 |---|---|---|
@@ -122,7 +122,7 @@ URL エンコードには `urllib.parse.quote(safe='')` を使用する。
 | タグ → ID 解決 | GET | `/repos/{owner}/{repo}/releases/tags/{tag}` |
 | 削除 | DELETE | `/repos/{owner}/{repo}/releases/{id}` |
 
-### 4.5 Label
+### Label
 
 | 操作 | メソッド | パス |
 |---|---|---|
@@ -131,7 +131,7 @@ URL エンコードには `urllib.parse.quote(safe='')` を使用する。
 | 名前 → ID 解決 | GET | `/repos/{owner}/{repo}/labels` |
 | 削除 | DELETE | `/repos/{owner}/{repo}/labels/{id}` |
 
-### 4.6 Milestone
+### Milestone
 
 | 操作 | メソッド | パス |
 |---|---|---|
@@ -141,29 +141,9 @@ URL エンコードには `urllib.parse.quote(safe='')` を使用する。
 
 ---
 
-## 5. Gogs の非対応機能
-
-Gogs は GitHub 互換の API を持つが、以下の操作は API レベルで未実装または実用性が低い。
-gfo では `NotSupportedError` を送出し、Web UI の代替 URL を提示する。
-
-| 操作 | gfo の挙動 | Web UI の代替 URL |
-|---|---|---|
-| PR 一覧 | `NotSupportedError` | `{web_url}/{owner}/{repo}/pulls` |
-| PR 作成 | `NotSupportedError` | `{web_url}/{owner}/{repo}/compare` |
-| PR 取得 | `NotSupportedError` | `{web_url}/{owner}/{repo}/pulls/{number}` |
-| PR マージ | `NotSupportedError` | `{web_url}/{owner}/{repo}/pulls/{number}` |
-| PR クローズ | `NotSupportedError` | `{web_url}/{owner}/{repo}/pulls/{number}` |
-| Label 全操作 | `NotSupportedError` | なし |
-| Milestone 全操作 | `NotSupportedError` | なし |
-| Release 全操作 | `NotSupportedError` | なし |
-
-Issue の取得・作成・クローズは Gogs でも動作する（GiteaAdapter から継承）。
-
----
-
 ## 6. 状態マッピング
 
-### PR の state
+### PR 状態
 
 gfo の `PullRequest.state` は `"open"` / `"closed"` / `"merged"` の 3 値を取る。
 
@@ -179,8 +159,6 @@ else:
     state = data["state"]
 ```
 
-### list_pull_requests でのマージ済み絞り込み
-
 `state="merged"` で呼び出した場合、Gitea API には `merged` ステートが存在しないため、
 `state="closed"` で API を叩き、返却された PR のうち `pr.state == "merged"` のものだけを返す。
 
@@ -194,9 +172,17 @@ if state == "merged":
     prs = [pr for pr in prs if pr.state == "merged"]
 ```
 
+### Issue 状態
+
+Gitea / Forgejo は `"open"` / `"closed"` の 2 値を返す。gfo はそのまま使用する。
+
 ---
 
-## 7. PR マージ方法
+## 7. 機能別仕様
+
+### PR 仕様
+
+#### マージ方法
 
 Gitea の PR マージには `{"Do": method}` というリクエストボディを使用する。
 GitHub の `merge_method` パラメータとは**フィールド名が異なる**点に注意。
@@ -218,11 +204,9 @@ self._client.post(
 | `rebase-merge` | リベース後にマージコミットを作成 |
 | `squash` | スカッシュしてマージ |
 
----
+### Issue 仕様
 
-## 8. Issue 仕様
-
-### PR が Issue 一覧に混在する問題
+#### PR が Issue 一覧に混在する問題
 
 Gitea / Forgejo では `GET /repos/{owner}/{repo}/issues` が Issue と PR の両方を返す場合がある。
 `type=issues` クエリパラメータで絞り込むが、念のため `pull_request` フィールドでも除外フィルタを適用する。
@@ -237,7 +221,7 @@ return [self._to_issue(r) for r in results if not r.get("pull_request")]
 レスポンス中の `pull_request` フィールドは、PR でない場合 `null` または省略される。
 `not r.get("pull_request")` が `True` になるもの（`null` / 未存在 / `{}`）のみ Issue として扱う。
 
-### Issue / PR 共通フィールド（`_to_issue` で使用）
+#### Issue / PR 共通フィールド（`_to_issue` で使用）
 
 | API フィールド | gfo フィールド | 備考 |
 |---|---|---|
@@ -252,26 +236,7 @@ return [self._to_issue(r) for r in results if not r.get("pull_request")]
 | `created_at` | `created_at` | ISO 8601 |
 | `updated_at` | `updated_at` | なければ `None` |
 
----
-
-## 9. Milestone の `number` フィールド問題
-
-Gitea 1.22 以降の一部バージョンでは、`GET /repos/{owner}/{repo}/milestones` のレスポンスに
-`number` フィールドが含まれない場合がある。
-
-`_to_milestone` ではフォールバックとして `id` を使用する。
-
-```python
-# base.py より
-number=data.get("number") or data["id"],
-```
-
-`data.get("number")` が `None` または `0`（falsy）の場合に `data["id"]` を使用する。
-Forgejo も同様の対応が必要。
-
----
-
-## 10. Label 削除
+### Label 仕様
 
 Gitea API の `DELETE /repos/{owner}/{repo}/labels/{id}` は **ID** を要求する。
 gfo コマンドはラベル名で操作するため、名前 → ID の解決が必要。
@@ -293,9 +258,7 @@ def delete_label(self, *, name: str) -> None:
 3. `DELETE /repos/{owner}/{repo}/labels/{id}` で削除
 4. 一致するラベルが存在しない場合は `NotFoundError` を送出
 
----
-
-## 11. Release 削除
+### Release 仕様
 
 Gitea API の `DELETE /repos/{owner}/{repo}/releases/{id}` は **ID** を要求する。
 gfo コマンドはタグ名で操作するため、タグ → ID の解決が必要。
@@ -315,40 +278,29 @@ def delete_release(self, *, tag: str) -> None:
 
 ---
 
-## 12. ページネーション
+## 8. 固有仕様
 
-Gitea / Forgejo / Gogs は GitHub と同じ **Link ヘッダー** 方式を使用する。
+### Milestone の `number` フィールド問題
 
-```
-Link: <https://host/api/v1/repos/owner/repo/pulls?limit=30&page=2>; rel="next",
-      <https://host/api/v1/repos/owner/repo/pulls?limit=30&page=5>; rel="last"
-```
+Gitea 1.22 以降の一部バージョンでは、`GET /repos/{owner}/{repo}/milestones` のレスポンスに
+`number` フィールドが含まれない場合がある。
 
-`http.py` の `paginate_link_header` 関数を使用する（GitHub と共用）。
-
-### ページサイズパラメータ
-
-Gitea は `per_page` ではなく `limit` パラメータでページサイズを指定する。
+`_to_milestone` ではフォールバックとして `id` を使用する。
 
 ```python
-# gitea.py より
-paginate_link_header(
-    self._client,
-    f"{self._repos_path()}/pulls",
-    params=params,
-    limit=limit,
-    per_page_key="limit",  # GitHub は "per_page"、Gitea は "limit"
-)
+# base.py より
+number=data.get("number") or data["id"],
 ```
 
----
+`data.get("number")` が `None` または `0`（falsy）の場合に `data["id"]` を使用する。
+Forgejo も同様の対応が必要。
 
-## 13. サービス自動検出
+### サービス自動検出
 
 `detect.py` の `probe_unknown_host` 関数が `GET /api/v1/version` を試行し、
 レスポンスの内容から Gitea / Forgejo / Gogs を識別する。
 
-### `/api/v1/version` レスポンスの違い
+#### `/api/v1/version` レスポンスの違い
 
 | サービス | レスポンス例 | 識別キー |
 |---|---|---|
@@ -370,21 +322,37 @@ if "version" in data and "go-version" not in data and "go_version" not in data a
     return "gogs"
 ```
 
-### 既知ホスト
-
 `codeberg.org` は `_KNOWN_HOSTS` に `"forgejo"` として登録済みのため、プローブなしで即時識別できる。
 
+---
+
+## 9. ページネーション
+
+Gitea / Forgejo / Gogs は GitHub と同じ **Link ヘッダー** 方式を使用する。
+
+```
+Link: <https://host/api/v1/repos/owner/repo/pulls?limit=30&page=2>; rel="next",
+      <https://host/api/v1/repos/owner/repo/pulls?limit=30&page=5>; rel="last"
+```
+
+`http.py` の `paginate_link_header` 関数を使用する（GitHub と共用）。
+
+Gitea は `per_page` ではなく `limit` パラメータでページサイズを指定する。
+
 ```python
-# detect.py より
-_KNOWN_HOSTS: dict[str, str] = {
-    ...
-    "codeberg.org": "forgejo",
-}
+# gitea.py より
+paginate_link_header(
+    self._client,
+    f"{self._repos_path()}/pulls",
+    params=params,
+    limit=limit,
+    per_page_key="limit",  # GitHub は "per_page"、Gitea は "limit"
+)
 ```
 
 ---
 
-## 14. URL パターン
+## 10. URL パターン
 
 ### HTTPS
 
@@ -409,9 +377,33 @@ URL パース後、`owner` と `repo` は `_GENERIC_PATH_RE`（`^(?P<owner>.+)/(
 
 ---
 
-## 15. セルフホスト統合テスト
+## 11. 非対応機能
+
+### Gogs の非対応機能
+
+Gogs は GitHub 互換の API を持つが、以下の操作は API レベルで未実装または実用性が低い。
+gfo では `NotSupportedError` を送出し、Web UI の代替 URL を提示する。
+
+| 操作 | gfo の挙動 | Web UI の代替 URL |
+|---|---|---|
+| PR 一覧 | `NotSupportedError` | `{web_url}/{owner}/{repo}/pulls` |
+| PR 作成 | `NotSupportedError` | `{web_url}/{owner}/{repo}/compare` |
+| PR 取得 | `NotSupportedError` | `{web_url}/{owner}/{repo}/pulls/{number}` |
+| PR マージ | `NotSupportedError` | `{web_url}/{owner}/{repo}/pulls/{number}` |
+| PR クローズ | `NotSupportedError` | `{web_url}/{owner}/{repo}/pulls/{number}` |
+| Label 全操作 | `NotSupportedError` | なし |
+| Milestone 全操作 | `NotSupportedError` | なし |
+| Release 全操作 | `NotSupportedError` | なし |
+
+Issue の取得・作成・クローズは Gogs でも動作する（GiteaAdapter から継承）。
+
+---
+
+## 12. 統合テスト
 
 ### 環境変数
+
+`tests/integration/.env` に設定する。セルフホストテストでは `setup_services.py` 実行時に自動追記される。
 
 | 変数名 | 説明 | 例 |
 |---|---|---|
@@ -429,9 +421,9 @@ URL パース後、`owner` と `repo` は `_GENERIC_PATH_RE`（`^(?P<owner>.+)/(
 | `GFO_TEST_GOGS_REPO` | テスト用リポジトリ名 | `gfo-integration-test` |
 | `GFO_TEST_{SERVICE}_DEFAULT_BRANCH` | デフォルトブランチ名 | `main`（Gogs は `master` の場合あり） |
 
-環境変数は `tests/integration/.env` ファイルで設定する。`setup_services.py` 実行時に自動追記される。
+### サービス固有の注意事項
 
-### Docker Compose ポート
+#### Docker Compose ポート
 
 | サービス | イメージ | HTTP ポート | SSH ポート |
 |---|---|---|---|
@@ -441,15 +433,6 @@ URL パース後、`owner` と `repo` は `_GENERIC_PATH_RE`（`^(?P<owner>.+)/(
 | GitBucket (latest) | `gitbucket/gitbucket:latest` | `3003` | `2225` |
 
 Forgejo イメージは公式レジストリ `codeberg.org/forgejo/forgejo` から取得する（Docker Hub は非公式）。
-
-### 実行方法
-
-```bash
-cd tests/integration
-bash run_selfhosted.sh   # Docker Compose 起動 + setup_services.py + pytest
-```
-
-### サービス固有の注意事項
 
 #### Gitea 1.22
 - Milestone レスポンスに `number` フィールドがない → `id` でフォールバック（`_to_milestone`）
