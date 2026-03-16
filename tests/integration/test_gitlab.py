@@ -774,7 +774,19 @@ class TestGitLabIntegration:
 
     def test_47_ssh_key_crud(self) -> None:
         """SSH キーの作成・一覧・削除テスト。"""
-        dummy_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7FG8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa gfo-test"
+        import os
+        import subprocess
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            key_path = os.path.join(tmpdir, "gfo_test_key")
+            subprocess.run(
+                ["ssh-keygen", "-t", "ed25519", "-f", key_path, "-N", "", "-C", "gfo-test"],
+                capture_output=True,
+                check=True,
+            )
+            with open(key_path + ".pub") as f:
+                dummy_key = f.read().strip()
         # 残留キーをクリーンアップ
         try:
             for k in self.adapter.list_ssh_keys():
