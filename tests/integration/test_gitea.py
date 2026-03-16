@@ -82,7 +82,7 @@ class TestGiteaIntegration(GiteaFamilyIntegrationBase):
         wiki_url = f"http://{host}/{owner}/{repo}.wiki.git"
         git_env = cls._make_askpass_env(token)
 
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             wiki_dir = f"{tmpdir}/wiki"
             try:
                 r = subprocess.run(

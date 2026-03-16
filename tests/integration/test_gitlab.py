@@ -788,7 +788,7 @@ class TestGitLabIntegration:
         import subprocess
         import tempfile
 
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             key_path = os.path.join(tmpdir, "gfo_test_key")
             subprocess.run(
                 ["ssh-keygen", "-t", "ed25519", "-f", key_path, "-N", "", "-C", "gfo-test"],
