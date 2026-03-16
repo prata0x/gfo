@@ -268,8 +268,6 @@ gfo auth login --host yourspace.backlog.com
    | `notification` | 読み取り | `gfo notification`（通知一覧） |
    | `notification` | 読み取りと書き込み | `gfo notification`（既読マーク） |
 
-   > **注意**: 「読み取りと書き込み」は「読み取り」を含みます。
-
 4. **Generate Token** をクリック
 
 ```bash
@@ -297,8 +295,6 @@ Gitea と同じ手順・スコープ体系です。
    | `user` | 読み取りと書き込み | `gfo ssh-key`（SSH 鍵管理） |
    | `notification` | 読み取り | `gfo notification`（通知一覧） |
    | `notification` | 読み取りと書き込み | `gfo notification`（既読マーク） |
-
-   > **注意**: 「読み取りと書き込み」は「読み取り」を含みます。
 
 4. **Generate Token** をクリック
 

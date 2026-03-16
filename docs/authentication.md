@@ -268,8 +268,6 @@ gfo auth login --host yourspace.backlog.com
    | `notification` | Read | `gfo notification` (list) |
    | `notification` | Read and Write | `gfo notification` (mark as read) |
 
-   > **Note**: "Read and Write" includes "Read". If you select write access, read access is not needed separately.
-
 4. Click **Generate Token**
 
 ```bash
@@ -297,8 +295,6 @@ Same steps and scope system as Gitea.
    | `user` | Read and Write | `gfo ssh-key` (SSH key management) |
    | `notification` | Read | `gfo notification` (list) |
    | `notification` | Read and Write | `gfo notification` (mark as read) |
-
-   > **Note**: "Read and Write" includes "Read". If you select write access, read access is not needed separately.
 
 4. Click **Generate Token**
 
