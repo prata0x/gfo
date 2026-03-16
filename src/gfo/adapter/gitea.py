@@ -659,13 +659,15 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         ]
 
     def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
+        from gfo.exceptions import NotFoundError
+
         try:
             self._client.get(f"{self._repos_path()}/actions/variables/{quote(name, safe='')}")
             self._client.put(
                 f"{self._repos_path()}/actions/variables/{quote(name, safe='')}",
                 json={"name": name, "value": value},
             )
-        except Exception:
+        except NotFoundError:
             self._client.post(
                 f"{self._repos_path()}/actions/variables",
                 json={"name": name, "value": value},

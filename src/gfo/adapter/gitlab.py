@@ -955,7 +955,7 @@ class GitLabAdapter(GitServiceAdapter):
                 f"{self._project_path()}/variables/{quote(name, safe='')}",
                 json=payload,
             )
-        except Exception:
+        except NotFoundError:
             self._client.post(f"{self._project_path()}/variables", json=payload)
         return Variable(name=name, value=value, created_at="", updated_at="")
 

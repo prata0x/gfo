@@ -1004,14 +1004,14 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     def list_organizations(self, *, limit: int = 30) -> list[Organization]:
         results = paginate_top_skip(
             self._client,
-            "/_apis/projects",
+            "/projects",
             limit=limit,
             result_key="value",
         )
         return [self._to_organization(d) for d in results]
 
     def get_organization(self, name: str) -> Organization:
-        resp = self._client.get(f"/_apis/projects/{quote(name, safe='')}")
+        resp = self._client.get(f"/projects/{quote(name, safe='')}")
         return self._to_organization(resp.json())
 
     def list_org_members(self, name: str, *, limit: int = 30) -> list[str]:

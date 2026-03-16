@@ -721,13 +721,15 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         ]
 
     def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
+        from gfo.exceptions import NotFoundError
+
         try:
             self._client.get(f"{self._repos_path()}/actions/variables/{quote(name, safe='')}")
             self._client.patch(
                 f"{self._repos_path()}/actions/variables/{quote(name, safe='')}",
                 json={"name": name, "value": value},
             )
-        except Exception:
+        except NotFoundError:
             self._client.post(
                 f"{self._repos_path()}/actions/variables",
                 json={"name": name, "value": value},
@@ -753,11 +755,13 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         results = paginate_link_header(self._client, f"{self._repos_path()}/branches", limit=0)
         protected = [r for r in results if r.get("protected")]
         bps = []
+        from gfo.exceptions import HttpError, NotFoundError
+
         for b in protected[: limit if limit > 0 else None]:
             try:
                 bp = self.get_branch_protection(b["name"])
                 bps.append(bp)
-            except Exception:
+            except (NotFoundError, HttpError):
                 bps.append(
                     BranchProtection(
                         branch=b["name"],
@@ -788,9 +792,11 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         allow_deletions: bool | None = None,
     ) -> BranchProtection:
         # GitHub PUT は全フィールド必須なので、現在値を取得して補完する
+        from gfo.exceptions import HttpError, NotFoundError
+
         try:
             current = self.get_branch_protection(branch)
-        except Exception:
+        except (NotFoundError, HttpError):
             current = BranchProtection(
                 branch=branch,
                 require_reviews=0,

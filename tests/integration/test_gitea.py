@@ -775,9 +775,11 @@ class TestGiteaIntegration:
             self.adapter.delete_variable("GFO_TEST_VAR")
         except Exception:
             pass
+        from gfo.exceptions import HttpError
+
         try:
             var = self.adapter.set_variable("GFO_TEST_VAR", "test-value")
-        except Exception:
+        except HttpError:
             pytest.skip("Actions Variables API not available on this Gitea version")
         assert var.name == "GFO_TEST_VAR"
         got = self.adapter.get_variable("GFO_TEST_VAR")

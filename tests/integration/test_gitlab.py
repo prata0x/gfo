@@ -801,11 +801,8 @@ class TestGitLabIntegration:
 
     def test_49_notification_list(self) -> None:
         """通知（TODO）一覧取得テスト。"""
-        try:
-            notifications = self.adapter.list_notifications(limit=5)
-            assert isinstance(notifications, list)
-        except Exception:
-            pytest.skip("Notification API may require additional permissions")
+        notifications = self.adapter.list_notifications(limit=5)
+        assert isinstance(notifications, list)
 
     # --- branch-protect ---
 

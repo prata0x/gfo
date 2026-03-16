@@ -604,12 +604,14 @@ class TestBitbucketIntegration:
     # --- branch-protect ---
 
     def test_49_branch_protect_list(self) -> None:
-        """ブランチ保護の一覧取得テスト。権限不足の場合は try/except でスキップ。"""
+        """ブランチ保護の一覧取得テスト。"""
+        from gfo.exceptions import HttpError
+
         try:
             protections = self.adapter.list_branch_protections()
             assert isinstance(protections, list)
-        except Exception:
-            pytest.skip("Branch protection API may require admin permissions")
+        except HttpError:
+            pytest.skip("Branch protection API requires admin permissions")
 
     # --- secret ---
 
