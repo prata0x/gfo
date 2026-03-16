@@ -89,6 +89,9 @@ msgstr "URL を表示するだけ"
 msgid "Error: --jq expression must not be empty."
 msgstr "エラー: --jq の式は空にできません。"
 
+msgid "{value} is not a positive integer"
+msgstr "{value} は正の整数ではありません"
+
 msgid "Unexpected error: {err}"
 msgstr "予期しないエラー: {err}"
 
@@ -132,6 +135,12 @@ msgstr "未対応のサービス種別: {service_type}"
 # output.py
 msgid "No results found."
 msgstr "結果が見つかりません。"
+
+msgid "jq command not found. Install it from https://stedolan.github.io/jq/"
+msgstr "jq コマンドが見つかりません。https://stedolan.github.io/jq/ からインストールしてください。"
+
+msgid "jq filter error: {error}"
+msgstr "jq フィルタエラー: {error}"
 
 # commands/init.py
 msgid "--type is required in non-interactive mode."

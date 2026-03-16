@@ -25,7 +25,13 @@ def _get_languages() -> list[str] | None:
     try:
         os_locale = locale.getlocale()[0]
         if os_locale:
-            return [os_locale.split(".")[0]]
+            code = os_locale.split(".")[0]
+            # Windows の "Japanese_Japan" → "ja_JP" に正規化
+            lang_part = code.split("_")[0].lower()
+            alias = locale.locale_alias.get(lang_part, "")
+            if alias:
+                code = alias.split(".")[0]
+            return [code]
     except Exception:  # nosec B110 - locale detection is best-effort
         pass
     return None

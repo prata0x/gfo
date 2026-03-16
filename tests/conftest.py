@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+import os
+
+# gfo.i18n はモジュールロード時に LANGUAGE を参照するため、
+# gfo モジュールの import より前にセットする必要がある。
+os.environ.setdefault("LANGUAGE", "C")
+
 from pathlib import Path
 from unittest.mock import patch
 

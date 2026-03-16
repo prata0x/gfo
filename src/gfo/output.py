@@ -65,9 +65,9 @@ def apply_jq_filter(json_str: str, expression: str) -> str:
         )
         return result.stdout.rstrip("\n")
     except FileNotFoundError:
-        raise GfoError("jq command not found. Install it from https://stedolan.github.io/jq/")
+        raise GfoError(_("jq command not found. Install it from https://stedolan.github.io/jq/"))
     except subprocess.CalledProcessError as e:
-        raise GfoError(f"jq filter error: {e.stderr.strip()}")
+        raise GfoError(_("jq filter error: {error}").format(error=e.stderr.strip()))
 
 
 def output(

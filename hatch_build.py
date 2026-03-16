@@ -18,4 +18,4 @@ class MoCompileHook(BuildHookInterface):
         compiled = compile_all(locale_dir)
         for mo_path in compiled:
             rel = mo_path.relative_to(Path(self.root) / "src" / "gfo")
-            build_data["force_include"][str(mo_path)] = f"gfo/{rel}"
+            build_data["force_include"][str(mo_path)] = f"gfo/{rel.as_posix()}"
