@@ -8,6 +8,7 @@ from collections.abc import Callable
 
 import gfo.commands.auth_cmd
 import gfo.commands.branch
+import gfo.commands.branch_protect
 import gfo.commands.browse
 import gfo.commands.ci
 import gfo.commands.collaborator
@@ -365,6 +366,28 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     wiki_delete = wiki_sub.add_parser("delete")
     wiki_delete.add_argument("id")
 
+    # gfo branch-protect → サブサブコマンド
+    bp_parser = subparser_map["branch-protect"] = subparsers.add_parser(
+        "branch-protect", help="ブランチ保護ルールを管理する"
+    )
+    bp_sub = bp_parser.add_subparsers(dest="subcommand")
+    bp_list = bp_sub.add_parser("list")
+    bp_list.add_argument("--limit", type=_positive_int, default=30)
+    bp_view = bp_sub.add_parser("view")
+    bp_view.add_argument("branch")
+    bp_set = bp_sub.add_parser("set")
+    bp_set.add_argument("branch")
+    bp_set.add_argument("--require-reviews", type=int, dest="require_reviews")
+    bp_set.add_argument("--require-status-checks", nargs="+", dest="require_status_checks")
+    bp_set.add_argument("--enforce-admins", action="store_true", default=None)
+    bp_set.add_argument("--no-enforce-admins", dest="enforce_admins", action="store_false")
+    bp_set.add_argument("--allow-force-push", action="store_true", default=None)
+    bp_set.add_argument("--no-allow-force-push", dest="allow_force_push", action="store_false")
+    bp_set.add_argument("--allow-deletions", action="store_true", default=None)
+    bp_set.add_argument("--no-allow-deletions", dest="allow_deletions", action="store_false")
+    bp_remove = bp_sub.add_parser("remove")
+    bp_remove.add_argument("branch")
+
     # gfo notification → サブサブコマンド
     notif_parser = subparser_map["notification"] = subparsers.add_parser(
         "notification", help="通知を管理する"
@@ -486,6 +509,10 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("wiki", "create"): gfo.commands.wiki.handle_create,
     ("wiki", "update"): gfo.commands.wiki.handle_update,
     ("wiki", "delete"): gfo.commands.wiki.handle_delete,
+    ("branch-protect", "list"): gfo.commands.branch_protect.handle_list,
+    ("branch-protect", "view"): gfo.commands.branch_protect.handle_view,
+    ("branch-protect", "set"): gfo.commands.branch_protect.handle_set,
+    ("branch-protect", "remove"): gfo.commands.branch_protect.handle_remove,
     ("notification", "list"): gfo.commands.notification.handle_list,
     ("notification", "read"): gfo.commands.notification.handle_read,
     ("org", "list"): gfo.commands.org.handle_list,

@@ -9,6 +9,7 @@ from gfo.http import paginate_response_body
 
 from .base import (
     Branch,
+    BranchProtection,
     Comment,
     CommitStatus,
     DeployKey,
@@ -779,6 +780,96 @@ class BitbucketAdapter(GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/user")
         return dict(resp.json())
+
+    # --- BranchProtection (branch-restrictions) ---
+
+    def list_branch_protections(self, *, limit: int = 30) -> list[BranchProtection]:
+        results = paginate_response_body(
+            self._client,
+            f"{self._repos_path()}/branch-restrictions",
+            limit=limit,
+        )
+        # Bitbucket は pattern ごとにルールがバラバラなので pattern でグループ化
+        by_branch: dict[str, dict] = {}
+        for r in results:
+            pattern = r.get("pattern") or r.get("branch_match_kind") or ""
+            if pattern not in by_branch:
+                by_branch[pattern] = {"force_push": False, "deletions": False}
+            kind = r.get("kind") or ""
+            if kind == "force":
+                by_branch[pattern]["force_push"] = True
+            elif kind == "delete":
+                by_branch[pattern]["deletions"] = True
+        return [
+            BranchProtection(
+                branch=pattern,
+                require_reviews=0,
+                require_status_checks=(),
+                enforce_admins=False,
+                allow_force_push=not flags["force_push"],
+                allow_deletions=not flags["deletions"],
+            )
+            for pattern, flags in by_branch.items()
+        ]
+
+    def get_branch_protection(self, branch: str) -> BranchProtection:
+        results = paginate_response_body(
+            self._client,
+            f"{self._repos_path()}/branch-restrictions",
+            params={"kind": "push"},
+            limit=0,
+        )
+        force_push = False
+        deletions = False
+        for r in results:
+            if r.get("pattern") == branch:
+                kind = r.get("kind") or ""
+                if kind == "force":
+                    force_push = True
+                elif kind == "delete":
+                    deletions = True
+        return BranchProtection(
+            branch=branch,
+            require_reviews=0,
+            require_status_checks=(),
+            enforce_admins=False,
+            allow_force_push=not force_push,
+            allow_deletions=not deletions,
+        )
+
+    def set_branch_protection(
+        self,
+        branch: str,
+        *,
+        require_reviews: int | None = None,
+        require_status_checks: list[str] | None = None,
+        enforce_admins: bool | None = None,
+        allow_force_push: bool | None = None,
+        allow_deletions: bool | None = None,
+    ) -> BranchProtection:
+        if allow_force_push is False:
+            self._client.post(
+                f"{self._repos_path()}/branch-restrictions",
+                json={"kind": "force", "pattern": branch},
+            )
+        if allow_deletions is False:
+            self._client.post(
+                f"{self._repos_path()}/branch-restrictions",
+                json={"kind": "delete", "pattern": branch},
+            )
+        return self.get_branch_protection(branch)
+
+    def remove_branch_protection(self, branch: str) -> None:
+        results = paginate_response_body(
+            self._client,
+            f"{self._repos_path()}/branch-restrictions",
+            limit=0,
+        )
+        for r in results:
+            if r.get("pattern") == branch:
+                rid = r.get("id")
+                if rid is not None:
+                    self._client.delete(f"{self._repos_path()}/branch-restrictions/{rid}")
 
     # --- Organization (Workspace) ---
 

@@ -15,6 +15,7 @@ from gfo.exceptions import GfoError, NotSupportedError
 from gfo.http import paginate_link_header
 
 from .base import (
+    BranchProtection,
     DeployKey,
     Issue,
     Notification,
@@ -200,6 +201,20 @@ class GitBucketAdapter(GitHubAdapter):
 
     def create_review(self, number: int, *, state: str, body: str = "") -> Review:
         raise NotSupportedError("GitBucket", "review operations")
+
+    # --- BranchProtection（GitBucket 未実装）---
+
+    def list_branch_protections(self, *, limit: int = 30) -> list[BranchProtection]:
+        raise NotSupportedError("GitBucket", "branch-protect operations")
+
+    def get_branch_protection(self, branch: str) -> BranchProtection:
+        raise NotSupportedError("GitBucket", "branch-protect operations")
+
+    def set_branch_protection(self, branch: str, **kwargs) -> BranchProtection:
+        raise NotSupportedError("GitBucket", "branch-protect operations")
+
+    def remove_branch_protection(self, branch: str) -> None:
+        raise NotSupportedError("GitBucket", "branch-protect operations")
 
     # --- Notification（GitBucket 未実装）---
 

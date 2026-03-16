@@ -179,6 +179,16 @@ class Notification:
     updated_at: str
 
 
+@dataclass(frozen=True, slots=True)
+class BranchProtection:
+    branch: str
+    require_reviews: int  # 0 = 無効
+    require_status_checks: tuple[str, ...]
+    enforce_admins: bool
+    allow_force_push: bool
+    allow_deletions: bool
+
+
 class GitHubLikeAdapter(ABC):
     """GitHub API 互換サービス（GitHub/Gitea 系）向け共通変換ヘルパー。
 
@@ -686,6 +696,28 @@ class GitServiceAdapter(ABC):
 
     def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
         raise NotSupportedError(self.service_name, "search issues")
+
+    # --- BranchProtection ---
+    def list_branch_protections(self, *, limit: int = 30) -> list[BranchProtection]:
+        raise NotSupportedError(self.service_name, "branch-protect list")
+
+    def get_branch_protection(self, branch: str) -> BranchProtection:
+        raise NotSupportedError(self.service_name, "branch-protect view")
+
+    def set_branch_protection(
+        self,
+        branch: str,
+        *,
+        require_reviews: int | None = None,
+        require_status_checks: list[str] | None = None,
+        enforce_admins: bool | None = None,
+        allow_force_push: bool | None = None,
+        allow_deletions: bool | None = None,
+    ) -> BranchProtection:
+        raise NotSupportedError(self.service_name, "branch-protect set")
+
+    def remove_branch_protection(self, branch: str) -> None:
+        raise NotSupportedError(self.service_name, "branch-protect remove")
 
     # --- Notification ---
     def list_notifications(

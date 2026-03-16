@@ -10,6 +10,7 @@ from gfo.http import paginate_link_header
 
 from .base import (
     Branch,
+    BranchProtection,
     Comment,
     CommitStatus,
     DeployKey,
@@ -611,6 +612,60 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/user")
         return dict(resp.json())
+
+    # --- BranchProtection ---
+
+    def list_branch_protections(self, *, limit: int = 30) -> list[BranchProtection]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/branch_protections",
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [self._to_branch_protection(d) for d in results]
+
+    def get_branch_protection(self, branch: str) -> BranchProtection:
+        resp = self._client.get(f"{self._repos_path()}/branch_protections/{quote(branch, safe='')}")
+        return self._to_branch_protection(resp.json())
+
+    def set_branch_protection(
+        self,
+        branch: str,
+        *,
+        require_reviews: int | None = None,
+        require_status_checks: list[str] | None = None,
+        enforce_admins: bool | None = None,
+        allow_force_push: bool | None = None,
+        allow_deletions: bool | None = None,
+    ) -> BranchProtection:
+        payload: dict = {"branch_name": branch}
+        if require_reviews is not None:
+            payload["required_approvals"] = require_reviews
+        if require_status_checks is not None:
+            payload["status_check_contexts"] = require_status_checks
+        if allow_force_push is not None:
+            payload["enable_force_push"] = allow_force_push
+        resp = self._client.post(f"{self._repos_path()}/branch_protections", json=payload)
+        return self._to_branch_protection(resp.json())
+
+    def remove_branch_protection(self, branch: str) -> None:
+        self._client.delete(f"{self._repos_path()}/branch_protections/{quote(branch, safe='')}")
+
+    @staticmethod
+    def _to_branch_protection(data: dict) -> BranchProtection:
+        from gfo.exceptions import GfoError
+
+        try:
+            return BranchProtection(
+                branch=data.get("branch_name") or data.get("rule_name") or "",
+                require_reviews=data.get("required_approvals", 0) or 0,
+                require_status_checks=tuple(data.get("status_check_contexts") or []),
+                enforce_admins=False,
+                allow_force_push=data.get("enable_force_push", False),
+                allow_deletions=False,
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- Notification ---
 

@@ -8,6 +8,7 @@ from urllib.parse import quote
 from gfo.exceptions import NotSupportedError
 
 from .base import (
+    BranchProtection,
     Comment,
     CommitStatus,
     Label,
@@ -236,6 +237,20 @@ class GogsAdapter(GiteaAdapter):
         }
         resp = self._client.post(f"{self._repos_path()}/hooks", json=payload)
         return self._to_webhook(resp.json())
+
+    # --- BranchProtection（Gogs 0.13 未対応）---
+
+    def list_branch_protections(self, *, limit: int = 30) -> list[BranchProtection]:
+        raise NotSupportedError("Gogs", "branch-protect operations")
+
+    def get_branch_protection(self, branch: str) -> BranchProtection:
+        raise NotSupportedError("Gogs", "branch-protect operations")
+
+    def set_branch_protection(self, branch: str, **kwargs) -> BranchProtection:
+        raise NotSupportedError("Gogs", "branch-protect operations")
+
+    def remove_branch_protection(self, branch: str) -> None:
+        raise NotSupportedError("Gogs", "branch-protect operations")
 
     # --- Notification（Gogs 0.13 未対応）---
 

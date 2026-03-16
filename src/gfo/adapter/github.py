@@ -9,6 +9,7 @@ from gfo.http import paginate_link_header
 
 from .base import (
     Branch,
+    BranchProtection,
     Comment,
     CommitStatus,
     DeployKey,
@@ -621,6 +622,109 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/user")
         return dict(resp.json())
+
+    # --- BranchProtection ---
+
+    def list_branch_protections(self, *, limit: int = 30) -> list[BranchProtection]:
+        results = paginate_link_header(self._client, f"{self._repos_path()}/branches", limit=0)
+        protected = [r for r in results if r.get("protected")]
+        bps = []
+        for b in protected[: limit if limit > 0 else None]:
+            try:
+                bp = self.get_branch_protection(b["name"])
+                bps.append(bp)
+            except Exception:
+                bps.append(
+                    BranchProtection(
+                        branch=b["name"],
+                        require_reviews=0,
+                        require_status_checks=(),
+                        enforce_admins=False,
+                        allow_force_push=False,
+                        allow_deletions=False,
+                    )
+                )
+        return bps
+
+    def get_branch_protection(self, branch: str) -> BranchProtection:
+        resp = self._client.get(
+            f"{self._repos_path()}/branches/{quote(branch, safe='')}/protection"
+        )
+        data = resp.json()
+        return self._to_branch_protection(branch, data)
+
+    def set_branch_protection(
+        self,
+        branch: str,
+        *,
+        require_reviews: int | None = None,
+        require_status_checks: list[str] | None = None,
+        enforce_admins: bool | None = None,
+        allow_force_push: bool | None = None,
+        allow_deletions: bool | None = None,
+    ) -> BranchProtection:
+        # GitHub PUT は全フィールド必須なので、現在値を取得して補完する
+        try:
+            current = self.get_branch_protection(branch)
+        except Exception:
+            current = BranchProtection(
+                branch=branch,
+                require_reviews=0,
+                require_status_checks=(),
+                enforce_admins=False,
+                allow_force_push=False,
+                allow_deletions=False,
+            )
+        reviews = require_reviews if require_reviews is not None else current.require_reviews
+        checks = (
+            require_status_checks
+            if require_status_checks is not None
+            else list(current.require_status_checks)
+        )
+        enforce = enforce_admins if enforce_admins is not None else current.enforce_admins
+        force_push = allow_force_push if allow_force_push is not None else current.allow_force_push
+        deletions = allow_deletions if allow_deletions is not None else current.allow_deletions
+
+        payload: dict = {
+            "required_pull_request_reviews": {"required_approving_review_count": reviews}
+            if reviews > 0
+            else None,
+            "required_status_checks": {"strict": True, "contexts": checks} if checks else None,
+            "enforce_admins": enforce,
+            "restrictions": None,
+            "allow_force_pushes": force_push,
+            "allow_deletions": deletions,
+        }
+        resp = self._client.put(
+            f"{self._repos_path()}/branches/{quote(branch, safe='')}/protection",
+            json=payload,
+        )
+        return self._to_branch_protection(branch, resp.json())
+
+    def remove_branch_protection(self, branch: str) -> None:
+        self._client.delete(f"{self._repos_path()}/branches/{quote(branch, safe='')}/protection")
+
+    @staticmethod
+    def _to_branch_protection(branch: str, data: dict) -> BranchProtection:
+        reviews_obj = data.get("required_pull_request_reviews") or {}
+        checks_obj = data.get("required_status_checks") or {}
+        enforce_obj = data.get("enforce_admins")
+        return BranchProtection(
+            branch=branch,
+            require_reviews=reviews_obj.get("required_approving_review_count", 0)
+            if reviews_obj
+            else 0,
+            require_status_checks=tuple(checks_obj.get("contexts") or []),
+            enforce_admins=enforce_obj.get("enabled", False)
+            if isinstance(enforce_obj, dict)
+            else bool(enforce_obj),
+            allow_force_push=(data.get("allow_force_pushes") or {}).get("enabled", False)
+            if isinstance(data.get("allow_force_pushes"), dict)
+            else bool(data.get("allow_force_pushes", False)),
+            allow_deletions=(data.get("allow_deletions") or {}).get("enabled", False)
+            if isinstance(data.get("allow_deletions"), dict)
+            else bool(data.get("allow_deletions", False)),
+        )
 
     # --- Notification ---
 

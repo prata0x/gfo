@@ -11,6 +11,7 @@ from gfo.http import paginate_top_skip
 
 from .base import (
     Branch,
+    BranchProtection,
     Comment,
     CommitStatus,
     DeployKey,
@@ -962,6 +963,41 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             "displayName": user.get("providerDisplayName", ""),
             "login": user.get("providerDisplayName", ""),
         }
+
+    # --- BranchProtection (Policy) ---
+
+    def list_branch_protections(self, *, limit: int = 30) -> list[BranchProtection]:
+        raise NotSupportedError(
+            self.service_name,
+            "branch-protect list (Azure DevOps uses policy configurations)",
+        )
+
+    def get_branch_protection(self, branch: str) -> BranchProtection:
+        raise NotSupportedError(
+            self.service_name,
+            "branch-protect view (Azure DevOps uses policy configurations)",
+        )
+
+    def set_branch_protection(
+        self,
+        branch: str,
+        *,
+        require_reviews: int | None = None,
+        require_status_checks: list[str] | None = None,
+        enforce_admins: bool | None = None,
+        allow_force_push: bool | None = None,
+        allow_deletions: bool | None = None,
+    ) -> BranchProtection:
+        raise NotSupportedError(
+            self.service_name,
+            "branch-protect set (Azure DevOps uses policy configurations)",
+        )
+
+    def remove_branch_protection(self, branch: str) -> None:
+        raise NotSupportedError(
+            self.service_name,
+            "branch-protect remove (Azure DevOps uses policy configurations)",
+        )
 
     # --- Organization (Project) ---
 

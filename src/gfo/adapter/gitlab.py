@@ -10,6 +10,7 @@ from gfo.http import paginate_page_param
 
 from .base import (
     Branch,
+    BranchProtection,
     Comment,
     CommitStatus,
     DeployKey,
@@ -911,6 +912,52 @@ class GitLabAdapter(GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/user")
         return dict(resp.json())
+
+    # --- BranchProtection ---
+
+    def list_branch_protections(self, *, limit: int = 30) -> list[BranchProtection]:
+        results = paginate_page_param(
+            self._client, f"{self._project_path()}/protected_branches", limit=limit
+        )
+        return [self._to_branch_protection(d) for d in results]
+
+    def get_branch_protection(self, branch: str) -> BranchProtection:
+        resp = self._client.get(
+            f"{self._project_path()}/protected_branches/{quote(branch, safe='')}"
+        )
+        return self._to_branch_protection(resp.json())
+
+    def set_branch_protection(
+        self,
+        branch: str,
+        *,
+        require_reviews: int | None = None,
+        require_status_checks: list[str] | None = None,
+        enforce_admins: bool | None = None,
+        allow_force_push: bool | None = None,
+        allow_deletions: bool | None = None,
+    ) -> BranchProtection:
+        payload: dict = {"name": branch}
+        if allow_force_push is not None:
+            payload["allow_force_push"] = allow_force_push
+        if require_reviews is not None:
+            payload["required_approvals"] = require_reviews
+        resp = self._client.post(f"{self._project_path()}/protected_branches", json=payload)
+        return self._to_branch_protection(resp.json())
+
+    def remove_branch_protection(self, branch: str) -> None:
+        self._client.delete(f"{self._project_path()}/protected_branches/{quote(branch, safe='')}")
+
+    @staticmethod
+    def _to_branch_protection(data: dict) -> BranchProtection:
+        return BranchProtection(
+            branch=data.get("name") or "",
+            require_reviews=data.get("required_approvals", 0) or 0,
+            require_status_checks=(),
+            enforce_admins=False,
+            allow_force_push=data.get("allow_force_push", False),
+            allow_deletions=False,
+        )
 
     # --- Notification (TODO) ---
 
