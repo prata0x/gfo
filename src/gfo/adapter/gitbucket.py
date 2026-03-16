@@ -14,7 +14,18 @@ import urllib.parse
 from gfo.exceptions import GfoError, NotSupportedError
 from gfo.http import paginate_link_header
 
-from .base import DeployKey, Issue, PullRequest, Release, Repository, Review, SshKey, Tag, WikiPage
+from .base import (
+    DeployKey,
+    Issue,
+    Organization,
+    PullRequest,
+    Release,
+    Repository,
+    Review,
+    SshKey,
+    Tag,
+    WikiPage,
+)
 from .github import GitHubAdapter
 from .registry import register
 
@@ -188,6 +199,20 @@ class GitBucketAdapter(GitHubAdapter):
 
     def create_review(self, number: int, *, state: str, body: str = "") -> Review:
         raise NotSupportedError("GitBucket", "review operations")
+
+    # --- Organization（GitBucket 未実装）---
+
+    def list_organizations(self, *, limit: int = 30) -> list[Organization]:
+        raise NotSupportedError("GitBucket", "org operations")
+
+    def get_organization(self, name: str) -> Organization:
+        raise NotSupportedError("GitBucket", "org operations")
+
+    def list_org_members(self, name: str, *, limit: int = 30) -> list[str]:
+        raise NotSupportedError("GitBucket", "org operations")
+
+    def list_org_repos(self, name: str, *, limit: int = 30) -> list[Repository]:
+        raise NotSupportedError("GitBucket", "org operations")
 
     # --- SSH Key（GitBucket 未実装）---
 

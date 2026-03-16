@@ -16,6 +16,7 @@ from .base import (
     Issue,
     Label,
     Milestone,
+    Organization,
     Pipeline,
     PullRequest,
     Release,
@@ -778,6 +779,66 @@ class BitbucketAdapter(GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/user")
         return dict(resp.json())
+
+    # --- Organization (Workspace) ---
+
+    def list_organizations(self, *, limit: int = 30) -> list[Organization]:
+        results = paginate_response_body(
+            self._client,
+            "/user/permissions/workspaces",
+            limit=limit,
+        )
+        return [self._to_organization(d) for d in results]
+
+    def get_organization(self, name: str) -> Organization:
+        resp = self._client.get(f"/workspaces/{quote(name, safe='')}")
+        data = resp.json()
+        return Organization(
+            name=data.get("slug") or "",
+            display_name=data.get("name") or "",
+            description=None,
+            url=data.get("links", {}).get("html", {}).get("href") or "",
+        )
+
+    def list_org_members(self, name: str, *, limit: int = 30) -> list[str]:
+        results = paginate_response_body(
+            self._client,
+            f"/workspaces/{quote(name, safe='')}/members",
+            limit=limit,
+        )
+        try:
+            return [
+                (r.get("user") or {}).get("nickname") or ""
+                for r in results
+                if (r.get("user") or {}).get("nickname")
+            ]
+        except (KeyError, TypeError, AttributeError) as e:
+            from gfo.exceptions import GfoError
+
+            raise GfoError(f"Unexpected API response: {e}") from e
+
+    def list_org_repos(self, name: str, *, limit: int = 30) -> list[Repository]:
+        results = paginate_response_body(
+            self._client,
+            f"/repositories/{quote(name, safe='')}",
+            limit=limit,
+        )
+        return [self._to_repository(r) for r in results]
+
+    @staticmethod
+    def _to_organization(data: dict) -> Organization:
+        from gfo.exceptions import GfoError
+
+        try:
+            workspace = data.get("workspace") or data
+            return Organization(
+                name=workspace.get("slug") or "",
+                display_name=workspace.get("name") or "",
+                description=None,
+                url=(workspace.get("links") or {}).get("html", {}).get("href") or "",
+            )
+        except (KeyError, TypeError, AttributeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- SSH Key ---
 

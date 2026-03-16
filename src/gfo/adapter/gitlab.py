@@ -17,6 +17,7 @@ from .base import (
     Issue,
     Label,
     Milestone,
+    Organization,
     Pipeline,
     PullRequest,
     Release,
@@ -909,6 +910,43 @@ class GitLabAdapter(GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/user")
         return dict(resp.json())
+
+    # --- Organization (Group) ---
+
+    def list_organizations(self, *, limit: int = 30) -> list[Organization]:
+        results = paginate_page_param(self._client, "/groups", limit=limit)
+        return [self._to_organization(d) for d in results]
+
+    def get_organization(self, name: str) -> Organization:
+        resp = self._client.get(f"/groups/{quote(name, safe='')}")
+        return self._to_organization(resp.json())
+
+    def list_org_members(self, name: str, *, limit: int = 30) -> list[str]:
+        results = paginate_page_param(
+            self._client, f"/groups/{quote(name, safe='')}/members", limit=limit
+        )
+        try:
+            return [r["username"] for r in results]
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: {e}") from e
+
+    def list_org_repos(self, name: str, *, limit: int = 30) -> list[Repository]:
+        results = paginate_page_param(
+            self._client, f"/groups/{quote(name, safe='')}/projects", limit=limit
+        )
+        return [self._to_repository(r) for r in results]
+
+    @staticmethod
+    def _to_organization(data: dict) -> Organization:
+        try:
+            return Organization(
+                name=data.get("path") or data.get("full_path") or "",
+                display_name=data.get("full_name") or data.get("name") or "",
+                description=data.get("description"),
+                url=data.get("web_url") or "",
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- SSH Key ---
 

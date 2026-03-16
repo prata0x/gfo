@@ -17,6 +17,7 @@ from .base import (
     Issue,
     Label,
     Milestone,
+    Organization,
     Pipeline,
     PullRequest,
     Release,
@@ -619,6 +620,47 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/user")
         return dict(resp.json())
+
+    # --- Organization ---
+
+    def list_organizations(self, *, limit: int = 30) -> list[Organization]:
+        results = paginate_link_header(self._client, "/user/orgs", limit=limit)
+        return [self._to_organization(d) for d in results]
+
+    def get_organization(self, name: str) -> Organization:
+        resp = self._client.get(f"/orgs/{quote(name, safe='')}")
+        return self._to_organization(resp.json())
+
+    def list_org_members(self, name: str, *, limit: int = 30) -> list[str]:
+        results = paginate_link_header(
+            self._client, f"/orgs/{quote(name, safe='')}/members", limit=limit
+        )
+        try:
+            return [r["login"] for r in results]
+        except (KeyError, TypeError) as e:
+            from gfo.exceptions import GfoError
+
+            raise GfoError(f"Unexpected API response: {e}") from e
+
+    def list_org_repos(self, name: str, *, limit: int = 30) -> list[Repository]:
+        results = paginate_link_header(
+            self._client, f"/orgs/{quote(name, safe='')}/repos", limit=limit
+        )
+        return [self._to_repository(r) for r in results]
+
+    @staticmethod
+    def _to_organization(data: dict) -> Organization:
+        try:
+            return Organization(
+                name=data["login"],
+                display_name=data.get("name") or data.get("login") or "",
+                description=data.get("description"),
+                url=data.get("html_url") or data.get("url") or "",
+            )
+        except (KeyError, TypeError) as e:
+            from gfo.exceptions import GfoError
+
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- SSH Key ---
 

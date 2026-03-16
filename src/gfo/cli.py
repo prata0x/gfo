@@ -18,6 +18,7 @@ import gfo.commands.init
 import gfo.commands.issue
 import gfo.commands.label
 import gfo.commands.milestone
+import gfo.commands.org
 import gfo.commands.pr
 import gfo.commands.release
 import gfo.commands.repo
@@ -363,6 +364,20 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     wiki_delete = wiki_sub.add_parser("delete")
     wiki_delete.add_argument("id")
 
+    # gfo org → サブサブコマンド
+    org_parser = subparser_map["org"] = subparsers.add_parser("org", help="所属組織を管理する")
+    org_sub = org_parser.add_subparsers(dest="subcommand")
+    org_list = org_sub.add_parser("list", help="所属組織の一覧")
+    org_list.add_argument("--limit", type=_positive_int, default=30)
+    org_view = org_sub.add_parser("view", help="組織の詳細")
+    org_view.add_argument("name", help="組織名")
+    org_members = org_sub.add_parser("members", help="メンバー一覧")
+    org_members.add_argument("name", help="組織名")
+    org_members.add_argument("--limit", type=_positive_int, default=30)
+    org_repos = org_sub.add_parser("repos", help="リポジトリ一覧")
+    org_repos.add_argument("name", help="組織名")
+    org_repos.add_argument("--limit", type=_positive_int, default=30)
+
     # gfo ssh-key → サブサブコマンド
     ssh_key_parser = subparser_map["ssh-key"] = subparsers.add_parser(
         "ssh-key", help="SSH 鍵を管理する"
@@ -458,6 +473,10 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("wiki", "create"): gfo.commands.wiki.handle_create,
     ("wiki", "update"): gfo.commands.wiki.handle_update,
     ("wiki", "delete"): gfo.commands.wiki.handle_delete,
+    ("org", "list"): gfo.commands.org.handle_list,
+    ("org", "view"): gfo.commands.org.handle_view,
+    ("org", "members"): gfo.commands.org.handle_members,
+    ("org", "repos"): gfo.commands.org.handle_repos,
     ("ssh-key", "list"): gfo.commands.ssh_key.handle_list,
     ("ssh-key", "create"): gfo.commands.ssh_key.handle_create,
     ("ssh-key", "delete"): gfo.commands.ssh_key.handle_delete,

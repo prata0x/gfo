@@ -18,6 +18,7 @@ from .base import (
     Issue,
     Label,
     Milestone,
+    Organization,
     Pipeline,
     PullRequest,
     Release,
@@ -961,6 +962,49 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             "displayName": user.get("providerDisplayName", ""),
             "login": user.get("providerDisplayName", ""),
         }
+
+    # --- Organization (Project) ---
+
+    def list_organizations(self, *, limit: int = 30) -> list[Organization]:
+        results = paginate_top_skip(
+            self._client,
+            "/_apis/projects",
+            limit=limit,
+            result_key="value",
+        )
+        return [self._to_organization(d) for d in results]
+
+    def get_organization(self, name: str) -> Organization:
+        resp = self._client.get(f"/_apis/projects/{quote(name, safe='')}")
+        return self._to_organization(resp.json())
+
+    def list_org_members(self, name: str, *, limit: int = 30) -> list[str]:
+        raise NotSupportedError(
+            self.service_name,
+            "org members (Azure DevOps uses teams for member management)",
+        )
+
+    def list_org_repos(self, name: str, *, limit: int = 30) -> list[Repository]:
+        results = paginate_top_skip(
+            self._client,
+            "/git/repositories",
+            limit=limit,
+            result_key="value",
+        )
+        filtered = [r for r in results if (r.get("project") or {}).get("name") == name]
+        return [self._to_repository(r, name) for r in filtered[: limit if limit > 0 else None]]
+
+    @staticmethod
+    def _to_organization(data: dict) -> Organization:
+        try:
+            return Organization(
+                name=data.get("name") or "",
+                display_name=data.get("name") or "",
+                description=data.get("description"),
+                url=data.get("url") or "",
+            )
+        except (KeyError, TypeError, AttributeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- Browse ---
 

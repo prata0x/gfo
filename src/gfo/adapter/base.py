@@ -160,6 +160,14 @@ class SshKey:
     created_at: str
 
 
+@dataclass(frozen=True, slots=True)
+class Organization:
+    name: str  # ログイン名 / グループパス / ワークスペーススラッグ
+    display_name: str  # 表示名（フルネーム）
+    description: str | None
+    url: str
+
+
 class GitHubLikeAdapter(ABC):
     """GitHub API 互換サービス（GitHub/Gitea 系）向け共通変換ヘルパー。
 
@@ -667,6 +675,20 @@ class GitServiceAdapter(ABC):
 
     def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
         raise NotSupportedError(self.service_name, "search issues")
+
+    # --- Organization ---
+    def list_organizations(self, *, limit: int = 30) -> list[Organization]:
+        raise NotSupportedError(self.service_name, "org list")
+
+    def get_organization(self, name: str) -> Organization:
+        raise NotSupportedError(self.service_name, "org view")
+
+    def list_org_members(self, name: str, *, limit: int = 30) -> list[str]:
+        """メンバーのユーザー名一覧を返す。"""
+        raise NotSupportedError(self.service_name, "org members")
+
+    def list_org_repos(self, name: str, *, limit: int = 30) -> list[Repository]:
+        raise NotSupportedError(self.service_name, "org repos")
 
     # --- SSH Key ---
     def list_ssh_keys(self, *, limit: int = 30) -> list[SshKey]:
