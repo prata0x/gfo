@@ -100,6 +100,13 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 | `gfo user` | `whoami` | Display authenticated user info |
 | `gfo search` | `repos`, `issues` | Search repositories / issues |
 | `gfo wiki` | `list`, `view`, `create`, `update`, `delete` | Wiki operations |
+| `gfo browse` | — | Open repository in browser |
+| `gfo branch-protect` | `list`, `view`, `set`, `remove` | Branch protection rule management |
+| `gfo notification` | `list`, `read` | Notification management |
+| `gfo org` | `list`, `view`, `members`, `repos` | Organization management |
+| `gfo ssh-key` | `list`, `create`, `delete` | SSH key management |
+| `gfo secret` | `list`, `set`, `delete` | CI/CD secret management |
+| `gfo variable` | `list`, `set`, `get`, `delete` | CI/CD variable management |
 
 See [docs/commands.md](docs/commands.md) for detailed options and examples for each command.
 
@@ -108,6 +115,7 @@ See [docs/commands.md](docs/commands.md) for detailed options and examples for e
 | Option | Description | Default |
 |---|---|---|
 | `--format {table,json,plain}` | Output format | `table` |
+| `--jq EXPRESSION` | Apply jq filter to JSON output (implicitly enables `--format json`) | — |
 | `--version` | Show version | — |
 
 ## Configuration
@@ -152,6 +160,13 @@ api_url = "https://gitlab.example.com/api/v4"
 | Wiki | × | ○ | × | × | × | ○ | ○ | × | × |
 | CI/CD | ○ | ○ | × | × | × | ○ | ○ | × | × |
 | Search | ○ | ○ | × | × | × | × | × | × | × |
+| Browse | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
+| Branch Protect | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
+| Notification | ○ | ○ | × | × | ○ | ○ | ○ | × | × |
+| Org | ○ | ○ | ○ | ○ | × | ○ | ○ | ○ | × |
+| SSH Key | ○ | ○ | ○ | × | × | ○ | ○ | ○ | × |
+| Secret | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
+| Variable | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
 
 > ×: Not supported (returns `NotSupportedError`)
 

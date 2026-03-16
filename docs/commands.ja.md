@@ -7,6 +7,7 @@
 | オプション | 説明 | デフォルト |
 |---|---|---|
 | `--format {table,json,plain}` | 出力形式 | `table` |
+| `--jq EXPRESSION` | JSON 出力に jq フィルタを適用（`--format json` を暗黙有効化） | — |
 | `--version` | バージョンを表示して終了 | — |
 
 ---
@@ -953,4 +954,281 @@ gfo wiki delete ID
 
 ```bash
 gfo wiki delete 1
+```
+
+---
+
+## gfo browse
+
+リポジトリ・PR・Issue の URL をデフォルトブラウザで開きます。API 呼び出しは発生しません。
+
+> **対応サービス**: 全サービス
+
+```
+gfo browse [--pr N | --issue N | --settings] [--print]
+```
+
+| オプション | 説明 |
+|---|---|
+| （なし） | リポジトリトップページを開く |
+| `--pr N` | PR #N のページを開く |
+| `--issue N` | Issue #N のページを開く |
+| `--settings` | リポジトリ設定ページを開く |
+| `--print` | ブラウザを開かず URL を標準出力に表示する |
+
+```bash
+gfo browse                     # リポジトリトップを開く
+gfo browse --pr 42             # PR #42 を開く
+gfo browse --issue 7           # Issue #7 を開く
+gfo browse --settings          # 設定ページを開く
+gfo browse --pr 42 --print     # URL を表示するだけ（ブラウザは開かない）
+```
+
+> Backlog は `--issue` / `--settings` 非対応（`NotSupportedError`）
+
+---
+
+## gfo branch-protect
+
+ブランチ保護ルールを管理します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Gitea, Forgejo
+
+### gfo branch-protect list
+
+```
+gfo branch-protect list [--limit N]
+```
+
+### gfo branch-protect view
+
+```
+gfo branch-protect view BRANCH
+```
+
+### gfo branch-protect set
+
+```
+gfo branch-protect set BRANCH [--require-reviews N] [--require-status-checks CHECK...] [--enforce-admins | --no-enforce-admins] [--allow-force-push | --no-allow-force-push] [--allow-deletions | --no-allow-deletions]
+```
+
+| オプション | 説明 |
+|---|---|
+| `--require-reviews N` | 必要なレビュー承認数（0 で無効） |
+| `--require-status-checks CHECK...` | 必須ステータスチェック名（複数指定可） |
+| `--enforce-admins` / `--no-enforce-admins` | 管理者にも保護を適用するか |
+| `--allow-force-push` / `--no-allow-force-push` | 強制プッシュを許可するか |
+| `--allow-deletions` / `--no-allow-deletions` | ブランチ削除を許可するか |
+
+```bash
+gfo branch-protect set main --require-reviews 2 --no-allow-force-push
+```
+
+### gfo branch-protect remove
+
+```
+gfo branch-protect remove BRANCH
+```
+
+```bash
+gfo branch-protect remove main
+```
+
+---
+
+## gfo notification
+
+インボックス通知を管理します。
+
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo, Backlog
+
+### gfo notification list
+
+```
+gfo notification list [--unread-only] [--limit N]
+```
+
+| オプション | デフォルト | 説明 |
+|---|---|---|
+| `--unread-only` | false | 未読のみ表示 |
+| `--limit N` | 30 | 取得件数の上限 |
+
+```bash
+gfo notification list --unread-only
+```
+
+### gfo notification read
+
+```
+gfo notification read [ID] [--all]
+```
+
+| 引数/オプション | 説明 |
+|---|---|
+| `ID` | 既読にする通知 ID |
+| `--all` | すべての通知を既読にする |
+
+```bash
+gfo notification read 12345      # 特定の通知を既読にする
+gfo notification read --all      # すべて既読にする
+```
+
+---
+
+## gfo org
+
+所属する組織（Organization / Group / Workspace）を管理します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo, Gogs
+
+### gfo org list
+
+```
+gfo org list [--limit N]
+```
+
+### gfo org view
+
+```
+gfo org view NAME
+```
+
+### gfo org members
+
+```
+gfo org members NAME [--limit N]
+```
+
+```bash
+gfo org members my-org
+```
+
+### gfo org repos
+
+```
+gfo org repos NAME [--limit N]
+```
+
+```bash
+gfo org repos my-org --limit 50
+```
+
+---
+
+## gfo ssh-key
+
+ユーザーアカウントの SSH 公開鍵を管理します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Gitea, Forgejo, Gogs
+
+### gfo ssh-key list
+
+```
+gfo ssh-key list [--limit N]
+```
+
+### gfo ssh-key create
+
+```
+gfo ssh-key create --title TITLE --key PUBLIC_KEY
+```
+
+```bash
+gfo ssh-key create --title "My Laptop" --key "ssh-ed25519 AAAA..."
+```
+
+### gfo ssh-key delete
+
+```
+gfo ssh-key delete ID
+```
+
+```bash
+gfo ssh-key delete 12345
+```
+
+---
+
+## gfo secret
+
+CI/CD シークレット（暗号化済み値、読み取り不可）を管理します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Gitea, Forgejo
+
+### gfo secret list
+
+```
+gfo secret list [--limit N]
+```
+
+### gfo secret set
+
+```
+gfo secret set NAME {--value VALUE | --env-var ENV_VAR | --file FILE}
+```
+
+| オプション | 説明 |
+|---|---|
+| `--value VALUE` | シークレット値（平文で渡す） |
+| `--env-var ENV_VAR` | 環境変数から値を取得する |
+| `--file FILE` | ファイルから値を取得する |
+
+```bash
+gfo secret set API_KEY --value "sk-xxxx"
+gfo secret set DB_PASSWORD --env-var MY_DB_PASS
+gfo secret set CERT --file ./cert.pem
+```
+
+> GitHub は PyNaCl による暗号化が必要です（`pip install PyNaCl`）。
+
+### gfo secret delete
+
+```
+gfo secret delete NAME
+```
+
+---
+
+## gfo variable
+
+CI/CD 変数（平文値、読み取り可）を管理します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Gitea, Forgejo
+
+### gfo variable list
+
+```
+gfo variable list [--limit N]
+```
+
+### gfo variable set
+
+```
+gfo variable set NAME --value VALUE [--masked]
+```
+
+| オプション | 説明 |
+|---|---|
+| `--value VALUE` | 変数の値（必須） |
+| `--masked` | GitLab の masked 変数として設定する（GitLab のみ有効） |
+
+```bash
+gfo variable set NODE_ENV --value "production"
+gfo variable set SECRET_KEY --value "abc" --masked   # GitLab のみ
+```
+
+### gfo variable get
+
+```
+gfo variable get NAME
+```
+
+```bash
+gfo variable get NODE_ENV
+```
+
+### gfo variable delete
+
+```
+gfo variable delete NAME
 ```

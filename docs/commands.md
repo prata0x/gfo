@@ -7,6 +7,7 @@ Available for all commands.
 | Option | Description | Default |
 |---|---|---|
 | `--format {table,json,plain}` | Output format | `table` |
+| `--jq EXPRESSION` | Apply jq filter to JSON output (implicitly enables `--format json`) | — |
 | `--version` | Show version and exit | — |
 
 ---
@@ -953,4 +954,281 @@ gfo wiki delete ID
 
 ```bash
 gfo wiki delete 1
+```
+
+---
+
+## gfo browse
+
+Open the repository, PR, or issue URL in the default browser. No API calls are made.
+
+> **Supported services**: All services
+
+```
+gfo browse [--pr N | --issue N | --settings] [--print]
+```
+
+| Option | Description |
+|---|---|
+| (none) | Open repository top page |
+| `--pr N` | Open PR #N page |
+| `--issue N` | Open Issue #N page |
+| `--settings` | Open repository settings page |
+| `--print` | Print URL to stdout instead of opening browser |
+
+```bash
+gfo browse                     # Open repository top page
+gfo browse --pr 42             # Open PR #42
+gfo browse --issue 7           # Open Issue #7
+gfo browse --settings          # Open settings page
+gfo browse --pr 42 --print     # Print URL only (don't open browser)
+```
+
+> Backlog does not support `--issue` / `--settings` (`NotSupportedError`)
+
+---
+
+## gfo branch-protect
+
+Manage branch protection rules.
+
+> **Supported services**: GitHub, GitLab, Bitbucket, Gitea, Forgejo
+
+### gfo branch-protect list
+
+```
+gfo branch-protect list [--limit N]
+```
+
+### gfo branch-protect view
+
+```
+gfo branch-protect view BRANCH
+```
+
+### gfo branch-protect set
+
+```
+gfo branch-protect set BRANCH [--require-reviews N] [--require-status-checks CHECK...] [--enforce-admins | --no-enforce-admins] [--allow-force-push | --no-allow-force-push] [--allow-deletions | --no-allow-deletions]
+```
+
+| Option | Description |
+|---|---|
+| `--require-reviews N` | Required number of review approvals (0 to disable) |
+| `--require-status-checks CHECK...` | Required status check names (multiple allowed) |
+| `--enforce-admins` / `--no-enforce-admins` | Enforce protection for admins |
+| `--allow-force-push` / `--no-allow-force-push` | Allow force push |
+| `--allow-deletions` / `--no-allow-deletions` | Allow branch deletion |
+
+```bash
+gfo branch-protect set main --require-reviews 2 --no-allow-force-push
+```
+
+### gfo branch-protect remove
+
+```
+gfo branch-protect remove BRANCH
+```
+
+```bash
+gfo branch-protect remove main
+```
+
+---
+
+## gfo notification
+
+Manage inbox notifications.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo, Backlog
+
+### gfo notification list
+
+```
+gfo notification list [--unread-only] [--limit N]
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--unread-only` | false | Show unread only |
+| `--limit N` | 30 | Maximum number of results |
+
+```bash
+gfo notification list --unread-only
+```
+
+### gfo notification read
+
+```
+gfo notification read [ID] [--all]
+```
+
+| Argument/Option | Description |
+|---|---|
+| `ID` | Notification ID to mark as read |
+| `--all` | Mark all notifications as read |
+
+```bash
+gfo notification read 12345      # Mark specific notification as read
+gfo notification read --all      # Mark all as read
+```
+
+---
+
+## gfo org
+
+Manage organizations (Organization / Group / Workspace).
+
+> **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo, Gogs
+
+### gfo org list
+
+```
+gfo org list [--limit N]
+```
+
+### gfo org view
+
+```
+gfo org view NAME
+```
+
+### gfo org members
+
+```
+gfo org members NAME [--limit N]
+```
+
+```bash
+gfo org members my-org
+```
+
+### gfo org repos
+
+```
+gfo org repos NAME [--limit N]
+```
+
+```bash
+gfo org repos my-org --limit 50
+```
+
+---
+
+## gfo ssh-key
+
+Manage user SSH public keys.
+
+> **Supported services**: GitHub, GitLab, Bitbucket, Gitea, Forgejo, Gogs
+
+### gfo ssh-key list
+
+```
+gfo ssh-key list [--limit N]
+```
+
+### gfo ssh-key create
+
+```
+gfo ssh-key create --title TITLE --key PUBLIC_KEY
+```
+
+```bash
+gfo ssh-key create --title "My Laptop" --key "ssh-ed25519 AAAA..."
+```
+
+### gfo ssh-key delete
+
+```
+gfo ssh-key delete ID
+```
+
+```bash
+gfo ssh-key delete 12345
+```
+
+---
+
+## gfo secret
+
+Manage CI/CD secrets (encrypted values, not readable).
+
+> **Supported services**: GitHub, GitLab, Bitbucket, Gitea, Forgejo
+
+### gfo secret list
+
+```
+gfo secret list [--limit N]
+```
+
+### gfo secret set
+
+```
+gfo secret set NAME {--value VALUE | --env-var ENV_VAR | --file FILE}
+```
+
+| Option | Description |
+|---|---|
+| `--value VALUE` | Secret value (passed in plaintext) |
+| `--env-var ENV_VAR` | Read value from environment variable |
+| `--file FILE` | Read value from file |
+
+```bash
+gfo secret set API_KEY --value "sk-xxxx"
+gfo secret set DB_PASSWORD --env-var MY_DB_PASS
+gfo secret set CERT --file ./cert.pem
+```
+
+> GitHub requires PyNaCl for encryption (`pip install PyNaCl`).
+
+### gfo secret delete
+
+```
+gfo secret delete NAME
+```
+
+---
+
+## gfo variable
+
+Manage CI/CD variables (plaintext values, readable).
+
+> **Supported services**: GitHub, GitLab, Bitbucket, Gitea, Forgejo
+
+### gfo variable list
+
+```
+gfo variable list [--limit N]
+```
+
+### gfo variable set
+
+```
+gfo variable set NAME --value VALUE [--masked]
+```
+
+| Option | Description |
+|---|---|
+| `--value VALUE` | Variable value (required) |
+| `--masked` | Set as masked variable (GitLab only) |
+
+```bash
+gfo variable set NODE_ENV --value "production"
+gfo variable set SECRET_KEY --value "abc" --masked   # GitLab only
+```
+
+### gfo variable get
+
+```
+gfo variable get NAME
+```
+
+```bash
+gfo variable get NODE_ENV
+```
+
+### gfo variable delete
+
+```
+gfo variable delete NAME
 ```

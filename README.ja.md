@@ -100,6 +100,13 @@ gfo auth status
 | `gfo user` | `whoami` | 認証ユーザー情報表示 |
 | `gfo search` | `repos`, `issues` | リポジトリ・Issue 検索 |
 | `gfo wiki` | `list`, `view`, `create`, `update`, `delete` | Wiki 操作 |
+| `gfo browse` | — | リポジトリをブラウザで開く |
+| `gfo branch-protect` | `list`, `view`, `set`, `remove` | ブランチ保護ルール管理 |
+| `gfo notification` | `list`, `read` | 通知管理 |
+| `gfo org` | `list`, `view`, `members`, `repos` | 組織管理 |
+| `gfo ssh-key` | `list`, `create`, `delete` | SSH 鍵管理 |
+| `gfo secret` | `list`, `set`, `delete` | CI/CD シークレット管理 |
+| `gfo variable` | `list`, `set`, `get`, `delete` | CI/CD 変数管理 |
 
 各コマンドの詳細なオプション・使用例は [docs/commands.ja.md](docs/commands.ja.md) を参照してください。
 
@@ -108,6 +115,7 @@ gfo auth status
 | オプション | 説明 | デフォルト |
 |---|---|---|
 | `--format {table,json,plain}` | 出力形式 | `table` |
+| `--jq EXPRESSION` | JSON 出力に jq フィルタを適用（`--format json` を暗黙有効化） | — |
 | `--version` | バージョン表示 | — |
 
 ## 設定
@@ -152,6 +160,13 @@ api_url = "https://gitlab.example.com/api/v4"
 | Wiki | × | ○ | × | × | × | ○ | ○ | × | × |
 | CI/CD | ○ | ○ | × | × | × | ○ | ○ | × | × |
 | Search | ○ | ○ | × | × | × | × | × | × | × |
+| Browse | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
+| Branch Protect | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
+| Notification | ○ | ○ | × | × | ○ | ○ | ○ | × | × |
+| Org | ○ | ○ | ○ | ○ | × | ○ | ○ | ○ | × |
+| SSH Key | ○ | ○ | ○ | × | × | ○ | ○ | ○ | × |
+| Secret | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
+| Variable | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
 
 > ×: 非対応（`NotSupportedError` を返します）
 
