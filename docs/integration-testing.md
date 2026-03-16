@@ -147,7 +147,7 @@ pytest tests/integration/test_github.py -v --no-cov
    - Secrets: **Read and write** (required for `secret` tests)
    - Variables: **Read and write** (required for `variable` tests)
 5. Account permissions:
-   - Git signing SSH public keys: **Read and write** (required for `ssh-key` tests)
+   - Git SSH keys: **Read and write** (required for `ssh-key` tests)
 6. Organization permissions (for org repositories):
    - Members: **Read** (required for `org members` tests)
 7. Generate token and copy

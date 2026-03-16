@@ -87,7 +87,7 @@ gfo auth status
    - Secrets: `Read and write` (if using `gfo secret`)
    - Variables: `Read and write` (if using `gfo variable`)
 7. Grant required permissions under **Account permissions**:
-   - Git signing SSH public keys: `Read and write` (if using `gfo ssh-key`)
+   - Git SSH keys: `Read and write` (if using `gfo ssh-key`)
 8. Grant required permissions under **Organization permissions** (for org repositories):
    - Members: `Read-only` (if using `gfo org members`)
 9. Click **Generate token** and copy it

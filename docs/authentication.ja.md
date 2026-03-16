@@ -87,7 +87,7 @@ gfo auth status
    - Secrets: `Read and write`（`gfo secret` を使う場合）
    - Variables: `Read and write`（`gfo variable` を使う場合）
 7. **Account permissions** で必要な権限を付与:
-   - Git signing SSH public keys: `Read and write`（`gfo ssh-key` を使う場合）
+   - Git SSH keys: `Read and write`（`gfo ssh-key` を使う場合）
 8. **Organization permissions** で必要な権限を付与（組織リポジトリの場合）:
    - Members: `Read-only`（`gfo org members` を使う場合）
 9. **Generate token** をクリックしてトークンをコピー
