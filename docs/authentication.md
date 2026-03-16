@@ -83,7 +83,16 @@ gfo auth status
    - Metadata: `Read-only` (granted automatically)
    - Commit statuses: `Read and write` (if using `gfo status`)
    - Webhooks: `Read and write` (if using `gfo webhook`)
-7. Click **Generate token** and copy it
+   - Administration: `Read and write` (if using `gfo branch-protect`)
+   - Secrets: `Read and write` (if using `gfo secret`)
+   - Variables: `Read and write` (if using `gfo variable`)
+7. Grant required permissions under **Account permissions**:
+   - Git signing SSH public keys: `Read and write` (if using `gfo ssh-key`)
+8. Grant required permissions under **Organization permissions** (for org repositories):
+   - Members: `Read-only` (if using `gfo org members`)
+9. Click **Generate token** and copy it
+
+> **Note**: `gfo notification` is not supported with Fine-grained Tokens. Use a Classic Token with the `notifications` scope.
 
 ```bash
 gfo auth login --host github.com
@@ -92,7 +101,7 @@ gfo auth login --host github.com
 
 **Classic Personal Access Token**
 
-- Scope: `repo` (full access)
+- Scopes: `repo` (full access), `notifications` (for `gfo notification`), `admin:public_key` (for `gfo ssh-key`), `read:org` (for `gfo org`)
 - Generate from Settings → Developer settings → Personal access tokens → Tokens (classic)
 
 ---
@@ -131,8 +140,12 @@ gfo auth login --host gitlab.example.com
 3. Set Token label
 4. Grant required permissions:
    - **Repositories**: `Read` / `Write`
+   - **Repositories**: `Admin` (if using `gfo branch-protect`)
    - **Pull requests**: `Read` / `Write` (note: `write` does not include `read`, so both are required)
    - **Issues**: `Read` / `Write` (if using Issue Tracker)
+   - **Pipelines**: `Read` / `Write` (if using `gfo secret` / `gfo variable`)
+   - **Account**: `Read` / `Write` (if using `gfo ssh-key`)
+   - **Workspace membership**: `Read` (if using `gfo org`)
 5. Click **Create** and copy the token
 
 **Token format**: Set as `email:token` separated by a colon.

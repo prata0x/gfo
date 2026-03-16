@@ -83,7 +83,16 @@ gfo auth status
    - Metadata: `Read-only`（自動付与）
    - Commit statuses: `Read and write`（`gfo status` を使う場合）
    - Webhooks: `Read and write`（`gfo webhook` を使う場合）
-7. **Generate token** をクリックしてトークンをコピー
+   - Administration: `Read and write`（`gfo branch-protect` を使う場合）
+   - Secrets: `Read and write`（`gfo secret` を使う場合）
+   - Variables: `Read and write`（`gfo variable` を使う場合）
+7. **Account permissions** で必要な権限を付与:
+   - Git signing SSH public keys: `Read and write`（`gfo ssh-key` を使う場合）
+8. **Organization permissions** で必要な権限を付与（組織リポジトリの場合）:
+   - Members: `Read-only`（`gfo org members` を使う場合）
+9. **Generate token** をクリックしてトークンをコピー
+
+> **注意**: `gfo notification` は Fine-grained Token では使用できません。Classic Token の `notifications` スコープが必要です。
 
 ```bash
 gfo auth login --host github.com
@@ -92,7 +101,7 @@ gfo auth login --host github.com
 
 **Classic Personal Access Token**
 
-- スコープ: `repo`（フルアクセス）
+- スコープ: `repo`（フルアクセス）、`notifications`（`gfo notification` 用）、`admin:public_key`（`gfo ssh-key` 用）、`read:org`（`gfo org` 用）
 - Settings → Developer settings → Personal access tokens → Tokens (classic) から発行
 
 ---
@@ -131,8 +140,12 @@ gfo auth login --host gitlab.example.com
 3. Token label を設定
 4. 必要な権限を付与:
    - **Repositories**: `Read` / `Write`
+   - **Repositories**: `Admin`（`gfo branch-protect` を使う場合）
    - **Pull requests**: `Read` / `Write`（注: `write` は `read` を含まないので両方必要）
    - **Issues**: `Read` / `Write`（Issue Tracker 使用時）
+   - **Pipelines**: `Read` / `Write`（`gfo secret` / `gfo variable` を使う場合）
+   - **Account**: `Read` / `Write`（`gfo ssh-key` を使う場合）
+   - **Workspace membership**: `Read`（`gfo org` を使う場合）
 5. **Create** をクリックしてトークンをコピー
 
 **トークン形式**: `メールアドレス:トークン` のコロン区切りで設定します。
