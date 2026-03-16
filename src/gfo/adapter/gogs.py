@@ -271,7 +271,16 @@ class GogsAdapter(GiteaAdapter):
     def get_branch_protection(self, branch: str) -> BranchProtection:
         raise NotSupportedError("Gogs", "branch-protect operations")
 
-    def set_branch_protection(self, branch: str, **kwargs) -> BranchProtection:
+    def set_branch_protection(
+        self,
+        branch: str,
+        *,
+        require_reviews: int | None = None,
+        require_status_checks: list[str] | None = None,
+        enforce_admins: bool | None = None,
+        allow_force_push: bool | None = None,
+        allow_deletions: bool | None = None,
+    ) -> BranchProtection:
         raise NotSupportedError("Gogs", "branch-protect operations")
 
     def remove_branch_protection(self, branch: str) -> None:

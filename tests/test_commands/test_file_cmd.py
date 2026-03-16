@@ -2,45 +2,31 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+import json
+from unittest.mock import patch
 
 import pytest
 
 from gfo.commands import file as file_cmd
 from gfo.exceptions import NetworkError, NotFoundError
-from tests.test_commands.conftest import make_args
-
-
-def _patch(adapter):
-    import contextlib
-
-    @contextlib.contextmanager
-    def _ctx():
-        with patch("gfo.commands.file.get_adapter", return_value=adapter):
-            yield
-
-    return _ctx()
+from tests.test_commands.conftest import make_args, patch_adapter
 
 
 class TestHandleGet:
     def test_calls_get_file_content(self, capsys):
-        adapter = MagicMock()
-        adapter.get_file_content.return_value = ("file content", "abc123sha")
-        args = make_args(path="README.md", ref=None)
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.file") as adapter:
+            adapter.get_file_content.return_value = ("file content", "abc123sha")
+            args = make_args(path="README.md", ref=None)
             file_cmd.handle_get(args, fmt="table")
         adapter.get_file_content.assert_called_once_with("README.md", ref=None)
         out = capsys.readouterr().out
         assert "file content" in out
 
     def test_json_format(self, capsys):
-        adapter = MagicMock()
-        adapter.get_file_content.return_value = ("content", "sha123")
-        args = make_args(path="file.txt", ref="main")
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.file") as adapter:
+            adapter.get_file_content.return_value = ("content", "sha123")
+            args = make_args(path="file.txt", ref="main")
             file_cmd.handle_get(args, fmt="json")
-        import json
-
         out = capsys.readouterr().out
         data = json.loads(out)
         assert data["content"] == "content"
@@ -49,11 +35,10 @@ class TestHandleGet:
 
 class TestHandlePut:
     def test_creates_new_file(self):
-        adapter = MagicMock()
-        # get_file_content が失敗する場合（新規ファイル）→ sha=None
-        adapter.get_file_content.side_effect = NotFoundError()
-        args = make_args(path="new.txt", message="Add file", branch=None)
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.file") as adapter:
+            # get_file_content が失敗する場合（新規ファイル）→ sha=None
+            adapter.get_file_content.side_effect = NotFoundError()
+            args = make_args(path="new.txt", message="Add file", branch=None)
             with patch("gfo.commands.file.sys.stdin") as mock_stdin:
                 mock_stdin.read.return_value = "hello"
                 file_cmd.handle_put(args, fmt="table")
@@ -63,10 +48,9 @@ class TestHandlePut:
 
     def test_updates_existing_file_with_sha(self):
         """既存ファイル更新時に get_file_content で取得した SHA が渡される。"""
-        adapter = MagicMock()
-        adapter.get_file_content.return_value = ("old content", "abc123")
-        args = make_args(path="existing.txt", message="Update file", branch=None)
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.file") as adapter:
+            adapter.get_file_content.return_value = ("old content", "abc123")
+            args = make_args(path="existing.txt", message="Update file", branch=None)
             with patch("gfo.commands.file.sys.stdin") as mock_stdin:
                 mock_stdin.read.return_value = "new content"
                 file_cmd.handle_put(args, fmt="table")
@@ -76,10 +60,9 @@ class TestHandlePut:
 
     def test_non_not_found_error_propagates(self):
         """NotFoundError 以外の例外（ネットワークエラー等）はそのまま伝播する。"""
-        adapter = MagicMock()
-        adapter.get_file_content.side_effect = NetworkError("connection failed")
-        args = make_args(path="secret.txt", message="Update", branch=None)
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.file") as adapter:
+            adapter.get_file_content.side_effect = NetworkError("connection failed")
+            args = make_args(path="secret.txt", message="Update", branch=None)
             with patch("gfo.commands.file.sys.stdin") as mock_stdin:
                 mock_stdin.read.return_value = "data"
                 with pytest.raises(NetworkError):
@@ -88,10 +71,9 @@ class TestHandlePut:
 
 class TestHandleDelete:
     def test_calls_delete_file(self):
-        adapter = MagicMock()
-        adapter.get_file_content.return_value = ("content", "deadbeef")
-        args = make_args(path="old.txt", message="Remove file", branch=None)
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.file") as adapter:
+            adapter.get_file_content.return_value = ("content", "deadbeef")
+            args = make_args(path="old.txt", message="Remove file", branch=None)
             file_cmd.handle_delete(args, fmt="table")
         adapter.delete_file.assert_called_once_with(
             "old.txt", sha="deadbeef", message="Remove file", branch=None

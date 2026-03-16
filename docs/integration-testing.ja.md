@@ -323,11 +323,18 @@ cp tests/integration/.env.example tests/integration/.env
 | release | o | o | skip | skip | o | o | o | o | skip |
 | browse | o | o | o | o | o | o | o | o | o |
 | branch-protect | o | o | o | skip | o | o | skip | skip | skip |
-| notification | o | o | skip | skip | o | o | skip | skip | o |
-| org | o | o | o | o | o | o | o | skip | skip |
+| notification | △ | △ | skip | skip | o | o | skip | skip | o |
+| org | o | o | o | △ | o | o | △ | skip | skip |
 | ssh-key | o | o | o | skip | o | o | o | skip | skip |
 | secret | o | o | o | skip | o | o | skip | skip | skip |
 | variable | o | o | o | skip | o | o | skip | skip | skip |
+
+> **凡例**: o = 完全カバー、△ = 部分カバー、skip = サービス非対応
+>
+> **部分カバーの詳細**:
+> - GitHub/GitLab notification: list のみ（既読テストが不完全）
+> - Azure DevOps org: list/view のみ（members 非対応）
+> - Gogs org: list のみ
 
 ---
 

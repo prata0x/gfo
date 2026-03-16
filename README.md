@@ -169,6 +169,10 @@ api_url = "https://gitlab.example.com/api/v4"
 | Variable | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
 
 > ×: Not supported (returns `NotSupportedError`)
+>
+> **Footnotes**:
+> - Branch Protect (Bitbucket): Only force-push and deletion control; review requirements, status checks, and admin enforcement are not supported.
+> - Org (Azure DevOps): `list`, `view`, `repos` only; `members` is not supported (use Teams for member management).
 
 ## Development
 

@@ -795,10 +795,17 @@ class BitbucketAdapter(GitServiceAdapter):
         return [Secret(name=d["key"], created_at="", updated_at="") for d in secured]
 
     def set_secret(self, name: str, value: str) -> Secret:
-        resp = self._client.post(
-            f"{self._repos_path()}/pipelines_config/variables/",
-            json={"key": name, "value": value, "secured": True},
-        )
+        try:
+            uuid = self._find_pipeline_variable_uuid(name)
+            resp = self._client.put(
+                f"{self._repos_path()}/pipelines_config/variables/{uuid}",
+                json={"key": name, "value": value, "secured": True},
+            )
+        except NotFoundError:
+            resp = self._client.post(
+                f"{self._repos_path()}/pipelines_config/variables/",
+                json={"key": name, "value": value, "secured": True},
+            )
         data = resp.json()
         return Secret(name=data.get("key", name), created_at="", updated_at="")
 
@@ -811,7 +818,7 @@ class BitbucketAdapter(GitServiceAdapter):
         results = paginate_response_body(
             self._client,
             f"{self._repos_path()}/pipelines_config/variables/",
-            limit=100,
+            limit=0,
         )
         for d in results:
             if d.get("key") == name:
@@ -833,10 +840,17 @@ class BitbucketAdapter(GitServiceAdapter):
         ]
 
     def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
-        resp = self._client.post(
-            f"{self._repos_path()}/pipelines_config/variables/",
-            json={"key": name, "value": value, "secured": False},
-        )
+        try:
+            uuid = self._find_pipeline_variable_uuid(name)
+            resp = self._client.put(
+                f"{self._repos_path()}/pipelines_config/variables/{uuid}",
+                json={"key": name, "value": value, "secured": False},
+            )
+        except NotFoundError:
+            resp = self._client.post(
+                f"{self._repos_path()}/pipelines_config/variables/",
+                json={"key": name, "value": value, "secured": False},
+            )
         data = resp.json()
         return Variable(
             name=data.get("key", name), value=data.get("value", value), created_at="", updated_at=""
@@ -889,7 +903,6 @@ class BitbucketAdapter(GitServiceAdapter):
         results = paginate_response_body(
             self._client,
             f"{self._repos_path()}/branch-restrictions",
-            params={"kind": "push"},
             limit=0,
         )
         force_push = False

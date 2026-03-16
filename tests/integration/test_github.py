@@ -47,6 +47,7 @@ class TestGitHubIntegration:
         except Exception:
             pass
         try:
+            # TODO: _client, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
             # リリース削除では git タグが残るため個別削除
             cls.adapter._client.delete(f"{cls.adapter._repos_path()}/git/refs/tags/v0.0.1-test")
         except Exception:
@@ -187,6 +188,7 @@ class TestGitHubIntegration:
 
         from gfo.exceptions import GfoError
 
+        # TODO: _repos_path(), _client はプライベートメンバーへの依存。公開 API への移行を検討。
         # 前回マージ済みの場合はブランチに差分がないため、テストファイルを更新してコミットを追加する
         content = base64.b64encode(f"test run {time.time()}".encode()).decode()
         marker_path = f"{self.adapter._repos_path()}/contents/test-pr-marker.txt"
@@ -260,6 +262,7 @@ class TestGitHubIntegration:
         import base64
         import time
 
+        # TODO: _repos_path(), _client はプライベートメンバーへの依存。公開 API への移行を検討。
         content = base64.b64encode(f"close-test {time.time()}".encode()).decode()
         marker_path = f"{self.adapter._repos_path()}/contents/test-close-marker.txt"
         payload: dict = {
@@ -371,6 +374,7 @@ class TestGitHubIntegration:
         import base64
         import time
 
+        # TODO: _repos_path(), _client はプライベートメンバーへの依存。公開 API への移行を検討。
         content = base64.b64encode(f"update-pr-{time.time()}".encode()).decode()
         marker_path = f"{self.adapter._repos_path()}/contents/test-update-pr-marker.txt"
         payload: dict = {
@@ -462,6 +466,9 @@ class TestGitHubIntegration:
         reviews = self.adapter.list_reviews(self._update_pr_number)
         assert len(reviews) > 0
 
+    # test_31 は欠番: 全サービス共通で test_30 (review) と test_32 (list_branches) の間に
+    # 予約されていた番号だが、該当する機能テストが不要になったためスキップされている。
+
     # --- list_branches ---
 
     def test_32_list_branches(self) -> None:
@@ -492,6 +499,7 @@ class TestGitHubIntegration:
 
     def test_35_create_tag(self) -> None:
         """タグを作成するテスト。"""
+        # TODO: _client, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         branch_resp = self.adapter._client.get(
             f"{self.adapter._repos_path()}/branches/{self.config.default_branch}"
         )
@@ -523,6 +531,7 @@ class TestGitHubIntegration:
 
     def test_38_create_commit_status(self) -> None:
         """コミットステータスを作成するテスト。"""
+        # TODO: _client, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         branch_resp = self.adapter._client.get(
             f"{self.adapter._repos_path()}/branches/{self.config.default_branch}"
         )
@@ -706,6 +715,30 @@ class TestGitHubIntegration:
         orgs = self.adapter.list_organizations()
         assert isinstance(orgs, list)
 
+    def test_47b_org_get(self) -> None:
+        """Organization 詳細取得テスト。"""
+        orgs = self.adapter.list_organizations(limit=1)
+        if not orgs:
+            pytest.skip("No organizations available for testing")
+        org = self.adapter.get_organization(orgs[0].name)
+        assert org.name == orgs[0].name
+
+    def test_47c_org_members(self) -> None:
+        """Organization メンバー一覧テスト。"""
+        orgs = self.adapter.list_organizations(limit=1)
+        if not orgs:
+            pytest.skip("No organizations available for testing")
+        members = self.adapter.list_org_members(orgs[0].name)
+        assert isinstance(members, list)
+
+    def test_47d_org_repos(self) -> None:
+        """Organization のリポジトリ一覧テスト。"""
+        orgs = self.adapter.list_organizations(limit=1)
+        if not orgs:
+            pytest.skip("No organizations available for testing")
+        repos = self.adapter.list_repositories(owner=orgs[0].name, limit=5)
+        assert isinstance(repos, list)
+
     # --- notification ---
 
     def test_48_notification_list(self) -> None:
@@ -713,6 +746,14 @@ class TestGitHubIntegration:
         try:
             notifications = self.adapter.list_notifications(limit=5)
             assert isinstance(notifications, list)
+        except Exception:
+            pytest.skip("Notification API requires classic token with notifications scope")
+
+    def test_48b_notification_mark_read(self) -> None:
+        """通知の既読マークテスト。通知がない場合は mark_all_notifications_read のみ確認。"""
+        try:
+            # mark_all_notifications_read は通知がなくても成功する
+            self.adapter.mark_all_notifications_read()
         except Exception:
             pytest.skip("Notification API requires classic token with notifications scope")
 

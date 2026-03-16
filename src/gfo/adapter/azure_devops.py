@@ -1040,20 +1040,28 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         results = paginate_top_skip(
             self._client,
             "/git/repositories",
-            limit=limit,
+            limit=0,
             result_key="value",
         )
         filtered = [r for r in results if (r.get("project") or {}).get("name") == name]
         return [self._to_repository(r, name) for r in filtered[: limit if limit > 0 else None]]
 
-    @staticmethod
-    def _to_organization(data: dict) -> Organization:
+    def _to_organization(self, data: dict) -> Organization:
         try:
+            name = data.get("name") or ""
+            # _links.web.href を優先し、なければ dev.azure.com URL を構築
+            web_url = ""
+            links = data.get("_links") or {}
+            web = links.get("web") or {}
+            if web.get("href"):
+                web_url = web["href"]
+            elif name:
+                web_url = f"https://dev.azure.com/{self._org}/{name}"
             return Organization(
-                name=data.get("name") or "",
-                display_name=data.get("name") or "",
+                name=name,
+                display_name=name,
                 description=data.get("description"),
-                url=data.get("url") or "",
+                url=web_url,
             )
         except (KeyError, TypeError, AttributeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e

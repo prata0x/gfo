@@ -289,6 +289,207 @@ def test_parser_format_option():
     assert args.format == "json"
 
 
+# ── browse パーサーのテスト ──
+
+
+def test_parser_browse_defaults():
+    parser, _ = create_parser()
+    args = parser.parse_args(["browse"])
+    assert args.command == "browse"
+    assert args.pr is None
+    assert args.issue is None
+    assert args.settings is False
+    assert getattr(args, "print") is False
+
+
+def test_parser_browse_pr():
+    parser, _ = create_parser()
+    args = parser.parse_args(["browse", "--pr", "42"])
+    assert args.pr == 42
+    assert args.issue is None
+
+
+def test_parser_browse_issue():
+    parser, _ = create_parser()
+    args = parser.parse_args(["browse", "--issue", "7"])
+    assert args.issue == 7
+    assert args.pr is None
+
+
+def test_parser_browse_settings():
+    parser, _ = create_parser()
+    args = parser.parse_args(["browse", "--settings"])
+    assert args.settings is True
+
+
+def test_parser_browse_print():
+    parser, _ = create_parser()
+    args = parser.parse_args(["browse", "--print"])
+    assert getattr(args, "print") is True
+
+
+def test_parser_browse_mutually_exclusive():
+    """--pr と --issue は同時指定できない。"""
+    parser, _ = create_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args(["browse", "--pr", "1", "--issue", "2"])
+
+
+# ── ssh-key パーサーのテスト ──
+
+
+def test_parser_ssh_key_list():
+    parser, _ = create_parser()
+    args = parser.parse_args(["ssh-key", "list"])
+    assert args.command == "ssh-key"
+    assert args.subcommand == "list"
+    assert args.limit == 30
+
+
+def test_parser_ssh_key_create():
+    parser, _ = create_parser()
+    args = parser.parse_args(["ssh-key", "create", "--title", "my-key", "--key", "ssh-rsa AAAA"])
+    assert args.subcommand == "create"
+    assert args.title == "my-key"
+    assert args.key == "ssh-rsa AAAA"
+
+
+def test_parser_ssh_key_delete():
+    parser, _ = create_parser()
+    args = parser.parse_args(["ssh-key", "delete", "123"])
+    assert args.subcommand == "delete"
+    assert args.id == "123"
+
+
+# ── branch-protect パーサーのテスト ──
+
+
+def test_parser_branch_protect_list():
+    parser, _ = create_parser()
+    args = parser.parse_args(["branch-protect", "list"])
+    assert args.command == "branch-protect"
+    assert args.subcommand == "list"
+    assert args.limit == 30
+
+
+def test_parser_branch_protect_view():
+    parser, _ = create_parser()
+    args = parser.parse_args(["branch-protect", "view", "main"])
+    assert args.subcommand == "view"
+    assert args.branch == "main"
+
+
+def test_parser_branch_protect_set():
+    parser, _ = create_parser()
+    args = parser.parse_args(
+        [
+            "branch-protect",
+            "set",
+            "main",
+            "--require-reviews",
+            "2",
+            "--enforce-admins",
+            "--allow-force-push",
+        ]
+    )
+    assert args.subcommand == "set"
+    assert args.branch == "main"
+    assert args.require_reviews == 2
+    assert args.enforce_admins is True
+    assert args.allow_force_push is True
+
+
+def test_parser_branch_protect_set_negations():
+    parser, _ = create_parser()
+    args = parser.parse_args(
+        [
+            "branch-protect",
+            "set",
+            "main",
+            "--no-enforce-admins",
+            "--no-allow-force-push",
+            "--no-allow-deletions",
+        ]
+    )
+    assert args.enforce_admins is False
+    assert args.allow_force_push is False
+    assert args.allow_deletions is False
+
+
+def test_parser_branch_protect_remove():
+    parser, _ = create_parser()
+    args = parser.parse_args(["branch-protect", "remove", "main"])
+    assert args.subcommand == "remove"
+    assert args.branch == "main"
+
+
+# ── notification パーサーのテスト ──
+
+
+def test_parser_notification_list():
+    parser, _ = create_parser()
+    args = parser.parse_args(["notification", "list"])
+    assert args.command == "notification"
+    assert args.subcommand == "list"
+    assert args.unread_only is False
+    assert args.limit == 30
+
+
+def test_parser_notification_list_unread_only():
+    parser, _ = create_parser()
+    args = parser.parse_args(["notification", "list", "--unread-only"])
+    assert args.unread_only is True
+
+
+def test_parser_notification_read_by_id():
+    parser, _ = create_parser()
+    args = parser.parse_args(["notification", "read", "42"])
+    assert args.subcommand == "read"
+    assert args.id == "42"
+    assert args.mark_all is False
+
+
+def test_parser_notification_read_all():
+    parser, _ = create_parser()
+    args = parser.parse_args(["notification", "read", "--all"])
+    assert args.subcommand == "read"
+    assert args.id is None
+    assert args.mark_all is True
+
+
+# ── org パーサーのテスト ──
+
+
+def test_parser_org_list():
+    parser, _ = create_parser()
+    args = parser.parse_args(["org", "list"])
+    assert args.command == "org"
+    assert args.subcommand == "list"
+    assert args.limit == 30
+
+
+def test_parser_org_view():
+    parser, _ = create_parser()
+    args = parser.parse_args(["org", "view", "my-org"])
+    assert args.subcommand == "view"
+    assert args.name == "my-org"
+
+
+def test_parser_org_members():
+    parser, _ = create_parser()
+    args = parser.parse_args(["org", "members", "my-org", "--limit", "10"])
+    assert args.subcommand == "members"
+    assert args.name == "my-org"
+    assert args.limit == 10
+
+
+def test_parser_org_repos():
+    parser, _ = create_parser()
+    args = parser.parse_args(["org", "repos", "my-org"])
+    assert args.subcommand == "repos"
+    assert args.name == "my-org"
+
+
 # ── _DISPATCH テーブルのテスト ──
 
 

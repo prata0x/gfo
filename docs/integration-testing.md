@@ -323,11 +323,18 @@ cp tests/integration/.env.example tests/integration/.env
 | release | o | o | skip | skip | o | o | o | o | skip |
 | browse | o | o | o | o | o | o | o | o | o |
 | branch-protect | o | o | o | skip | o | o | skip | skip | skip |
-| notification | o | o | skip | skip | o | o | skip | skip | o |
-| org | o | o | o | o | o | o | o | skip | skip |
+| notification | △ | △ | skip | skip | o | o | skip | skip | o |
+| org | o | o | o | △ | o | o | △ | skip | skip |
 | ssh-key | o | o | o | skip | o | o | o | skip | skip |
 | secret | o | o | o | skip | o | o | skip | skip | skip |
 | variable | o | o | o | skip | o | o | skip | skip | skip |
+
+> **Legend**: o = full coverage, △ = partial coverage, skip = not supported by the service
+>
+> **Partial coverage details**:
+> - GitHub/GitLab notification: list only (mark-as-read tests incomplete)
+> - Azure DevOps org: list/view only (members not supported)
+> - Gogs org: list only
 
 ---
 

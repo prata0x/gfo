@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -41,3 +43,18 @@ def sample_pr():
 def make_args(**kwargs) -> argparse.Namespace:
     """argparse.Namespace を簡単に生成するヘルパー。"""
     return argparse.Namespace(**kwargs)
+
+
+@contextlib.contextmanager
+def patch_adapter(module_path: str):
+    """get_adapter をモックに差し替える共通コンテキストマネージャ。
+
+    Usage::
+
+        with patch_adapter("gfo.commands.org") as adapter:
+            adapter.list_organizations.return_value = [...]
+            org_cmd.handle_list(args, fmt="table")
+    """
+    adapter = MagicMock()
+    with patch(f"{module_path}.get_adapter", return_value=adapter):
+        yield adapter

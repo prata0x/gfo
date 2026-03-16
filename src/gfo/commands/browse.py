@@ -1,19 +1,22 @@
 """gfo browse サブコマンドのハンドラ。"""
 
+from __future__ import annotations
+
+import argparse
 import webbrowser
 
 from gfo.commands import get_adapter
 
 
-def handle_browse(args, *, fmt: str, jq: str | None = None) -> None:
+def handle_browse(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     adapter = get_adapter()
     resource = "repo"
     number = None
-    if getattr(args, "pr", None) is not None:
+    if args.pr is not None:
         resource, number = "pr", args.pr
-    elif getattr(args, "issue", None) is not None:
+    elif args.issue is not None:
         resource, number = "issue", args.issue
-    elif getattr(args, "settings", False):
+    elif args.settings:
         resource = "settings"
 
     url = adapter.get_web_url(resource, number)

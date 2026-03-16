@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+import json
 
 import pytest
 
 from gfo.adapter.base import Notification
 from gfo.commands import notification as notif_cmd
-from gfo.exceptions import GfoError
-from tests.test_commands.conftest import make_args
+from gfo.exceptions import GfoError, HttpError
+from tests.test_commands.conftest import make_args, patch_adapter
 
 SAMPLE_NOTIF = Notification(
     id="1",
@@ -22,60 +22,69 @@ SAMPLE_NOTIF = Notification(
 )
 
 
-def _patch(adapter):
-    import contextlib
-
-    @contextlib.contextmanager
-    def _ctx():
-        with patch("gfo.commands.notification.get_adapter", return_value=adapter):
-            yield
-
-    return _ctx()
-
-
 class TestHandleList:
     def test_calls_list_notifications(self, capsys):
-        adapter = MagicMock()
-        adapter.list_notifications.return_value = [SAMPLE_NOTIF]
-        args = make_args(unread_only=False, limit=30)
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.notification") as adapter:
+            adapter.list_notifications.return_value = [SAMPLE_NOTIF]
+            args = make_args(unread_only=False, limit=30)
             notif_cmd.handle_list(args, fmt="table")
         adapter.list_notifications.assert_called_once_with(unread_only=False, limit=30)
         out = capsys.readouterr().out
         assert "Fix bug" in out
 
     def test_unread_only(self, capsys):
-        adapter = MagicMock()
-        adapter.list_notifications.return_value = []
-        args = make_args(unread_only=True, limit=30)
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.notification") as adapter:
+            adapter.list_notifications.return_value = []
+            args = make_args(unread_only=True, limit=30)
             notif_cmd.handle_list(args, fmt="table")
         adapter.list_notifications.assert_called_once_with(unread_only=True, limit=30)
+
+    def test_json_format(self, capsys):
+        with patch_adapter("gfo.commands.notification") as adapter:
+            adapter.list_notifications.return_value = [SAMPLE_NOTIF]
+            args = make_args(unread_only=False, limit=30)
+            notif_cmd.handle_list(args, fmt="json")
+        out = capsys.readouterr().out
+        parsed = json.loads(out)
+        assert isinstance(parsed, list)
+        assert parsed[0]["title"] == "Fix bug"
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.notification") as adapter:
+            adapter.list_notifications.side_effect = HttpError(500, "Server error")
+            args = make_args(unread_only=False, limit=30)
+            with pytest.raises(HttpError):
+                notif_cmd.handle_list(args, fmt="table")
 
 
 class TestHandleRead:
     def test_read_single(self):
-        adapter = MagicMock()
-        args = make_args(id="1", **{"all": False})
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.notification") as adapter:
+            args = make_args(id="1", mark_all=False)
             notif_cmd.handle_read(args, fmt="table")
         adapter.mark_notification_read.assert_called_once_with("1")
 
     def test_read_all(self):
-        adapter = MagicMock()
-        args = make_args(id=None, **{"all": True})
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.notification") as adapter:
+            args = make_args(id=None, mark_all=True)
             notif_cmd.handle_read(args, fmt="table")
         adapter.mark_all_notifications_read.assert_called_once()
 
     def test_error_both_id_and_all(self):
-        adapter = MagicMock()
-        args = make_args(id="1", **{"all": True})
-        with _patch(adapter), pytest.raises(GfoError, match="Cannot specify both"):
-            notif_cmd.handle_read(args, fmt="table")
+        with patch_adapter("gfo.commands.notification"):
+            args = make_args(id="1", mark_all=True)
+            with pytest.raises(GfoError, match="Cannot specify both"):
+                notif_cmd.handle_read(args, fmt="table")
 
     def test_error_neither_id_nor_all(self):
-        adapter = MagicMock()
-        args = make_args(id=None, **{"all": False})
-        with _patch(adapter), pytest.raises(GfoError, match="Specify a notification"):
-            notif_cmd.handle_read(args, fmt="table")
+        with patch_adapter("gfo.commands.notification"):
+            args = make_args(id=None, mark_all=False)
+            with pytest.raises(GfoError, match="Specify a notification"):
+                notif_cmd.handle_read(args, fmt="table")
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.notification") as adapter:
+            adapter.mark_notification_read.side_effect = HttpError(404, "Not found")
+            args = make_args(id="999", mark_all=False)
+            with pytest.raises(HttpError):
+                notif_cmd.handle_read(args, fmt="table")

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 
 from gfo.commands import get_adapter
 from gfo.exceptions import NotFoundError
+from gfo.output import apply_jq_filter
 
 
 def handle_get(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -14,9 +16,13 @@ def handle_get(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
     adapter = get_adapter()
     content, sha = adapter.get_file_content(args.path, ref=args.ref)
     if fmt == "json":
-        import json
-
-        print(json.dumps({"path": args.path, "content": content, "sha": sha}, ensure_ascii=False))
+        json_str = json.dumps(
+            {"path": args.path, "content": content, "sha": sha}, ensure_ascii=False
+        )
+        if jq is not None:
+            print(apply_jq_filter(json_str, jq))
+        else:
+            print(json_str)
     else:
         print(content)
 

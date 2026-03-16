@@ -6,7 +6,7 @@ import argparse
 import json
 
 from gfo.commands import get_adapter
-from gfo.output import output
+from gfo.output import apply_jq_filter, output
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -28,7 +28,11 @@ def handle_members(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
     adapter = get_adapter()
     members = adapter.list_org_members(args.name, limit=args.limit)
     if fmt == "json":
-        print(json.dumps(members, ensure_ascii=False))
+        json_str = json.dumps(members, ensure_ascii=False)
+        if jq is not None:
+            print(apply_jq_filter(json_str, jq))
+        else:
+            print(json_str)
         return
     for member in members:
         print(member)

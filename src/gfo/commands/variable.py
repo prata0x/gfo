@@ -26,10 +26,14 @@ def handle_get(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
     """gfo variable get <name> のハンドラ。"""
     adapter = get_adapter()
     variable = adapter.get_variable(args.name)
-    print(variable.value)
+    if fmt == "json" or jq is not None:
+        output(variable, fmt="json", jq=jq)
+    else:
+        print(variable.value)
 
 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo variable delete <name> のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_variable(args.name)
+    print(f"Deleted variable '{args.name}'.")

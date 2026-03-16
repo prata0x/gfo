@@ -247,6 +247,31 @@ class TestHandleCheckout:
                 pr_cmd.handle_checkout(args, fmt="table")
 
 
+class TestErrorPropagation:
+    """アダプターのエラーがハンドラを通じて伝搬する。"""
+
+    def test_list_http_error(self, sample_config, mock_adapter):
+        mock_adapter.list_pull_requests.side_effect = NotFoundError("/pulls")
+        args = make_args(state="open", limit=30)
+        with _patch_all(sample_config, mock_adapter):
+            with pytest.raises(NotFoundError):
+                pr_cmd.handle_list(args, fmt="table")
+
+    def test_view_http_error(self, sample_config, mock_adapter):
+        mock_adapter.get_pull_request.side_effect = NotFoundError("/pulls/999")
+        args = make_args(number=999)
+        with _patch_all(sample_config, mock_adapter):
+            with pytest.raises(NotFoundError):
+                pr_cmd.handle_view(args, fmt="table")
+
+    def test_merge_http_error(self, sample_config, mock_adapter):
+        mock_adapter.merge_pull_request.side_effect = NotFoundError("/pulls/999/merge")
+        args = make_args(number=999, method="merge")
+        with _patch_all(sample_config, mock_adapter):
+            with pytest.raises(NotFoundError):
+                pr_cmd.handle_merge(args, fmt="table")
+
+
 def test_pr_list_config_error(capsys):
     """resolve_project_config が ConfigError を投げた場合に CLI で exit code 1 になる。"""
     from gfo.cli import main

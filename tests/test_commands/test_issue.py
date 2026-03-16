@@ -11,7 +11,7 @@ import pytest
 from gfo.adapter.base import Issue
 from gfo.commands import issue as issue_cmd
 from gfo.config import ProjectConfig
-from gfo.exceptions import ConfigError
+from gfo.exceptions import ConfigError, HttpError
 from tests.test_commands.conftest import make_args
 
 
@@ -360,3 +360,33 @@ class TestHandleDelete:
         out = capsys.readouterr().out
         assert "5" in out
         assert "Deleted" in out
+
+
+class TestErrorPropagation:
+    """アダプターのエラーがハンドラを通じて伝搬する。"""
+
+    def setup_method(self):
+        self.config = _make_config()
+        self.issue = _make_issue()
+        self.adapter = _make_adapter(self.issue)
+
+    def test_list_http_error(self):
+        self.adapter.list_issues.side_effect = HttpError(500, "Server error")
+        args = make_args(state="open", assignee=None, label=None, limit=30)
+        with _patch_all(self.config, self.adapter):
+            with pytest.raises(HttpError):
+                issue_cmd.handle_list(args, fmt="table")
+
+    def test_view_http_error(self):
+        self.adapter.get_issue.side_effect = HttpError(404, "Not found")
+        args = make_args(number=999)
+        with _patch_all(self.config, self.adapter):
+            with pytest.raises(HttpError):
+                issue_cmd.handle_view(args, fmt="table")
+
+    def test_close_http_error(self):
+        self.adapter.close_issue.side_effect = HttpError(404, "Not found")
+        args = make_args(number=999)
+        with _patch_all(self.config, self.adapter):
+            with pytest.raises(HttpError):
+                issue_cmd.handle_close(args, fmt="table")

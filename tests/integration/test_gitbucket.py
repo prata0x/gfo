@@ -191,6 +191,7 @@ class TestGitBucketIntegration:
         import base64
         import time
 
+        # TODO: _repos_path(), _client はプライベートメンバーへの依存。公開 API への移行を検討。
         content = base64.b64encode(f"close-test {time.time()}".encode()).decode()
         marker_path = f"{self.adapter._repos_path()}/contents/test-close-marker.txt"
         payload: dict = {
@@ -277,6 +278,7 @@ class TestGitBucketIntegration:
         import base64
         import time
 
+        # TODO: _repos_path(), _client はプライベートメンバーへの依存。公開 API への移行を検討。
         content = base64.b64encode(f"update-pr-{time.time()}".encode()).decode()
         marker_path = f"{self.adapter._repos_path()}/contents/test-update-pr-marker.txt"
         payload: dict = {
@@ -371,6 +373,9 @@ class TestGitBucketIntegration:
         with pytest.raises(NotSupportedError):
             self.adapter.list_reviews(self._update_pr_number)
 
+    # test_31 は欠番: 全サービス共通で test_30 (review) と test_32 (list_branches) の間に
+    # 予約されていた番号だが、該当する機能テストが不要になったためスキップされている。
+
     # --- list_branches ---
 
     def test_32_list_branches(self) -> None:
@@ -389,9 +394,14 @@ class TestGitBucketIntegration:
         import tempfile
         import urllib.parse
 
+        # TODO: _client.base_url はプライベートメンバーへの依存。公開 API への移行を検討。
         parsed = urllib.parse.urlparse(self.adapter._client.base_url)
         host = f"{parsed.hostname}:{parsed.port}"
-        clone_url = f"http://root:root@{host}/git/{self.config.owner}/{self.config.repo}.git"
+        gb_user = os.environ.get("GFO_TEST_GITBUCKET_USER", "root")
+        gb_pass = os.environ.get("GFO_TEST_GITBUCKET_PASSWORD", "root")
+        clone_url = (
+            f"http://{gb_user}:{gb_pass}@{host}/git/{self.config.owner}/{self.config.repo}.git"
+        )
         tmpdir = tempfile.mkdtemp(prefix="gfo-test-")
         # Windows 環境でのハンドル継承エラー（WinError 6/50）を回避するため stdin も DEVNULL
         _kw = {
@@ -445,9 +455,14 @@ class TestGitBucketIntegration:
         import tempfile
         import urllib.parse
 
+        # TODO: _client.base_url はプライベートメンバーへの依存。公開 API への移行を検討。
         parsed = urllib.parse.urlparse(self.adapter._client.base_url)
         host = f"{parsed.hostname}:{parsed.port}"
-        clone_url = f"http://root:root@{host}/git/{self.config.owner}/{self.config.repo}.git"
+        gb_user = os.environ.get("GFO_TEST_GITBUCKET_USER", "root")
+        gb_pass = os.environ.get("GFO_TEST_GITBUCKET_PASSWORD", "root")
+        clone_url = (
+            f"http://{gb_user}:{gb_pass}@{host}/git/{self.config.owner}/{self.config.repo}.git"
+        )
         tmpdir = tempfile.mkdtemp(prefix="gfo-test-")
         # Windows 環境でのハンドル継承エラー（WinError 6/50）を回避するため stdin も DEVNULL
         _kw = {
@@ -491,6 +506,7 @@ class TestGitBucketIntegration:
 
     def test_38_create_commit_status(self) -> None:
         """コミットステータスを作成するテスト。"""
+        # TODO: _client, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         branch_resp = self.adapter._client.get(
             f"{self.adapter._repos_path()}/branches/{self.config.default_branch}"
         )

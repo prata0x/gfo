@@ -140,6 +140,7 @@ class TestBitbucketIntegration:
                     pass
 
         # 前回マージ済みで差分がない場合に備えてマーカーファイルを更新
+        # TODO: _client._session, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         # Bitbucket src API はマルチパートのため _session を直接使用する
         content = f"test run {time.time()}\n"
         self.adapter._client._session.post(
@@ -192,14 +193,10 @@ class TestBitbucketIntegration:
     def test_17_pr_close(self) -> None:
         import time
 
-        import requests as _requests
-
-        parts = self.config.token.split(":", 1)
-        auth = (parts[0], parts[1])
+        # TODO: _client._session はプライベートメンバーへの依存。公開 API への移行を検討。
         content = f"close-{int(time.time())}"
-        _requests.post(
-            f"https://api.bitbucket.org/2.0/repositories/{self.config.owner}/{self.config.repo}/src",
-            auth=auth,
+        self.adapter._client._session.post(
+            f"{self.adapter._client.base_url}{self.adapter._repos_path()}/src",
             data={
                 "test-close-marker.txt": content,
                 "branch": self.config.test_branch,
@@ -298,6 +295,7 @@ class TestBitbucketIntegration:
         """PR の title 更新テスト。"""
         import time
 
+        # TODO: _client._session, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         # test_branch にマーカーファイルを追加して差分を確保
         content = f"update-pr-{time.time()}\n"
         self.adapter._client._session.post(
@@ -390,6 +388,9 @@ class TestBitbucketIntegration:
         assert review.body == "test review"
         reviews = self.adapter.list_reviews(self._update_pr_number)
         assert isinstance(reviews, list)
+
+    # test_31 は欠番: 全サービス共通で test_30 (review) と test_32 (list_branches) の間に
+    # 予約されていた番号だが、該当する機能テストが不要になったためスキップされている。
 
     # --- list_branches + create_branch + delete_branch ---
 
@@ -605,6 +606,30 @@ class TestBitbucketIntegration:
         """Organization（ワークスペース）一覧取得テスト。"""
         orgs = self.adapter.list_organizations()
         assert isinstance(orgs, list)
+
+    def test_47b_org_get(self) -> None:
+        """Organization（ワークスペース）詳細取得テスト。"""
+        orgs = self.adapter.list_organizations(limit=1)
+        if not orgs:
+            pytest.skip("No organizations available for testing")
+        org = self.adapter.get_organization(orgs[0].name)
+        assert org.name == orgs[0].name
+
+    def test_47c_org_members(self) -> None:
+        """Organization（ワークスペース）メンバー一覧テスト。"""
+        orgs = self.adapter.list_organizations(limit=1)
+        if not orgs:
+            pytest.skip("No organizations available for testing")
+        members = self.adapter.list_org_members(orgs[0].name)
+        assert isinstance(members, list)
+
+    def test_47d_org_repos(self) -> None:
+        """Organization（ワークスペース）のリポジトリ一覧テスト。"""
+        orgs = self.adapter.list_organizations(limit=1)
+        if not orgs:
+            pytest.skip("No organizations available for testing")
+        repos = self.adapter.list_repositories(owner=orgs[0].name, limit=5)
+        assert isinstance(repos, list)
 
     # --- notification (非対応) ---
 

@@ -27,11 +27,13 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 def handle_read(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo notification read のハンドラ。"""
     adapter = get_adapter()
-    if getattr(args, "all", False) and args.id is not None:
+    if args.mark_all and args.id is not None:
         raise GfoError("Cannot specify both ID and --all.")
-    if not getattr(args, "all", False) and args.id is None:
+    if not args.mark_all and args.id is None:
         raise GfoError("Specify a notification ID or --all.")
-    if getattr(args, "all", False):
+    if args.mark_all:
         adapter.mark_all_notifications_read()
+        print("Marked all notifications as read.")
     else:
         adapter.mark_notification_read(args.id)
+        print(f"Marked notification '{args.id}' as read.")

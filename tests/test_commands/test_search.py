@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
-
 from gfo.adapter.base import Issue, Repository
 from gfo.commands import search as search_cmd
-from tests.test_commands.conftest import make_args
+from tests.test_commands.conftest import make_args, patch_adapter
 
 SAMPLE_REPO = Repository(
     name="test-repo",
@@ -31,32 +29,19 @@ SAMPLE_ISSUE = Issue(
 )
 
 
-def _patch(adapter):
-    import contextlib
-
-    @contextlib.contextmanager
-    def _ctx():
-        with patch("gfo.commands.search.get_adapter", return_value=adapter):
-            yield
-
-    return _ctx()
-
-
 class TestHandleRepos:
     def test_calls_search_repositories(self, capsys):
-        adapter = MagicMock()
-        adapter.search_repositories.return_value = [SAMPLE_REPO]
-        args = make_args(query="test", limit=10)
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.search") as adapter:
+            adapter.search_repositories.return_value = [SAMPLE_REPO]
+            args = make_args(query="test", limit=10)
             search_cmd.handle_repos(args, fmt="table")
         adapter.search_repositories.assert_called_once_with("test", limit=10)
 
 
 class TestHandleIssues:
     def test_calls_search_issues(self, capsys):
-        adapter = MagicMock()
-        adapter.search_issues.return_value = [SAMPLE_ISSUE]
-        args = make_args(query="bug", limit=20)
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.search") as adapter:
+            adapter.search_issues.return_value = [SAMPLE_ISSUE]
+            args = make_args(query="bug", limit=20)
             search_cmd.handle_issues(args, fmt="table")
         adapter.search_issues.assert_called_once_with("bug", limit=20)

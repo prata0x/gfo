@@ -993,6 +993,8 @@ gfo browse --pr 42 --print     # Print URL only (don't open browser)
 Manage branch protection rules.
 
 > **Supported services**: GitHub, GitLab, Bitbucket, Gitea, Forgejo
+>
+> **Note**: Bitbucket only supports force-push and deletion control. Review requirements (`--require-reviews`), status checks (`--require-status-checks`), and admin enforcement (`--enforce-admins`) are not supported.
 
 ### gfo branch-protect list
 
@@ -1094,6 +1096,8 @@ gfo org view NAME
 ```
 
 ### gfo org members
+
+> Azure DevOps does not support `org members` (use Teams for member management).
 
 ```
 gfo org members NAME [--limit N]

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 import responses
 
-from gfo.exceptions import NotSupportedError
+from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError
 
 # --- ヘルパー ---
 
@@ -125,6 +125,17 @@ class TestGitHubNotification:
         )
         github_adapter.mark_all_notifications_read()
 
+    @responses.activate
+    def test_list_empty(self, github_adapter):
+        responses.add(responses.GET, "https://api.github.com/notifications", json=[])
+        assert github_adapter.list_notifications() == []
+
+    @responses.activate
+    def test_list_403(self, github_adapter):
+        responses.add(responses.GET, "https://api.github.com/notifications", status=403)
+        with pytest.raises(AuthenticationError):
+            github_adapter.list_notifications()
+
 
 # --- GitLab ---
 
@@ -171,6 +182,31 @@ class TestGitLabNotification:
         )
         gitlab_adapter.mark_all_notifications_read()
 
+    @responses.activate
+    def test_list_unread_only_false(self, gitlab_adapter):
+        """unread_only=False の場合 state パラメータなしで全件取得。"""
+        responses.add(
+            responses.GET,
+            "https://gitlab.com/api/v4/todos",
+            json=[_gitlab_todo_data(state="done")],
+        )
+        notifs = gitlab_adapter.list_notifications(unread_only=False)
+        assert len(notifs) == 1
+        # state=done なので unread=False
+        assert notifs[0].unread is False
+        assert "state=" not in responses.calls[0].request.url
+
+    @responses.activate
+    def test_list_empty(self, gitlab_adapter):
+        responses.add(responses.GET, "https://gitlab.com/api/v4/todos", json=[])
+        assert gitlab_adapter.list_notifications() == []
+
+    @responses.activate
+    def test_list_404(self, gitlab_adapter):
+        responses.add(responses.GET, "https://gitlab.com/api/v4/todos", status=404)
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.list_notifications()
+
 
 # --- Gitea ---
 
@@ -205,6 +241,25 @@ class TestGiteaNotification:
         )
         gitea_adapter.mark_all_notifications_read()
 
+    @responses.activate
+    def test_list_empty(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitea.example.com/api/v1/notifications",
+            json=[],
+        )
+        assert gitea_adapter.list_notifications() == []
+
+    @responses.activate
+    def test_list_403(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitea.example.com/api/v1/notifications",
+            status=403,
+        )
+        with pytest.raises(AuthenticationError):
+            gitea_adapter.list_notifications()
+
 
 # --- Forgejo ---
 
@@ -219,6 +274,33 @@ class TestForgejoNotification:
         )
         notifs = forgejo_adapter.list_notifications()
         assert len(notifs) == 1
+
+    @responses.activate
+    def test_mark_read(self, forgejo_adapter):
+        responses.add(
+            responses.PATCH,
+            "https://forgejo.example.com/api/v1/notifications/threads/1",
+            status=205,
+        )
+        forgejo_adapter.mark_notification_read("1")
+
+    @responses.activate
+    def test_mark_all_read(self, forgejo_adapter):
+        responses.add(
+            responses.PUT,
+            "https://forgejo.example.com/api/v1/notifications",
+            status=205,
+        )
+        forgejo_adapter.mark_all_notifications_read()
+
+    @responses.activate
+    def test_list_empty(self, forgejo_adapter):
+        responses.add(
+            responses.GET,
+            "https://forgejo.example.com/api/v1/notifications",
+            json=[],
+        )
+        assert forgejo_adapter.list_notifications() == []
 
 
 # --- Backlog ---
@@ -255,6 +337,25 @@ class TestBacklogNotification:
         )
         backlog_adapter.mark_all_notifications_read()
 
+    @responses.activate
+    def test_list_empty(self, backlog_adapter):
+        responses.add(
+            responses.GET,
+            "https://example.backlog.com/api/v2/notifications",
+            json=[],
+        )
+        assert backlog_adapter.list_notifications() == []
+
+    @responses.activate
+    def test_list_403(self, backlog_adapter):
+        responses.add(
+            responses.GET,
+            "https://example.backlog.com/api/v2/notifications",
+            status=403,
+        )
+        with pytest.raises(AuthenticationError):
+            backlog_adapter.list_notifications()
+
 
 # --- NotSupported ---
 
@@ -264,9 +365,25 @@ class TestNotificationNotSupported:
         with pytest.raises(NotSupportedError):
             azure_devops_adapter.list_notifications()
 
+    def test_azure_devops_mark_read(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.mark_notification_read("1")
+
+    def test_azure_devops_mark_all_read(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.mark_all_notifications_read()
+
     def test_bitbucket(self, bitbucket_adapter):
         with pytest.raises(NotSupportedError):
             bitbucket_adapter.list_notifications()
+
+    def test_bitbucket_mark_read(self, bitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.mark_notification_read("1")
+
+    def test_bitbucket_mark_all_read(self, bitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.mark_all_notifications_read()
 
     def test_gogs(self, gogs_adapter):
         with pytest.raises(NotSupportedError):

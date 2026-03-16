@@ -40,6 +40,39 @@ class TestGogsIntegration:
         cls._deploy_key_id: int | None = None
         cls._head_sha: str | None = None
 
+    @classmethod
+    def teardown_class(cls) -> None:
+        """テスト終了後にテスト用リソースを削除する。"""
+        try:
+            if cls._webhook_id is not None:
+                cls.adapter.delete_webhook(hook_id=cls._webhook_id)
+        except Exception:
+            pass
+        try:
+            if cls._deploy_key_id is not None:
+                cls.adapter.delete_deploy_key(key_id=cls._deploy_key_id)
+        except Exception:
+            pass
+        try:
+            cls.adapter.delete_branch(name="gfo-test-branch-temp")
+        except Exception:
+            pass
+        try:
+            cls.adapter.delete_tag(name="v0.0.2-test")
+        except Exception:
+            pass
+        try:
+            if cls._update_issue_number is not None:
+                cls.adapter.close_issue(cls._update_issue_number)
+        except Exception:
+            pass
+        try:
+            for k in cls.adapter.list_ssh_keys():
+                if k.title == "gfo-test-ssh-key":
+                    cls.adapter.delete_ssh_key(key_id=k.id)
+        except Exception:
+            pass
+
     # --- Repository ---
 
     def test_01_repo_view(self) -> None:
@@ -213,6 +246,10 @@ class TestGogsIntegration:
         with pytest.raises(NotSupportedError):
             self.adapter.delete_comment("issue", self._update_issue_comment_id)
 
+    # test_31 は欠番: 全サービス共通で test_30 (review) と test_32 (list_branches) の間に
+    # 予約されていた番号だが、該当する機能テストが不要になったためスキップされている。
+    # Gogs はテスト番号体系が他サービスと異なるため test_31 は browse テストに使用。
+
     # --- list_branches + create_branch + delete_branch ---
 
     def test_22_branch_operations(self) -> None:
@@ -239,6 +276,7 @@ class TestGogsIntegration:
         tags = self.adapter.list_tags()
         assert isinstance(tags, list)
         try:
+            # TODO: _client, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
             branch_resp = self.adapter._client.get(
                 f"{self.adapter._repos_path()}/branches/{self.config.default_branch}"
             )
@@ -259,6 +297,7 @@ class TestGogsIntegration:
 
     def test_24_commit_status(self) -> None:
         """コミットステータスの作成・一覧テスト（Gitea 継承、動作確認）。"""
+        # TODO: _client, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         branch_resp = self.adapter._client.get(
             f"{self.adapter._repos_path()}/branches/{self.config.default_branch}"
         )

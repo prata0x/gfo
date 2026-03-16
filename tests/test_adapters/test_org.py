@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 import responses
 
-from gfo.exceptions import NotSupportedError
+from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError
 
 # --- ヘルパー ---
 
@@ -133,6 +133,23 @@ class TestGitHubOrg:
         assert len(repos) == 1
         assert repos[0].name == "repo1"
 
+    @responses.activate
+    def test_list_empty(self, github_adapter):
+        responses.add(responses.GET, "https://api.github.com/user/orgs", json=[])
+        assert github_adapter.list_organizations() == []
+
+    @responses.activate
+    def test_view_404(self, github_adapter):
+        responses.add(responses.GET, "https://api.github.com/orgs/missing", status=404)
+        with pytest.raises(NotFoundError):
+            github_adapter.get_organization("missing")
+
+    @responses.activate
+    def test_list_403(self, github_adapter):
+        responses.add(responses.GET, "https://api.github.com/user/orgs", status=403)
+        with pytest.raises(AuthenticationError):
+            github_adapter.list_organizations()
+
 
 # --- GitLab ---
 
@@ -180,6 +197,21 @@ class TestGitLabOrg:
         repos = gitlab_adapter.list_org_repos("my-group")
         assert len(repos) == 1
         assert repos[0].name == "proj1"
+
+    @responses.activate
+    def test_list_empty(self, gitlab_adapter):
+        responses.add(responses.GET, "https://gitlab.com/api/v4/groups", json=[])
+        assert gitlab_adapter.list_organizations() == []
+
+    @responses.activate
+    def test_view_404(self, gitlab_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitlab.com/api/v4/groups/missing",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.get_organization("missing")
 
 
 # --- Bitbucket ---
@@ -250,6 +282,25 @@ class TestBitbucketOrg:
         assert len(repos) == 1
         assert repos[0].name == "repo1"
 
+    @responses.activate
+    def test_list_empty(self, bitbucket_adapter):
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/user/permissions/workspaces",
+            json={"values": [], "pagelen": 10},
+        )
+        assert bitbucket_adapter.list_organizations() == []
+
+    @responses.activate
+    def test_view_404(self, bitbucket_adapter):
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/workspaces/missing",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            bitbucket_adapter.get_organization("missing")
+
 
 # --- Gitea ---
 
@@ -305,6 +356,25 @@ class TestGiteaOrg:
         repos = gitea_adapter.list_org_repos("my-org")
         assert len(repos) == 1
 
+    @responses.activate
+    def test_list_empty(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitea.example.com/api/v1/user/orgs",
+            json=[],
+        )
+        assert gitea_adapter.list_organizations() == []
+
+    @responses.activate
+    def test_view_404(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitea.example.com/api/v1/orgs/missing",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.get_organization("missing")
+
 
 # --- Forgejo ---
 
@@ -320,6 +390,26 @@ class TestForgejoOrg:
         orgs = forgejo_adapter.list_organizations()
         assert len(orgs) == 1
 
+    @responses.activate
+    def test_view(self, forgejo_adapter):
+        responses.add(
+            responses.GET,
+            "https://forgejo.example.com/api/v1/orgs/my-org",
+            json=_gitea_org_data(),
+        )
+        org = forgejo_adapter.get_organization("my-org")
+        assert org.name == "my-org"
+        assert org.display_name == "My Organization"
+
+    @responses.activate
+    def test_list_empty(self, forgejo_adapter):
+        responses.add(
+            responses.GET,
+            "https://forgejo.example.com/api/v1/user/orgs",
+            json=[],
+        )
+        assert forgejo_adapter.list_organizations() == []
+
 
 # --- Gogs ---
 
@@ -334,6 +424,26 @@ class TestGogsOrg:
         )
         orgs = gogs_adapter.list_organizations()
         assert len(orgs) == 1
+
+    @responses.activate
+    def test_view(self, gogs_adapter):
+        responses.add(
+            responses.GET,
+            "https://gogs.example.com/api/v1/orgs/my-org",
+            json=_gitea_org_data(),
+        )
+        org = gogs_adapter.get_organization("my-org")
+        assert org.name == "my-org"
+        assert org.display_name == "My Organization"
+
+    @responses.activate
+    def test_list_empty(self, gogs_adapter):
+        responses.add(
+            responses.GET,
+            "https://gogs.example.com/api/v1/user/orgs",
+            json=[],
+        )
+        assert gogs_adapter.list_organizations() == []
 
 
 # --- Azure DevOps ---
@@ -373,6 +483,54 @@ class TestAzureDevOpsOrg:
         )
         org = azure_devops_adapter.get_organization("MyProject")
         assert org.name == "MyProject"
+
+    @responses.activate
+    def test_repos(self, azure_devops_adapter):
+        responses.add(
+            responses.GET,
+            "https://dev.azure.com/test-org/test-project/_apis/git/repositories",
+            json={
+                "value": [
+                    {
+                        "name": "repo1",
+                        "project": {"name": "MyProject"},
+                        "remoteUrl": "https://dev.azure.com/test-org/MyProject/_git/repo1",
+                        "webUrl": "https://dev.azure.com/test-org/MyProject/_git/repo1",
+                        "defaultBranch": "refs/heads/main",
+                    },
+                    {
+                        "name": "other-repo",
+                        "project": {"name": "OtherProject"},
+                        "remoteUrl": "https://dev.azure.com/test-org/OtherProject/_git/other-repo",
+                        "webUrl": "https://dev.azure.com/test-org/OtherProject/_git/other-repo",
+                        "defaultBranch": "refs/heads/main",
+                    },
+                ],
+                "count": 2,
+            },
+        )
+        repos = azure_devops_adapter.list_org_repos("MyProject")
+        assert len(repos) == 1
+        assert repos[0].name == "repo1"
+
+    @responses.activate
+    def test_list_empty(self, azure_devops_adapter):
+        responses.add(
+            responses.GET,
+            "https://dev.azure.com/test-org/_apis/projects",
+            json={"value": [], "count": 0},
+        )
+        assert azure_devops_adapter.list_organizations() == []
+
+    @responses.activate
+    def test_view_404(self, azure_devops_adapter):
+        responses.add(
+            responses.GET,
+            "https://dev.azure.com/test-org/_apis/projects/MissingProject",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            azure_devops_adapter.get_organization("MissingProject")
 
     def test_members_not_supported(self, azure_devops_adapter):
         with pytest.raises(NotSupportedError):

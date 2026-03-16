@@ -26,3 +26,4 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo ssh-key delete <id> のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_ssh_key(key_id=args.id)
+    print(f"Deleted SSH key '{args.id}'.")

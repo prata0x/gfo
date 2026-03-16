@@ -7,23 +7,13 @@ import json
 import pytest
 import responses
 
-from gfo.exceptions import NotSupportedError
+from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError
 
 # --- ヘルパー ---
 
 
-def _github_ssh_key_data(**overrides):
-    data = {
-        "id": 1,
-        "title": "my-key",
-        "key": "ssh-rsa AAAA...",
-        "created_at": "2024-01-01T00:00:00Z",
-    }
-    data.update(overrides)
-    return data
-
-
-def _gitlab_ssh_key_data(**overrides):
+def _common_ssh_key_data(**overrides):
+    """GitHub / GitLab / Gitea 系共通の SSH Key レスポンスデータ。"""
     data = {
         "id": 1,
         "title": "my-key",
@@ -45,15 +35,7 @@ def _bitbucket_ssh_key_data(**overrides):
     return data
 
 
-def _gitea_ssh_key_data(**overrides):
-    data = {
-        "id": 1,
-        "title": "my-key",
-        "key": "ssh-rsa AAAA...",
-        "created_at": "2024-01-01T00:00:00Z",
-    }
-    data.update(overrides)
-    return data
+# _common_ssh_key_data は _common_ssh_key_data と同一のため統合済み
 
 
 # --- GitHub ---
@@ -65,7 +47,7 @@ class TestGitHubSshKey:
         responses.add(
             responses.GET,
             "https://api.github.com/user/keys",
-            json=[_github_ssh_key_data()],
+            json=[_common_ssh_key_data()],
         )
         keys = github_adapter.list_ssh_keys()
         assert len(keys) == 1
@@ -78,7 +60,7 @@ class TestGitHubSshKey:
         responses.add(
             responses.POST,
             "https://api.github.com/user/keys",
-            json=_github_ssh_key_data(id=2, title="new-key"),
+            json=_common_ssh_key_data(id=2, title="new-key"),
             status=201,
         )
         key = github_adapter.create_ssh_key(title="new-key", key="ssh-rsa BBBB...")
@@ -97,6 +79,29 @@ class TestGitHubSshKey:
         )
         github_adapter.delete_ssh_key(key_id=1)
 
+    @responses.activate
+    def test_list_empty(self, github_adapter):
+        responses.add(responses.GET, "https://api.github.com/user/keys", json=[])
+        assert github_adapter.list_ssh_keys() == []
+
+    @responses.activate
+    def test_list_404(self, github_adapter):
+        responses.add(responses.GET, "https://api.github.com/user/keys", status=404)
+        with pytest.raises(NotFoundError):
+            github_adapter.list_ssh_keys()
+
+    @responses.activate
+    def test_create_403(self, github_adapter):
+        responses.add(responses.POST, "https://api.github.com/user/keys", status=403)
+        with pytest.raises(AuthenticationError):
+            github_adapter.create_ssh_key(title="t", key="k")
+
+    @responses.activate
+    def test_delete_404(self, github_adapter):
+        responses.add(responses.DELETE, "https://api.github.com/user/keys/999", status=404)
+        with pytest.raises(NotFoundError):
+            github_adapter.delete_ssh_key(key_id=999)
+
 
 # --- GitLab ---
 
@@ -107,7 +112,7 @@ class TestGitLabSshKey:
         responses.add(
             responses.GET,
             "https://gitlab.com/api/v4/user/keys",
-            json=[_gitlab_ssh_key_data()],
+            json=[_common_ssh_key_data()],
         )
         keys = gitlab_adapter.list_ssh_keys()
         assert len(keys) == 1
@@ -118,7 +123,7 @@ class TestGitLabSshKey:
         responses.add(
             responses.POST,
             "https://gitlab.com/api/v4/user/keys",
-            json=_gitlab_ssh_key_data(id=2, title="new-key"),
+            json=_common_ssh_key_data(id=2, title="new-key"),
             status=201,
         )
         key = gitlab_adapter.create_ssh_key(title="new-key", key="ssh-rsa BBBB...")
@@ -132,6 +137,23 @@ class TestGitLabSshKey:
             status=204,
         )
         gitlab_adapter.delete_ssh_key(key_id=1)
+
+    @responses.activate
+    def test_list_empty(self, gitlab_adapter):
+        responses.add(responses.GET, "https://gitlab.com/api/v4/user/keys", json=[])
+        assert gitlab_adapter.list_ssh_keys() == []
+
+    @responses.activate
+    def test_list_404(self, gitlab_adapter):
+        responses.add(responses.GET, "https://gitlab.com/api/v4/user/keys", status=404)
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.list_ssh_keys()
+
+    @responses.activate
+    def test_delete_403(self, gitlab_adapter):
+        responses.add(responses.DELETE, "https://gitlab.com/api/v4/user/keys/1", status=403)
+        with pytest.raises(AuthenticationError):
+            gitlab_adapter.delete_ssh_key(key_id=1)
 
 
 # --- Bitbucket ---
@@ -173,6 +195,35 @@ class TestBitbucketSshKey:
         )
         bitbucket_adapter.delete_ssh_key(key_id="abc-123")
 
+    @responses.activate
+    def test_list_empty(self, bitbucket_adapter):
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/users/test-workspace/ssh-keys",
+            json={"values": [], "pagelen": 10},
+        )
+        assert bitbucket_adapter.list_ssh_keys() == []
+
+    @responses.activate
+    def test_list_404(self, bitbucket_adapter):
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/users/test-workspace/ssh-keys",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            bitbucket_adapter.list_ssh_keys()
+
+    @responses.activate
+    def test_delete_403(self, bitbucket_adapter):
+        responses.add(
+            responses.DELETE,
+            "https://api.bitbucket.org/2.0/users/test-workspace/ssh-keys/abc-123",
+            status=403,
+        )
+        with pytest.raises(AuthenticationError):
+            bitbucket_adapter.delete_ssh_key(key_id="abc-123")
+
 
 # --- Gitea ---
 
@@ -183,7 +234,7 @@ class TestGiteaSshKey:
         responses.add(
             responses.GET,
             "https://gitea.example.com/api/v1/user/keys",
-            json=[_gitea_ssh_key_data()],
+            json=[_common_ssh_key_data()],
         )
         keys = gitea_adapter.list_ssh_keys()
         assert len(keys) == 1
@@ -194,7 +245,7 @@ class TestGiteaSshKey:
         responses.add(
             responses.POST,
             "https://gitea.example.com/api/v1/user/keys",
-            json=_gitea_ssh_key_data(id=2, title="new-key"),
+            json=_common_ssh_key_data(id=2, title="new-key"),
             status=201,
         )
         key = gitea_adapter.create_ssh_key(title="new-key", key="ssh-rsa BBBB...")
@@ -209,6 +260,25 @@ class TestGiteaSshKey:
         )
         gitea_adapter.delete_ssh_key(key_id=1)
 
+    @responses.activate
+    def test_list_empty(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitea.example.com/api/v1/user/keys",
+            json=[],
+        )
+        assert gitea_adapter.list_ssh_keys() == []
+
+    @responses.activate
+    def test_delete_404(self, gitea_adapter):
+        responses.add(
+            responses.DELETE,
+            "https://gitea.example.com/api/v1/user/keys/999",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.delete_ssh_key(key_id=999)
+
 
 # --- Forgejo (inherits Gitea) ---
 
@@ -219,7 +289,7 @@ class TestForgejoSshKey:
         responses.add(
             responses.GET,
             "https://forgejo.example.com/api/v1/user/keys",
-            json=[_gitea_ssh_key_data()],
+            json=[_common_ssh_key_data()],
         )
         keys = forgejo_adapter.list_ssh_keys()
         assert len(keys) == 1
@@ -229,7 +299,7 @@ class TestForgejoSshKey:
         responses.add(
             responses.POST,
             "https://forgejo.example.com/api/v1/user/keys",
-            json=_gitea_ssh_key_data(id=2),
+            json=_common_ssh_key_data(id=2),
             status=201,
         )
         key = forgejo_adapter.create_ssh_key(title="k", key="ssh-rsa X")
@@ -254,7 +324,7 @@ class TestGogsSshKey:
         responses.add(
             responses.GET,
             "https://gogs.example.com/api/v1/user/keys",
-            json=[_gitea_ssh_key_data()],
+            json=[_common_ssh_key_data()],
         )
         keys = gogs_adapter.list_ssh_keys()
         assert len(keys) == 1
@@ -264,7 +334,7 @@ class TestGogsSshKey:
         responses.add(
             responses.POST,
             "https://gogs.example.com/api/v1/user/keys",
-            json=_gitea_ssh_key_data(id=3),
+            json=_common_ssh_key_data(id=3),
             status=201,
         )
         key = gogs_adapter.create_ssh_key(title="k", key="ssh-rsa X")

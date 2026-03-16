@@ -400,7 +400,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     notif_list.add_argument("--limit", type=_positive_int, default=30)
     notif_read = notif_sub.add_parser("read", help="通知を既読にする")
     notif_read.add_argument("id", nargs="?", metavar="ID", help="通知 ID")
-    notif_read.add_argument("--all", action="store_true", help="すべての通知を既読にする")
+    notif_read.add_argument(
+        "--all", dest="mark_all", action="store_true", help="すべての通知を既読にする"
+    )
 
     # gfo org → サブサブコマンド
     org_parser = subparser_map["org"] = subparsers.add_parser("org", help="所属組織を管理する")
@@ -577,7 +579,10 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     jq_expr = args.jq
-    if jq_expr:
+    if jq_expr is not None:
+        if not jq_expr:
+            print("Error: --jq expression must not be empty.", file=sys.stderr)
+            return 1
         resolved_fmt = "json"
     else:
         resolved_fmt = args.format or get_default_output_format()

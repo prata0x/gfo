@@ -814,16 +814,22 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         )
         return [self._to_repository(r) for r in results]
 
-    @staticmethod
-    def _to_organization(data: dict) -> Organization:
+    def _to_organization(self, data: dict) -> Organization:
+        from urllib.parse import urlparse
+
         from gfo.exceptions import GfoError
 
         try:
+            org_name = data.get("username") or data.get("login") or ""
+            parsed = urlparse(self._client.base_url)
+            port_str = f":{parsed.port}" if parsed.port else ""
+            web_base = f"{parsed.scheme}://{parsed.hostname}{port_str}"
+            url = f"{web_base}/{org_name}" if org_name else ""
             return Organization(
-                name=data.get("username") or data.get("login") or "",
-                display_name=data.get("full_name") or data.get("username") or "",
+                name=org_name,
+                display_name=data.get("full_name") or org_name,
                 description=data.get("description"),
-                url=data.get("website") or "",
+                url=url,
             )
         except (KeyError, TypeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e

@@ -149,12 +149,19 @@ class TestAzureDevOpsIntegration:
         assert self._pr_number is not None
         self.adapter.merge_pull_request(self._pr_number, method="merge")
         # Azure DevOps のマージは非同期の場合があるためポーリングして確認
-        for _ in range(10):
+        pr = None
+        for i in range(30):
             pr = self.adapter.get_pull_request(self._pr_number)
             if pr.state == "merged":
                 break
             time.sleep(1)
-        assert pr.state == "merged"
+        assert pr is not None, "PR オブジェクトが取得できなかった"
+        if pr.state != "merged":
+            # 診断情報を出力してから失敗させる
+            pytest.fail(
+                f"PR #{self._pr_number} が 30 秒以内にマージ完了しなかった。"
+                f" 最終 state={pr.state!r}, title={pr.title!r}"
+            )
 
     # --- Release (非対応) ---
 
@@ -171,6 +178,7 @@ class TestAzureDevOpsIntegration:
     def test_17_pr_close(self) -> None:
         import time
 
+        # TODO: _client, _git_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         # ブランチの最新コミットID取得
         refs_resp = self.adapter._client.get(
             f"{self.adapter._git_path()}/refs",
@@ -305,6 +313,7 @@ class TestAzureDevOpsIntegration:
         """PR の title 更新テスト。"""
         import time
 
+        # TODO: _client, _git_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         # test_branch に差分を追加
         refs_resp = self.adapter._client.get(
             f"{self.adapter._git_path()}/refs",
@@ -421,6 +430,9 @@ class TestAzureDevOpsIntegration:
         reviews = self.adapter.list_reviews(self._update_pr_number)
         assert isinstance(reviews, list)
 
+    # test_31 は欠番: 全サービス共通で test_30 (review) と test_32 (list_branches) の間に
+    # 予約されていた番号だが、該当する機能テストが不要になったためスキップされている。
+
     # --- list_branches + create_branch + delete_branch ---
 
     def test_32_list_branches(self) -> None:
@@ -431,6 +443,7 @@ class TestAzureDevOpsIntegration:
 
     def test_33_create_branch(self) -> None:
         """ブランチ作成テスト。AzDO は ref に commit hash を要求する。"""
+        # TODO: _client, _git_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         refs_resp = self.adapter._client.get(
             f"{self.adapter._git_path()}/refs",
             params={"filter": f"heads/{self.config.default_branch}"},
@@ -452,6 +465,7 @@ class TestAzureDevOpsIntegration:
 
     def test_35_create_tag(self) -> None:
         """タグ作成テスト。AzDO は ref に commit hash を要求する。"""
+        # TODO: _client, _git_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         refs_resp = self.adapter._client.get(
             f"{self.adapter._git_path()}/refs",
             params={"filter": f"heads/{self.config.default_branch}"},

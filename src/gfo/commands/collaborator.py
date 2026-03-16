@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import json
 
 from gfo.commands import get_adapter
+from gfo.output import apply_jq_filter
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -12,9 +14,11 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     adapter = get_adapter()
     usernames = adapter.list_collaborators(limit=args.limit)
     if fmt == "json":
-        import json
-
-        print(json.dumps(usernames, ensure_ascii=False))
+        json_str = json.dumps(usernames, ensure_ascii=False)
+        if jq is not None:
+            print(apply_jq_filter(json_str, jq))
+        else:
+            print(json_str)
     else:
         for username in usernames:
             print(username)

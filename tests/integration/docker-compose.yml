@@ -39,6 +39,8 @@ services:
       timeout: 3s
       retries: 30
 
+  # Gogs は INSTALL_LOCK に相当する設定がないため、
+  # 初回起動時に run_selfhosted.sh (setup_services.py) で初期設定が必要。
   gogs:
     image: gogs/gogs:0.14
     container_name: gfo-gogs

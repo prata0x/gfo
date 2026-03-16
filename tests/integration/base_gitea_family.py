@@ -1,34 +1,40 @@
-"""GitLab 統合テスト。"""
+"""Gitea/Forgejo 共通統合テスト基底クラス。
+
+Gitea と Forgejo はほぼ同一の API を持つため、
+共通のテストメソッドをここに集約し、各サービス固有の差分のみサブクラスでオーバーライドする。
+"""
 
 from __future__ import annotations
 
+import base64
+import time
+
 import pytest
 
-from gfo.exceptions import GfoError, NotSupportedError
+from gfo.exceptions import GfoError, HttpError
 from tests.integration.conftest import (
     TEST_SSH_PUBLIC_KEY,
     ServiceTestConfig,
     create_test_adapter,
-    get_service_config,
 )
 
-CONFIG = get_service_config("gitlab")
 
-pytestmark = [
-    pytest.mark.integration,
-    pytest.mark.saas,
-    pytest.mark.skipif(CONFIG is None, reason="GitLab credentials not configured"),
-]
+class GiteaFamilyIntegrationBase:
+    """Gitea/Forgejo 共通の統合テスト基底クラス。
 
+    テストメソッドはアルファベット順（名前順）に実行される。
+    テスト間で作成したリソースの番号をクラス変数で共有する。
 
-class TestGitLabIntegration:
-    """GitLab に対する統合テスト。"""
+    サブクラスで CONFIG クラス変数を設定すること。
+    """
+
+    CONFIG: ServiceTestConfig | None = None
 
     @classmethod
     def setup_class(cls) -> None:
-        assert CONFIG is not None
-        cls.adapter = create_test_adapter(CONFIG)
-        cls.config = CONFIG
+        assert cls.CONFIG is not None
+        cls.adapter = create_test_adapter(cls.CONFIG)
+        cls.config = cls.CONFIG
         cls._issue_number: int | None = None
         cls._pr_number: int | None = None
         cls._update_issue_number: int | None = None
@@ -47,12 +53,6 @@ class TestGitLabIntegration:
         except Exception:
             pass
         try:
-            # TODO: _client, _project_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-            # リリース削除では git タグが残るため個別削除
-            cls.adapter._client.delete(f"{cls.adapter._project_path()}/repository/tags/v0.0.1-test")
-        except Exception:
-            pass
-        try:
             cls.adapter.delete_label(name="gfo-test-label")
         except Exception:
             pass
@@ -63,19 +63,12 @@ class TestGitLabIntegration:
                     break
         except Exception:
             pass
-        # オープンなテスト用 MR を閉じる（マージ失敗時の残留対応）
-        try:
-            for pr in cls.adapter.list_pull_requests(state="open"):
-                if pr.title == "gfo-test-pr":
-                    cls.adapter.close_pull_request(pr.number)
-        except Exception:
-            pass
         try:
             cls.adapter.delete_branch(name="gfo-test-branch-temp")
         except Exception:
             pass
         try:
-            cls.adapter._client.delete(f"{cls.adapter._project_path()}/repository/tags/v0.0.2-test")
+            cls.adapter.delete_tag(name="v0.0.2-test")
         except Exception:
             pass
         try:
@@ -89,7 +82,14 @@ class TestGitLabIntegration:
         except Exception:
             pass
         try:
-            cls.adapter.delete_wiki_page("gfo-test-wiki")
+            for p in cls.adapter.list_wiki_pages():
+                if p.title == "gfo-test-wiki":
+                    cls.adapter.delete_wiki_page(p.id)
+        except Exception:
+            pass
+        try:
+            content, sha = cls.adapter.get_file_content("gfo-test-file.txt")
+            cls.adapter.delete_file("gfo-test-file.txt", sha=sha, message="teardown: cleanup")
         except Exception:
             pass
         try:
@@ -103,7 +103,7 @@ class TestGitLabIntegration:
         except Exception:
             pass
 
-    # --- Repository ---
+    # --- Phase 1: Repository ---
 
     def test_01_repo_view(self) -> None:
         repo = self.adapter.get_repository()
@@ -111,9 +111,10 @@ class TestGitLabIntegration:
 
     def test_02_repo_list(self) -> None:
         repos = self.adapter.list_repositories(owner=self.config.owner, limit=10)
-        assert len(repos) > 0
+        names = [r.name for r in repos]
+        assert self.config.repo in names
 
-    # --- Label ---
+    # --- Phase 2: Label ---
 
     def test_03_label_create(self) -> None:
         label = self.adapter.create_label(
@@ -128,7 +129,7 @@ class TestGitLabIntegration:
         names = [lb.name for lb in labels]
         assert "gfo-test-label" in names
 
-    # --- Milestone ---
+    # --- Phase 3: Milestone ---
 
     def test_05_milestone_create(self) -> None:
         ms = self.adapter.create_milestone(
@@ -142,7 +143,7 @@ class TestGitLabIntegration:
         titles = [m.title for m in milestones]
         assert "gfo-test-milestone" in titles
 
-    # --- Issue ---
+    # --- Phase 4: Issue ---
 
     def test_07_issue_create(self) -> None:
         issue = self.adapter.create_issue(title="gfo-test-issue", body="Integration test")
@@ -166,69 +167,9 @@ class TestGitLabIntegration:
         issue = self.adapter.get_issue(self._issue_number)
         assert issue.state == "closed"
 
-    # --- Pull Request (GitLab では Merge Request) ---
+    # --- Phase 5: Pull Request ---
 
     def test_11_pr_create(self) -> None:
-        import time
-        from urllib.parse import quote as _quote
-
-        from gfo.exceptions import GfoError, NotFoundError
-
-        # TODO: _client, _project_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-        # 残留オープン MR を閉じる（前回テストが途中終了した場合の対応）
-        for pr in self.adapter.list_pull_requests(state="open"):
-            if pr.title == "gfo-test-pr":
-                try:
-                    self.adapter.close_pull_request(pr.number)
-                except Exception:
-                    pass
-
-        # test_branch が存在しない場合は再作成（前回マージで削除された場合の対応）
-        try:
-            self.adapter._client.get(
-                f"{self.adapter._project_path()}/repository/branches"
-                f"/{_quote(self.config.test_branch, safe='')}"
-            )
-        except NotFoundError:
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/branches",
-                json={"branch": self.config.test_branch, "ref": self.config.default_branch},
-            )
-
-        # ブランチに差分コミットを追加（前回マージ済みで差分がない場合の対応）
-        content = f"test run {time.time()}\n"
-        try:
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/commits",
-                json={
-                    "branch": self.config.test_branch,
-                    "commit_message": "test: update marker for MR",
-                    "actions": [
-                        {
-                            "action": "update",
-                            "file_path": "test-pr-marker.txt",
-                            "content": content,
-                        }
-                    ],
-                },
-            )
-        except GfoError:
-            # ファイルが存在しない場合は create で再試行
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/commits",
-                json={
-                    "branch": self.config.test_branch,
-                    "commit_message": "test: add marker for MR",
-                    "actions": [
-                        {
-                            "action": "create",
-                            "file_path": "test-pr-marker.txt",
-                            "content": content,
-                        }
-                    ],
-                },
-            )
-
         pr = self.adapter.create_pull_request(
             title="gfo-test-pr",
             body="Integration test",
@@ -251,29 +192,11 @@ class TestGitLabIntegration:
 
     def test_14_pr_merge(self) -> None:
         assert self._pr_number is not None
-        # TODO: _client, _project_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-        # GitLab は MR 作成直後 merge_status が "checking" になるため、
-        # "can_be_merged" になるまで最大 10 秒待機する
-        import time
-
-        merge_status = None
-        for _ in range(10):
-            resp = self.adapter._client.get(
-                f"{self.adapter._project_path()}/merge_requests/{self._pr_number}"
-            )
-            merge_status = resp.json().get("merge_status")
-            if merge_status == "can_be_merged":
-                break
-            time.sleep(1)
-        if merge_status != "can_be_merged":
-            pytest.fail(
-                f"MR merge_status が 10 秒以内に 'can_be_merged' にならなかった: {merge_status}"
-            )
         self.adapter.merge_pull_request(self._pr_number, method="merge")
         pr = self.adapter.get_pull_request(self._pr_number)
         assert pr.state == "merged"
 
-    # --- Release ---
+    # --- Phase 6: Release ---
 
     def test_15_release_create(self) -> None:
         release = self.adapter.create_release(
@@ -291,51 +214,23 @@ class TestGitLabIntegration:
     # --- PR close ---
 
     def test_17_pr_close(self) -> None:
-        import time
-
-        # TODO: _client, _project_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-        # マージ後にブランチが削除されている場合があるため再作成する
+        # TODO: _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
+        content = base64.b64encode(f"close-{time.time()}".encode()).decode()
+        marker_path = f"{self.adapter._repos_path()}/contents/test-close-marker.txt"
+        payload: dict = {
+            "message": "test: add marker for close test",
+            "content": content,
+            "branch": self.config.test_branch,
+        }
         try:
-            self.adapter._client.get(
-                f"{self.adapter._project_path()}/repository/branches/{self.config.test_branch}"
+            # TODO: _client はプライベートメンバーへの依存。公開 API への移行を検討。
+            existing = self.adapter._client.get(
+                marker_path, params={"ref": self.config.test_branch}
             )
+            payload["sha"] = existing.json()["sha"]
+            self.adapter._client.put(marker_path, json=payload)
         except GfoError:
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/branches",
-                json={"branch": self.config.test_branch, "ref": self.config.default_branch},
-            )
-
-        content = f"close-marker-{int(time.time())}"
-        try:
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/commits",
-                json={
-                    "branch": self.config.test_branch,
-                    "commit_message": "test: add marker for close test",
-                    "actions": [
-                        {
-                            "action": "update",
-                            "file_path": "test-close-marker.txt",
-                            "content": content,
-                        }
-                    ],
-                },
-            )
-        except GfoError:
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/commits",
-                json={
-                    "branch": self.config.test_branch,
-                    "commit_message": "test: add marker for close test",
-                    "actions": [
-                        {
-                            "action": "create",
-                            "file_path": "test-close-marker.txt",
-                            "content": content,
-                        }
-                    ],
-                },
-            )
+            self.adapter._client.post(marker_path, json=payload)
         pr = self.adapter.create_pull_request(
             title="gfo-test-pr-close",
             body="Integration test",
@@ -381,8 +276,6 @@ class TestGitLabIntegration:
     # --- Repo create and delete ---
 
     def test_22_repo_create_and_delete(self) -> None:
-        import time
-
         temp_name = f"gfo-test-temp-{int(time.time())}"
         temp_adapter = None
         try:
@@ -429,57 +322,24 @@ class TestGitLabIntegration:
     # --- update_pr ---
 
     def test_24_update_pr(self) -> None:
-        """MR（PR）の title 更新テスト。差分確保のため test_branch にコミットを追加してから MR 作成。"""
-        import time
-        from urllib.parse import quote as _quote
-
-        from gfo.exceptions import NotFoundError
-
-        # TODO: _client, _project_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-        # test_branch が存在しない場合は再作成
+        """PR の title 更新テスト。差分確保のため test_branch にコミットを追加してから PR 作成。"""
+        content = base64.b64encode(f"update-pr-{time.time()}".encode()).decode()
+        # TODO: _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
+        marker_path = f"{self.adapter._repos_path()}/contents/test-update-pr-marker.txt"
+        payload: dict = {
+            "message": "test: add marker for update PR",
+            "content": content,
+            "branch": self.config.test_branch,
+        }
         try:
-            self.adapter._client.get(
-                f"{self.adapter._project_path()}/repository/branches"
-                f"/{_quote(self.config.test_branch, safe='')}"
+            # TODO: _client はプライベートメンバーへの依存。公開 API への移行を検討。
+            existing = self.adapter._client.get(
+                marker_path, params={"ref": self.config.test_branch}
             )
-        except NotFoundError:
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/branches",
-                json={"branch": self.config.test_branch, "ref": self.config.default_branch},
-            )
-
-        content = f"update-pr-{time.time()}\n"
-        try:
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/commits",
-                json={
-                    "branch": self.config.test_branch,
-                    "commit_message": "test: add marker for update PR",
-                    "actions": [
-                        {
-                            "action": "update",
-                            "file_path": "test-update-pr-marker.txt",
-                            "content": content,
-                        }
-                    ],
-                },
-            )
+            payload["sha"] = existing.json()["sha"]
+            self.adapter._client.put(marker_path, json=payload)
         except GfoError:
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/commits",
-                json={
-                    "branch": self.config.test_branch,
-                    "commit_message": "test: create marker for update PR",
-                    "actions": [
-                        {
-                            "action": "create",
-                            "file_path": "test-update-pr-marker.txt",
-                            "content": content,
-                        }
-                    ],
-                },
-            )
-
+            self.adapter._client.post(marker_path, json=payload)
         pr = self.adapter.create_pull_request(
             title="gfo-test-update-pr",
             body="original body",
@@ -513,26 +373,30 @@ class TestGitLabIntegration:
         comments = self.adapter.list_comments("issue", self._update_issue_number)
         assert any(c.id == self._update_issue_comment_id for c in comments)
 
-    # --- update_comment（GitLab 非対応）---
+    # --- update_comment ---
 
-    def test_27_update_comment_not_supported(self) -> None:
-        """GitLab は update_comment 非対応。"""
+    def test_27_update_comment(self) -> None:
+        """コメント本文を更新するテスト。"""
         assert self._update_issue_comment_id is not None
-        with pytest.raises(NotSupportedError):
-            self.adapter.update_comment("issue", self._update_issue_comment_id, body="updated")
+        updated = self.adapter.update_comment(
+            "issue", self._update_issue_comment_id, body="updated comment body"
+        )
+        assert updated.body == "updated comment body"
 
-    # --- delete_comment（GitLab 非対応）---
+    # --- delete_comment ---
 
-    def test_28_delete_comment_not_supported(self) -> None:
-        """GitLab は delete_comment 非対応。"""
+    def test_28_delete_comment(self) -> None:
+        """コメントを削除するテスト。"""
         assert self._update_issue_comment_id is not None
-        with pytest.raises(NotSupportedError):
-            self.adapter.delete_comment("issue", self._update_issue_comment_id)
+        assert self._update_issue_number is not None
+        self.adapter.delete_comment("issue", self._update_issue_comment_id)
+        comments = self.adapter.list_comments("issue", self._update_issue_number)
+        assert not any(c.id == self._update_issue_comment_id for c in comments)
 
     # --- PR comment ---
 
     def test_29_pr_comment(self) -> None:
-        """MR にコメントを作成・一覧取得するテスト。"""
+        """PR にコメントを作成・一覧取得するテスト。"""
         assert self._update_pr_number is not None
         comment = self.adapter.create_comment("pr", self._update_pr_number, body="test PR comment")
         assert comment.body == "test PR comment"
@@ -543,16 +407,14 @@ class TestGitLabIntegration:
     # --- review ---
 
     def test_30_review(self) -> None:
-        """MR にレビューを作成するテスト。GitLab は COMMENT state が approvals に反映されないため list のみ型チェック。"""
+        """PR にレビューを作成・一覧取得するテスト。"""
         assert self._update_pr_number is not None
         review = self.adapter.create_review(
             self._update_pr_number, state="COMMENT", body="test review"
         )
         assert review.body == "test review"
         reviews = self.adapter.list_reviews(self._update_pr_number)
-        assert isinstance(
-            reviews, list
-        )  # COMMENT は approvals リストに出ないため len チェックしない
+        assert len(reviews) > 0
 
     # test_31 は欠番: 全サービス共通で test_30 (review) と test_32 (list_branches) の間に
     # 予約されていた番号だが、該当する機能テストが不要になったためスキップされている。
@@ -587,14 +449,9 @@ class TestGitLabIntegration:
 
     def test_35_create_tag(self) -> None:
         """タグを作成するテスト。"""
-        from urllib.parse import quote as _quote
-
-        # TODO: _client, _project_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-        branch_resp = self.adapter._client.get(
-            f"{self.adapter._project_path()}/repository/branches"
-            f"/{_quote(self.config.default_branch, safe='')}"
-        )
-        head_sha = branch_resp.json()["commit"]["id"]
+        branches = self.adapter.list_branches()
+        default = next(b for b in branches if b.name == self.config.default_branch)
+        head_sha = default.sha
         tag = self.adapter.create_tag(name="v0.0.2-test", ref=head_sha)
         assert tag.name == "v0.0.2-test"
 
@@ -617,14 +474,9 @@ class TestGitLabIntegration:
 
     def test_38_create_commit_status(self) -> None:
         """コミットステータスを作成するテスト。"""
-        from urllib.parse import quote as _quote
-
-        # TODO: _client, _project_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-        branch_resp = self.adapter._client.get(
-            f"{self.adapter._project_path()}/repository/branches"
-            f"/{_quote(self.config.default_branch, safe='')}"
-        )
-        self.__class__._head_sha = branch_resp.json()["commit"]["id"]
+        branches = self.adapter.list_branches()
+        default = next(b for b in branches if b.name == self.config.default_branch)
+        self.__class__._head_sha = default.sha
         status = self.adapter.create_commit_status(
             self._head_sha,
             state="success",
@@ -645,16 +497,19 @@ class TestGitLabIntegration:
 
     def test_40_file_crud(self) -> None:
         """ファイルの作成・取得・更新・削除テスト。"""
+        # create
         self.adapter.create_or_update_file(
             "gfo-test-file.txt",
             content="hello gfo",
             message="test: create gfo-test-file.txt",
             branch=self.config.test_branch,
         )
+        # get
         content, sha = self.adapter.get_file_content(
             "gfo-test-file.txt", ref=self.config.test_branch
         )
         assert content == "hello gfo"
+        # update
         commit_sha = self.adapter.create_or_update_file(
             "gfo-test-file.txt",
             content="updated gfo",
@@ -666,6 +521,7 @@ class TestGitLabIntegration:
         ref = commit_sha if commit_sha else self.config.test_branch
         content2, sha2 = self.adapter.get_file_content("gfo-test-file.txt", ref=ref)
         assert content2 == "updated gfo"
+        # delete
         self.adapter.delete_file(
             "gfo-test-file.txt",
             sha=sha2,
@@ -677,6 +533,7 @@ class TestGitLabIntegration:
 
     def test_41_webhook_crud(self) -> None:
         """Webhook の作成・一覧・削除テスト。"""
+        # 残留フックを削除する
         try:
             for h in self.adapter.list_webhooks():
                 if h.url == "https://example.com/webhook":
@@ -699,6 +556,7 @@ class TestGitLabIntegration:
 
     def test_42_deploy_key_crud(self) -> None:
         """デプロイキーの作成・一覧・削除テスト。"""
+        # 残留キーを削除する
         try:
             for k in self.adapter.list_deploy_keys():
                 if k.title == "gfo-test-deploy-key":
@@ -723,7 +581,7 @@ class TestGitLabIntegration:
         """現在のユーザー情報を取得するテスト。"""
         user = self.adapter.get_current_user()
         assert isinstance(user, dict)
-        assert "username" in user or "id" in user
+        assert "login" in user
 
     # --- search + misc ---
 
@@ -740,71 +598,31 @@ class TestGitLabIntegration:
         assert refspec
 
     # --- wiki CRUD ---
+    # test_45_wiki_crud は Gitea と Forgejo で挙動が異なるためサブクラスでオーバーライドする。
 
-    def test_45_wiki_crud(self) -> None:
-        """Wiki ページの作成・取得・一覧・更新・削除テスト。
-        GitLab はタイトルの `-` をスペースに正規化するため `gfo test wiki` で検証する。
-        """
-        wiki_title = "gfo test wiki"
-        wiki_slug = "gfo-test-wiki"
-        try:
-            self.adapter.delete_wiki_page(wiki_slug)
-        except Exception:
-            pass
-        page = self.adapter.create_wiki_page(
-            title=wiki_title,
-            content="hello wiki content",
-        )
-        # GitLab はタイトルを正規化して返す（スペース区切り）
-        assert page.title == wiki_title
-        page_id = wiki_slug  # GitLab wiki の slug はハイフン区切り
-        page_read = self.adapter.get_wiki_page(page_id)
-        assert page_read.title == wiki_title
-        pages = self.adapter.list_wiki_pages()
-        assert any(p.title == wiki_title for p in pages)
-        updated_page = self.adapter.update_wiki_page(
-            page_id,
-            content="updated wiki content",
-        )
-        assert "updated" in updated_page.content
-        self.adapter.delete_wiki_page(page_id)
-        pages_after = self.adapter.list_wiki_pages()
-        assert not any(p.title == wiki_title for p in pages_after)
-
-    # --- browse ---
+    # --- browse (get_web_url) ---
 
     def test_46_browse(self) -> None:
-        """get_web_url で Web URL を取得するテスト（--print モード相当）。"""
+        """リポジトリの Web URL を取得するテスト。"""
         url = self.adapter.get_web_url()
         assert isinstance(url, str)
         assert len(url) > 0
-        assert "gitlab.com" in url
 
     # --- ssh-key CRUD ---
 
     def test_47_ssh_key_crud(self) -> None:
         """SSH キーの作成・一覧・削除テスト。"""
-        import os
-        import subprocess
-        import tempfile
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            key_path = os.path.join(tmpdir, "gfo_test_key")
-            subprocess.run(
-                ["ssh-keygen", "-t", "ed25519", "-f", key_path, "-N", "", "-C", "gfo-test"],
-                capture_output=True,
-                check=True,
-            )
-            with open(key_path + ".pub") as f:
-                dummy_key = f.read().strip()
-        # 残留キーをクリーンアップ
+        # 残留キーを削除する
         try:
             for k in self.adapter.list_ssh_keys():
                 if k.title == "gfo-test-ssh-key":
                     self.adapter.delete_ssh_key(key_id=k.id)
         except Exception:
             pass
-        key = self.adapter.create_ssh_key(title="gfo-test-ssh-key", key=dummy_key)
+        key = self.adapter.create_ssh_key(
+            title="gfo-test-ssh-key",
+            key=TEST_SSH_PUBLIC_KEY,
+        )
         assert key.title == "gfo-test-ssh-key"
         keys = self.adapter.list_ssh_keys()
         assert any(k.id == key.id for k in keys)
@@ -812,57 +630,37 @@ class TestGitLabIntegration:
         keys_after = self.adapter.list_ssh_keys()
         assert not any(k.id == key.id for k in keys_after)
 
-    # --- org ---
+    # --- org (list_organizations) ---
 
-    def test_48_org_list(self) -> None:
-        """Organization（グループ）一覧取得テスト。"""
+    def test_48_list_organizations(self) -> None:
+        """組織一覧を取得するテスト。"""
         orgs = self.adapter.list_organizations()
         assert isinstance(orgs, list)
 
-    # --- notification ---
+    # --- notification (list_notifications) ---
 
-    def test_49_notification_list(self) -> None:
-        """通知（TODO）一覧取得テスト。"""
-        notifications = self.adapter.list_notifications(limit=5)
+    def test_49_list_notifications(self) -> None:
+        """通知一覧を取得するテスト。"""
+        notifications = self.adapter.list_notifications()
         assert isinstance(notifications, list)
 
-    def test_49b_notification_mark_read(self) -> None:
-        """通知（TODO）の既読マークテスト。通知がある場合は個別既読、なければ全件既読のみ確認。"""
-        notifications = self.adapter.list_notifications(limit=1)
-        if notifications:
-            self.adapter.mark_notification_read(str(notifications[0].id))
-        # mark_all_notifications_read は通知がなくても成功する
-        self.adapter.mark_all_notifications_read()
+    # --- branch-protect (list_branch_protections) ---
 
-    # --- branch-protect ---
-
-    def test_50_branch_protect_crud(self) -> None:
-        """ブランチ保護の set → get → remove テスト。"""
-        branch_name = self.config.test_branch
-        # クリーンアップ
-        try:
-            self.adapter.remove_branch_protection(branch_name)
-        except Exception:
-            pass
-        protection = self.adapter.set_branch_protection(branch_name)
-        assert protection.branch == branch_name
-        got = self.adapter.get_branch_protection(branch_name)
-        assert got.branch == branch_name
-        self.adapter.remove_branch_protection(branch_name)
-        # 削除後は一覧に含まれないことを確認
+    def test_50_list_branch_protections(self) -> None:
+        """ブランチ保護ルール一覧を取得するテスト。"""
         protections = self.adapter.list_branch_protections()
-        assert not any(p.branch == branch_name for p in protections)
+        assert isinstance(protections, list)
 
-    # --- secret ---
+    # --- secret CRUD ---
 
     def test_51_secret_crud(self) -> None:
-        """Secret（CI/CD variable, masked）の set → list → delete テスト。"""
-        # クリーンアップ
+        """シークレットの設定・一覧・削除テスト。"""
+        # 残留シークレットを削除する
         try:
             self.adapter.delete_secret("GFO_TEST_SECRET")
         except Exception:
             pass
-        secret = self.adapter.set_secret("GFO_TEST_SECRET", "test-secret-value")
+        secret = self.adapter.set_secret("GFO_TEST_SECRET", "secret-value")
         assert secret.name == "GFO_TEST_SECRET"
         secrets = self.adapter.list_secrets()
         assert any(s.name == "GFO_TEST_SECRET" for s in secrets)
@@ -870,19 +668,21 @@ class TestGitLabIntegration:
         secrets_after = self.adapter.list_secrets()
         assert not any(s.name == "GFO_TEST_SECRET" for s in secrets_after)
 
-    # --- variable ---
+    # --- variable CRUD ---
 
     def test_52_variable_crud(self) -> None:
-        """Variable（CI/CD variable）の set → get → list → delete テスト。"""
-        # クリーンアップ
+        """変数の設定・取得・一覧・削除テスト。"""
+        # 残留変数を削除する
         try:
             self.adapter.delete_variable("GFO_TEST_VAR")
         except Exception:
             pass
-        var = self.adapter.set_variable("GFO_TEST_VAR", "test-value")
+        try:
+            var = self.adapter.set_variable("GFO_TEST_VAR", "test-value")
+        except HttpError:
+            pytest.skip("Actions Variables API not available on this version")
         assert var.name == "GFO_TEST_VAR"
         got = self.adapter.get_variable("GFO_TEST_VAR")
-        assert got.name == "GFO_TEST_VAR"
         assert got.value == "test-value"
         variables = self.adapter.list_variables()
         assert any(v.name == "GFO_TEST_VAR" for v in variables)

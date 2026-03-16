@@ -45,3 +45,4 @@ def handle_remove(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo branch-protect remove <branch> のハンドラ。"""
     adapter = get_adapter()
     adapter.remove_branch_protection(args.branch)
+    print(f"Removed branch protection for '{args.branch}'.")

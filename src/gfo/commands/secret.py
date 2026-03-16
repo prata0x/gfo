@@ -28,8 +28,15 @@ def handle_set(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
             raise GfoError(f"Environment variable '{args.env_var}' is not set.")
         value = env_val
     else:
-        with open(args.file) as f:
-            value = f.read().strip()
+        if args.file is None:
+            raise GfoError("Specify --value, --env-var, or --file.")
+        try:
+            with open(args.file) as f:
+                value = f.read().strip()
+        except FileNotFoundError:
+            raise GfoError(f"File not found: {args.file}")
+        except PermissionError:
+            raise GfoError(f"Permission denied: {args.file}")
     secret = adapter.set_secret(args.name, value)
     output(secret, fmt=fmt, jq=jq)
 
@@ -38,3 +45,4 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo secret delete <name> のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_secret(args.name)
+    print(f"Deleted secret '{args.name}'.")

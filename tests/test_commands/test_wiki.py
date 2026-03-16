@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
-
 from gfo.adapter.base import WikiPage
 from gfo.commands import wiki as wiki_cmd
-from tests.test_commands.conftest import make_args
+from tests.test_commands.conftest import make_args, patch_adapter
 
 SAMPLE_PAGE = WikiPage(
     id=1,
@@ -17,61 +15,45 @@ SAMPLE_PAGE = WikiPage(
 )
 
 
-def _patch(adapter):
-    import contextlib
-
-    @contextlib.contextmanager
-    def _ctx():
-        with patch("gfo.commands.wiki.get_adapter", return_value=adapter):
-            yield
-
-    return _ctx()
-
-
 class TestHandleList:
     def test_calls_list_wiki_pages(self, capsys):
-        adapter = MagicMock()
-        adapter.list_wiki_pages.return_value = [SAMPLE_PAGE]
-        args = make_args(limit=30)
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.wiki") as adapter:
+            adapter.list_wiki_pages.return_value = [SAMPLE_PAGE]
+            args = make_args(limit=30)
             wiki_cmd.handle_list(args, fmt="table")
         adapter.list_wiki_pages.assert_called_once_with(limit=30)
 
 
 class TestHandleView:
     def test_calls_get_wiki_page(self, capsys):
-        adapter = MagicMock()
-        adapter.get_wiki_page.return_value = SAMPLE_PAGE
-        args = make_args(id="1")
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.wiki") as adapter:
+            adapter.get_wiki_page.return_value = SAMPLE_PAGE
+            args = make_args(id="1")
             wiki_cmd.handle_view(args, fmt="table")
         adapter.get_wiki_page.assert_called_once_with("1")
 
 
 class TestHandleCreate:
     def test_calls_create_wiki_page(self):
-        adapter = MagicMock()
-        adapter.create_wiki_page.return_value = SAMPLE_PAGE
-        args = make_args(title="Home", content="# Welcome")
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.wiki") as adapter:
+            adapter.create_wiki_page.return_value = SAMPLE_PAGE
+            args = make_args(title="Home", content="# Welcome")
             wiki_cmd.handle_create(args, fmt="table")
         adapter.create_wiki_page.assert_called_once_with(title="Home", content="# Welcome")
 
 
 class TestHandleUpdate:
     def test_calls_update_wiki_page(self):
-        adapter = MagicMock()
-        adapter.update_wiki_page.return_value = SAMPLE_PAGE
-        args = make_args(id="1", title="New Title", content=None)
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.wiki") as adapter:
+            adapter.update_wiki_page.return_value = SAMPLE_PAGE
+            args = make_args(id="1", title="New Title", content=None)
             wiki_cmd.handle_update(args, fmt="table")
         adapter.update_wiki_page.assert_called_once_with("1", title="New Title", content=None)
 
 
 class TestHandleDelete:
     def test_calls_delete_wiki_page(self):
-        adapter = MagicMock()
-        args = make_args(id="1")
-        with _patch(adapter):
+        with patch_adapter("gfo.commands.wiki") as adapter:
+            args = make_args(id="1")
             wiki_cmd.handle_delete(args, fmt="table")
         adapter.delete_wiki_page.assert_called_once_with("1")

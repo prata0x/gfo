@@ -169,6 +169,10 @@ api_url = "https://gitlab.example.com/api/v4"
 | Variable | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
 
 > ×: 非対応（`NotSupportedError` を返します）
+>
+> **補足**:
+> - Branch Protect（Bitbucket）: 強制プッシュと削除の制御のみ対応。レビュー要件・ステータスチェック・管理者への適用は非対応。
+> - Org（Azure DevOps）: `list`, `view`, `repos` のみ対応。`members` は非対応（メンバー管理には Teams を使用）。
 
 ## 開発
 

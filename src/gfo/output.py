@@ -73,6 +73,8 @@ def output(
     data: Any, *, fmt: str = "table", fields: list[str] | None = None, jq: str | None = None
 ) -> None:
     """データを指定フォーマットで stdout に出力する。"""
+    if jq and fmt != "json":
+        fmt = "json"
     if isinstance(data, list):
         items = data
     else:
