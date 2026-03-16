@@ -413,3 +413,91 @@ class TestBacklogIntegration:
             self.adapter.create_review(self._pr_number, state="COMMENT", body="test")
         with pytest.raises(NotSupportedError):
             self.adapter.list_pipelines()
+
+    # --- browse ---
+
+    def test_32_browse_repo(self) -> None:
+        """get_web_url でリポジトリ URL を取得するテスト。"""
+        url = self.adapter.get_web_url()
+        assert isinstance(url, str)
+        assert len(url) > 0
+
+    def test_33_browse_pr(self) -> None:
+        """get_web_url で PR URL を取得するテスト。"""
+        url = self.adapter.get_web_url(resource="pr", number=1)
+        assert isinstance(url, str)
+        assert len(url) > 0
+
+    def test_34_browse_issue_not_supported(self) -> None:
+        """Backlog は browse issue 非対応（文字列形式の課題キーを使用）。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.get_web_url(resource="issue", number=1)
+
+    def test_35_browse_settings_not_supported(self) -> None:
+        """Backlog は browse settings 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.get_web_url(resource="settings")
+
+    # --- notification ---
+
+    def test_36_notification_list(self) -> None:
+        """通知一覧の取得テスト。"""
+        notifications = self.adapter.list_notifications()
+        assert isinstance(notifications, list)
+
+    # --- ssh-key (非対応) ---
+
+    def test_37_ssh_key_not_supported(self) -> None:
+        """Backlog は SSH Key API 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_ssh_keys()
+        with pytest.raises(NotSupportedError):
+            self.adapter.create_ssh_key(title="test", key="ssh-ed25519 AAAA test")
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_ssh_key(key_id=1)
+
+    # --- org (非対応) ---
+
+    def test_38_org_not_supported(self) -> None:
+        """Backlog は Organization API 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_organizations()
+        with pytest.raises(NotSupportedError):
+            self.adapter.get_organization("test")
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_org_members("test")
+
+    # --- branch-protect (非対応) ---
+
+    def test_39_branch_protect_not_supported(self) -> None:
+        """Backlog は branch protection 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_branch_protections()
+        with pytest.raises(NotSupportedError):
+            self.adapter.get_branch_protection(self.config.default_branch)
+        with pytest.raises(NotSupportedError):
+            self.adapter.set_branch_protection(self.config.default_branch)
+        with pytest.raises(NotSupportedError):
+            self.adapter.remove_branch_protection(self.config.default_branch)
+
+    # --- secret (非対応) ---
+
+    def test_40_secret_not_supported(self) -> None:
+        """Backlog は secret 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_secrets()
+        with pytest.raises(NotSupportedError):
+            self.adapter.set_secret("test", "value")
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_secret("test")
+
+    # --- variable (非対応) ---
+
+    def test_41_variable_not_supported(self) -> None:
+        """Backlog は variable 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_variables()
+        with pytest.raises(NotSupportedError):
+            self.adapter.set_variable("test", "value")
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_variable("test")

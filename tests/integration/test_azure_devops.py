@@ -582,3 +582,88 @@ class TestAzureDevOpsIntegration:
         if prs:
             refspec = self.adapter.get_pr_checkout_refspec(prs[0].number)
             assert isinstance(refspec, str)
+
+    # --- browse ---
+
+    def test_45_browse(self) -> None:
+        """get_web_url でリポジトリ URL を取得するテスト。"""
+        url = self.adapter.get_web_url()
+        assert isinstance(url, str)
+        assert len(url) > 0
+
+    # --- ssh-key (非対応) ---
+
+    def test_46_ssh_key_not_supported(self) -> None:
+        """Azure DevOps は SSH Key API 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_ssh_keys()
+        with pytest.raises(NotSupportedError):
+            self.adapter.create_ssh_key(title="test", key="ssh-ed25519 AAAA test")
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_ssh_key(key_id=1)
+
+    # --- org ---
+
+    def test_47_org_list(self) -> None:
+        """Organization (Project) 一覧テスト。"""
+        orgs = self.adapter.list_organizations()
+        assert isinstance(orgs, list)
+        assert len(orgs) > 0
+
+    def test_48_org_view(self) -> None:
+        """Organization (Project) 詳細取得テスト。"""
+        orgs = self.adapter.list_organizations(limit=1)
+        assert len(orgs) > 0
+        org = self.adapter.get_organization(orgs[0].name)
+        assert org.name == orgs[0].name
+
+    def test_49_org_members_not_supported(self) -> None:
+        """Azure DevOps は org members 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_org_members("test")
+
+    # --- notification (非対応) ---
+
+    def test_50_notification_not_supported(self) -> None:
+        """Azure DevOps は notification 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_notifications()
+        with pytest.raises(NotSupportedError):
+            self.adapter.mark_notification_read("1")
+        with pytest.raises(NotSupportedError):
+            self.adapter.mark_all_notifications_read()
+
+    # --- branch-protect (非対応) ---
+
+    def test_51_branch_protect_not_supported(self) -> None:
+        """Azure DevOps は branch protection 非対応（policy configurations を使用）。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_branch_protections()
+        with pytest.raises(NotSupportedError):
+            self.adapter.get_branch_protection(self.config.default_branch)
+        with pytest.raises(NotSupportedError):
+            self.adapter.set_branch_protection(self.config.default_branch)
+        with pytest.raises(NotSupportedError):
+            self.adapter.remove_branch_protection(self.config.default_branch)
+
+    # --- secret (非対応) ---
+
+    def test_52_secret_not_supported(self) -> None:
+        """Azure DevOps は secret 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_secrets()
+        with pytest.raises(NotSupportedError):
+            self.adapter.set_secret("test", "value")
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_secret("test")
+
+    # --- variable (非対応) ---
+
+    def test_53_variable_not_supported(self) -> None:
+        """Azure DevOps は variable 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_variables()
+        with pytest.raises(NotSupportedError):
+            self.adapter.set_variable("test", "value")
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_variable("test")

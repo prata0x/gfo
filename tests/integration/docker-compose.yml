@@ -1,6 +1,6 @@
 services:
   gitea:
-    image: gitea/gitea:1.22
+    image: gitea/gitea:1.25
     container_name: gfo-gitea
     environment:
       - GITEA__database__DB_TYPE=sqlite3
@@ -20,7 +20,7 @@ services:
       retries: 30
 
   forgejo:
-    image: codeberg.org/forgejo/forgejo:9
+    image: codeberg.org/forgejo/forgejo:14
     container_name: gfo-forgejo
     environment:
       - FORGEJO__database__DB_TYPE=sqlite3
@@ -40,7 +40,7 @@ services:
       retries: 30
 
   gogs:
-    image: gogs/gogs:0.13
+    image: gogs/gogs:0.14
     container_name: gfo-gogs
     ports:
       - "3002:3000"

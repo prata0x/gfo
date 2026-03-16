@@ -608,3 +608,79 @@ class TestGitBucketIntegration:
             self.adapter.list_wiki_pages()
         with pytest.raises(NotSupportedError):
             self.adapter.create_wiki_page(title="test", content="test")
+
+    # --- browse ---
+
+    def test_45_browse(self) -> None:
+        """get_web_url でリポジトリ URL を取得するテスト。"""
+        url = self.adapter.get_web_url()
+        assert isinstance(url, str)
+        assert len(url) > 0
+
+    # --- ssh-key (非対応) ---
+
+    def test_46_ssh_key_not_supported(self) -> None:
+        """GitBucket は SSH Key API 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_ssh_keys()
+        with pytest.raises(NotSupportedError):
+            self.adapter.create_ssh_key(title="test", key="ssh-ed25519 AAAA test")
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_ssh_key(key_id=1)
+
+    # --- org (非対応) ---
+
+    def test_47_org_not_supported(self) -> None:
+        """GitBucket は Organization API 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_organizations()
+        with pytest.raises(NotSupportedError):
+            self.adapter.get_organization("test")
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_org_members("test")
+
+    # --- notification (非対応) ---
+
+    def test_48_notification_not_supported(self) -> None:
+        """GitBucket は notification 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_notifications()
+        with pytest.raises(NotSupportedError):
+            self.adapter.mark_notification_read("1")
+        with pytest.raises(NotSupportedError):
+            self.adapter.mark_all_notifications_read()
+
+    # --- branch-protect (非対応) ---
+
+    def test_49_branch_protect_not_supported(self) -> None:
+        """GitBucket は branch protection 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_branch_protections()
+        with pytest.raises(NotSupportedError):
+            self.adapter.get_branch_protection(self.config.default_branch)
+        with pytest.raises(NotSupportedError):
+            self.adapter.set_branch_protection(self.config.default_branch)
+        with pytest.raises(NotSupportedError):
+            self.adapter.remove_branch_protection(self.config.default_branch)
+
+    # --- secret (非対応) ---
+
+    def test_50_secret_not_supported(self) -> None:
+        """GitBucket は secret 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_secrets()
+        with pytest.raises(NotSupportedError):
+            self.adapter.set_secret("test", "value")
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_secret("test")
+
+    # --- variable (非対応) ---
+
+    def test_51_variable_not_supported(self) -> None:
+        """GitBucket は variable 非対応。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_variables()
+        with pytest.raises(NotSupportedError):
+            self.adapter.set_variable("test", "value")
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_variable("test")

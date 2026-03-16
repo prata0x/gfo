@@ -695,3 +695,95 @@ class TestGiteaIntegration:
         self._sync_wiki_master()
         pages_after = self.adapter.list_wiki_pages()
         assert not any(p.title == "gfo-test-wiki" for p in pages_after)
+
+    # --- browse (get_web_url) ---
+
+    def test_46_browse(self) -> None:
+        """リポジトリの Web URL を取得するテスト。"""
+        url = self.adapter.get_web_url()
+        assert isinstance(url, str)
+        assert len(url) > 0
+
+    # --- ssh-key CRUD ---
+
+    def test_47_ssh_key_crud(self) -> None:
+        """SSH キーの作成・一覧・削除テスト。"""
+        from tests.integration.conftest import TEST_SSH_PUBLIC_KEY
+
+        # 残留キーを削除する
+        try:
+            for k in self.adapter.list_ssh_keys():
+                if k.title == "gfo-test-ssh-key":
+                    self.adapter.delete_ssh_key(key_id=k.id)
+        except Exception:
+            pass
+        key = self.adapter.create_ssh_key(
+            title="gfo-test-ssh-key",
+            key=TEST_SSH_PUBLIC_KEY,
+        )
+        assert key.title == "gfo-test-ssh-key"
+        keys = self.adapter.list_ssh_keys()
+        assert any(k.id == key.id for k in keys)
+        self.adapter.delete_ssh_key(key_id=key.id)
+        keys_after = self.adapter.list_ssh_keys()
+        assert not any(k.id == key.id for k in keys_after)
+
+    # --- org (list_organizations) ---
+
+    def test_48_list_organizations(self) -> None:
+        """組織一覧を取得するテスト。"""
+        orgs = self.adapter.list_organizations()
+        assert isinstance(orgs, list)
+
+    # --- notification (list_notifications) ---
+
+    def test_49_list_notifications(self) -> None:
+        """通知一覧を取得するテスト。"""
+        notifications = self.adapter.list_notifications()
+        assert isinstance(notifications, list)
+
+    # --- branch-protect (list_branch_protections) ---
+
+    def test_50_list_branch_protections(self) -> None:
+        """ブランチ保護ルール一覧を取得するテスト。"""
+        protections = self.adapter.list_branch_protections()
+        assert isinstance(protections, list)
+
+    # --- secret CRUD ---
+
+    def test_51_secret_crud(self) -> None:
+        """シークレットの設定・一覧・削除テスト。"""
+        # 残留シークレットを削除する
+        try:
+            self.adapter.delete_secret("GFO_TEST_SECRET")
+        except Exception:
+            pass
+        secret = self.adapter.set_secret("GFO_TEST_SECRET", "secret-value")
+        assert secret.name == "GFO_TEST_SECRET"
+        secrets = self.adapter.list_secrets()
+        assert any(s.name == "GFO_TEST_SECRET" for s in secrets)
+        self.adapter.delete_secret("GFO_TEST_SECRET")
+        secrets_after = self.adapter.list_secrets()
+        assert not any(s.name == "GFO_TEST_SECRET" for s in secrets_after)
+
+    # --- variable CRUD ---
+
+    def test_52_variable_crud(self) -> None:
+        """変数の設定・取得・一覧・削除テスト。"""
+        # 残留変数を削除する
+        try:
+            self.adapter.delete_variable("GFO_TEST_VAR")
+        except Exception:
+            pass
+        try:
+            var = self.adapter.set_variable("GFO_TEST_VAR", "test-value")
+        except Exception:
+            pytest.skip("Actions Variables API not available on this Gitea version")
+        assert var.name == "GFO_TEST_VAR"
+        got = self.adapter.get_variable("GFO_TEST_VAR")
+        assert got.value == "test-value"
+        variables = self.adapter.list_variables()
+        assert any(v.name == "GFO_TEST_VAR" for v in variables)
+        self.adapter.delete_variable("GFO_TEST_VAR")
+        variables_after = self.adapter.list_variables()
+        assert not any(v.name == "GFO_TEST_VAR" for v in variables_after)

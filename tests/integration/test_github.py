@@ -657,3 +657,97 @@ class TestGitHubIntegration:
             self.adapter.list_wiki_pages()
         with pytest.raises(NotSupportedError):
             self.adapter.create_wiki_page(title="test", content="test")
+
+    # --- browse ---
+
+    def test_45_browse(self) -> None:
+        """get_web_url で Web URL を取得するテスト（--print モード相当）。"""
+        url = self.adapter.get_web_url()
+        assert isinstance(url, str)
+        assert len(url) > 0
+        assert "github.com" in url
+
+    # --- ssh-key CRUD ---
+
+    def test_46_ssh_key_crud(self) -> None:
+        """SSH キーの作成・一覧・削除テスト。"""
+        dummy_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7FG8aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa gfo-test"
+        # 残留キーをクリーンアップ
+        try:
+            for k in self.adapter.list_ssh_keys():
+                if k.title == "gfo-test-ssh-key":
+                    self.adapter.delete_ssh_key(key_id=k.id)
+        except Exception:
+            pass
+        key = self.adapter.create_ssh_key(title="gfo-test-ssh-key", key=dummy_key)
+        assert key.title == "gfo-test-ssh-key"
+        keys = self.adapter.list_ssh_keys()
+        assert any(k.id == key.id for k in keys)
+        self.adapter.delete_ssh_key(key_id=key.id)
+        keys_after = self.adapter.list_ssh_keys()
+        assert not any(k.id == key.id for k in keys_after)
+
+    # --- org ---
+
+    def test_47_org_list(self) -> None:
+        """Organization 一覧取得テスト。"""
+        orgs = self.adapter.list_organizations()
+        assert isinstance(orgs, list)
+
+    # --- notification ---
+
+    def test_48_notification_list(self) -> None:
+        """通知一覧取得テスト。classic token が必要な場合があるため try/except でスキップ。"""
+        try:
+            notifications = self.adapter.list_notifications(limit=5)
+            assert isinstance(notifications, list)
+        except Exception:
+            pytest.skip("Notification API requires classic token with notifications scope")
+
+    # --- branch-protect ---
+
+    def test_49_branch_protect_list(self) -> None:
+        """ブランチ保護の一覧取得テスト。空リストでも OK。"""
+        protections = self.adapter.list_branch_protections()
+        assert isinstance(protections, list)
+
+    # --- secret ---
+
+    def test_50_secret_crud(self) -> None:
+        """Secret の set → list → delete テスト。PyNaCl が必要なためスキップ可能。"""
+        try:
+            from nacl import public  # noqa: F401
+        except ImportError:
+            pytest.skip("PyNaCl is required for GitHub secret encryption")
+        # クリーンアップ
+        try:
+            self.adapter.delete_secret("GFO_TEST_SECRET")
+        except Exception:
+            pass
+        secret = self.adapter.set_secret("GFO_TEST_SECRET", "test-value")
+        assert secret.name == "GFO_TEST_SECRET"
+        secrets = self.adapter.list_secrets()
+        assert any(s.name == "GFO_TEST_SECRET" for s in secrets)
+        self.adapter.delete_secret("GFO_TEST_SECRET")
+        secrets_after = self.adapter.list_secrets()
+        assert not any(s.name == "GFO_TEST_SECRET" for s in secrets_after)
+
+    # --- variable ---
+
+    def test_51_variable_crud(self) -> None:
+        """Variable の set → get → list → delete テスト。"""
+        # クリーンアップ
+        try:
+            self.adapter.delete_variable("GFO_TEST_VAR")
+        except Exception:
+            pass
+        var = self.adapter.set_variable("GFO_TEST_VAR", "test-value")
+        assert var.name == "GFO_TEST_VAR"
+        got = self.adapter.get_variable("GFO_TEST_VAR")
+        assert got.name == "GFO_TEST_VAR"
+        assert got.value == "test-value"
+        variables = self.adapter.list_variables()
+        assert any(v.name == "GFO_TEST_VAR" for v in variables)
+        self.adapter.delete_variable("GFO_TEST_VAR")
+        variables_after = self.adapter.list_variables()
+        assert not any(v.name == "GFO_TEST_VAR" for v in variables_after)

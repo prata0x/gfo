@@ -405,3 +405,78 @@ class TestGogsIntegration:
             self.adapter.delete_wiki_page("gfo-test-wiki")
         except NotSupportedError:
             pytest.skip("wiki operations not supported by this Gogs instance")
+
+    # --- browse (get_web_url) ---
+
+    def test_31_browse(self) -> None:
+        """リポジトリの Web URL を取得するテスト。"""
+        url = self.adapter.get_web_url()
+        assert isinstance(url, str)
+        assert len(url) > 0
+
+    # --- ssh-key CRUD ---
+
+    def test_32_ssh_key_crud(self) -> None:
+        """SSH キーの作成・一覧・削除テスト。"""
+        # 残留キーを削除する
+        try:
+            for k in self.adapter.list_ssh_keys():
+                if k.title == "gfo-test-ssh-key":
+                    self.adapter.delete_ssh_key(key_id=k.id)
+        except Exception:
+            pass
+        key = self.adapter.create_ssh_key(
+            title="gfo-test-ssh-key",
+            key=TEST_SSH_PUBLIC_KEY,
+        )
+        assert key.title == "gfo-test-ssh-key"
+        keys = self.adapter.list_ssh_keys()
+        assert any(k.id == key.id for k in keys)
+        self.adapter.delete_ssh_key(key_id=key.id)
+        keys_after = self.adapter.list_ssh_keys()
+        assert not any(k.id == key.id for k in keys_after)
+
+    # --- org (list_organizations) ---
+
+    def test_33_list_organizations(self) -> None:
+        """組織一覧を取得するテスト。"""
+        orgs = self.adapter.list_organizations()
+        assert isinstance(orgs, list)
+
+    # --- notification (非対応 → NotSupportedError) ---
+
+    def test_34_notification_not_supported(self) -> None:
+        """Gogs は通知一覧非対応のため NotSupportedError。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_notifications()
+
+    # --- branch-protect (非対応 → NotSupportedError) ---
+
+    def test_35_branch_protect_not_supported(self) -> None:
+        """Gogs はブランチ保護ルール一覧非対応のため NotSupportedError。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_branch_protections()
+
+    # --- secret (非対応 → NotSupportedError) ---
+
+    def test_36_secret_not_supported(self) -> None:
+        """Gogs はシークレット非対応のため NotSupportedError。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_secrets()
+        with pytest.raises(NotSupportedError):
+            self.adapter.set_secret("TEST", "value")
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_secret("TEST")
+
+    # --- variable (非対応 → NotSupportedError) ---
+
+    def test_37_variable_not_supported(self) -> None:
+        """Gogs は変数非対応のため NotSupportedError。"""
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_variables()
+        with pytest.raises(NotSupportedError):
+            self.adapter.set_variable("TEST", "value")
+        with pytest.raises(NotSupportedError):
+            self.adapter.get_variable("TEST")
+        with pytest.raises(NotSupportedError):
+            self.adapter.delete_variable("TEST")
