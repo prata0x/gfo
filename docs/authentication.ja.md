@@ -126,8 +126,17 @@ gfo auth login --host github.com
 2. 左メニュー **Access Tokens** → **Add new token** をクリック
 3. Token name、Expiration date を設定
 4. スコープを選択:
-   - 読み取りのみ: `read_api`
-   - 書き込みを含む操作（PR 作成・Issue 作成など）: `api`
+
+   | スコープ | 用途 |
+   |----------|------|
+   | `api` | 全 gfo コマンド（読み書き両方） |
+   | `read_api` | 読み取り専用（`gfo repo`、`gfo pr`、`gfo issue` の一覧・詳細のみ） |
+   | `read_repository` | `gfo repo`（リポジトリのクローン・ファイル読み取り） |
+   | `write_repository` | `gfo repo`（ファイル作成・更新・プッシュ） |
+   | `read_user` | 認証ユーザー情報の取得 |
+
+   > **推奨**: 書き込み操作（PR 作成・Issue 作成など）を行う場合は `api` スコープを選択してください。`api` は他のすべてのスコープを包含します。
+
 5. **Create personal access token** をクリック
 
 ```bash
@@ -245,7 +254,22 @@ gfo auth login --host yourspace.backlog.com
 
 1. Gitea にログインし、右上のアイコン → **Settings** を開く
 2. 左メニュー **Applications** → **Manage Access Tokens** に進む
-3. **Token Name** を入力し、必要なスコープを選択
+3. **Token Name** を入力し、必要なスコープを選択:
+
+   | スコープ | 用途 |
+   |----------|------|
+   | `read:repository` | `gfo repo`（リポジトリ一覧・詳細・ファイル読み取り） |
+   | `write:repository` | `gfo repo`（ファイル作成・更新）、`gfo pr`、`gfo release`、`gfo branch-protect` |
+   | `read:issue` | `gfo issue`（一覧・詳細）、`gfo label`、`gfo milestone` |
+   | `write:issue` | `gfo issue`（作成・更新・削除）、`gfo label`、`gfo milestone` |
+   | `read:organization` | `gfo org`（組織一覧・詳細・メンバー） |
+   | `read:user` | 認証ユーザー情報の取得 |
+   | `write:user` | `gfo ssh-key`（SSH 鍵管理） |
+   | `read:notification` | `gfo notification`（通知一覧） |
+   | `write:notification` | `gfo notification`（既読マーク） |
+
+   > **注意**: `write` は `read` を含みます。書き込みスコープを付与すれば、対応する読み取りスコープは不要です。
+
 4. **Generate Token** をクリック
 
 ```bash
@@ -256,11 +280,25 @@ gfo auth login --host gitea.example.com
 
 ### Forgejo
 
-Gitea と同じ手順です。
+Gitea と同じ手順・スコープ体系です。
 
 1. Forgejo にログインし、右上のアイコン → **Settings** を開く
 2. **Applications** → **Manage Access Tokens** に進む
-3. Token Name を入力し、スコープを選択して **Generate Token** をクリック
+3. Token Name を入力し、必要なスコープを選択:
+
+   | スコープ | 用途 |
+   |----------|------|
+   | `read:repository` | `gfo repo`（リポジトリ一覧・詳細・ファイル読み取り） |
+   | `write:repository` | `gfo repo`（ファイル作成・更新）、`gfo pr`、`gfo release`、`gfo branch-protect` |
+   | `read:issue` | `gfo issue`（一覧・詳細）、`gfo label`、`gfo milestone` |
+   | `write:issue` | `gfo issue`（作成・更新・削除）、`gfo label`、`gfo milestone` |
+   | `read:organization` | `gfo org`（組織一覧・詳細・メンバー） |
+   | `read:user` | 認証ユーザー情報の取得 |
+   | `write:user` | `gfo ssh-key`（SSH 鍵管理） |
+   | `read:notification` | `gfo notification`（通知一覧） |
+   | `write:notification` | `gfo notification`（既読マーク） |
+
+4. **Generate Token** をクリック
 
 ```bash
 gfo auth login --host forgejo.example.com
@@ -276,11 +314,12 @@ gfo auth login --host forgejo.example.com
 2. 左メニュー **Applications** → **Generate New Token** をクリック
 3. Token Name を入力し **Generate Token** をクリック
 
+> トークンにスコープ制御はなく、アカウントの全権限が付与されます。
+> Gogs は PR・ラベル・マイルストーン・リリース API を未サポートです。
+
 ```bash
 gfo auth login --host gogs.example.com
 ```
-
-> Gogs は PR・ラベル・マイルストーン・リリース API を未サポートです。
 
 ---
 
@@ -290,6 +329,7 @@ gfo auth login --host gogs.example.com
 2. **Personal access token** → **Generate new token** をクリック
 3. Note を入力し **Generate** をクリック
 
+> トークンにスコープ制御はなく、アカウントの全権限が付与されます。
 > トークンは Web UI からのみ発行可能です（API 経由での発行は非対応）。
 
 ```bash

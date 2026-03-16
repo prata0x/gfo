@@ -126,8 +126,17 @@ gfo auth login --host github.com
 2. In the left menu, click **Access Tokens** → **Add new token**
 3. Set Token name and Expiration date
 4. Select scopes:
-   - Read-only: `read_api`
-   - For write operations (creating PRs, issues, etc.): `api`
+
+   | Scope | Purpose |
+   |-------|---------|
+   | `api` | All gfo commands (read and write) |
+   | `read_api` | Read-only (`gfo repo`, `gfo pr`, `gfo issue` list/details only) |
+   | `read_repository` | `gfo repo` (clone, read files) |
+   | `write_repository` | `gfo repo` (create/update files, push) |
+   | `read_user` | Get authenticated user info |
+
+   > **Recommended**: Select the `api` scope if you need write operations (creating PRs, issues, etc.). `api` includes all other scopes.
+
 5. Click **Create personal access token**
 
 ```bash
@@ -245,7 +254,22 @@ gfo auth login --host yourspace.backlog.com
 
 1. Log in to Gitea, click your avatar in the top-right → **Settings**
 2. Go to **Applications** → **Manage Access Tokens** in the left menu
-3. Enter a **Token Name** and select the required scopes
+3. Enter a **Token Name** and select the required scopes:
+
+   | Scope | Purpose |
+   |-------|---------|
+   | `read:repository` | `gfo repo` (list, details, read files) |
+   | `write:repository` | `gfo repo` (create/update files), `gfo pr`, `gfo release`, `gfo branch-protect` |
+   | `read:issue` | `gfo issue` (list, details), `gfo label`, `gfo milestone` |
+   | `write:issue` | `gfo issue` (create, update, delete), `gfo label`, `gfo milestone` |
+   | `read:organization` | `gfo org` (list, details, members) |
+   | `read:user` | Get authenticated user info |
+   | `write:user` | `gfo ssh-key` (SSH key management) |
+   | `read:notification` | `gfo notification` (list) |
+   | `write:notification` | `gfo notification` (mark as read) |
+
+   > **Note**: `write` includes `read`. If you grant a write scope, the corresponding read scope is not needed.
+
 4. Click **Generate Token**
 
 ```bash
@@ -256,11 +280,25 @@ gfo auth login --host gitea.example.com
 
 ### Forgejo
 
-Same steps as Gitea.
+Same steps and scope system as Gitea.
 
 1. Log in to Forgejo, click your avatar in the top-right → **Settings**
 2. Go to **Applications** → **Manage Access Tokens**
-3. Enter a Token Name, select scopes, and click **Generate Token**
+3. Enter a Token Name and select the required scopes:
+
+   | Scope | Purpose |
+   |-------|---------|
+   | `read:repository` | `gfo repo` (list, details, read files) |
+   | `write:repository` | `gfo repo` (create/update files), `gfo pr`, `gfo release`, `gfo branch-protect` |
+   | `read:issue` | `gfo issue` (list, details), `gfo label`, `gfo milestone` |
+   | `write:issue` | `gfo issue` (create, update, delete), `gfo label`, `gfo milestone` |
+   | `read:organization` | `gfo org` (list, details, members) |
+   | `read:user` | Get authenticated user info |
+   | `write:user` | `gfo ssh-key` (SSH key management) |
+   | `read:notification` | `gfo notification` (list) |
+   | `write:notification` | `gfo notification` (mark as read) |
+
+4. Click **Generate Token**
 
 ```bash
 gfo auth login --host forgejo.example.com
@@ -276,11 +314,12 @@ gfo auth login --host forgejo.example.com
 2. Go to **Applications** → **Generate New Token** in the left menu
 3. Enter a Token Name and click **Generate Token**
 
+> Tokens have no scope control — full account permissions are granted.
+> Gogs does not support PR, label, milestone, or release APIs.
+
 ```bash
 gfo auth login --host gogs.example.com
 ```
-
-> Gogs does not support PR, label, milestone, or release APIs.
 
 ---
 
@@ -290,6 +329,7 @@ gfo auth login --host gogs.example.com
 2. Go to **Personal access token** → **Generate new token**
 3. Enter a Note and click **Generate**
 
+> Tokens have no scope control — full account permissions are granted.
 > Tokens can only be issued from the Web UI (API-based issuance is not supported).
 
 ```bash
