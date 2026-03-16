@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 import pytest
 
 from gfo.exceptions import GfoError, NotSupportedError
@@ -779,6 +781,7 @@ class TestGitHubIntegration:
             pass
         secret = self.adapter.set_secret("GFO_TEST_SECRET", "test-value")
         assert secret.name == "GFO_TEST_SECRET"
+        time.sleep(3)  # GitHub Actions secrets API の反映ラグ対策
         secrets = self.adapter.list_secrets()
         assert any(s.name == "GFO_TEST_SECRET" for s in secrets)
         self.adapter.delete_secret("GFO_TEST_SECRET")
@@ -796,11 +799,13 @@ class TestGitHubIntegration:
             pass
         var = self.adapter.set_variable("GFO_TEST_VAR", "test-value")
         assert var.name == "GFO_TEST_VAR"
+        time.sleep(3)  # GitHub Actions variables API の反映ラグ対策
         got = self.adapter.get_variable("GFO_TEST_VAR")
         assert got.name == "GFO_TEST_VAR"
         assert got.value == "test-value"
         variables = self.adapter.list_variables()
         assert any(v.name == "GFO_TEST_VAR" for v in variables)
         self.adapter.delete_variable("GFO_TEST_VAR")
+        time.sleep(3)
         variables_after = self.adapter.list_variables()
         assert not any(v.name == "GFO_TEST_VAR" for v in variables_after)
