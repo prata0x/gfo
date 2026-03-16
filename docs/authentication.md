@@ -143,8 +143,8 @@ gfo auth login --host gitlab.example.com
    - **Repositories**: `Admin` (if using `gfo branch-protect`)
    - **Pull requests**: `Read` / `Write` (note: `write` does not include `read`, so both are required)
    - **Issues**: `Read` / `Write` (if using Issue Tracker)
-   - **Pipelines**: `Read` / `Write` (if using `gfo secret` / `gfo variable`)
-   - **Account**: `Read` / `Write` (if using `gfo ssh-key`)
+   - **Pipelines**: `Read` / `Write` / `Admin` (if using `gfo secret` / `gfo variable`)
+   - **SSH keys**: `Read` / `Write` / `Delete` (if using `gfo ssh-key`)
    - **Workspace membership**: `Read` (if using `gfo org`)
 5. Click **Create** and copy the token
 

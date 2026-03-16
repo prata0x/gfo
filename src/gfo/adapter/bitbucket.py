@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
-from gfo.exceptions import GfoError, NotSupportedError
+from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 from gfo.http import paginate_response_body
 
 from .base import (
@@ -795,16 +795,28 @@ class BitbucketAdapter(GitServiceAdapter):
         return [Secret(name=d["key"], created_at="", updated_at="") for d in secured]
 
     def set_secret(self, name: str, value: str) -> Secret:
-        self._client.post(
+        resp = self._client.post(
             f"{self._repos_path()}/pipelines_config/variables/",
             json={"key": name, "value": value, "secured": True},
         )
-        return Secret(name=name, created_at="", updated_at="")
+        data = resp.json()
+        return Secret(name=data.get("key", name), created_at="", updated_at="")
 
     def delete_secret(self, name: str) -> None:
-        self._client.delete(
-            f"{self._repos_path()}/pipelines_config/variables/{quote(name, safe='')}"
+        uuid = self._find_pipeline_variable_uuid(name)
+        self._client.delete(f"{self._repos_path()}/pipelines_config/variables/{uuid}")
+
+    def _find_pipeline_variable_uuid(self, name: str) -> str:
+        """パイプライン変数の名前から UUID を検索する。"""
+        results = paginate_response_body(
+            self._client,
+            f"{self._repos_path()}/pipelines_config/variables/",
+            limit=100,
         )
+        for d in results:
+            if d.get("key") == name:
+                return str(d["uuid"])
+        raise NotFoundError(name)
 
     # --- Variable (Pipelines unsecured variables) ---
 
@@ -821,25 +833,26 @@ class BitbucketAdapter(GitServiceAdapter):
         ]
 
     def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
-        self._client.post(
+        resp = self._client.post(
             f"{self._repos_path()}/pipelines_config/variables/",
             json={"key": name, "value": value, "secured": False},
         )
-        return Variable(name=name, value=value, created_at="", updated_at="")
+        data = resp.json()
+        return Variable(
+            name=data.get("key", name), value=data.get("value", value), created_at="", updated_at=""
+        )
 
     def get_variable(self, name: str) -> Variable:
-        resp = self._client.get(
-            f"{self._repos_path()}/pipelines_config/variables/{quote(name, safe='')}"
-        )
+        uuid = self._find_pipeline_variable_uuid(name)
+        resp = self._client.get(f"{self._repos_path()}/pipelines_config/variables/{uuid}")
         data = resp.json()
         return Variable(
             name=data["key"], value=data.get("value") or "", created_at="", updated_at=""
         )
 
     def delete_variable(self, name: str) -> None:
-        self._client.delete(
-            f"{self._repos_path()}/pipelines_config/variables/{quote(name, safe='')}"
-        )
+        uuid = self._find_pipeline_variable_uuid(name)
+        self._client.delete(f"{self._repos_path()}/pipelines_config/variables/{uuid}")
 
     # --- BranchProtection (branch-restrictions) ---
 

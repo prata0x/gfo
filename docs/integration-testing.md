@@ -197,6 +197,8 @@ Bitbucket does not support **release / label / milestone** via API, so those tes
 2. Create the `gfo-test-branch` branch using Step 2 above
 
 > **Enable Issue Tracker**: Repository settings > Features > Issue tracker (required for Issue tests).
+>
+> **Enable Pipelines**: Repository settings > Pipelines > Settings > Enable Pipelines (required for `gfo secret` / `gfo variable` tests).
 
 #### Get Scoped API Token
 
@@ -220,15 +222,14 @@ Bitbucket Cloud uses **Scoped API Tokens** (App Passwords are fully deprecated i
    | `read:webhook:bitbucket` | List webhooks |
    | `write:webhook:bitbucket` | Create and update webhooks |
    | `delete:webhook:bitbucket` | Delete webhooks |
-   | `read:ssh-key:bitbucket` | List deploy keys |
-   | `write:ssh-key:bitbucket` | Create and update deploy keys |
-   | `delete:ssh-key:bitbucket` | Delete deploy keys |
+   | `read:ssh-key:bitbucket` | List SSH keys and deploy keys |
+   | `write:ssh-key:bitbucket` | Create and update SSH keys and deploy keys |
+   | `delete:ssh-key:bitbucket` | Delete SSH keys and deploy keys |
    | `read:user:bitbucket` | Required for `get_current_user` |
-   | `read:account:bitbucket` | Required for `ssh-key list` |
-   | `write:account:bitbucket` | Required for `ssh-key create` |
    | `read:workspace:bitbucket` | Required for `org list/view` |
    | `read:pipeline:bitbucket` | Required for `secret/variable list` |
    | `write:pipeline:bitbucket` | Required for `secret/variable set` |
+   | `admin:pipeline:bitbucket` | Required for `secret/variable` create/delete |
 
    > **Note**: `write:repository:bitbucket` is not required by gfo itself. It is needed to commit a marker file (via Bitbucket Src API) before test runs, since after a PR merge the `gfo-test-branch` and `main` will have no diff.
 5. Create and copy the token

@@ -683,7 +683,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             from gfo.exceptions import GfoError
 
             raise GfoError("PyNaCl is required for GitHub Secret encryption: pip install PyNaCl")
-        key = public.PublicKey(public_key.encode(), encoding.Base64Encoder())
+        key = public.PublicKey(public_key.encode(), encoding.Base64Encoder)
         sealed_box = public.SealedBox(key)
         encrypted = sealed_box.encrypt(secret_value.encode())
         return str(encoding.Base64Encoder().encode(encrypted).decode())
