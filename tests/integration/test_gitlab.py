@@ -645,16 +645,16 @@ class TestGitLabIntegration:
             "gfo-test-file.txt", ref=self.config.test_branch
         )
         assert content == "hello gfo"
-        self.adapter.create_or_update_file(
+        commit_sha = self.adapter.create_or_update_file(
             "gfo-test-file.txt",
             content="updated gfo",
             message="test: update gfo-test-file.txt",
             sha=sha,
             branch=self.config.test_branch,
         )
-        content2, sha2 = self.adapter.get_file_content(
-            "gfo-test-file.txt", ref=self.config.test_branch
-        )
+        # commit SHA で参照することでブランチキャッシュ遅延を回避する
+        ref = commit_sha if commit_sha else self.config.test_branch
+        content2, sha2 = self.adapter.get_file_content("gfo-test-file.txt", ref=ref)
         assert content2 == "updated gfo"
         self.adapter.delete_file(
             "gfo-test-file.txt",
