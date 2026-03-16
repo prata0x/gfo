@@ -138,14 +138,26 @@ gfo auth login --host gitlab.example.com
 1. Log in to Bitbucket, click your avatar in the top-right → **Settings**
 2. Under **Personal Bitbucket settings**, go to **Scoped API tokens** → **Create token**
 3. Set Token label
-4. Grant required permissions:
-   - **Repositories**: `Read` / `Write`
-   - **Repositories**: `Admin` (if using `gfo branch-protect`)
-   - **Pull requests**: `Read` / `Write` (note: `write` does not include `read`, so both are required)
-   - **Issues**: `Read` / `Write` (if using Issue Tracker)
-   - **Pipelines**: `Read` / `Write` / `Admin` (if using `gfo secret` / `gfo variable`)
-   - **SSH keys**: `Read` / `Write` / `Delete` (if using `gfo ssh-key`)
-   - **Workspace membership**: `Read` (if using `gfo org`)
+4. Select required scopes:
+   | Scope | Purpose |
+   |---------|------|
+   | `read:repository:bitbucket` | Read repository info, list repositories |
+   | `write:repository:bitbucket` | File operations |
+   | `admin:repository:bitbucket` | If using `gfo branch-protect` |
+   | `read:pullrequest:bitbucket` | List and get PRs |
+   | `write:pullrequest:bitbucket` | Create, merge, close PRs |
+   | `read:issue:bitbucket` | List and get issues (if using Issue Tracker) |
+   | `write:issue:bitbucket` | Create issues, change state (if using Issue Tracker) |
+   | `read:pipeline:bitbucket` | List `gfo secret` / `gfo variable` |
+   | `write:pipeline:bitbucket` | Update `gfo secret` / `gfo variable` |
+   | `admin:pipeline:bitbucket` | Create/delete `gfo secret` / `gfo variable` |
+   | `read:ssh-key:bitbucket` | List SSH keys (if using `gfo ssh-key`) |
+   | `write:ssh-key:bitbucket` | Create/update SSH keys (if using `gfo ssh-key`) |
+   | `delete:ssh-key:bitbucket` | Delete SSH keys (if using `gfo ssh-key`) |
+   | `read:workspace:bitbucket` | If using `gfo org` |
+   | `read:user:bitbucket` | Get authenticated user info |
+
+   > **Note**: `write` does not include `read`. Select both scopes when both read and write access are needed.
 5. Click **Create** and copy the token
 
 **Token format**: Set as `email:token` separated by a colon.

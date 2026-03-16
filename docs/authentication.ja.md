@@ -138,14 +138,26 @@ gfo auth login --host gitlab.example.com
 1. Bitbucket にログインし、右上のアイコン → **Settings** を開く
 2. 左メニュー **Personal Bitbucket settings** の **Scoped API tokens** → **Create token** をクリック
 3. Token label を設定
-4. 必要な権限を付与:
-   - **Repositories**: `Read` / `Write`
-   - **Repositories**: `Admin`（`gfo branch-protect` を使う場合）
-   - **Pull requests**: `Read` / `Write`（注: `write` は `read` を含まないので両方必要）
-   - **Issues**: `Read` / `Write`（Issue Tracker 使用時）
-   - **Pipelines**: `Read` / `Write` / `Admin`（`gfo secret` / `gfo variable` を使う場合）
-   - **SSH keys**: `Read` / `Write` / `Delete`（`gfo ssh-key` を使う場合）
-   - **Workspace membership**: `Read`（`gfo org` を使う場合）
+4. 必要なスコープを選択:
+   | スコープ | 用途 |
+   |---------|------|
+   | `read:repository:bitbucket` | リポジトリ情報の読み取り・一覧 |
+   | `write:repository:bitbucket` | ファイル操作 |
+   | `admin:repository:bitbucket` | `gfo branch-protect` を使う場合 |
+   | `read:pullrequest:bitbucket` | PR 一覧・取得 |
+   | `write:pullrequest:bitbucket` | PR 作成・マージ・クローズ |
+   | `read:issue:bitbucket` | Issue 一覧・取得（Issue Tracker 使用時） |
+   | `write:issue:bitbucket` | Issue 作成・状態変更（Issue Tracker 使用時） |
+   | `read:pipeline:bitbucket` | `gfo secret` / `gfo variable` の一覧 |
+   | `write:pipeline:bitbucket` | `gfo secret` / `gfo variable` の更新 |
+   | `admin:pipeline:bitbucket` | `gfo secret` / `gfo variable` の作成・削除 |
+   | `read:ssh-key:bitbucket` | SSH 鍵一覧（`gfo ssh-key` を使う場合） |
+   | `write:ssh-key:bitbucket` | SSH 鍵作成・更新（`gfo ssh-key` を使う場合） |
+   | `delete:ssh-key:bitbucket` | SSH 鍵削除（`gfo ssh-key` を使う場合） |
+   | `read:workspace:bitbucket` | `gfo org` を使う場合 |
+   | `read:user:bitbucket` | 認証ユーザー情報の取得 |
+
+   > **注意**: `write` は `read` を含まないので、読み取りと書き込みの両方が必要な場合は両方のスコープを選択すること。
 5. **Create** をクリックしてトークンをコピー
 
 **トークン形式**: `メールアドレス:トークン` のコロン区切りで設定します。
