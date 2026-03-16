@@ -23,6 +23,7 @@ from .base import (
     Release,
     Repository,
     Review,
+    SshKey,
     Tag,
     Webhook,
     WikiPage,
@@ -608,6 +609,35 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/user")
         return dict(resp.json())
+
+    # --- SSH Key ---
+
+    def list_ssh_keys(self, *, limit: int = 30) -> list[SshKey]:
+        results = paginate_link_header(
+            self._client, "/user/keys", limit=limit, per_page_key="limit"
+        )
+        return [self._to_ssh_key(d) for d in results]
+
+    def create_ssh_key(self, *, title: str, key: str) -> SshKey:
+        resp = self._client.post("/user/keys", json={"title": title, "key": key})
+        return self._to_ssh_key(resp.json())
+
+    def delete_ssh_key(self, *, key_id: int | str) -> None:
+        self._client.delete(f"/user/keys/{key_id}")
+
+    @staticmethod
+    def _to_ssh_key(data: dict) -> SshKey:
+        from gfo.exceptions import GfoError
+
+        try:
+            return SshKey(
+                id=data["id"],
+                title=data.get("title") or "",
+                key=data.get("key") or "",
+                created_at=data.get("created_at") or "",
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- Browse ---
 

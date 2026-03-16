@@ -152,6 +152,14 @@ class Pipeline:
     created_at: str
 
 
+@dataclass(frozen=True, slots=True)
+class SshKey:
+    id: int | str  # GitHub/GitLab/Gitea 系は int、Bitbucket は UUID 文字列
+    title: str
+    key: str
+    created_at: str
+
+
 class GitHubLikeAdapter(ABC):
     """GitHub API 互換サービス（GitHub/Gitea 系）向け共通変換ヘルパー。
 
@@ -659,6 +667,16 @@ class GitServiceAdapter(ABC):
 
     def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
         raise NotSupportedError(self.service_name, "search issues")
+
+    # --- SSH Key ---
+    def list_ssh_keys(self, *, limit: int = 30) -> list[SshKey]:
+        raise NotSupportedError(self.service_name, "ssh-key list")
+
+    def create_ssh_key(self, *, title: str, key: str) -> SshKey:
+        raise NotSupportedError(self.service_name, "ssh-key create")
+
+    def delete_ssh_key(self, *, key_id: int | str) -> None:
+        raise NotSupportedError(self.service_name, "ssh-key delete")
 
     # --- Browse ---
     def get_web_url(self, resource: str = "repo", number: int | None = None) -> str:

@@ -21,6 +21,7 @@ from .base import (
     Release,
     Repository,
     Review,
+    SshKey,
     Tag,
     Webhook,
 )
@@ -777,6 +778,43 @@ class BitbucketAdapter(GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/user")
         return dict(resp.json())
+
+    # --- SSH Key ---
+
+    def list_ssh_keys(self, *, limit: int = 30) -> list[SshKey]:
+        results = paginate_response_body(
+            self._client,
+            f"/users/{quote(self._owner, safe='')}/ssh-keys",
+            limit=limit,
+        )
+        return [self._to_ssh_key(d) for d in results]
+
+    def create_ssh_key(self, *, title: str, key: str) -> SshKey:
+        resp = self._client.post(
+            f"/users/{quote(self._owner, safe='')}/ssh-keys",
+            json={"label": title, "key": key},
+        )
+        return self._to_ssh_key(resp.json())
+
+    def delete_ssh_key(self, *, key_id: int | str) -> None:
+        self._client.delete(f"/users/{quote(self._owner, safe='')}/ssh-keys/{key_id}")
+
+    @staticmethod
+    def _to_ssh_key(data: dict) -> SshKey:
+        from gfo.exceptions import GfoError
+
+        try:
+            key_id: int | str = (
+                data.get("uuid", "").strip("{}") if data.get("uuid") else data.get("id", 0)
+            )
+            return SshKey(
+                id=key_id,
+                title=data.get("label") or data.get("comment") or "",
+                key=data.get("key") or "",
+                created_at=data.get("created_on") or "",
+            )
+        except (KeyError, TypeError, AttributeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- Browse ---
 

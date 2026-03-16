@@ -23,6 +23,7 @@ import gfo.commands.release
 import gfo.commands.repo
 import gfo.commands.review
 import gfo.commands.search
+import gfo.commands.ssh_key
 import gfo.commands.status
 import gfo.commands.tag
 import gfo.commands.user
@@ -362,6 +363,19 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     wiki_delete = wiki_sub.add_parser("delete")
     wiki_delete.add_argument("id")
 
+    # gfo ssh-key → サブサブコマンド
+    ssh_key_parser = subparser_map["ssh-key"] = subparsers.add_parser(
+        "ssh-key", help="SSH 鍵を管理する"
+    )
+    ssh_key_sub = ssh_key_parser.add_subparsers(dest="subcommand")
+    ssh_key_list = ssh_key_sub.add_parser("list")
+    ssh_key_list.add_argument("--limit", type=_positive_int, default=30)
+    ssh_key_create = ssh_key_sub.add_parser("create")
+    ssh_key_create.add_argument("--title", required=True)
+    ssh_key_create.add_argument("--key", required=True)
+    ssh_key_delete = ssh_key_sub.add_parser("delete")
+    ssh_key_delete.add_argument("id")
+
     # gfo browse（サブコマンドなし）
     browse_parser = subparser_map["browse"] = subparsers.add_parser(
         "browse", help="リポジトリをブラウザで開く"
@@ -444,6 +458,9 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("wiki", "create"): gfo.commands.wiki.handle_create,
     ("wiki", "update"): gfo.commands.wiki.handle_update,
     ("wiki", "delete"): gfo.commands.wiki.handle_delete,
+    ("ssh-key", "list"): gfo.commands.ssh_key.handle_list,
+    ("ssh-key", "create"): gfo.commands.ssh_key.handle_create,
+    ("ssh-key", "delete"): gfo.commands.ssh_key.handle_delete,
     ("browse", None): gfo.commands.browse.handle_browse,
 }
 
