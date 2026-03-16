@@ -14,6 +14,7 @@ from .base import (
     Issue,
     Label,
     Milestone,
+    Notification,
     PullRequest,
     Release,
     Repository,
@@ -623,6 +624,40 @@ class BacklogAdapter(GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/users/myself")
         return dict(resp.json())
+
+    # --- Notification ---
+
+    def list_notifications(
+        self, *, unread_only: bool = False, limit: int = 30
+    ) -> list[Notification]:
+        params: dict = {}
+        if unread_only:
+            params["resourceAlreadyRead"] = "false"
+        results = paginate_offset(self._client, "/notifications", params=params, limit=limit)
+        return [self._to_notification(d) for d in results]
+
+    def mark_notification_read(self, notification_id: str) -> None:
+        self._client.post(f"/notifications/{notification_id}/markAsRead", json={})
+
+    def mark_all_notifications_read(self) -> None:
+        self._client.post("/notifications/markAsRead", json={})
+
+    @staticmethod
+    def _to_notification(data: dict) -> Notification:
+        try:
+            comment = data.get("comment") or {}
+            issue = comment.get("issue") or data.get("issue") or {}
+            return Notification(
+                id=str(data["id"]),
+                title=issue.get("summary") or comment.get("content") or "",
+                reason="notification",
+                unread=not data.get("resourceAlreadyRead", False),
+                repository="",
+                url="",
+                updated_at=data.get("created") or "",
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- Browse ---
 

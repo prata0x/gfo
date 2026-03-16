@@ -12,6 +12,7 @@ from .base import (
     CommitStatus,
     Label,
     Milestone,
+    Notification,
     Pipeline,
     PullRequest,
     Release,
@@ -235,6 +236,19 @@ class GogsAdapter(GiteaAdapter):
         }
         resp = self._client.post(f"{self._repos_path()}/hooks", json=payload)
         return self._to_webhook(resp.json())
+
+    # --- Notification（Gogs 0.13 未対応）---
+
+    def list_notifications(
+        self, *, unread_only: bool = False, limit: int = 30
+    ) -> list[Notification]:
+        raise NotSupportedError("Gogs", "notification operations")
+
+    def mark_notification_read(self, notification_id: str) -> None:
+        raise NotSupportedError("Gogs", "notification operations")
+
+    def mark_all_notifications_read(self) -> None:
+        raise NotSupportedError("Gogs", "notification operations")
 
     # --- Wiki（Gogs 0.13 未対応）---
 

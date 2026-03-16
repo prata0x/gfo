@@ -17,6 +17,7 @@ from gfo.http import paginate_link_header
 from .base import (
     DeployKey,
     Issue,
+    Notification,
     Organization,
     PullRequest,
     Release,
@@ -199,6 +200,19 @@ class GitBucketAdapter(GitHubAdapter):
 
     def create_review(self, number: int, *, state: str, body: str = "") -> Review:
         raise NotSupportedError("GitBucket", "review operations")
+
+    # --- Notification（GitBucket 未実装）---
+
+    def list_notifications(
+        self, *, unread_only: bool = False, limit: int = 30
+    ) -> list[Notification]:
+        raise NotSupportedError("GitBucket", "notification operations")
+
+    def mark_notification_read(self, notification_id: str) -> None:
+        raise NotSupportedError("GitBucket", "notification operations")
+
+    def mark_all_notifications_read(self) -> None:
+        raise NotSupportedError("GitBucket", "notification operations")
 
     # --- Organization（GitBucket 未実装）---
 

@@ -168,6 +168,17 @@ class Organization:
     url: str
 
 
+@dataclass(frozen=True, slots=True)
+class Notification:
+    id: str
+    title: str
+    reason: str
+    unread: bool
+    repository: str
+    url: str
+    updated_at: str
+
+
 class GitHubLikeAdapter(ABC):
     """GitHub API 互換サービス（GitHub/Gitea 系）向け共通変換ヘルパー。
 
@@ -675,6 +686,18 @@ class GitServiceAdapter(ABC):
 
     def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
         raise NotSupportedError(self.service_name, "search issues")
+
+    # --- Notification ---
+    def list_notifications(
+        self, *, unread_only: bool = False, limit: int = 30
+    ) -> list[Notification]:
+        raise NotSupportedError(self.service_name, "notification list")
+
+    def mark_notification_read(self, notification_id: str) -> None:
+        raise NotSupportedError(self.service_name, "notification read")
+
+    def mark_all_notifications_read(self) -> None:
+        raise NotSupportedError(self.service_name, "notification read --all")
 
     # --- Organization ---
     def list_organizations(self, *, limit: int = 30) -> list[Organization]:

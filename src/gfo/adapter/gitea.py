@@ -18,6 +18,7 @@ from .base import (
     Issue,
     Label,
     Milestone,
+    Notification,
     Organization,
     Pipeline,
     PullRequest,
@@ -610,6 +611,44 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/user")
         return dict(resp.json())
+
+    # --- Notification ---
+
+    def list_notifications(
+        self, *, unread_only: bool = False, limit: int = 30
+    ) -> list[Notification]:
+        params: dict = {}
+        if unread_only:
+            params["status-types"] = "unread"
+        results = paginate_link_header(
+            self._client, "/notifications", params=params, limit=limit, per_page_key="limit"
+        )
+        return [self._to_notification(d) for d in results]
+
+    def mark_notification_read(self, notification_id: str) -> None:
+        self._client.patch(f"/notifications/threads/{notification_id}", json={"status": "read"})
+
+    def mark_all_notifications_read(self) -> None:
+        self._client.put("/notifications", json={"status": "read"})
+
+    @staticmethod
+    def _to_notification(data: dict) -> Notification:
+        from gfo.exceptions import GfoError
+
+        try:
+            subject = data.get("subject") or {}
+            repo = data.get("repository") or {}
+            return Notification(
+                id=str(data["id"]),
+                title=subject.get("title") or "",
+                reason=data.get("reason") or subject.get("type") or "",
+                unread=data.get("unread", False),
+                repository=repo.get("full_name") or "",
+                url=subject.get("html_url") or subject.get("url") or "",
+                updated_at=data.get("updated_at") or "",
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- Organization ---
 

@@ -17,6 +17,7 @@ from .base import (
     Issue,
     Label,
     Milestone,
+    Notification,
     Organization,
     Pipeline,
     PullRequest,
@@ -620,6 +621,42 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/user")
         return dict(resp.json())
+
+    # --- Notification ---
+
+    def list_notifications(
+        self, *, unread_only: bool = False, limit: int = 30
+    ) -> list[Notification]:
+        params: dict = {}
+        if not unread_only:
+            params["all"] = "true"
+        results = paginate_link_header(self._client, "/notifications", params=params, limit=limit)
+        return [self._to_notification(d) for d in results]
+
+    def mark_notification_read(self, notification_id: str) -> None:
+        self._client.patch(f"/notifications/threads/{notification_id}", json={})
+
+    def mark_all_notifications_read(self) -> None:
+        self._client.put("/notifications", json={})
+
+    @staticmethod
+    def _to_notification(data: dict) -> Notification:
+        try:
+            subject = data.get("subject") or {}
+            repo = data.get("repository") or {}
+            return Notification(
+                id=str(data["id"]),
+                title=subject.get("title") or "",
+                reason=data.get("reason") or "",
+                unread=data.get("unread", False),
+                repository=repo.get("full_name") or "",
+                url=subject.get("url") or "",
+                updated_at=data.get("updated_at") or "",
+            )
+        except (KeyError, TypeError) as e:
+            from gfo.exceptions import GfoError
+
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- Organization ---
 

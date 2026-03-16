@@ -17,6 +17,7 @@ from .base import (
     Issue,
     Label,
     Milestone,
+    Notification,
     Organization,
     Pipeline,
     PullRequest,
@@ -910,6 +911,39 @@ class GitLabAdapter(GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/user")
         return dict(resp.json())
+
+    # --- Notification (TODO) ---
+
+    def list_notifications(
+        self, *, unread_only: bool = False, limit: int = 30
+    ) -> list[Notification]:
+        params: dict = {}
+        if unread_only:
+            params["state"] = "pending"
+        results = paginate_page_param(self._client, "/todos", params=params, limit=limit)
+        return [self._to_notification(d) for d in results]
+
+    def mark_notification_read(self, notification_id: str) -> None:
+        self._client.post(f"/todos/{notification_id}/mark_as_done", json={})
+
+    def mark_all_notifications_read(self) -> None:
+        self._client.post("/todos/mark_as_done", json={})
+
+    @staticmethod
+    def _to_notification(data: dict) -> Notification:
+        try:
+            project = data.get("project") or {}
+            return Notification(
+                id=str(data["id"]),
+                title=data.get("body") or "",
+                reason=data.get("target_type") or "",
+                unread=data.get("state") == "pending",
+                repository=project.get("path_with_namespace") or "",
+                url=data.get("target_url") or "",
+                updated_at=data.get("updated_at") or "",
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- Organization (Group) ---
 

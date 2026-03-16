@@ -18,6 +18,7 @@ import gfo.commands.init
 import gfo.commands.issue
 import gfo.commands.label
 import gfo.commands.milestone
+import gfo.commands.notification
 import gfo.commands.org
 import gfo.commands.pr
 import gfo.commands.release
@@ -364,6 +365,18 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     wiki_delete = wiki_sub.add_parser("delete")
     wiki_delete.add_argument("id")
 
+    # gfo notification → サブサブコマンド
+    notif_parser = subparser_map["notification"] = subparsers.add_parser(
+        "notification", help="通知を管理する"
+    )
+    notif_sub = notif_parser.add_subparsers(dest="subcommand")
+    notif_list = notif_sub.add_parser("list", help="通知の一覧")
+    notif_list.add_argument("--unread-only", action="store_true")
+    notif_list.add_argument("--limit", type=_positive_int, default=30)
+    notif_read = notif_sub.add_parser("read", help="通知を既読にする")
+    notif_read.add_argument("id", nargs="?", metavar="ID", help="通知 ID")
+    notif_read.add_argument("--all", action="store_true", help="すべての通知を既読にする")
+
     # gfo org → サブサブコマンド
     org_parser = subparser_map["org"] = subparsers.add_parser("org", help="所属組織を管理する")
     org_sub = org_parser.add_subparsers(dest="subcommand")
@@ -473,6 +486,8 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("wiki", "create"): gfo.commands.wiki.handle_create,
     ("wiki", "update"): gfo.commands.wiki.handle_update,
     ("wiki", "delete"): gfo.commands.wiki.handle_delete,
+    ("notification", "list"): gfo.commands.notification.handle_list,
+    ("notification", "read"): gfo.commands.notification.handle_read,
     ("org", "list"): gfo.commands.org.handle_list,
     ("org", "view"): gfo.commands.org.handle_view,
     ("org", "members"): gfo.commands.org.handle_members,
