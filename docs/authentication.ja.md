@@ -259,16 +259,16 @@ gfo auth login --host yourspace.backlog.com
    | スコープ | アクセスレベル | 用途 |
    |----------|---------------|------|
    | `repository` | 読み取り | `gfo repo`（リポジトリ一覧・詳細・ファイル読み取り） |
-   | `repository` | 書き込み | `gfo repo`（ファイル作成・更新）、`gfo pr`、`gfo release`、`gfo branch-protect` |
+   | `repository` | 読み取りと書き込み | `gfo repo`（ファイル作成・更新）、`gfo pr`、`gfo release`、`gfo branch-protect` |
    | `issue` | 読み取り | `gfo issue`（一覧・詳細）、`gfo label`、`gfo milestone` |
-   | `issue` | 書き込み | `gfo issue`（作成・更新・削除）、`gfo label`、`gfo milestone` |
+   | `issue` | 読み取りと書き込み | `gfo issue`（作成・更新・削除）、`gfo label`、`gfo milestone` |
    | `organization` | 読み取り | `gfo org`（組織一覧・詳細・メンバー） |
    | `user` | 読み取り | 認証ユーザー情報の取得 |
-   | `user` | 書き込み | `gfo ssh-key`（SSH 鍵管理） |
+   | `user` | 読み取りと書き込み | `gfo ssh-key`（SSH 鍵管理） |
    | `notification` | 読み取り | `gfo notification`（通知一覧） |
-   | `notification` | 書き込み | `gfo notification`（既読マーク） |
+   | `notification` | 読み取りと書き込み | `gfo notification`（既読マーク） |
 
-   > **注意**: 「書き込み」は「読み取り」を含みます。書き込みを選択すれば、読み取りは不要です。
+   > **注意**: 「読み取りと書き込み」は「読み取り」を含みます。
 
 4. **Generate Token** をクリック
 
@@ -289,16 +289,16 @@ Gitea と同じ手順・スコープ体系です。
    | スコープ | アクセスレベル | 用途 |
    |----------|---------------|------|
    | `repository` | 読み取り | `gfo repo`（リポジトリ一覧・詳細・ファイル読み取り） |
-   | `repository` | 書き込み | `gfo repo`（ファイル作成・更新）、`gfo pr`、`gfo release`、`gfo branch-protect` |
+   | `repository` | 読み取りと書き込み | `gfo repo`（ファイル作成・更新）、`gfo pr`、`gfo release`、`gfo branch-protect` |
    | `issue` | 読み取り | `gfo issue`（一覧・詳細）、`gfo label`、`gfo milestone` |
-   | `issue` | 書き込み | `gfo issue`（作成・更新・削除）、`gfo label`、`gfo milestone` |
+   | `issue` | 読み取りと書き込み | `gfo issue`（作成・更新・削除）、`gfo label`、`gfo milestone` |
    | `organization` | 読み取り | `gfo org`（組織一覧・詳細・メンバー） |
    | `user` | 読み取り | 認証ユーザー情報の取得 |
-   | `user` | 書き込み | `gfo ssh-key`（SSH 鍵管理） |
+   | `user` | 読み取りと書き込み | `gfo ssh-key`（SSH 鍵管理） |
    | `notification` | 読み取り | `gfo notification`（通知一覧） |
-   | `notification` | 書き込み | `gfo notification`（既読マーク） |
+   | `notification` | 読み取りと書き込み | `gfo notification`（既読マーク） |
 
-   > **注意**: 「書き込み」は「読み取り」を含みます。書き込みを選択すれば、読み取りは不要です。
+   > **注意**: 「読み取りと書き込み」は「読み取り」を含みます。
 
 4. **Generate Token** をクリック
 
