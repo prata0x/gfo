@@ -171,6 +171,7 @@ gfo auth login --host bitbucket.org
 4. Grant required permissions under **Scopes**:
    - **Code**: `Read & write`
    - **Work Items**: `Read & write` (required for Issue/task operations)
+   - **Project and Team**: `Read` (if using `gfo org`)
 5. Click **Create** and copy the token
 
 ```bash

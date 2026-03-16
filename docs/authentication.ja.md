@@ -171,6 +171,7 @@ gfo auth login --host bitbucket.org
 4. **Scopes** で必要な権限を付与:
    - **Code**: `Read & write`
    - **Work Items**: `Read & write`（Issue/タスク操作に必要）
+   - **Project and Team**: `Read`（`gfo org` を使う場合）
 5. **Create** をクリックしてトークンをコピー
 
 ```bash

@@ -344,7 +344,7 @@ class TestAzureDevOpsOrg:
     def test_list(self, azure_devops_adapter):
         responses.add(
             responses.GET,
-            "https://dev.azure.com/test-org/test-project/_apis/projects",
+            "https://dev.azure.com/test-org/_apis/projects",
             json={
                 "value": [
                     {
@@ -364,7 +364,7 @@ class TestAzureDevOpsOrg:
     def test_view(self, azure_devops_adapter):
         responses.add(
             responses.GET,
-            "https://dev.azure.com/test-org/test-project/_apis/projects/MyProject",
+            "https://dev.azure.com/test-org/_apis/projects/MyProject",
             json={
                 "name": "MyProject",
                 "description": "desc",

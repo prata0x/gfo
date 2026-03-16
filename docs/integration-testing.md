@@ -262,6 +262,7 @@ Azure DevOps does not support **release / label / milestone** via API, so those 
 5. Scopes: select **Custom defined**
    - Code: **Read, write & manage** (required for `repo create/delete`; **Read & write** is insufficient)
    - Work Items: **Read, write & manage** (required for `issue delete`; **Read & write** cannot delete)
+   - Project and Team: **Read** (required for `org list/view`)
    - Member Entitlement Management: **Read** (required for `/_apis/connectionData` endpoint used by `create_review` and `get_current_user`)
 6. Create and copy the token
 

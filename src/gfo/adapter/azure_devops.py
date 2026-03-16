@@ -787,7 +787,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         params: dict = {"path": path, "includeContent": "true", "$format": "json"}
         if ref is not None:
             params["versionDescriptor.version"] = ref
-            params["versionDescriptor.versionType"] = "branch"
+            # 40文字の16進数は commit SHA、それ以外はブランチ名として扱う
+            is_sha = len(ref) == 40 and all(c in "0123456789abcdef" for c in ref)
+            params["versionDescriptor.versionType"] = "commit" if is_sha else "branch"
         resp = self._client.get(f"{self._git_path()}/items", params=params)
         data = resp.json()
         try:
@@ -1001,17 +1003,31 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     # --- Organization (Project) ---
 
+    def _org_api_url(self, path: str) -> str:
+        """組織レベル API の絶対 URL を構築する。
+
+        Projects API 等はプロジェクト配下ではなく組織直下のエンドポイントを使用する。
+        base_url: https://dev.azure.com/{org}/{project}/_apis
+        必要:     https://dev.azure.com/{org}/_apis{path}
+        """
+        base: str = self._client.base_url
+        # /{project}/_apis を /_apis に置換
+        project_segment = f"/{quote(self._project, safe='')}"
+        idx = base.find(project_segment + "/_apis")
+        if idx >= 0:
+            return base[:idx] + "/_apis" + path
+        return base + path
+
     def list_organizations(self, *, limit: int = 30) -> list[Organization]:
-        results = paginate_top_skip(
-            self._client,
-            "/projects",
-            limit=limit,
-            result_key="value",
-        )
+        url = self._org_api_url("/projects")
+        resp = self._client.get_absolute(url, params={"$top": str(limit), "api-version": "7.1"})
+        data = resp.json()
+        results = data.get("value", [])
         return [self._to_organization(d) for d in results]
 
     def get_organization(self, name: str) -> Organization:
-        resp = self._client.get(f"/projects/{quote(name, safe='')}")
+        url = self._org_api_url(f"/projects/{quote(name, safe='')}")
+        resp = self._client.get_absolute(url, params={"api-version": "7.1"})
         return self._to_organization(resp.json())
 
     def list_org_members(self, name: str, *, limit: int = 30) -> list[str]:
