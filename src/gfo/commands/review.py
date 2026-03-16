@@ -6,6 +6,7 @@ import argparse
 
 from gfo.commands import get_adapter
 from gfo.exceptions import ConfigError
+from gfo.i18n import _
 from gfo.output import output
 
 
@@ -26,6 +27,6 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     else:
         state = "COMMENT"
     if state == "COMMENT" and not args.body:
-        raise ConfigError("--body is required when using --comment")
+        raise ConfigError(_("--body is required when using --comment"))
     review = adapter.create_review(args.number, state=state, body=args.body or "")
     output(review, fmt=fmt, jq=jq)

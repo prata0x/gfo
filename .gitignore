@@ -14,3 +14,4 @@ build/
 coverage.xml
 htmlcov/
 tests/integration/.env
+*.mo

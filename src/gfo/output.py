@@ -9,6 +9,7 @@ import unicodedata
 from typing import Any
 
 from gfo.exceptions import GfoError
+from gfo.i18n import _
 
 
 def _display_width(s: str) -> int:
@@ -90,7 +91,7 @@ def output(
         elif fmt == "plain":
             pass  # plain は空行なしで終了
         else:
-            print("No results found.")
+            print(_("No results found."))
         return
 
     if fields is None:

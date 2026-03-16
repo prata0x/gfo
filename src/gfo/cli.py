@@ -37,6 +37,7 @@ import gfo.commands.wiki
 from gfo import __version__
 from gfo.config import get_default_output_format
 from gfo.exceptions import GfoError, NotSupportedError
+from gfo.i18n import _
 
 
 def _positive_int(value: str) -> int:
@@ -57,13 +58,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         (parser, subparser_map): メインパーサーと {コマンド名: サブパーサー} の辞書。
     """
 
-    parser = argparse.ArgumentParser(prog="gfo", description="統合 Git Forge CLI")
+    parser = argparse.ArgumentParser(prog="gfo", description=_("Git Forge Operator"))
     parser.add_argument("--format", choices=["table", "json", "plain"], default=None)
     parser.add_argument(
         "--jq",
         metavar="EXPRESSION",
         default=None,
-        help="JSON 出力に jq 式でフィルタをかける（--format json を暗黙的に有効化）",
+        help=_("Apply jq expression to JSON output (implicitly enables --format json)"),
     )
     parser.add_argument("--version", action="version", version=f"gfo {__version__}")
 
@@ -148,7 +149,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_view = repo_sub.add_parser("view")
     repo_view.add_argument("repo", nargs="?")  # ハンドラは args.repo を参照
     repo_delete = repo_sub.add_parser("delete")
-    repo_delete.add_argument("--yes", "-y", action="store_true", help="Skip confirmation prompt")
+    repo_delete.add_argument("--yes", "-y", action="store_true", help=_("Skip confirmation prompt"))
 
     # gfo release → サブサブコマンド
     release_parser = subparser_map["release"] = subparsers.add_parser("release")
@@ -370,7 +371,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
 
     # gfo branch-protect → サブサブコマンド
     bp_parser = subparser_map["branch-protect"] = subparsers.add_parser(
-        "branch-protect", help="ブランチ保護ルールを管理する"
+        "branch-protect", help=_("Manage branch protection rules")
     )
     bp_sub = bp_parser.add_subparsers(dest="subcommand")
     bp_list = bp_sub.add_parser("list")
@@ -392,35 +393,35 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
 
     # gfo notification → サブサブコマンド
     notif_parser = subparser_map["notification"] = subparsers.add_parser(
-        "notification", help="通知を管理する"
+        "notification", help=_("Manage notifications")
     )
     notif_sub = notif_parser.add_subparsers(dest="subcommand")
-    notif_list = notif_sub.add_parser("list", help="通知の一覧")
+    notif_list = notif_sub.add_parser("list", help=_("List notifications"))
     notif_list.add_argument("--unread-only", action="store_true")
     notif_list.add_argument("--limit", type=_positive_int, default=30)
-    notif_read = notif_sub.add_parser("read", help="通知を既読にする")
-    notif_read.add_argument("id", nargs="?", metavar="ID", help="通知 ID")
+    notif_read = notif_sub.add_parser("read", help=_("Mark notifications as read"))
+    notif_read.add_argument("id", nargs="?", metavar="ID", help=_("Notification ID"))
     notif_read.add_argument(
-        "--all", dest="mark_all", action="store_true", help="すべての通知を既読にする"
+        "--all", dest="mark_all", action="store_true", help=_("Mark all notifications as read")
     )
 
     # gfo org → サブサブコマンド
-    org_parser = subparser_map["org"] = subparsers.add_parser("org", help="所属組織を管理する")
+    org_parser = subparser_map["org"] = subparsers.add_parser("org", help=_("Manage organizations"))
     org_sub = org_parser.add_subparsers(dest="subcommand")
-    org_list = org_sub.add_parser("list", help="所属組織の一覧")
+    org_list = org_sub.add_parser("list", help=_("List organizations"))
     org_list.add_argument("--limit", type=_positive_int, default=30)
-    org_view = org_sub.add_parser("view", help="組織の詳細")
-    org_view.add_argument("name", help="組織名")
-    org_members = org_sub.add_parser("members", help="メンバー一覧")
-    org_members.add_argument("name", help="組織名")
+    org_view = org_sub.add_parser("view", help=_("View organization details"))
+    org_view.add_argument("name", help=_("Organization name"))
+    org_members = org_sub.add_parser("members", help=_("List members"))
+    org_members.add_argument("name", help=_("Organization name"))
     org_members.add_argument("--limit", type=_positive_int, default=30)
-    org_repos = org_sub.add_parser("repos", help="リポジトリ一覧")
-    org_repos.add_argument("name", help="組織名")
+    org_repos = org_sub.add_parser("repos", help=_("List repositories"))
+    org_repos.add_argument("name", help=_("Organization name"))
     org_repos.add_argument("--limit", type=_positive_int, default=30)
 
     # gfo ssh-key → サブサブコマンド
     ssh_key_parser = subparser_map["ssh-key"] = subparsers.add_parser(
-        "ssh-key", help="SSH 鍵を管理する"
+        "ssh-key", help=_("Manage SSH keys")
     )
     ssh_key_sub = ssh_key_parser.add_subparsers(dest="subcommand")
     ssh_key_list = ssh_key_sub.add_parser("list")
@@ -433,7 +434,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
 
     # gfo secret → サブサブコマンド
     secret_parser = subparser_map["secret"] = subparsers.add_parser(
-        "secret", help="シークレットを管理する"
+        "secret", help=_("Manage secrets")
     )
     secret_sub = secret_parser.add_subparsers(dest="subcommand")
     secret_list = secret_sub.add_parser("list")
@@ -449,7 +450,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
 
     # gfo variable → サブサブコマンド
     variable_parser = subparser_map["variable"] = subparsers.add_parser(
-        "variable", help="変数を管理する"
+        "variable", help=_("Manage variables")
     )
     variable_sub = variable_parser.add_subparsers(dest="subcommand")
     variable_list = variable_sub.add_parser("list")
@@ -465,13 +466,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
 
     # gfo browse（サブコマンドなし）
     browse_parser = subparser_map["browse"] = subparsers.add_parser(
-        "browse", help="リポジトリをブラウザで開く"
+        "browse", help=_("Open repository in browser")
     )
     _browse_group = browse_parser.add_mutually_exclusive_group()
-    _browse_group.add_argument("--pr", type=int, metavar="N", help="PR 番号")
-    _browse_group.add_argument("--issue", type=int, metavar="N", help="Issue 番号")
-    _browse_group.add_argument("--settings", action="store_true", help="設定ページを開く")
-    browse_parser.add_argument("--print", action="store_true", help="URL を表示するだけ")
+    _browse_group.add_argument("--pr", type=int, metavar="N", help=_("PR number"))
+    _browse_group.add_argument("--issue", type=int, metavar="N", help=_("Issue number"))
+    _browse_group.add_argument("--settings", action="store_true", help=_("Open settings page"))
+    browse_parser.add_argument("--print", action="store_true", help=_("Print URL only"))
 
     return parser, subparser_map
 
@@ -581,7 +582,7 @@ def main(argv: list[str] | None = None) -> int:
     jq_expr = args.jq
     if jq_expr is not None:
         if not jq_expr:
-            print("Error: --jq expression must not be empty.", file=sys.stderr)
+            print(_("Error: --jq expression must not be empty."), file=sys.stderr)
             return 1
         resolved_fmt = "json"
     else:
@@ -608,5 +609,5 @@ def main(argv: list[str] | None = None) -> int:
         print(str(err), file=sys.stderr)
         return 1
     except Exception as err:  # pragma: no cover
-        print(f"Unexpected error: {err}", file=sys.stderr)
+        print(_("Unexpected error: {err}").format(err=err), file=sys.stderr)
         return 1

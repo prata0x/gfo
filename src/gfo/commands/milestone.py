@@ -6,6 +6,7 @@ import argparse
 
 from gfo.commands import get_adapter
 from gfo.exceptions import ConfigError
+from gfo.i18n import _
 from gfo.output import output
 
 
@@ -20,7 +21,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo milestone create のハンドラ。"""
     title = args.title.strip()
     if not title:
-        raise ConfigError("title must not be empty.")
+        raise ConfigError(_("title must not be empty."))
     adapter = get_adapter()
     milestone = adapter.create_milestone(
         title=title,
@@ -34,4 +35,4 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo milestone delete のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_milestone(number=args.number)
-    print(f"Deleted milestone '{args.number}'.")
+    print(_("Deleted milestone '{number}'.").format(number=args.number))

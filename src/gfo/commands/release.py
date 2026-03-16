@@ -6,6 +6,7 @@ import argparse
 
 from gfo.commands import get_adapter
 from gfo.exceptions import ConfigError
+from gfo.i18n import _
 from gfo.output import output
 
 
@@ -20,7 +21,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo release create のハンドラ。"""
     tag = (args.tag or "").strip()
     if not tag:
-        raise ConfigError("tag must not be empty. Use 'gfo release create <tag>'.")
+        raise ConfigError(_("tag must not be empty. Use 'gfo release create <tag>'."))
     adapter = get_adapter()
     title = (args.title or "").strip() or tag
     release = adapter.create_release(
@@ -37,7 +38,7 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo release delete のハンドラ。"""
     tag = (args.tag or "").strip()
     if not tag:
-        raise ConfigError("tag must not be empty. Use 'gfo release delete <tag>'.")
+        raise ConfigError(_("tag must not be empty. Use 'gfo release delete <tag>'."))
     adapter = get_adapter()
     adapter.delete_release(tag=tag)
-    print(f"Deleted release '{tag}'.")
+    print(_("Deleted release '{tag}'.").format(tag=tag))

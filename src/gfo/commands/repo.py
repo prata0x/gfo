@@ -17,6 +17,7 @@ from gfo.config import (
 from gfo.detect import detect_service, get_known_service_type, probe_unknown_host
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 from gfo.git_util import git_clone
+from gfo.i18n import _
 from gfo.output import output
 
 
@@ -52,7 +53,7 @@ def _resolve_host_without_repo(args_host: str | None) -> tuple[str, str]:
 
     if not host:
         raise ConfigError(
-            "Could not resolve host. Use --host option or set defaults.host in config.toml."
+            _("Could not resolve host. Use --host option or set defaults.host in config.toml.")
         )
 
     # service_type を解決（優先順位: ユーザー設定 > 既知ホスト > ネットワークプローブ）
@@ -65,8 +66,9 @@ def _resolve_host_without_repo(args_host: str | None) -> tuple[str, str]:
             service_type = probe_unknown_host(host)
         if not service_type:
             raise ConfigError(
-                f"Could not determine service type for host '{host}'. "
-                f'Configure it in config.toml: [hosts.{host}] type = "..."'
+                _(
+                    "Could not determine service type for host '{host}'. Configure it in config.toml: [hosts.{host}] type = \"...\""
+                ).format(host=host)
             )
 
     return host, service_type
@@ -100,14 +102,15 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     if service_type == "backlog":
         if not project_key:
             raise ConfigError(
-                "Backlog requires a project key. Run 'gfo init' first to configure the project."
+                _("Backlog requires a project key. Run 'gfo init' first to configure the project.")
             )
         extra_kwargs["project_key"] = project_key
     elif service_type == "azure-devops":
         if not organization or not project_key:
             raise ConfigError(
-                "Azure DevOps requires an organization and a project. "
-                "Run 'gfo init' first to configure."
+                _(
+                    "Azure DevOps requires an organization and a project. Run 'gfo init' first to configure."
+                )
             )
         extra_kwargs["organization"] = organization
         extra_kwargs["project_key"] = project_key
@@ -126,12 +129,16 @@ def _parse_repo_arg(repo_arg: str) -> tuple[str, str]:
     parts = repo_arg.split("/", 1)
     if len(parts) != 2:
         raise ConfigError(
-            f"Invalid repo format '{repo_arg}'. Expected 'owner/name' with non-empty owner and name."
+            _(
+                "Invalid repo format '{repo_arg}'. Expected 'owner/name' with non-empty owner and name."
+            ).format(repo_arg=repo_arg)
         )
     owner, name = parts[0].strip(), parts[1].strip()
     if not owner or not name:
         raise ConfigError(
-            f"Invalid repo format '{repo_arg}'. Expected 'owner/name' with non-empty owner and name."
+            _(
+                "Invalid repo format '{repo_arg}'. Expected 'owner/name' with non-empty owner and name."
+            ).format(repo_arg=repo_arg)
         )
     return owner, name
 
@@ -172,14 +179,15 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     repo_name = f"{adapter._owner}/{adapter._repo}"
     if not getattr(args, "yes", False):
         confirm = input(
-            f"Are you sure you want to delete repository '{repo_name}'? "
-            "This action cannot be undone. [y/N]: "
+            _(
+                "Are you sure you want to delete repository '{repo_name}'? This action cannot be undone. [y/N]: "
+            ).format(repo_name=repo_name)
         )
         if confirm.lower() not in ("y", "yes"):
-            print("Aborted.")
+            print(_("Aborted."))
             return
     adapter.delete_repository()
-    print(f"Deleted repository '{repo_name}'.")
+    print(_("Deleted repository '{repo_name}'.").format(repo_name=repo_name))
 
 
 def handle_fork(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

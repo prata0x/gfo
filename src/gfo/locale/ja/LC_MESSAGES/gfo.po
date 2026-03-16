@@ -1,0 +1,328 @@
+# Japanese translations for gfo.
+# Copyright (C) 2024 gfo contributors
+# This file is distributed under the 0BSD license.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: gfo 0.2.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-17 00:00+0900\n"
+"PO-Revision-Date: 2026-03-17 00:00+0900\n"
+"Last-Translator: \n"
+"Language-Team: Japanese\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+# cli.py
+msgid "Git Forge Operator"
+msgstr "Git Forge Operator"
+
+msgid "Apply jq expression to JSON output (implicitly enables --format json)"
+msgstr "JSON 出力に jq 式でフィルタをかける（--format json を暗黙的に有効化）"
+
+msgid "Skip confirmation prompt"
+msgstr "確認プロンプトをスキップする"
+
+msgid "Manage branch protection rules"
+msgstr "ブランチ保護ルールを管理する"
+
+msgid "Manage notifications"
+msgstr "通知を管理する"
+
+msgid "List notifications"
+msgstr "通知の一覧"
+
+msgid "Mark notifications as read"
+msgstr "通知を既読にする"
+
+msgid "Notification ID"
+msgstr "通知 ID"
+
+msgid "Mark all notifications as read"
+msgstr "すべての通知を既読にする"
+
+msgid "Manage organizations"
+msgstr "所属組織を管理する"
+
+msgid "List organizations"
+msgstr "所属組織の一覧"
+
+msgid "View organization details"
+msgstr "組織の詳細"
+
+msgid "Organization name"
+msgstr "組織名"
+
+msgid "List members"
+msgstr "メンバー一覧"
+
+msgid "List repositories"
+msgstr "リポジトリ一覧"
+
+msgid "Manage SSH keys"
+msgstr "SSH 鍵を管理する"
+
+msgid "Manage secrets"
+msgstr "シークレットを管理する"
+
+msgid "Manage variables"
+msgstr "変数を管理する"
+
+msgid "Open repository in browser"
+msgstr "リポジトリをブラウザで開く"
+
+msgid "PR number"
+msgstr "PR 番号"
+
+msgid "Issue number"
+msgstr "Issue 番号"
+
+msgid "Open settings page"
+msgstr "設定ページを開く"
+
+msgid "Print URL only"
+msgstr "URL を表示するだけ"
+
+msgid "Error: --jq expression must not be empty."
+msgstr "エラー: --jq の式は空にできません。"
+
+msgid "Unexpected error: {err}"
+msgstr "予期しないエラー: {err}"
+
+# exceptions.py
+msgid "Git error: {message}"
+msgstr "Git エラー: {message}"
+
+msgid "Could not detect git forge service."
+msgstr "Git Forge サービスを検出できませんでした。"
+
+msgid "Run 'gfo init' to configure manually."
+msgstr "'gfo init' を実行して手動で設定してください。"
+
+msgid "No token found for {host}. Run 'gfo auth login --host {host}' to configure."
+msgstr "{host} のトークンが見つかりません。'gfo auth login --host {host}' を実行して設定してください。"
+
+msgid "HTTP {status_code}: {message}"
+msgstr "HTTP {status_code}: {message}"
+
+msgid "Authentication failed. Check your token with 'gfo auth status'."
+msgstr "認証に失敗しました。'gfo auth status' でトークンを確認してください。"
+
+msgid "Resource not found."
+msgstr "リソースが見つかりません。"
+
+msgid "Rate limit exceeded."
+msgstr "レート制限を超過しました。"
+
+msgid "Retry after {retry_after}s."
+msgstr "{retry_after} 秒後にリトライしてください。"
+
+msgid "Server error. Please try again later."
+msgstr "サーバーエラーです。しばらくしてから再試行してください。"
+
+msgid "{service} does not support {operation}. Use the web interface instead."
+msgstr "{service} は {operation} に対応していません。Web インターフェースを使用してください。"
+
+msgid "Unsupported service type: {service_type}"
+msgstr "未対応のサービス種別: {service_type}"
+
+# output.py
+msgid "No results found."
+msgstr "結果が見つかりません。"
+
+# commands/init.py
+msgid "--type is required in non-interactive mode."
+msgstr "非対話モードでは --type は必須です。"
+
+msgid "Unknown service type '{service_type}'. Valid values: {valid}"
+msgstr "不明なサービス種別 '{service_type}'。有効な値: {valid}"
+
+msgid "--host is required in non-interactive mode."
+msgstr "非対話モードでは --host は必須です。"
+
+msgid "Could not detect repository from remote URL: {e} Please ensure you're in a git repository with an origin remote configured."
+msgstr "リモート URL からリポジトリを検出できませんでした: {e} origin リモートが設定された git リポジトリ内にいることを確認してください。"
+
+msgid "Initialized: {service_type} at {host}"
+msgstr "初期化完了: {service_type} ({host})"
+
+msgid "Detected: {service_type} at {host}"
+msgstr "検出: {service_type} ({host})"
+
+msgid "Is this correct? [Y/n]: "
+msgstr "これで正しいですか？ [Y/n]: "
+
+msgid "Could not auto-detect service. Please enter manually."
+msgstr "サービスを自動検出できませんでした。手動で入力してください。"
+
+msgid "Service type (github/gitlab/bitbucket/...): "
+msgstr "サービス種別 (github/gitlab/bitbucket/...): "
+
+msgid "Host: "
+msgstr "ホスト: "
+
+msgid "API URL (leave blank for default): "
+msgstr "API URL (デフォルトの場合は空欄): "
+
+msgid "Project key (leave blank if none): "
+msgstr "プロジェクトキー (なければ空欄): "
+
+msgid "Organization: "
+msgstr "組織: "
+
+msgid "Project key: "
+msgstr "プロジェクトキー: "
+
+msgid "Could not build API URL for {service_type}: {e}. Use --api-url to specify the URL manually."
+msgstr "{service_type} の API URL を構築できませんでした: {e}。--api-url で手動指定してください。"
+
+msgid "Could not build API URL automatically (organization or project key may be missing)."
+msgstr "API URL を自動構築できませんでした（組織名またはプロジェクトキーが不足している可能性があります）。"
+
+msgid "service_type cannot be empty."
+msgstr "service_type は空にできません。"
+
+msgid "Unknown service type {service_type}. Valid: {valid}"
+msgstr "不明なサービス種別 {service_type}。有効: {valid}"
+
+msgid "host cannot be empty."
+msgstr "host は空にできません。"
+
+# commands/auth_cmd.py
+msgid "Could not detect host. Use --host option: gfo auth login --host <host>"
+msgstr "ホストを検出できませんでした。--host オプションを使用してください: gfo auth login --host <host>"
+
+msgid "Warning: passing tokens via --token is insecure."
+msgstr "警告: --token でのトークン指定は安全ではありません。"
+
+msgid "Token: "
+msgstr "トークン: "
+
+msgid "Token saved for {host}"
+msgstr "{host} のトークンを保存しました"
+
+msgid "No tokens configured."
+msgstr "トークンが設定されていません。"
+
+msgid "HOST"
+msgstr "ホスト"
+
+msgid "STATUS"
+msgstr "ステータス"
+
+msgid "SOURCE"
+msgstr "ソース"
+
+# commands/pr.py
+msgid "Could not determine PR title. Use --title option."
+msgstr "PR タイトルを決定できませんでした。--title オプションを使用してください。"
+
+# commands/issue.py
+msgid "--title must not be empty."
+msgstr "--title は空にできません。"
+
+msgid "--type must be a numeric issue type ID for Backlog, got {type}."
+msgstr "Backlog の --type は数値の課題種別 ID が必要です。指定された値: {type}"
+
+msgid "Deleted issue '{number}'."
+msgstr "Issue '{number}' を削除しました。"
+
+# commands/repo.py
+msgid "Could not resolve host. Use --host option or set defaults.host in config.toml."
+msgstr "ホストを解決できませんでした。--host オプションを使用するか config.toml で defaults.host を設定してください。"
+
+msgid "Could not determine service type for host '{host}'. Configure it in config.toml: [hosts.{host}] type = \"...\""
+msgstr "ホスト '{host}' のサービス種別を特定できませんでした。config.toml で設定してください: [hosts.{host}] type = \"...\""
+
+msgid "Backlog requires a project key. Run 'gfo init' first to configure the project."
+msgstr "Backlog にはプロジェクトキーが必要です。先に 'gfo init' を実行してプロジェクトを設定してください。"
+
+msgid "Azure DevOps requires an organization and a project. Run 'gfo init' first to configure."
+msgstr "Azure DevOps には組織とプロジェクトが必要です。先に 'gfo init' を実行して設定してください。"
+
+msgid "Invalid repo format '{repo_arg}'. Expected 'owner/name' with non-empty owner and name."
+msgstr "リポジトリの形式 '{repo_arg}' が不正です。'owner/name' の形式で owner と name を空にしないでください。"
+
+msgid "Are you sure you want to delete repository '{repo_name}'? This action cannot be undone. [y/N]: "
+msgstr "リポジトリ '{repo_name}' を削除してよろしいですか？この操作は取り消せません。 [y/N]: "
+
+msgid "Aborted."
+msgstr "中止しました。"
+
+msgid "Deleted repository '{repo_name}'."
+msgstr "リポジトリ '{repo_name}' を削除しました。"
+
+# commands/release.py
+msgid "tag must not be empty. Use 'gfo release create <tag>'."
+msgstr "tag は空にできません。'gfo release create <tag>' を使用してください。"
+
+msgid "tag must not be empty. Use 'gfo release delete <tag>'."
+msgstr "tag は空にできません。'gfo release delete <tag>' を使用してください。"
+
+msgid "Deleted release '{tag}'."
+msgstr "リリース '{tag}' を削除しました。"
+
+# commands/label.py
+msgid "name must not be empty."
+msgstr "name は空にできません。"
+
+msgid "Invalid color '{color}'. Expected 6-digit hex color (e.g. ff0000)."
+msgstr "色 '{color}' が不正です。6桁の16進数カラーコード (例: ff0000) を指定してください。"
+
+msgid "Deleted label '{name}'."
+msgstr "ラベル '{name}' を削除しました。"
+
+# commands/milestone.py
+msgid "title must not be empty."
+msgstr "title は空にできません。"
+
+msgid "Deleted milestone '{number}'."
+msgstr "マイルストーン '{number}' を削除しました。"
+
+# commands/review.py
+msgid "--body is required when using --comment"
+msgstr "--comment 使用時は --body が必須です"
+
+# commands/variable.py
+msgid "Deleted variable '{name}'."
+msgstr "変数 '{name}' を削除しました。"
+
+# commands/secret.py
+msgid "Environment variable '{env_var}' is not set."
+msgstr "環境変数 '{env_var}' が設定されていません。"
+
+msgid "Specify --value, --env-var, or --file."
+msgstr "--value、--env-var、または --file を指定してください。"
+
+msgid "File not found: {file}"
+msgstr "ファイルが見つかりません: {file}"
+
+msgid "Permission denied: {file}"
+msgstr "アクセスが拒否されました: {file}"
+
+msgid "Deleted secret '{name}'."
+msgstr "シークレット '{name}' を削除しました。"
+
+# commands/ssh_key.py
+msgid "Deleted SSH key '{id}'."
+msgstr "SSH 鍵 '{id}' を削除しました。"
+
+# commands/branch_protect.py
+msgid "Removed branch protection for '{branch}'."
+msgstr "'{branch}' のブランチ保護を解除しました。"
+
+# commands/notification.py
+msgid "Cannot specify both ID and --all."
+msgstr "ID と --all は同時に指定できません。"
+
+msgid "Specify a notification ID or --all."
+msgstr "通知 ID または --all を指定してください。"
+
+msgid "Marked all notifications as read."
+msgstr "すべての通知を既読にしました。"
+
+msgid "Marked notification '{id}' as read."
+msgstr "通知 '{id}' を既読にしました。"

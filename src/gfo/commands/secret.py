@@ -7,6 +7,7 @@ import os
 
 from gfo.commands import get_adapter
 from gfo.exceptions import GfoError
+from gfo.i18n import _
 from gfo.output import output
 
 
@@ -25,18 +26,20 @@ def handle_set(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
     elif args.env_var is not None:
         env_val = os.environ.get(args.env_var)
         if env_val is None:
-            raise GfoError(f"Environment variable '{args.env_var}' is not set.")
+            raise GfoError(
+                _("Environment variable '{env_var}' is not set.").format(env_var=args.env_var)
+            )
         value = env_val
     else:
         if args.file is None:
-            raise GfoError("Specify --value, --env-var, or --file.")
+            raise GfoError(_("Specify --value, --env-var, or --file."))
         try:
             with open(args.file) as f:
                 value = f.read().strip()
         except FileNotFoundError:
-            raise GfoError(f"File not found: {args.file}")
+            raise GfoError(_("File not found: {file}").format(file=args.file))
         except PermissionError:
-            raise GfoError(f"Permission denied: {args.file}")
+            raise GfoError(_("Permission denied: {file}").format(file=args.file))
     secret = adapter.set_secret(args.name, value)
     output(secret, fmt=fmt, jq=jq)
 
@@ -45,4 +48,4 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo secret delete <name> のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_secret(args.name)
-    print(f"Deleted secret '{args.name}'.")
+    print(_("Deleted secret '{name}'.").format(name=args.name))

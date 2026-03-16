@@ -6,6 +6,7 @@ import argparse
 
 from gfo.commands import get_adapter, get_adapter_with_config
 from gfo.exceptions import ConfigError
+from gfo.i18n import _
 from gfo.output import output
 
 
@@ -25,7 +26,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo issue create のハンドラ。"""
     title = (args.title or "").strip()
     if not title:
-        raise ConfigError("--title must not be empty.")
+        raise ConfigError(_("--title must not be empty."))
     adapter, config = get_adapter_with_config()
     kwargs: dict = {}
     if args.type:
@@ -36,7 +37,9 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
                 kwargs["issue_type"] = int(args.type)
             except (ValueError, TypeError):
                 raise ConfigError(
-                    f"--type must be a numeric issue type ID for Backlog, got {args.type!r}."
+                    _("--type must be a numeric issue type ID for Backlog, got {type}.").format(
+                        type=repr(args.type)
+                    )
                 )
     if args.priority is not None and config.service_type == "backlog":
         kwargs["priority"] = args.priority
@@ -67,7 +70,7 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo issue delete <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_issue(args.number)
-    print(f"Deleted issue '{args.number}'.")
+    print(_("Deleted issue '{number}'.").format(number=args.number))
 
 
 def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

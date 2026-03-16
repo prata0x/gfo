@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 
 from gfo.commands import get_adapter
+from gfo.i18n import _
 from gfo.output import output
 
 
@@ -26,4 +27,4 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo ssh-key delete <id> のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_ssh_key(key_id=args.id)
-    print(f"Deleted SSH key '{args.id}'.")
+    print(_("Deleted SSH key '{id}'.").format(id=args.id))

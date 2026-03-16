@@ -9,6 +9,7 @@ import sys
 import gfo.auth
 import gfo.detect
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
+from gfo.i18n import _
 
 
 def handle_login(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -21,17 +22,17 @@ def handle_login(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
             host = result.host
         except (DetectionError, GitCommandError):
             raise ConfigError(
-                "Could not detect host. Use --host option: gfo auth login --host <host>"
+                _("Could not detect host. Use --host option: gfo auth login --host <host>")
             )
 
     if args.token:
-        print("Warning: passing tokens via --token is insecure.", file=sys.stderr)
+        print(_("Warning: passing tokens via --token is insecure."), file=sys.stderr)
         token = args.token
     else:
-        token = getpass.getpass("Token: ")
+        token = getpass.getpass(_("Token: "))
 
     gfo.auth.save_token(host, token)
-    print(f"Token saved for {host}")
+    print(_("Token saved for {host}").format(host=host))
 
 
 def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -39,7 +40,7 @@ def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     entries = gfo.auth.get_auth_status()
 
     if not entries:
-        print("No tokens configured.")
+        print(_("No tokens configured."))
         return
 
     col_widths = {
@@ -52,9 +53,9 @@ def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     col_widths["source"] = min(max(col_widths["source"], 6), 40)
 
     header = (
-        f"{'HOST':<{col_widths['host']}}  "
-        f"{'STATUS':<{col_widths['status']}}  "
-        f"{'SOURCE':<{col_widths['source']}}"
+        f"{_('HOST'):<{col_widths['host']}}  "
+        f"{_('STATUS'):<{col_widths['status']}}  "
+        f"{_('SOURCE'):<{col_widths['source']}}"
     )
     print(header)
     print("-" * len(header))
