@@ -195,9 +195,13 @@ gfo auth login --host bitbucket.org
 2. **New Token** をクリック
 3. Name、Organization（対象の組織）、Expiration を設定
 4. **Scopes** で必要な権限を付与:
-   - **Code**: `Read & write`（`gfo repo`、`gfo pr`、`gfo release` に必要）
-   - **Work Items**: `Read & write`（`gfo issue` を使う場合）
-   - **Project and Team**: `Read`（`gfo org` を使う場合）
+
+   | スコープ | アクセスレベル | 用途 |
+   |----------|---------------|------|
+   | Code | `Read & write` | `gfo repo`、`gfo pr`、`gfo release` |
+   | Work Items | `Read & write` | `gfo issue` を使う場合 |
+   | Project and Team | `Read` | `gfo org` を使う場合 |
+
 5. **Create** をクリックしてトークンをコピー
 
 ```bash

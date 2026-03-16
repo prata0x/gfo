@@ -195,9 +195,13 @@ gfo auth login --host bitbucket.org
 2. Click **New Token**
 3. Set Name, Organization, and Expiration
 4. Grant required permissions under **Scopes**:
-   - **Code**: `Read & write` (for `gfo repo`, `gfo pr`, `gfo release`)
-   - **Work Items**: `Read & write` (if using `gfo issue`)
-   - **Project and Team**: `Read` (if using `gfo org`)
+
+   | Scope | Access Level | Purpose |
+   |-------|-------------|---------|
+   | Code | `Read & write` | `gfo repo`, `gfo pr`, `gfo release` |
+   | Work Items | `Read & write` | If using `gfo issue` |
+   | Project and Team | `Read` | If using `gfo org` |
+
 5. Click **Create** and copy the token
 
 ```bash
