@@ -24,8 +24,10 @@ from .base import (
     Release,
     Repository,
     Review,
+    Secret,
     SshKey,
     Tag,
+    Variable,
     WikiPage,
 )
 from .github import GitHubAdapter
@@ -201,6 +203,29 @@ class GitBucketAdapter(GitHubAdapter):
 
     def create_review(self, number: int, *, state: str, body: str = "") -> Review:
         raise NotSupportedError("GitBucket", "review operations")
+
+    # --- Secret / Variable（GitBucket 未実装）---
+
+    def list_secrets(self, *, limit: int = 30) -> list[Secret]:
+        raise NotSupportedError("GitBucket", "secret operations")
+
+    def set_secret(self, name: str, value: str) -> Secret:
+        raise NotSupportedError("GitBucket", "secret operations")
+
+    def delete_secret(self, name: str) -> None:
+        raise NotSupportedError("GitBucket", "secret operations")
+
+    def list_variables(self, *, limit: int = 30) -> list[Variable]:
+        raise NotSupportedError("GitBucket", "variable operations")
+
+    def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
+        raise NotSupportedError("GitBucket", "variable operations")
+
+    def get_variable(self, name: str) -> Variable:
+        raise NotSupportedError("GitBucket", "variable operations")
+
+    def delete_variable(self, name: str) -> None:
+        raise NotSupportedError("GitBucket", "variable operations")
 
     # --- BranchProtection（GitBucket 未実装）---
 

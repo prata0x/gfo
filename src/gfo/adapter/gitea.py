@@ -26,8 +26,10 @@ from .base import (
     Release,
     Repository,
     Review,
+    Secret,
     SshKey,
     Tag,
+    Variable,
     Webhook,
     WikiPage,
 )
@@ -612,6 +614,76 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/user")
         return dict(resp.json())
+
+    # --- Secret ---
+
+    def list_secrets(self, *, limit: int = 30) -> list[Secret]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/actions/secrets",
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [
+            Secret(name=d["name"], created_at=d.get("created_at") or "", updated_at="")
+            for d in results
+        ]
+
+    def set_secret(self, name: str, value: str) -> Secret:
+        self._client.put(
+            f"{self._repos_path()}/actions/secrets/{quote(name, safe='')}",
+            json={"data": value},
+        )
+        return Secret(name=name, created_at="", updated_at="")
+
+    def delete_secret(self, name: str) -> None:
+        self._client.delete(f"{self._repos_path()}/actions/secrets/{quote(name, safe='')}")
+
+    # --- Variable ---
+
+    def list_variables(self, *, limit: int = 30) -> list[Variable]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/actions/variables",
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [
+            Variable(
+                name=d["name"],
+                value=d.get("data") or d.get("value") or "",
+                created_at="",
+                updated_at="",
+            )
+            for d in results
+        ]
+
+    def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
+        try:
+            self._client.get(f"{self._repos_path()}/actions/variables/{quote(name, safe='')}")
+            self._client.put(
+                f"{self._repos_path()}/actions/variables/{quote(name, safe='')}",
+                json={"name": name, "value": value},
+            )
+        except Exception:
+            self._client.post(
+                f"{self._repos_path()}/actions/variables",
+                json={"name": name, "value": value},
+            )
+        return Variable(name=name, value=value, created_at="", updated_at="")
+
+    def get_variable(self, name: str) -> Variable:
+        resp = self._client.get(f"{self._repos_path()}/actions/variables/{quote(name, safe='')}")
+        data = resp.json()
+        return Variable(
+            name=data["name"],
+            value=data.get("data") or data.get("value") or "",
+            created_at="",
+            updated_at="",
+        )
+
+    def delete_variable(self, name: str) -> None:
+        self._client.delete(f"{self._repos_path()}/actions/variables/{quote(name, safe='')}")
 
     # --- BranchProtection ---
 

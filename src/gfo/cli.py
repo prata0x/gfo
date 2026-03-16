@@ -26,10 +26,12 @@ import gfo.commands.release
 import gfo.commands.repo
 import gfo.commands.review
 import gfo.commands.search
+import gfo.commands.secret
 import gfo.commands.ssh_key
 import gfo.commands.status
 import gfo.commands.tag
 import gfo.commands.user
+import gfo.commands.variable
 import gfo.commands.webhook
 import gfo.commands.wiki
 from gfo import __version__
@@ -427,6 +429,38 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     ssh_key_delete = ssh_key_sub.add_parser("delete")
     ssh_key_delete.add_argument("id")
 
+    # gfo secret → サブサブコマンド
+    secret_parser = subparser_map["secret"] = subparsers.add_parser(
+        "secret", help="シークレットを管理する"
+    )
+    secret_sub = secret_parser.add_subparsers(dest="subcommand")
+    secret_list = secret_sub.add_parser("list")
+    secret_list.add_argument("--limit", type=_positive_int, default=30)
+    secret_set = secret_sub.add_parser("set")
+    secret_set.add_argument("name")
+    _secret_value_group = secret_set.add_mutually_exclusive_group(required=True)
+    _secret_value_group.add_argument("--value")
+    _secret_value_group.add_argument("--env-var", dest="env_var")
+    _secret_value_group.add_argument("--file")
+    secret_delete = secret_sub.add_parser("delete")
+    secret_delete.add_argument("name")
+
+    # gfo variable → サブサブコマンド
+    variable_parser = subparser_map["variable"] = subparsers.add_parser(
+        "variable", help="変数を管理する"
+    )
+    variable_sub = variable_parser.add_subparsers(dest="subcommand")
+    variable_list = variable_sub.add_parser("list")
+    variable_list.add_argument("--limit", type=_positive_int, default=30)
+    variable_set = variable_sub.add_parser("set")
+    variable_set.add_argument("name")
+    variable_set.add_argument("--value", required=True)
+    variable_set.add_argument("--masked", action="store_true")
+    variable_get = variable_sub.add_parser("get")
+    variable_get.add_argument("name")
+    variable_delete = variable_sub.add_parser("delete")
+    variable_delete.add_argument("name")
+
     # gfo browse（サブコマンドなし）
     browse_parser = subparser_map["browse"] = subparsers.add_parser(
         "browse", help="リポジトリをブラウザで開く"
@@ -519,6 +553,13 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("org", "view"): gfo.commands.org.handle_view,
     ("org", "members"): gfo.commands.org.handle_members,
     ("org", "repos"): gfo.commands.org.handle_repos,
+    ("secret", "list"): gfo.commands.secret.handle_list,
+    ("secret", "set"): gfo.commands.secret.handle_set,
+    ("secret", "delete"): gfo.commands.secret.handle_delete,
+    ("variable", "list"): gfo.commands.variable.handle_list,
+    ("variable", "set"): gfo.commands.variable.handle_set,
+    ("variable", "get"): gfo.commands.variable.handle_get,
+    ("variable", "delete"): gfo.commands.variable.handle_delete,
     ("ssh-key", "list"): gfo.commands.ssh_key.handle_list,
     ("ssh-key", "create"): gfo.commands.ssh_key.handle_create,
     ("ssh-key", "delete"): gfo.commands.ssh_key.handle_delete,

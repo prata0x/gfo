@@ -25,8 +25,10 @@ from .base import (
     Release,
     Repository,
     Review,
+    Secret,
     SshKey,
     Tag,
+    Variable,
     Webhook,
     WikiPage,
 )
@@ -912,6 +914,63 @@ class GitLabAdapter(GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/user")
         return dict(resp.json())
+
+    # --- Secret (masked Variable) ---
+
+    def list_secrets(self, *, limit: int = 30) -> list[Secret]:
+        results = paginate_page_param(
+            self._client, f"{self._project_path()}/variables", limit=limit
+        )
+        masked = [d for d in results if d.get("masked")]
+        return [Secret(name=d["key"], created_at="", updated_at="") for d in masked]
+
+    def set_secret(self, name: str, value: str) -> Secret:
+        var = self.set_variable(name, value, masked=True)
+        return Secret(name=var.name, created_at=var.created_at, updated_at=var.updated_at)
+
+    def delete_secret(self, name: str) -> None:
+        self.delete_variable(name)
+
+    # --- Variable ---
+
+    def list_variables(self, *, limit: int = 30) -> list[Variable]:
+        results = paginate_page_param(
+            self._client, f"{self._project_path()}/variables", limit=limit
+        )
+        return [
+            Variable(
+                name=d["key"],
+                value=d.get("value") or "",
+                created_at="",
+                updated_at="",
+            )
+            for d in results
+        ]
+
+    def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
+        payload: dict = {"key": name, "value": value, "masked": masked}
+        try:
+            self._client.get(f"{self._project_path()}/variables/{quote(name, safe='')}")
+            self._client.put(
+                f"{self._project_path()}/variables/{quote(name, safe='')}",
+                json=payload,
+            )
+        except Exception:
+            self._client.post(f"{self._project_path()}/variables", json=payload)
+        return Variable(name=name, value=value, created_at="", updated_at="")
+
+    def get_variable(self, name: str) -> Variable:
+        resp = self._client.get(f"{self._project_path()}/variables/{quote(name, safe='')}")
+        data = resp.json()
+        return Variable(
+            name=data["key"],
+            value=data.get("value") or "",
+            created_at="",
+            updated_at="",
+        )
+
+    def delete_variable(self, name: str) -> None:
+        self._client.delete(f"{self._project_path()}/variables/{quote(name, safe='')}")
 
     # --- BranchProtection ---
 

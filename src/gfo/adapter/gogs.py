@@ -18,7 +18,9 @@ from .base import (
     PullRequest,
     Release,
     Review,
+    Secret,
     Tag,
+    Variable,
     Webhook,
     WikiPage,
 )
@@ -237,6 +239,29 @@ class GogsAdapter(GiteaAdapter):
         }
         resp = self._client.post(f"{self._repos_path()}/hooks", json=payload)
         return self._to_webhook(resp.json())
+
+    # --- Secret / Variable（Gogs 0.13 未対応）---
+
+    def list_secrets(self, *, limit: int = 30) -> list[Secret]:
+        raise NotSupportedError("Gogs", "secret operations")
+
+    def set_secret(self, name: str, value: str) -> Secret:
+        raise NotSupportedError("Gogs", "secret operations")
+
+    def delete_secret(self, name: str) -> None:
+        raise NotSupportedError("Gogs", "secret operations")
+
+    def list_variables(self, *, limit: int = 30) -> list[Variable]:
+        raise NotSupportedError("Gogs", "variable operations")
+
+    def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
+        raise NotSupportedError("Gogs", "variable operations")
+
+    def get_variable(self, name: str) -> Variable:
+        raise NotSupportedError("Gogs", "variable operations")
+
+    def delete_variable(self, name: str) -> None:
+        raise NotSupportedError("Gogs", "variable operations")
 
     # --- BranchProtection（Gogs 0.13 未対応）---
 

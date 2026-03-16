@@ -23,8 +23,10 @@ from .base import (
     Release,
     Repository,
     Review,
+    Secret,
     SshKey,
     Tag,
+    Variable,
     Webhook,
 )
 from .registry import register
@@ -780,6 +782,64 @@ class BitbucketAdapter(GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/user")
         return dict(resp.json())
+
+    # --- Secret (Pipelines secured variables) ---
+
+    def list_secrets(self, *, limit: int = 30) -> list[Secret]:
+        results = paginate_response_body(
+            self._client,
+            f"{self._repos_path()}/pipelines_config/variables/",
+            limit=limit,
+        )
+        secured = [d for d in results if d.get("secured")]
+        return [Secret(name=d["key"], created_at="", updated_at="") for d in secured]
+
+    def set_secret(self, name: str, value: str) -> Secret:
+        self._client.post(
+            f"{self._repos_path()}/pipelines_config/variables/",
+            json={"key": name, "value": value, "secured": True},
+        )
+        return Secret(name=name, created_at="", updated_at="")
+
+    def delete_secret(self, name: str) -> None:
+        self._client.delete(
+            f"{self._repos_path()}/pipelines_config/variables/{quote(name, safe='')}"
+        )
+
+    # --- Variable (Pipelines unsecured variables) ---
+
+    def list_variables(self, *, limit: int = 30) -> list[Variable]:
+        results = paginate_response_body(
+            self._client,
+            f"{self._repos_path()}/pipelines_config/variables/",
+            limit=limit,
+        )
+        unsecured = [d for d in results if not d.get("secured")]
+        return [
+            Variable(name=d["key"], value=d.get("value") or "", created_at="", updated_at="")
+            for d in unsecured
+        ]
+
+    def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
+        self._client.post(
+            f"{self._repos_path()}/pipelines_config/variables/",
+            json={"key": name, "value": value, "secured": False},
+        )
+        return Variable(name=name, value=value, created_at="", updated_at="")
+
+    def get_variable(self, name: str) -> Variable:
+        resp = self._client.get(
+            f"{self._repos_path()}/pipelines_config/variables/{quote(name, safe='')}"
+        )
+        data = resp.json()
+        return Variable(
+            name=data["key"], value=data.get("value") or "", created_at="", updated_at=""
+        )
+
+    def delete_variable(self, name: str) -> None:
+        self._client.delete(
+            f"{self._repos_path()}/pipelines_config/variables/{quote(name, safe='')}"
+        )
 
     # --- BranchProtection (branch-restrictions) ---
 

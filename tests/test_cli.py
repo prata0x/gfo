@@ -293,9 +293,7 @@ def test_parser_format_option():
 
 
 def test_dispatch_table_has_68_entries():
-    assert (
-        len(_DISPATCH) == 82
-    )  # init(None) + browse(None) + ssh-key(3) + org(4) + notification(2) + branch-protect(4) + 67 subcommands
+    assert len(_DISPATCH) == 89  # 82 + secret(3) + variable(4)
 
 
 def test_dispatch_table_all_keys():
@@ -378,6 +376,13 @@ def test_dispatch_table_all_keys():
         ("org", "view"),
         ("org", "members"),
         ("org", "repos"),
+        ("secret", "list"),
+        ("secret", "set"),
+        ("secret", "delete"),
+        ("variable", "list"),
+        ("variable", "set"),
+        ("variable", "get"),
+        ("variable", "delete"),
         ("ssh-key", "list"),
         ("ssh-key", "create"),
         ("ssh-key", "delete"),

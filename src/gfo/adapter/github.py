@@ -25,8 +25,10 @@ from .base import (
     Release,
     Repository,
     Review,
+    Secret,
     SshKey,
     Tag,
+    Variable,
     Webhook,
 )
 from .registry import register
@@ -622,6 +624,128 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def get_current_user(self) -> dict:
         resp = self._client.get("/user")
         return dict(resp.json())
+
+    # --- Secret ---
+
+    def list_secrets(self, *, limit: int = 30) -> list[Secret]:
+        results: list[dict] = []
+        per_page = min(limit, 30) if limit > 0 else 30
+        page = 1
+        while True:
+            resp = self._client.get(
+                f"{self._repos_path()}/actions/secrets",
+                params={"per_page": per_page, "page": page},
+            )
+            body = resp.json()
+            page_data = body.get("secrets", []) if isinstance(body, dict) else []
+            if not page_data:
+                break
+            results.extend(page_data)
+            if limit > 0 and len(results) >= limit:
+                results = results[:limit]
+                break
+            if len(page_data) < per_page:
+                break
+            page += 1
+        return [
+            Secret(
+                name=d["name"],
+                created_at=d.get("created_at") or "",
+                updated_at=d.get("updated_at") or "",
+            )
+            for d in results
+        ]
+
+    def set_secret(self, name: str, value: str) -> Secret:
+        resp = self._client.get(f"{self._repos_path()}/actions/secrets/public-key")
+        pub_key_data = resp.json()
+        encrypted = self._encrypt_secret(pub_key_data["key"], value)
+        self._client.put(
+            f"{self._repos_path()}/actions/secrets/{quote(name, safe='')}",
+            json={"encrypted_value": encrypted, "key_id": pub_key_data["key_id"]},
+        )
+        resp = self._client.get(f"{self._repos_path()}/actions/secrets/{quote(name, safe='')}")
+        data = resp.json()
+        return Secret(
+            name=data["name"],
+            created_at=data.get("created_at") or "",
+            updated_at=data.get("updated_at") or "",
+        )
+
+    def delete_secret(self, name: str) -> None:
+        self._client.delete(f"{self._repos_path()}/actions/secrets/{quote(name, safe='')}")
+
+    @staticmethod
+    def _encrypt_secret(public_key: str, secret_value: str) -> str:
+        try:
+            from nacl import encoding, public
+        except ImportError:
+            from gfo.exceptions import GfoError
+
+            raise GfoError("PyNaCl is required for GitHub Secret encryption: pip install PyNaCl")
+        key = public.PublicKey(public_key.encode(), encoding.Base64Encoder())
+        sealed_box = public.SealedBox(key)
+        encrypted = sealed_box.encrypt(secret_value.encode())
+        return str(encoding.Base64Encoder().encode(encrypted).decode())
+
+    # --- Variable ---
+
+    def list_variables(self, *, limit: int = 30) -> list[Variable]:
+        results: list[dict] = []
+        per_page = min(limit, 30) if limit > 0 else 30
+        page = 1
+        while True:
+            resp = self._client.get(
+                f"{self._repos_path()}/actions/variables",
+                params={"per_page": per_page, "page": page},
+            )
+            body = resp.json()
+            page_data = body.get("variables", []) if isinstance(body, dict) else []
+            if not page_data:
+                break
+            results.extend(page_data)
+            if limit > 0 and len(results) >= limit:
+                results = results[:limit]
+                break
+            if len(page_data) < per_page:
+                break
+            page += 1
+        return [
+            Variable(
+                name=d["name"],
+                value=d.get("value") or "",
+                created_at=d.get("created_at") or "",
+                updated_at=d.get("updated_at") or "",
+            )
+            for d in results
+        ]
+
+    def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
+        try:
+            self._client.get(f"{self._repos_path()}/actions/variables/{quote(name, safe='')}")
+            self._client.patch(
+                f"{self._repos_path()}/actions/variables/{quote(name, safe='')}",
+                json={"name": name, "value": value},
+            )
+        except Exception:
+            self._client.post(
+                f"{self._repos_path()}/actions/variables",
+                json={"name": name, "value": value},
+            )
+        return Variable(name=name, value=value, created_at="", updated_at="")
+
+    def get_variable(self, name: str) -> Variable:
+        resp = self._client.get(f"{self._repos_path()}/actions/variables/{quote(name, safe='')}")
+        data = resp.json()
+        return Variable(
+            name=data["name"],
+            value=data.get("value") or "",
+            created_at=data.get("created_at") or "",
+            updated_at=data.get("updated_at") or "",
+        )
+
+    def delete_variable(self, name: str) -> None:
+        self._client.delete(f"{self._repos_path()}/actions/variables/{quote(name, safe='')}")
 
     # --- BranchProtection ---
 

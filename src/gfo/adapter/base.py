@@ -189,6 +189,21 @@ class BranchProtection:
     allow_deletions: bool
 
 
+@dataclass(frozen=True, slots=True)
+class Secret:
+    name: str
+    created_at: str
+    updated_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class Variable:
+    name: str
+    value: str
+    created_at: str
+    updated_at: str
+
+
 class GitHubLikeAdapter(ABC):
     """GitHub API 互換サービス（GitHub/Gitea 系）向け共通変換ヘルパー。
 
@@ -696,6 +711,29 @@ class GitServiceAdapter(ABC):
 
     def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
         raise NotSupportedError(self.service_name, "search issues")
+
+    # --- Secret ---
+    def list_secrets(self, *, limit: int = 30) -> list[Secret]:
+        raise NotSupportedError(self.service_name, "secret list")
+
+    def set_secret(self, name: str, value: str) -> Secret:
+        raise NotSupportedError(self.service_name, "secret set")
+
+    def delete_secret(self, name: str) -> None:
+        raise NotSupportedError(self.service_name, "secret delete")
+
+    # --- Variable ---
+    def list_variables(self, *, limit: int = 30) -> list[Variable]:
+        raise NotSupportedError(self.service_name, "variable list")
+
+    def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
+        raise NotSupportedError(self.service_name, "variable set")
+
+    def get_variable(self, name: str) -> Variable:
+        raise NotSupportedError(self.service_name, "variable get")
+
+    def delete_variable(self, name: str) -> None:
+        raise NotSupportedError(self.service_name, "variable delete")
 
     # --- BranchProtection ---
     def list_branch_protections(self, *, limit: int = 30) -> list[BranchProtection]:
