@@ -11,7 +11,7 @@ import gfo.detect
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 
 
-def handle_login(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_login(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo auth login のハンドラ。"""
     if args.host:
         host = args.host
@@ -34,7 +34,7 @@ def handle_login(args: argparse.Namespace, *, fmt: str) -> None:
     print(f"Token saved for {host}")
 
 
-def handle_status(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo auth status のハンドラ。"""
     entries = gfo.auth.get_auth_status()
 

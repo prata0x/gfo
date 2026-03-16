@@ -442,8 +442,40 @@ def test_main_default_format_from_config_plain():
     assert kwargs["fmt"] == "plain"
 
 
+def test_main_jq_forces_json():
+    """--jq 指定時に fmt が json に強制される。"""
+    mock_handler = MagicMock()
+    with patch.dict(_DISPATCH, {("pr", "list"): mock_handler}):
+        result = main(["--jq", ".[].title", "pr", "list"])
+    assert result == 0
+    _, kwargs = mock_handler.call_args
+    assert kwargs["fmt"] == "json"
+    assert kwargs["jq"] == ".[].title"
+
+
+def test_main_jq_overrides_format_table():
+    """--jq は --format table を上書きして json にする。"""
+    mock_handler = MagicMock()
+    with patch.dict(_DISPATCH, {("pr", "list"): mock_handler}):
+        result = main(["--format", "table", "--jq", ".", "pr", "list"])
+    assert result == 0
+    _, kwargs = mock_handler.call_args
+    assert kwargs["fmt"] == "json"
+    assert kwargs["jq"] == "."
+
+
+def test_main_no_jq_passes_none():
+    """--jq なしでは jq=None が渡される。"""
+    mock_handler = MagicMock()
+    with patch.dict(_DISPATCH, {("pr", "list"): mock_handler}):
+        result = main(["pr", "list"])
+    assert result == 0
+    _, kwargs = mock_handler.call_args
+    assert kwargs["jq"] is None
+
+
 def test_main_gfo_error_returns_1(capsys):
-    def raise_gfo(args, *, fmt):
+    def raise_gfo(args, *, fmt, jq=None):
         raise GfoError("something went wrong")
 
     with patch.dict(_DISPATCH, {("pr", "list"): raise_gfo}):
@@ -454,7 +486,7 @@ def test_main_gfo_error_returns_1(capsys):
 
 
 def test_main_not_supported_error_returns_1(capsys):
-    def raise_nse(args, *, fmt):
+    def raise_nse(args, *, fmt, jq=None):
         raise NotSupportedError("github", "delete-repo", web_url="https://github.com/settings")
 
     with patch.dict(_DISPATCH, {("pr", "list"): raise_nse}):
@@ -466,7 +498,7 @@ def test_main_not_supported_error_returns_1(capsys):
 
 
 def test_main_not_supported_error_no_web_url(capsys):
-    def raise_nse(args, *, fmt):
+    def raise_nse(args, *, fmt, jq=None):
         raise NotSupportedError("gitlab", "milestones")
 
     with patch.dict(_DISPATCH, {("pr", "list"): raise_nse}):

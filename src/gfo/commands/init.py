@@ -29,7 +29,7 @@ _VALID_SERVICE_TYPES = frozenset(
 )
 
 
-def handle(args: argparse.Namespace, *, fmt: str) -> None:
+def handle(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo init のハンドラ。"""
     if getattr(args, "non_interactive", False):
         _handle_non_interactive(args)

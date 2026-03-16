@@ -3,9 +3,21 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from dataclasses import dataclass
+from unittest.mock import patch
 
-from gfo.output import _display_width, format_json, format_plain, format_table, output
+import pytest
+
+from gfo.exceptions import GfoError
+from gfo.output import (
+    _display_width,
+    apply_jq_filter,
+    format_json,
+    format_plain,
+    format_table,
+    output,
+)
 
 
 @dataclass(frozen=True)
@@ -271,3 +283,48 @@ class TestOutput:
         parsed = json.loads(captured.out)
         assert isinstance(parsed, list)
         assert len(parsed) == 2
+
+    def test_output_with_jq(self, capsys):
+        """output() に jq を渡すと apply_jq_filter が適用される。"""
+        items = [SampleItem(1, "Fix typo", "open", "alice")]
+        with patch("gfo.output.apply_jq_filter", return_value='"filtered"') as mock_jq:
+            output(items, fmt="json", jq=".[].title")
+        mock_jq.assert_called_once()
+        assert capsys.readouterr().out.strip() == '"filtered"'
+
+    def test_output_with_jq_empty_list(self, capsys):
+        """空リスト + jq でも apply_jq_filter が呼ばれる。"""
+        with patch("gfo.output.apply_jq_filter", return_value="[]") as mock_jq:
+            output([], fmt="json", jq=".")
+        mock_jq.assert_called_once()
+        assert capsys.readouterr().out.strip() == "[]"
+
+    def test_output_without_jq_unchanged(self, capsys):
+        """jq=None のときは従来通り JSON がそのまま出力される。"""
+        output(SampleItem(1, "X", "open", "a"), fmt="json", jq=None)
+        captured = capsys.readouterr()
+        parsed = json.loads(captured.out)
+        assert parsed[0]["number"] == 1
+
+
+class TestApplyJqFilter:
+    def test_jq_not_found(self):
+        with patch("gfo.output.subprocess.run", side_effect=FileNotFoundError):
+            with pytest.raises(GfoError, match="jq command not found"):
+                apply_jq_filter("[]", ".")
+
+    def test_jq_error(self):
+        with patch(
+            "gfo.output.subprocess.run",
+            side_effect=subprocess.CalledProcessError(1, "jq", stderr="parse error"),
+        ):
+            with pytest.raises(GfoError, match="jq filter error"):
+                apply_jq_filter("{}", ".invalid??")
+
+    def test_jq_success(self):
+        mock_result = subprocess.CompletedProcess(
+            args=["jq", "."], returncode=0, stdout='"hello"\n', stderr=""
+        )
+        with patch("gfo.output.subprocess.run", return_value=mock_result):
+            result = apply_jq_filter('{"a": "hello"}', ".a")
+        assert result == '"hello"'

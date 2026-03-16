@@ -5,7 +5,7 @@ import webbrowser
 from gfo.commands import get_adapter
 
 
-def handle_browse(args, *, fmt: str) -> None:
+def handle_browse(args, *, fmt: str, jq: str | None = None) -> None:
     adapter = get_adapter()
     resource = "repo"
     number = None

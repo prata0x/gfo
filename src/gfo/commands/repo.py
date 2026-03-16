@@ -20,14 +20,14 @@ from gfo.git_util import git_clone
 from gfo.output import output
 
 
-def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo list のハンドラ。"""
     adapter = get_adapter()
     repos = adapter.list_repositories(
         owner=getattr(args, "owner", None),
         limit=args.limit,
     )
-    output(repos, fmt=fmt, fields=["name", "full_name", "private", "description"])
+    output(repos, fmt=fmt, fields=["name", "full_name", "private", "description"], jq=jq)
 
 
 def _resolve_host_without_repo(args_host: str | None) -> tuple[str, str]:
@@ -72,7 +72,7 @@ def _resolve_host_without_repo(args_host: str | None) -> tuple[str, str]:
     return host, service_type
 
 
-def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo create のハンドラ。"""
     host, service_type = _resolve_host_without_repo(getattr(args, "host", None))
 
@@ -118,7 +118,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
         private=getattr(args, "private", False),
         description=getattr(args, "description", "") or "",
     )
-    output(repo, fmt=fmt)
+    output(repo, fmt=fmt, jq=jq)
 
 
 def _parse_repo_arg(repo_arg: str) -> tuple[str, str]:
@@ -136,7 +136,7 @@ def _parse_repo_arg(repo_arg: str) -> tuple[str, str]:
     return owner, name
 
 
-def handle_clone(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_clone(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo clone のハンドラ。"""
     host, service_type = _resolve_host_without_repo(getattr(args, "host", None))
     owner, name = _parse_repo_arg(args.repo)
@@ -152,7 +152,7 @@ def handle_clone(args: argparse.Namespace, *, fmt: str) -> None:
     git_clone(url)
 
 
-def handle_view(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo view のハンドラ。"""
     adapter = get_adapter()
 
@@ -163,10 +163,10 @@ def handle_view(args: argparse.Namespace, *, fmt: str) -> None:
         owner, name = None, None
 
     repo = adapter.get_repository(owner, name)
-    output(repo, fmt=fmt)
+    output(repo, fmt=fmt, jq=jq)
 
 
-def handle_delete(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo delete のハンドラ。"""
     adapter = get_adapter()
     repo_name = f"{adapter._owner}/{adapter._repo}"
@@ -182,8 +182,8 @@ def handle_delete(args: argparse.Namespace, *, fmt: str) -> None:
     print(f"Deleted repository '{repo_name}'.")
 
 
-def handle_fork(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_fork(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo fork のハンドラ。"""
     adapter = get_adapter()
     repo = adapter.fork_repository(organization=getattr(args, "org", None))
-    output(repo, fmt=fmt)
+    output(repo, fmt=fmt, jq=jq)

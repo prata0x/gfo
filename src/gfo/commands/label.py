@@ -10,14 +10,14 @@ from gfo.exceptions import ConfigError
 from gfo.output import output
 
 
-def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo label list のハンドラ。"""
     adapter = get_adapter()
     labels = adapter.list_labels()
-    output(labels, fmt=fmt, fields=["name", "color", "description"])
+    output(labels, fmt=fmt, fields=["name", "color", "description"], jq=jq)
 
 
-def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo label create のハンドラ。"""
     name = args.name.strip()
     if not name:
@@ -35,10 +35,10 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
         color=color,
         description=args.description,
     )
-    output(label, fmt=fmt)
+    output(label, fmt=fmt, jq=jq)
 
 
-def handle_delete(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo label delete のハンドラ。"""
     name = args.name.strip()
     if not name:

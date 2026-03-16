@@ -9,14 +9,14 @@ from gfo.exceptions import ConfigError
 from gfo.output import output
 
 
-def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo release list のハンドラ。"""
     adapter = get_adapter()
     releases = adapter.list_releases(limit=args.limit)
-    output(releases, fmt=fmt, fields=["tag", "title", "draft", "prerelease"])
+    output(releases, fmt=fmt, fields=["tag", "title", "draft", "prerelease"], jq=jq)
 
 
-def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo release create のハンドラ。"""
     tag = (args.tag or "").strip()
     if not tag:
@@ -30,10 +30,10 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
         draft=args.draft,
         prerelease=args.prerelease,
     )
-    output(release, fmt=fmt)
+    output(release, fmt=fmt, jq=jq)
 
 
-def handle_delete(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo release delete のハンドラ。"""
     tag = (args.tag or "").strip()
     if not tag:

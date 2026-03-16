@@ -8,7 +8,7 @@ import json
 from gfo.commands import get_adapter
 
 
-def handle_whoami(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_whoami(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo user whoami のハンドラ。"""
     adapter = get_adapter()
     user = adapter.get_current_user()

@@ -9,7 +9,7 @@ from gfo.commands import get_adapter
 from gfo.exceptions import NotFoundError
 
 
-def handle_get(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_get(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo file get <path> [--ref REF] のハンドラ。"""
     adapter = get_adapter()
     content, sha = adapter.get_file_content(args.path, ref=args.ref)
@@ -21,7 +21,7 @@ def handle_get(args: argparse.Namespace, *, fmt: str) -> None:
         print(content)
 
 
-def handle_put(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_put(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo file put <path> --message TEXT のハンドラ。stdin からファイル内容を読み込む。"""
     adapter = get_adapter()
     content = sys.stdin.read()
@@ -40,7 +40,7 @@ def handle_put(args: argparse.Namespace, *, fmt: str) -> None:
     )
 
 
-def handle_delete(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo file delete <path> --message TEXT のハンドラ。"""
     adapter = get_adapter()
     _, sha = adapter.get_file_content(args.path, ref=args.branch)

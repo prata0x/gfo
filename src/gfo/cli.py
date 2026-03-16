@@ -53,6 +53,12 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
 
     parser = argparse.ArgumentParser(prog="gfo", description="統合 Git Forge CLI")
     parser.add_argument("--format", choices=["table", "json", "plain"], default=None)
+    parser.add_argument(
+        "--jq",
+        metavar="EXPRESSION",
+        default=None,
+        help="JSON 出力に jq 式でフィルタをかける（--format json を暗黙的に有効化）",
+    )
     parser.add_argument("--version", action="version", version=f"gfo {__version__}")
 
     subparsers = parser.add_subparsers(dest="command")
@@ -451,7 +457,11 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 1
 
-    resolved_fmt = args.format or get_default_output_format()
+    jq_expr = args.jq
+    if jq_expr:
+        resolved_fmt = "json"
+    else:
+        resolved_fmt = args.format or get_default_output_format()
 
     key = (args.command, getattr(args, "subcommand", None))
 
@@ -463,7 +473,7 @@ def main(argv: list[str] | None = None) -> int:
     handler = _DISPATCH[key]
 
     try:
-        handler(args, fmt=resolved_fmt)
+        handler(args, fmt=resolved_fmt, jq=jq_expr)
         return 0
     except NotSupportedError as err:
         print(str(err), file=sys.stderr)

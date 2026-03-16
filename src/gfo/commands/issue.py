@@ -9,7 +9,7 @@ from gfo.exceptions import ConfigError
 from gfo.output import output
 
 
-def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue list のハンドラ。"""
     adapter = get_adapter()
     issues = adapter.list_issues(
@@ -18,10 +18,10 @@ def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
         label=args.label,
         limit=args.limit,
     )
-    output(issues, fmt=fmt, fields=["number", "title", "state", "author"])
+    output(issues, fmt=fmt, fields=["number", "title", "state", "author"], jq=jq)
 
 
-def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue create のハンドラ。"""
     title = (args.title or "").strip()
     if not title:
@@ -47,30 +47,30 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
         label=args.label,
         **kwargs,
     )
-    output(issue, fmt=fmt)
+    output(issue, fmt=fmt, jq=jq)
 
 
-def handle_view(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue view <number> のハンドラ。"""
     adapter = get_adapter()
     issue = adapter.get_issue(args.number)
-    output(issue, fmt=fmt)
+    output(issue, fmt=fmt, jq=jq)
 
 
-def handle_close(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_close(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue close <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.close_issue(args.number)
 
 
-def handle_delete(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue delete <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_issue(args.number)
     print(f"Deleted issue '{args.number}'.")
 
 
-def handle_update(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue update <number> のハンドラ。"""
     adapter = get_adapter()
     issue = adapter.update_issue(
@@ -80,4 +80,4 @@ def handle_update(args: argparse.Namespace, *, fmt: str) -> None:
         assignee=args.assignee,
         label=args.label,
     )
-    output(issue, fmt=fmt)
+    output(issue, fmt=fmt, jq=jq)

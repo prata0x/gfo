@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import subprocess  # nosec B404 - jq is a fixed, well-known command
 import unicodedata
 from typing import Any
+
+from gfo.exceptions import GfoError
 
 
 def _display_width(s: str) -> int:
@@ -38,7 +41,37 @@ def _sanitize_for_plain(val: str) -> str:
     return val.replace("\t", "\\t")
 
 
-def output(data: Any, *, fmt: str = "table", fields: list[str] | None = None) -> None:
+def apply_jq_filter(json_str: str, expression: str) -> str:
+    """JSON 文字列に jq 式を適用して結果を返す。
+
+    Args:
+        json_str: 入力 JSON 文字列
+        expression: jq 式（例: '.[].title'）
+
+    Returns:
+        jq 適用後の文字列
+
+    Raises:
+        GfoError: jq コマンドが見つからない場合、または jq がエラーを返した場合
+    """
+    try:
+        result = subprocess.run(  # nosec B603 B607 - jq is a fixed command, expression is user-provided filter
+            ["jq", expression],
+            input=json_str,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout.rstrip("\n")
+    except FileNotFoundError:
+        raise GfoError("jq command not found. Install it from https://stedolan.github.io/jq/")
+    except subprocess.CalledProcessError as e:
+        raise GfoError(f"jq filter error: {e.stderr.strip()}")
+
+
+def output(
+    data: Any, *, fmt: str = "table", fields: list[str] | None = None, jq: str | None = None
+) -> None:
     """データを指定フォーマットで stdout に出力する。"""
     if isinstance(data, list):
         items = data
@@ -47,7 +80,11 @@ def output(data: Any, *, fmt: str = "table", fields: list[str] | None = None) ->
 
     if not items:
         if fmt == "json":
-            print("[]")
+            json_str = "[]"
+            if jq:
+                print(apply_jq_filter(json_str, jq))
+            else:
+                print(json_str)
         elif fmt == "plain":
             pass  # plain は空行なしで終了
         else:
@@ -58,7 +95,11 @@ def output(data: Any, *, fmt: str = "table", fields: list[str] | None = None) ->
         fields = [f.name for f in dataclasses.fields(items[0])]
 
     if fmt == "json":
-        print(format_json(items))
+        json_str = format_json(items)
+        if jq:
+            print(apply_jq_filter(json_str, jq))
+        else:
+            print(json_str)
     elif fmt == "plain":
         print(format_plain(items, fields))
     else:

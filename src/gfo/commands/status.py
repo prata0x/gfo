@@ -8,14 +8,14 @@ from gfo.commands import get_adapter
 from gfo.output import output
 
 
-def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo status list <ref> のハンドラ。"""
     adapter = get_adapter()
     statuses = adapter.list_commit_statuses(args.ref, limit=args.limit)
-    output(statuses, fmt=fmt, fields=["state", "context", "description", "created_at"])
+    output(statuses, fmt=fmt, fields=["state", "context", "description", "created_at"], jq=jq)
 
 
-def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo status create <ref> --state STATE のハンドラ。"""
     adapter = get_adapter()
     status = adapter.create_commit_status(
@@ -25,4 +25,4 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
         description=args.description or "",
         target_url=args.url or "",
     )
-    output(status, fmt=fmt)
+    output(status, fmt=fmt, jq=jq)

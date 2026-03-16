@@ -7,7 +7,7 @@ import argparse
 from gfo.commands import get_adapter
 
 
-def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo collaborator list のハンドラ。"""
     adapter = get_adapter()
     usernames = adapter.list_collaborators(limit=args.limit)
@@ -20,13 +20,13 @@ def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
             print(username)
 
 
-def handle_add(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_add(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo collaborator add <username> のハンドラ。"""
     adapter = get_adapter()
     adapter.add_collaborator(username=args.username, permission=args.permission)
 
 
-def handle_remove(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_remove(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo collaborator remove <username> のハンドラ。"""
     adapter = get_adapter()
     adapter.remove_collaborator(username=args.username)

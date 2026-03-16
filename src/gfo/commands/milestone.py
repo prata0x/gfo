@@ -9,14 +9,14 @@ from gfo.exceptions import ConfigError
 from gfo.output import output
 
 
-def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo milestone list のハンドラ。"""
     adapter = get_adapter()
     milestones = adapter.list_milestones()
-    output(milestones, fmt=fmt, fields=["number", "title", "state", "due_date"])
+    output(milestones, fmt=fmt, fields=["number", "title", "state", "due_date"], jq=jq)
 
 
-def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo milestone create のハンドラ。"""
     title = args.title.strip()
     if not title:
@@ -27,10 +27,10 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
         description=args.description,
         due_date=args.due,
     )
-    output(milestone, fmt=fmt)
+    output(milestone, fmt=fmt, jq=jq)
 
 
-def handle_delete(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo milestone delete のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_milestone(number=args.number)

@@ -9,14 +9,14 @@ from gfo.exceptions import ConfigError
 from gfo.output import output
 
 
-def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo review list <number> のハンドラ。"""
     adapter = get_adapter()
     reviews = adapter.list_reviews(args.number)
-    output(reviews, fmt=fmt, fields=["id", "state", "author", "body"])
+    output(reviews, fmt=fmt, fields=["id", "state", "author", "body"], jq=jq)
 
 
-def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo review create <number> --approve|--request-changes|--comment のハンドラ。"""
     adapter = get_adapter()
     if args.approve:
@@ -28,4 +28,4 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
     if state == "COMMENT" and not args.body:
         raise ConfigError("--body is required when using --comment")
     review = adapter.create_review(args.number, state=state, body=args.body or "")
-    output(review, fmt=fmt)
+    output(review, fmt=fmt, jq=jq)

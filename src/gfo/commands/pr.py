@@ -10,14 +10,14 @@ from gfo.exceptions import ConfigError
 from gfo.output import output
 
 
-def handle_list(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr list のハンドラ。"""
     adapter = get_adapter()
     prs = adapter.list_pull_requests(state=args.state, limit=args.limit)
-    output(prs, fmt=fmt, fields=["number", "title", "state", "author"])
+    output(prs, fmt=fmt, fields=["number", "title", "state", "author"], jq=jq)
 
 
-def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr create のハンドラ。"""
     adapter = get_adapter()
     head = args.head or gfo.git_util.get_current_branch()
@@ -32,29 +32,29 @@ def handle_create(args: argparse.Namespace, *, fmt: str) -> None:
         head=head,
         draft=args.draft,
     )
-    output(pr, fmt=fmt)
+    output(pr, fmt=fmt, jq=jq)
 
 
-def handle_view(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr view <number> のハンドラ。"""
     adapter = get_adapter()
     pr = adapter.get_pull_request(args.number)
-    output(pr, fmt=fmt)
+    output(pr, fmt=fmt, jq=jq)
 
 
-def handle_merge(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_merge(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr merge <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.merge_pull_request(args.number, method=args.method)
 
 
-def handle_close(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_close(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr close <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.close_pull_request(args.number)
 
 
-def handle_checkout(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_checkout(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr checkout <number> のハンドラ。"""
     adapter = get_adapter()
     pr = adapter.get_pull_request(args.number)
@@ -63,7 +63,7 @@ def handle_checkout(args: argparse.Namespace, *, fmt: str) -> None:
     gfo.git_util.git_checkout_branch(pr.source_branch)
 
 
-def handle_update(args: argparse.Namespace, *, fmt: str) -> None:
+def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr update <number> のハンドラ。"""
     adapter = get_adapter()
     pr = adapter.update_pull_request(
@@ -72,4 +72,4 @@ def handle_update(args: argparse.Namespace, *, fmt: str) -> None:
         body=args.body,
         base=args.base,
     )
-    output(pr, fmt=fmt)
+    output(pr, fmt=fmt, jq=jq)
