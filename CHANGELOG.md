@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1] - 2026-03-17
+
+### Added
+
+- gettext-based i18n support (default English + Japanese locale)
+- AI agent integration roadmap (`docs/roadmap.md`)
+
+### Fixed
+
+- Fix garbled Japanese output on Windows
+- Fix i18n review issues (Windows locale normalization, path separators, missing translations)
+
+### Other
+
+- Remove completed roadmap files (`docs/roadmap/`)
+
 ## [0.2.0] - 2026-03-17
 
 ### Added
