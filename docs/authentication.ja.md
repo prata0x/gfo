@@ -76,21 +76,35 @@ gfo auth status
 3. **Generate new token** をクリック
 4. Token name、Expiration（有効期限）を設定
 5. **Repository access** で対象リポジトリを選択
-6. **Repository permissions** で必要な権限を付与:
-   - Contents: `Read and write`（`gfo repo` のファイル操作、`gfo release` のアセット操作に必要）
-   - Issues: `Read and write`（`gfo issue` を使う場合）
-   - Pull requests: `Read and write`（`gfo pr` を使う場合）
-   - Metadata: `Read-only`（自動付与）
-   - Commit statuses: `Read and write`（`gfo status` を使う場合）
-   - Webhooks: `Read and write`（`gfo webhook` を使う場合）
-   - Administration: `Read and write`（`gfo branch-protect`、`gfo repo delete` を使う場合）
-   - Secrets: `Read and write`（`gfo secret` を使う場合）
-   - Variables: `Read and write`（`gfo variable` を使う場合）
-7. **Account permissions** で必要な権限を付与:
-   - Git SSH keys: `Read and write`（`gfo ssh-key` を使う場合）
-8. **Organization permissions** で必要な権限を付与（組織リポジトリの場合）:
-   - Members: `Read-only`（`gfo org` を使う場合）
-9. **Generate token** をクリックしてトークンをコピー
+6. 必要な権限を付与:
+
+   **Repository permissions:**
+
+   | 権限 | アクセスレベル | 用途 |
+   |------|---------------|------|
+   | Contents | `Read and write` | `gfo repo`（ファイル操作）、`gfo release`（アセット） |
+   | Issues | `Read and write` | `gfo issue` を使う場合 |
+   | Pull requests | `Read and write` | `gfo pr` を使う場合 |
+   | Metadata | `Read-only` | 自動付与 |
+   | Commit statuses | `Read and write` | `gfo status` を使う場合 |
+   | Webhooks | `Read and write` | `gfo webhook` を使う場合 |
+   | Administration | `Read and write` | `gfo branch-protect`、`gfo repo delete` を使う場合 |
+   | Secrets | `Read and write` | `gfo secret` を使う場合 |
+   | Variables | `Read and write` | `gfo variable` を使う場合 |
+
+   **Account permissions:**
+
+   | 権限 | アクセスレベル | 用途 |
+   |------|---------------|------|
+   | Git SSH keys | `Read and write` | `gfo ssh-key` を使う場合 |
+
+   **Organization permissions（組織リポジトリの場合）:**
+
+   | 権限 | アクセスレベル | 用途 |
+   |------|---------------|------|
+   | Members | `Read-only` | `gfo org` を使う場合 |
+
+7. **Generate token** をクリックしてトークンをコピー
 
 > **注意**: `gfo notification` は Fine-grained Token では使用できません。Classic Token の `notifications` スコープが必要です。
 

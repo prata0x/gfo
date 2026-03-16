@@ -76,21 +76,35 @@ gfo auth status
 3. Click **Generate new token**
 4. Set Token name and Expiration
 5. Under **Repository access**, select your target repositories
-6. Grant required permissions under **Repository permissions**:
-   - Contents: `Read and write` (for `gfo repo` file operations and `gfo release` assets)
-   - Issues: `Read and write` (if using `gfo issue`)
-   - Pull requests: `Read and write` (if using `gfo pr`)
-   - Metadata: `Read-only` (granted automatically)
-   - Commit statuses: `Read and write` (if using `gfo status`)
-   - Webhooks: `Read and write` (if using `gfo webhook`)
-   - Administration: `Read and write` (if using `gfo branch-protect` or `gfo repo delete`)
-   - Secrets: `Read and write` (if using `gfo secret`)
-   - Variables: `Read and write` (if using `gfo variable`)
-7. Grant required permissions under **Account permissions**:
-   - Git SSH keys: `Read and write` (if using `gfo ssh-key`)
-8. Grant required permissions under **Organization permissions** (for org repositories):
-   - Members: `Read-only` (if using `gfo org`)
-9. Click **Generate token** and copy it
+6. Grant required permissions:
+
+   **Repository permissions:**
+
+   | Permission | Access Level | Purpose |
+   |------------|-------------|---------|
+   | Contents | `Read and write` | `gfo repo` (file operations), `gfo release` (assets) |
+   | Issues | `Read and write` | If using `gfo issue` |
+   | Pull requests | `Read and write` | If using `gfo pr` |
+   | Metadata | `Read-only` | Granted automatically |
+   | Commit statuses | `Read and write` | If using `gfo status` |
+   | Webhooks | `Read and write` | If using `gfo webhook` |
+   | Administration | `Read and write` | If using `gfo branch-protect` or `gfo repo delete` |
+   | Secrets | `Read and write` | If using `gfo secret` |
+   | Variables | `Read and write` | If using `gfo variable` |
+
+   **Account permissions:**
+
+   | Permission | Access Level | Purpose |
+   |------------|-------------|---------|
+   | Git SSH keys | `Read and write` | If using `gfo ssh-key` |
+
+   **Organization permissions (for org repositories):**
+
+   | Permission | Access Level | Purpose |
+   |------------|-------------|---------|
+   | Members | `Read-only` | If using `gfo org` |
+
+7. Click **Generate token** and copy it
 
 > **Note**: `gfo notification` is not supported with Fine-grained Tokens. Use a Classic Token with the `notifications` scope.
 
