@@ -33,3 +33,22 @@ def test_something(adapter):
 ## アダプターフィクスチャ
 
 - `tests/test_adapters/conftest.py` に全サービスの `client` + `adapter` ペアを定義
+
+## コマンドテスト: `patch_adapter`
+
+- `tests/test_commands/conftest.py` の `patch_adapter(module_path)` 共通ヘルパーを使うこと
+- ファイルごとに独自の `_patch` ヘルパーを重複定義しないこと
+
+## 必須テストパターン
+
+- **`fmt="json"` テスト**: 各コマンドに最低1つ必須
+- **エラー伝搬テスト**: adapter が `HttpError` を投げた場合の伝搬を検証すること
+- **アダプターテスト最低要件**: 404/403 エラーテスト + 空リスト `[]` テスト
+
+## 統合テスト
+
+- **`safe_temporary_directory()`**: `tests/integration/conftest.py` のヘルパーを使うこと（`TemporaryDirectory` を直接使わない）
+  - 理由: Windows ファイルロック対策 + Python 3.11 互換（`ignore_cleanup_errors` 未対応）
+- **API 反映ラグ**: set/delete 直後の get/list に `time.sleep(3)` を入れること
+  - GitHub/Bitbucket で確認済みの反映遅延への対策
+- **プライベート API 依存**: TODO コメント付きで最小限に抑えること

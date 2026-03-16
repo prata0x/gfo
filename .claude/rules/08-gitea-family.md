@@ -14,6 +14,8 @@ paths:
 
 ## 共通パターン（Gitea / Forgejo / Gogs / GitBucket）
 
+- **`_to_organization`**: `data.get("website")` ではなく `{base_url}/{org_name}` で組織ページ URL を構築すること
+  - 過去バグ: `website` フィールドは外部サイト URL であり、組織ページ URL ではない
 - **PR merge**: `Do` パラメータ（GitHub の `merge_method` とは異なる）
 - **list_issues**: `type: "issues"` + `not r.get("pull_request")` でフィルタ
   - Gitea はissueレスポンスに `pull_request: null` が含まれる

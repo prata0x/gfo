@@ -35,6 +35,17 @@ paths:
 2. サービス別環境変数（例: `GITHUB_TOKEN`）
 3. `GFO_TOKEN`（汎用フォールバック）
 
+## `--jq` 空文字列チェック
+
+- `if jq_expr:` ではなく `if jq_expr is not None:` でチェックすること
+- 空文字列 `""` が渡された場合は早期エラーにすること
+- 過去バグ: `if jq_expr:` だと空文字列が falsy で素通りした
+
+## argparse `dest` 衝突回避
+
+- Python 組み込み名（`all`, `type` 等）と衝突する場合は `dest="mark_all"` 等に変更すること
+- 過去バグ: `--all` が `args.all` になり、組み込み `all()` と混同しやすかった
+
 ## 認証方式変更時の影響範囲
 
 `auth.py`, `registry.py`, テストファイル, ドキュメントの4箇所に波及する。

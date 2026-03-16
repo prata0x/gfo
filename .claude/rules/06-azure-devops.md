@@ -23,6 +23,14 @@ paths:
 - **create_or_update_file**: `commits[0].commitId` を返す（pushes API レスポンス）
 - **認証**: `AZURE_DEVOPS_PAT` を Basic 認証（username 空、password = PAT）
 
+## 組織関連
+
+- **`list_org_repos`**: `limit=0` で全件取得 → プロジェクト名フィルタ → `[:limit]` 適用
+  - 過去バグ: フィルタ前に limit を適用して結果が過少になった
+- **`_to_organization`**: `_links.web.href` 優先、フォールバック `https://dev.azure.com/{org}/{name}`
+  - 過去バグ: API URL を返していた
+- **`org members`**: `NotSupportedError`（Azure DevOps はチームベースのメンバー管理で組織メンバー一覧 API がない）
+
 ## コマンド側の注意
 
 - `commands/repo.py` の `handle_create`: `organization` / `project_key` が `None` のチェック必須

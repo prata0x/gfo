@@ -50,6 +50,24 @@ GitServiceAdapter (ABC, adapter/base.py)
 | `continuationToken` | Azure DevOps 形式 |
 | オフセット形式（汎用） | Gitea 系 |
 
+## 出力・フィルタ規約
+
+- **`--jq` 対応必須**: 全ハンドラで `jq` 引数を出力に接続すること（シグネチャだけ広げて未接続は禁止）
+- **`list[str]` / `dict` を返すハンドラ**: `output()` は使えない → `apply_jq_filter` を直接適用すること
+- **limit 適用順序**: フィルタ後に limit を適用すること（フィルタ前に適用すると結果が過少になる）
+
+## upsert パターン
+
+- **set 系メソッド**（`set_variable`, `set_secret` 等）: GET で存在チェック → PUT（更新）/ POST（新規作成）を使い分けること
+  - POST のみだと既存リソースで API エラーになる
+
+## メソッド・コード規約
+
+- **メソッドシグネチャ**: `**kwargs` で受けず、`base.py` と同じ明示的キーワード引数にすること
+- **`from __future__ import annotations`**: 全 `commands/*.py` に必須
+- **Organization.url**: API URL ではなく Web URL を返すこと
+- **削除/書き込みハンドラ**: 成功メッセージを `print()` すること（既存の label/release/issue に倣う）
+
 ## 防御的コーディング
 
 - フィールド存在を無条件に前提しない → `data.get("field") or default`
