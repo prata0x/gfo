@@ -77,19 +77,19 @@ gfo auth status
 4. Set Token name and Expiration
 5. Under **Repository access**, select your target repositories
 6. Grant required permissions under **Repository permissions**:
-   - Contents: `Read and write` (required for file operations)
-   - Issues: `Read and write`
-   - Pull requests: `Read and write`
+   - Contents: `Read and write` (for `gfo repo` file operations and `gfo release` assets)
+   - Issues: `Read and write` (if using `gfo issue`)
+   - Pull requests: `Read and write` (if using `gfo pr`)
    - Metadata: `Read-only` (granted automatically)
    - Commit statuses: `Read and write` (if using `gfo status`)
    - Webhooks: `Read and write` (if using `gfo webhook`)
-   - Administration: `Read and write` (if using `gfo branch-protect`)
+   - Administration: `Read and write` (if using `gfo branch-protect` or `gfo repo delete`)
    - Secrets: `Read and write` (if using `gfo secret`)
    - Variables: `Read and write` (if using `gfo variable`)
 7. Grant required permissions under **Account permissions**:
    - Git SSH keys: `Read and write` (if using `gfo ssh-key`)
 8. Grant required permissions under **Organization permissions** (for org repositories):
-   - Members: `Read-only` (if using `gfo org members`)
+   - Members: `Read-only` (if using `gfo org`)
 9. Click **Generate token** and copy it
 
 > **Note**: `gfo notification` is not supported with Fine-grained Tokens. Use a Classic Token with the `notifications` scope.
@@ -141,13 +141,13 @@ gfo auth login --host gitlab.example.com
 4. Select required scopes:
    | Scope | Purpose |
    |---------|------|
-   | `read:repository:bitbucket` | Read repository info, list repositories |
-   | `write:repository:bitbucket` | File operations |
+   | `read:repository:bitbucket` | `gfo repo` (list, details, read files) |
+   | `write:repository:bitbucket` | `gfo repo` (create/update files) |
    | `admin:repository:bitbucket` | If using `gfo branch-protect` |
-   | `read:pullrequest:bitbucket` | List and get PRs |
-   | `write:pullrequest:bitbucket` | Create, merge, close PRs |
-   | `read:issue:bitbucket` | List and get issues (if using Issue Tracker) |
-   | `write:issue:bitbucket` | Create issues, change state (if using Issue Tracker) |
+   | `read:pullrequest:bitbucket` | `gfo pr` (list, details) |
+   | `write:pullrequest:bitbucket` | `gfo pr` (create, merge, close) |
+   | `read:issue:bitbucket` | `gfo issue` (list, details; if using Issue Tracker) |
+   | `write:issue:bitbucket` | `gfo issue` (create, change state; if using Issue Tracker) |
    | `read:pipeline:bitbucket` | List `gfo secret` / `gfo variable` |
    | `write:pipeline:bitbucket` | Update `gfo secret` / `gfo variable` |
    | `admin:pipeline:bitbucket` | Create/delete `gfo secret` / `gfo variable` |
@@ -155,7 +155,7 @@ gfo auth login --host gitlab.example.com
    | `write:ssh-key:bitbucket` | Create/update SSH keys (if using `gfo ssh-key`) |
    | `delete:ssh-key:bitbucket` | Delete SSH keys (if using `gfo ssh-key`) |
    | `read:workspace:bitbucket` | If using `gfo org` |
-   | `read:user:bitbucket` | Get authenticated user info |
+   | `read:user:bitbucket` | All commands (authentication check) |
 
    > **Note**: `write` does not include `read`. Select both scopes when both read and write access are needed.
 5. Click **Create** and copy the token
@@ -181,8 +181,8 @@ gfo auth login --host bitbucket.org
 2. Click **New Token**
 3. Set Name, Organization, and Expiration
 4. Grant required permissions under **Scopes**:
-   - **Code**: `Read & write`
-   - **Work Items**: `Read & write` (required for Issue/task operations)
+   - **Code**: `Read & write` (for `gfo repo`, `gfo pr`, `gfo release`)
+   - **Work Items**: `Read & write` (if using `gfo issue`)
    - **Project and Team**: `Read` (if using `gfo org`)
 5. Click **Create** and copy the token
 

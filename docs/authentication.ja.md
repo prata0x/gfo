@@ -77,19 +77,19 @@ gfo auth status
 4. Token name、Expiration（有効期限）を設定
 5. **Repository access** で対象リポジトリを選択
 6. **Repository permissions** で必要な権限を付与:
-   - Contents: `Read and write`（ファイル操作に必要）
-   - Issues: `Read and write`
-   - Pull requests: `Read and write`
+   - Contents: `Read and write`（`gfo repo` のファイル操作、`gfo release` のアセット操作に必要）
+   - Issues: `Read and write`（`gfo issue` を使う場合）
+   - Pull requests: `Read and write`（`gfo pr` を使う場合）
    - Metadata: `Read-only`（自動付与）
    - Commit statuses: `Read and write`（`gfo status` を使う場合）
    - Webhooks: `Read and write`（`gfo webhook` を使う場合）
-   - Administration: `Read and write`（`gfo branch-protect` を使う場合）
+   - Administration: `Read and write`（`gfo branch-protect`、`gfo repo delete` を使う場合）
    - Secrets: `Read and write`（`gfo secret` を使う場合）
    - Variables: `Read and write`（`gfo variable` を使う場合）
 7. **Account permissions** で必要な権限を付与:
    - Git SSH keys: `Read and write`（`gfo ssh-key` を使う場合）
 8. **Organization permissions** で必要な権限を付与（組織リポジトリの場合）:
-   - Members: `Read-only`（`gfo org members` を使う場合）
+   - Members: `Read-only`（`gfo org` を使う場合）
 9. **Generate token** をクリックしてトークンをコピー
 
 > **注意**: `gfo notification` は Fine-grained Token では使用できません。Classic Token の `notifications` スコープが必要です。
@@ -141,13 +141,13 @@ gfo auth login --host gitlab.example.com
 4. 必要なスコープを選択:
    | スコープ | 用途 |
    |---------|------|
-   | `read:repository:bitbucket` | リポジトリ情報の読み取り・一覧 |
-   | `write:repository:bitbucket` | ファイル操作 |
+   | `read:repository:bitbucket` | `gfo repo`（リポジトリ一覧・詳細・ファイル読み取り） |
+   | `write:repository:bitbucket` | `gfo repo`（ファイル作成・更新） |
    | `admin:repository:bitbucket` | `gfo branch-protect` を使う場合 |
-   | `read:pullrequest:bitbucket` | PR 一覧・取得 |
-   | `write:pullrequest:bitbucket` | PR 作成・マージ・クローズ |
-   | `read:issue:bitbucket` | Issue 一覧・取得（Issue Tracker 使用時） |
-   | `write:issue:bitbucket` | Issue 作成・状態変更（Issue Tracker 使用時） |
+   | `read:pullrequest:bitbucket` | `gfo pr`（一覧・詳細） |
+   | `write:pullrequest:bitbucket` | `gfo pr`（作成・マージ・クローズ） |
+   | `read:issue:bitbucket` | `gfo issue`（一覧・詳細、Issue Tracker 使用時） |
+   | `write:issue:bitbucket` | `gfo issue`（作成・状態変更、Issue Tracker 使用時） |
    | `read:pipeline:bitbucket` | `gfo secret` / `gfo variable` の一覧 |
    | `write:pipeline:bitbucket` | `gfo secret` / `gfo variable` の更新 |
    | `admin:pipeline:bitbucket` | `gfo secret` / `gfo variable` の作成・削除 |
@@ -155,7 +155,7 @@ gfo auth login --host gitlab.example.com
    | `write:ssh-key:bitbucket` | SSH 鍵作成・更新（`gfo ssh-key` を使う場合） |
    | `delete:ssh-key:bitbucket` | SSH 鍵削除（`gfo ssh-key` を使う場合） |
    | `read:workspace:bitbucket` | `gfo org` を使う場合 |
-   | `read:user:bitbucket` | 認証ユーザー情報の取得 |
+   | `read:user:bitbucket` | 全コマンド共通（認証確認） |
 
    > **注意**: `write` は `read` を含まないので、読み取りと書き込みの両方が必要な場合は両方のスコープを選択すること。
 5. **Create** をクリックしてトークンをコピー
@@ -181,8 +181,8 @@ gfo auth login --host bitbucket.org
 2. **New Token** をクリック
 3. Name、Organization（対象の組織）、Expiration を設定
 4. **Scopes** で必要な権限を付与:
-   - **Code**: `Read & write`
-   - **Work Items**: `Read & write`（Issue/タスク操作に必要）
+   - **Code**: `Read & write`（`gfo repo`、`gfo pr`、`gfo release` に必要）
+   - **Work Items**: `Read & write`（`gfo issue` を使う場合）
    - **Project and Team**: `Read`（`gfo org` を使う場合）
 5. **Create** をクリックしてトークンをコピー
 
