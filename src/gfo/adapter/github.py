@@ -619,6 +619,18 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.get("/user")
         return dict(resp.json())
 
+    # --- Browse ---
+
+    def get_web_url(self, resource: str = "repo", number: int | None = None) -> str:
+        base = f"https://github.com/{self._owner}/{self._repo}"
+        if resource == "pr":
+            return f"{base}/pull/{number}"
+        if resource == "issue":
+            return f"{base}/issues/{number}"
+        if resource == "settings":
+            return f"{base}/settings"
+        return base
+
     # --- Search ---
 
     def search_repositories(self, query: str, *, limit: int = 30) -> list[Repository]:

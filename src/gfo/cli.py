@@ -8,6 +8,7 @@ from collections.abc import Callable
 
 import gfo.commands.auth_cmd
 import gfo.commands.branch
+import gfo.commands.browse
 import gfo.commands.ci
 import gfo.commands.collaborator
 import gfo.commands.comment
@@ -355,6 +356,16 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     wiki_delete = wiki_sub.add_parser("delete")
     wiki_delete.add_argument("id")
 
+    # gfo browse（サブコマンドなし）
+    browse_parser = subparser_map["browse"] = subparsers.add_parser(
+        "browse", help="リポジトリをブラウザで開く"
+    )
+    _browse_group = browse_parser.add_mutually_exclusive_group()
+    _browse_group.add_argument("--pr", type=int, metavar="N", help="PR 番号")
+    _browse_group.add_argument("--issue", type=int, metavar="N", help="Issue 番号")
+    _browse_group.add_argument("--settings", action="store_true", help="設定ページを開く")
+    browse_parser.add_argument("--print", action="store_true", help="URL を表示するだけ")
+
     return parser, subparser_map
 
 
@@ -427,6 +438,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("wiki", "create"): gfo.commands.wiki.handle_create,
     ("wiki", "update"): gfo.commands.wiki.handle_update,
     ("wiki", "delete"): gfo.commands.wiki.handle_delete,
+    ("browse", None): gfo.commands.browse.handle_browse,
 }
 
 

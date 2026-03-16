@@ -962,6 +962,18 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             "login": user.get("providerDisplayName", ""),
         }
 
+    # --- Browse ---
+
+    def get_web_url(self, resource: str = "repo", number: int | None = None) -> str:
+        base = f"https://dev.azure.com/{self._org}/{self._project}/_git/{self._repo}"
+        if resource == "pr":
+            return f"{base}/pullrequest/{number}"
+        if resource == "issue":
+            return f"https://dev.azure.com/{self._org}/{self._project}/_workitems?id={number}"
+        if resource == "settings":
+            return f"https://dev.azure.com/{self._org}/{self._project}/_settings/repositories"
+        return base
+
     # --- Search ---
 
     def search_repositories(self, query: str, *, limit: int = 30) -> list[Repository]:

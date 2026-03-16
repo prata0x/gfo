@@ -909,6 +909,25 @@ class GitLabAdapter(GitServiceAdapter):
         resp = self._client.get("/user")
         return dict(resp.json())
 
+    # --- Browse ---
+
+    def get_web_url(self, resource: str = "repo", number: int | None = None) -> str:
+        # API base_url から Web URL を導出: https://gitlab.com/api/v4 → https://gitlab.com
+        from urllib.parse import urlparse
+
+        parsed = urlparse(self._client.base_url)
+        web_base = f"{parsed.scheme}://{parsed.hostname}"
+        if parsed.port:
+            web_base = f"{web_base}:{parsed.port}"
+        base = f"{web_base}/{self._owner}/{self._repo}"
+        if resource == "pr":
+            return f"{base}/-/merge_requests/{number}"
+        if resource == "issue":
+            return f"{base}/-/issues/{number}"
+        if resource == "settings":
+            return f"{base}/-/settings/general"
+        return base
+
     # --- Search ---
 
     def search_repositories(self, query: str, *, limit: int = 30) -> list[Repository]:

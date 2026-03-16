@@ -624,6 +624,22 @@ class BacklogAdapter(GitServiceAdapter):
         resp = self._client.get("/users/myself")
         return dict(resp.json())
 
+    # --- Browse ---
+
+    def get_web_url(self, resource: str = "repo", number: int | None = None) -> str:
+        hostname = urllib.parse.urlparse(self._client.base_url).hostname
+        base = f"https://{hostname}/git/{self._project_key}/{self._repo}"
+        if resource == "pr":
+            return f"{base}/pullRequests/{number}"
+        if resource == "issue":
+            raise NotSupportedError(
+                self.service_name,
+                "browse issue (Backlog uses string-format issue keys like PROJ-123)",
+            )
+        if resource == "settings":
+            raise NotSupportedError(self.service_name, "browse settings")
+        return base
+
     # --- Search ---
 
     def search_repositories(self, query: str, *, limit: int = 30) -> list[Repository]:

@@ -124,6 +124,18 @@ class GitBucketAdapter(GitHubAdapter):
         resp = self._client.post(f"{self._repos_path()}/releases", json=payload)
         return self._to_release(self._parse_response(resp))
 
+    # --- Browse ---
+
+    def get_web_url(self, resource: str = "repo", number: int | None = None) -> str:
+        base = f"{self._web_base_url()}/{self._owner}/{self._repo}"
+        if resource == "pr":
+            return f"{base}/pulls/{number}"
+        if resource == "issue":
+            return f"{base}/issues/{number}"
+        if resource == "settings":
+            return f"{base}/settings"
+        return base
+
     # --- Issue update（PATCH /issues/{number} 未実装）---
 
     def update_issue(

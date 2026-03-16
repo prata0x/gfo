@@ -609,6 +609,23 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.get("/user")
         return dict(resp.json())
 
+    # --- Browse ---
+
+    def get_web_url(self, resource: str = "repo", number: int | None = None) -> str:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(self._client.base_url)
+        port_str = f":{parsed.port}" if parsed.port else ""
+        web_base = f"{parsed.scheme}://{parsed.hostname}{port_str}"
+        base = f"{web_base}/{self._owner}/{self._repo}"
+        if resource == "pr":
+            return f"{base}/pulls/{number}"
+        if resource == "issue":
+            return f"{base}/issues/{number}"
+        if resource == "settings":
+            return f"{base}/settings"
+        return base
+
     # --- Search ---
 
     def search_repositories(self, query: str, *, limit: int = 30) -> list[Repository]:

@@ -660,6 +660,19 @@ class GitServiceAdapter(ABC):
     def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
         raise NotSupportedError(self.service_name, "search issues")
 
+    # --- Browse ---
+    def get_web_url(self, resource: str = "repo", number: int | None = None) -> str:
+        """Web ブラウザで開くための URL を返す。
+
+        Args:
+            resource: "repo" | "pr" | "issue" | "settings"
+            number: PR / Issue 番号（resource が "pr" / "issue" の場合に必須）
+
+        Returns:
+            完全な URL 文字列
+        """
+        raise NotSupportedError(self.service_name, "browse")
+
     # --- Wiki ---
     def list_wiki_pages(self, *, limit: int = 30) -> list[WikiPage]:
         raise NotSupportedError(self.service_name, "wiki list")
