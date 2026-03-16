@@ -136,15 +136,23 @@ pytest tests/integration/test_github.py -v --no-cov
 1. GitHub.com > Settings > Developer settings > Personal access tokens > **Fine-grained tokens**
 2. Click **Generate new token**
 3. Repository access: **All repositories** (required for `repo create/delete` tests that need access to new repositories)
-4. Permissions:
+4. Repository permissions:
    - Contents: **Read and write**
    - Issues: **Read and write**
    - Pull requests: **Read and write**
-   - Administration: **Read and write** (required for `repo delete`)
+   - Administration: **Read and write** (required for `repo delete` and `branch-protect`)
    - Commit statuses: **Read and write** (required for creating/listing commit statuses)
    - Webhooks: **Read and write** (required for Webhook CRUD tests)
    - Metadata: **Read** (required, granted automatically)
-5. Generate token and copy
+   - Secrets: **Read and write** (required for `secret` tests)
+   - Variables: **Read and write** (required for `variable` tests)
+5. Account permissions:
+   - Git signing SSH public keys: **Read and write** (required for `ssh-key` tests)
+6. Organization permissions (for org repositories):
+   - Members: **Read** (required for `org members` tests)
+7. Generate token and copy
+
+> **Note**: `notification` tests require a Classic Token with the `notifications` scope, as Fine-grained Tokens do not support notification APIs. For full integration testing including `notification`, use a Classic Token with scopes: `repo`, `notifications`, `admin:public_key`, `read:org`.
 
 #### Environment Variables
 
@@ -216,6 +224,11 @@ Bitbucket Cloud uses **Scoped API Tokens** (App Passwords are fully deprecated i
    | `write:ssh-key:bitbucket` | Create and update deploy keys |
    | `delete:ssh-key:bitbucket` | Delete deploy keys |
    | `read:user:bitbucket` | Required for `get_current_user` |
+   | `read:account:bitbucket` | Required for `ssh-key list` |
+   | `write:account:bitbucket` | Required for `ssh-key create` |
+   | `read:workspace:bitbucket` | Required for `org list/view` |
+   | `read:pipeline:bitbucket` | Required for `secret/variable list` |
+   | `write:pipeline:bitbucket` | Required for `secret/variable set` |
 
    > **Note**: `write:repository:bitbucket` is not required by gfo itself. It is needed to commit a marker file (via Bitbucket Src API) before test runs, since after a PR merge the `gfo-test-branch` and `main` will have no diff.
 5. Create and copy the token
@@ -306,6 +319,13 @@ cp tests/integration/.env.example tests/integration/.env
 | pr create/list/view | o | o | o | o | o | o | skip | o | o |
 | pr merge | o | o | o | o | o | o | skip | o | skip |
 | release | o | o | skip | skip | o | o | o | o | skip |
+| browse | o | o | o | o | o | o | o | o | o |
+| branch-protect | o | o | o | skip | o | o | skip | skip | skip |
+| notification | o | o | skip | skip | o | o | skip | skip | o |
+| org | o | o | o | o | o | o | o | skip | skip |
+| ssh-key | o | o | o | skip | o | o | o | skip | skip |
+| secret | o | o | o | skip | o | o | skip | skip | skip |
+| variable | o | o | o | skip | o | o | skip | skip | skip |
 
 ---
 

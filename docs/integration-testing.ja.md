@@ -136,15 +136,23 @@ pytest tests/integration/test_github.py -v --no-cov
 1. GitHub.com > Settings > Developer settings > Personal access tokens > **Fine-grained tokens**
 2. **Generate new token** をクリック
 3. Repository access: **All repositories** （`repo create/delete` テストで新規リポジトリへのアクセスが必要）
-4. Permissions:
+4. Repository permissions:
    - Contents: **Read and write**
    - Issues: **Read and write**
    - Pull requests: **Read and write**
-   - Administration: **Read and write** （`repo delete` に必要）
+   - Administration: **Read and write** （`repo delete`・`branch-protect` に必要）
    - Commit statuses: **Read and write** （コミットステータスの作成・一覧に必要）
    - Webhooks: **Read and write** （Webhook CRUD テストに必要）
    - Metadata: **Read** （必須、自動付与）
-5. Generate token してコピー
+   - Secrets: **Read and write** （`secret` テストに必要）
+   - Variables: **Read and write** （`variable` テストに必要）
+5. Account permissions:
+   - Git signing SSH public keys: **Read and write** （`ssh-key` テストに必要）
+6. Organization permissions（組織リポジトリの場合）:
+   - Members: **Read** （`org members` テストに必要）
+7. Generate token してコピー
+
+> **注意**: `notification` テストには Fine-grained Token では対応できない。Classic Token の `notifications` スコープが必要。統合テストで `notification` をテストする場合は Classic Token（スコープ: `repo`, `notifications`, `admin:public_key`, `read:org`）を使用すること。
 
 #### 環境変数
 
@@ -216,6 +224,11 @@ Bitbucket Cloud は **スコープ付き API Token** を使用する（App Passw
    | `write:ssh-key:bitbucket` | デプロイキー作成・更新 |
    | `delete:ssh-key:bitbucket` | デプロイキー削除 |
    | `read:user:bitbucket` | `get_current_user` に必要 |
+   | `read:account:bitbucket` | `ssh-key list` に必要 |
+   | `write:account:bitbucket` | `ssh-key create` に必要 |
+   | `read:workspace:bitbucket` | `org list/view` に必要 |
+   | `read:pipeline:bitbucket` | `secret/variable list` に必要 |
+   | `write:pipeline:bitbucket` | `secret/variable set` に必要 |
 
    > **※** `write:repository:bitbucket` は gfo 本体の機能には不要。前回テストでの PR マージ後に `gfo-test-branch` と `main` の差分がなくなるため、テスト実行前にマーカーファイルをコミットして差分を作る処理（Bitbucket Src API 経由）に必要。
 5. Create してトークンをコピー
@@ -306,6 +319,13 @@ cp tests/integration/.env.example tests/integration/.env
 | pr create/list/view | o | o | o | o | o | o | skip | o | o |
 | pr merge | o | o | o | o | o | o | skip | o | skip |
 | release | o | o | skip | skip | o | o | o | o | skip |
+| browse | o | o | o | o | o | o | o | o | o |
+| branch-protect | o | o | o | skip | o | o | skip | skip | skip |
+| notification | o | o | skip | skip | o | o | skip | skip | o |
+| org | o | o | o | o | o | o | o | skip | skip |
+| ssh-key | o | o | o | skip | o | o | o | skip | skip |
+| secret | o | o | o | skip | o | o | skip | skip | skip |
+| variable | o | o | o | skip | o | o | skip | skip | skip |
 
 ---
 
