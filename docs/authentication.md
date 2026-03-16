@@ -254,21 +254,21 @@ gfo auth login --host yourspace.backlog.com
 
 1. Log in to Gitea, click your avatar in the top-right → **Settings**
 2. Go to **Applications** → **Manage Access Tokens** in the left menu
-3. Enter a **Token Name** and select the required scopes:
+3. Enter a **Token Name** and set the access level for each scope:
 
-   | Scope | Purpose |
-   |-------|---------|
-   | `read:repository` | `gfo repo` (list, details, read files) |
-   | `write:repository` | `gfo repo` (create/update files), `gfo pr`, `gfo release`, `gfo branch-protect` |
-   | `read:issue` | `gfo issue` (list, details), `gfo label`, `gfo milestone` |
-   | `write:issue` | `gfo issue` (create, update, delete), `gfo label`, `gfo milestone` |
-   | `read:organization` | `gfo org` (list, details, members) |
-   | `read:user` | Get authenticated user info |
-   | `write:user` | `gfo ssh-key` (SSH key management) |
-   | `read:notification` | `gfo notification` (list) |
-   | `write:notification` | `gfo notification` (mark as read) |
+   | Scope | Access Level | Purpose |
+   |-------|-------------|---------|
+   | `repository` | Read | `gfo repo` (list, details, read files) |
+   | `repository` | Read and Write | `gfo repo` (create/update files), `gfo pr`, `gfo release`, `gfo branch-protect` |
+   | `issue` | Read | `gfo issue` (list, details), `gfo label`, `gfo milestone` |
+   | `issue` | Read and Write | `gfo issue` (create, update, delete), `gfo label`, `gfo milestone` |
+   | `organization` | Read | `gfo org` (list, details, members) |
+   | `user` | Read | Get authenticated user info |
+   | `user` | Read and Write | `gfo ssh-key` (SSH key management) |
+   | `notification` | Read | `gfo notification` (list) |
+   | `notification` | Read and Write | `gfo notification` (mark as read) |
 
-   > **Note**: `write` includes `read`. If you grant a write scope, the corresponding read scope is not needed.
+   > **Note**: "Read and Write" includes "Read". If you select write access, read access is not needed separately.
 
 4. Click **Generate Token**
 
@@ -284,19 +284,21 @@ Same steps and scope system as Gitea.
 
 1. Log in to Forgejo, click your avatar in the top-right → **Settings**
 2. Go to **Applications** → **Manage Access Tokens**
-3. Enter a Token Name and select the required scopes:
+3. Enter a Token Name and set the access level for each scope under **Select Permissions**:
 
-   | Scope | Purpose |
-   |-------|---------|
-   | `read:repository` | `gfo repo` (list, details, read files) |
-   | `write:repository` | `gfo repo` (create/update files), `gfo pr`, `gfo release`, `gfo branch-protect` |
-   | `read:issue` | `gfo issue` (list, details), `gfo label`, `gfo milestone` |
-   | `write:issue` | `gfo issue` (create, update, delete), `gfo label`, `gfo milestone` |
-   | `read:organization` | `gfo org` (list, details, members) |
-   | `read:user` | Get authenticated user info |
-   | `write:user` | `gfo ssh-key` (SSH key management) |
-   | `read:notification` | `gfo notification` (list) |
-   | `write:notification` | `gfo notification` (mark as read) |
+   | Scope | Access Level | Purpose |
+   |-------|-------------|---------|
+   | `repository` | Read | `gfo repo` (list, details, read files) |
+   | `repository` | Read and Write | `gfo repo` (create/update files), `gfo pr`, `gfo release`, `gfo branch-protect` |
+   | `issue` | Read | `gfo issue` (list, details), `gfo label`, `gfo milestone` |
+   | `issue` | Read and Write | `gfo issue` (create, update, delete), `gfo label`, `gfo milestone` |
+   | `organization` | Read | `gfo org` (list, details, members) |
+   | `user` | Read | Get authenticated user info |
+   | `user` | Read and Write | `gfo ssh-key` (SSH key management) |
+   | `notification` | Read | `gfo notification` (list) |
+   | `notification` | Read and Write | `gfo notification` (mark as read) |
+
+   > **Note**: "Read and Write" includes "Read". If you select write access, read access is not needed separately.
 
 4. Click **Generate Token**
 
