@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from gfo.cli import _DISPATCH, _positive_int, create_parser, main
+from gfo.cli import _DISPATCH, _ensure_utf8_stdio, _positive_int, create_parser, main
 from gfo.exceptions import GfoError, NotSupportedError
 
 # ── _positive_int のテスト ──
@@ -728,3 +728,40 @@ def test_main_not_supported_error_no_web_url(capsys):
     captured = capsys.readouterr()
     assert "gitlab" in captured.err
     assert captured.out == ""
+
+
+# ── _ensure_utf8_stdio のテスト ──
+
+
+def test_ensure_utf8_stdio_reconfigures_non_utf8(monkeypatch):
+    """encoding が utf-8 でないストリームは reconfigure される。"""
+    called = {}
+
+    class FakeStream:
+        encoding = "cp932"
+
+        def reconfigure(self, *, encoding):
+            called[encoding] = True
+
+    fake = FakeStream()
+    monkeypatch.setattr("sys.stdout", fake)
+    monkeypatch.setattr("sys.stderr", fake)
+    _ensure_utf8_stdio()
+    assert called.get("utf-8") is True
+
+
+def test_ensure_utf8_stdio_skips_utf8_stream(monkeypatch):
+    """既に utf-8 のストリームは reconfigure されない。"""
+    called = []
+
+    class FakeStream:
+        encoding = "utf-8"
+
+        def reconfigure(self, *, encoding):
+            called.append(encoding)
+
+    fake = FakeStream()
+    monkeypatch.setattr("sys.stdout", fake)
+    monkeypatch.setattr("sys.stderr", fake)
+    _ensure_utf8_stdio()
+    assert called == []

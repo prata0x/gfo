@@ -570,8 +570,21 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
 }
 
 
+def _ensure_utf8_stdio() -> None:
+    """Windows で stdout/stderr を UTF-8 に切り替える。
+
+    cp932 では一部の Unicode 文字（絵文字等）を出力できず UnicodeEncodeError や
+    文字化けが発生するため、CLI 起動時に UTF-8 へ reconfigure する。
+    """
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name)
+        if hasattr(stream, "reconfigure") and getattr(stream, "encoding", "").lower() != "utf-8":
+            stream.reconfigure(encoding="utf-8")
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI エントリポイント。"""
+    _ensure_utf8_stdio()
     parser, subparser_map = create_parser()
     args = parser.parse_args(argv)
 
