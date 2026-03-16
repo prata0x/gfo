@@ -10,6 +10,7 @@ from tests.integration.conftest import (
     ServiceTestConfig,
     create_test_adapter,
     get_service_config,
+    safe_temporary_directory,
 )
 
 CONFIG = get_service_config("gitlab")
@@ -786,9 +787,8 @@ class TestGitLabIntegration:
         """SSH キーの作成・一覧・削除テスト。"""
         import os
         import subprocess
-        import tempfile
 
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+        with safe_temporary_directory() as tmpdir:
             key_path = os.path.join(tmpdir, "gfo_test_key")
             subprocess.run(
                 ["ssh-keygen", "-t", "ed25519", "-f", key_path, "-N", "", "-C", "gfo-test"],

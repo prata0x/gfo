@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -137,6 +138,18 @@ TEST_SSH_PUBLIC_KEY = (
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGFo4KrH6TBXJ0/E2Y4OzE0y3GW9I1BbEdI0lTVxU+Y2 "
     "gfo-integration-test"
 )
+
+
+def safe_temporary_directory(**kwargs):
+    """Python 3.11 互換の TemporaryDirectory。
+
+    3.12+ では ignore_cleanup_errors=True で Windows のファイルロックエラーを回避。
+    3.11 では通常の TemporaryDirectory にフォールバック。
+    """
+    try:
+        return tempfile.TemporaryDirectory(ignore_cleanup_errors=True, **kwargs)
+    except TypeError:
+        return tempfile.TemporaryDirectory(**kwargs)
 
 
 def create_test_adapter(config: ServiceTestConfig) -> GitServiceAdapter:

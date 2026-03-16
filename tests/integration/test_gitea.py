@@ -14,7 +14,7 @@ import tempfile
 import pytest
 
 from tests.integration.base_gitea_family import GiteaFamilyIntegrationBase
-from tests.integration.conftest import get_service_config
+from tests.integration.conftest import get_service_config, safe_temporary_directory
 
 CONFIG = get_service_config("gitea")
 
@@ -82,7 +82,7 @@ class TestGiteaIntegration(GiteaFamilyIntegrationBase):
         wiki_url = f"http://{host}/{owner}/{repo}.wiki.git"
         git_env = cls._make_askpass_env(token)
 
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+        with safe_temporary_directory() as tmpdir:
             wiki_dir = f"{tmpdir}/wiki"
             try:
                 r = subprocess.run(
