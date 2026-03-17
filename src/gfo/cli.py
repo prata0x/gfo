@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from collections.abc import Callable
 
@@ -35,7 +36,7 @@ import gfo.commands.variable
 import gfo.commands.webhook
 import gfo.commands.wiki
 from gfo import __version__
-from gfo.config import get_default_output_format
+from gfo.config import get_configured_output_format
 from gfo.exceptions import GfoError, NotSupportedError
 from gfo.i18n import _
 from gfo.output import format_error_json
@@ -583,6 +584,20 @@ def _ensure_utf8_stdio() -> None:
             stream.reconfigure(encoding="utf-8")
 
 
+def _resolve_format(args_format: str | None, jq_expr: str | None) -> str:
+    """出力フォーマットを解決する。優先順位: --jq > --format > config > TTY 検出。"""
+    if jq_expr is not None:
+        return "json"
+    if args_format:
+        return args_format
+    cfg_fmt = get_configured_output_format()
+    if cfg_fmt is not None:
+        return cfg_fmt
+    if not sys.stdout.isatty() and not os.environ.get("GFO_NO_AUTO_JSON"):
+        return "json"
+    return "table"
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI エントリポイント。"""
     _ensure_utf8_stdio()
@@ -594,13 +609,10 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     jq_expr = args.jq
-    if jq_expr is not None:
-        if not jq_expr:
-            print(_("Error: --jq expression must not be empty."), file=sys.stderr)
-            return 1
-        resolved_fmt = "json"
-    else:
-        resolved_fmt = args.format or get_default_output_format()
+    if jq_expr is not None and not jq_expr:
+        print(_("Error: --jq expression must not be empty."), file=sys.stderr)
+        return 1
+    resolved_fmt = _resolve_format(args.format, jq_expr)
 
     key = (args.command, getattr(args, "subcommand", None))
 

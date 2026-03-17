@@ -13,6 +13,7 @@ from gfo.config import (
     build_default_api_url,
     get_config_dir,
     get_config_path,
+    get_configured_output_format,
     get_credentials_path,
     get_default_host,
     get_default_output_format,
@@ -154,6 +155,24 @@ def test_get_default_output_format_plain():
         return_value={"defaults": {"output": "plain"}},
     ):
         assert get_default_output_format() == "plain"
+
+
+# ── get_configured_output_format ──
+
+
+def test_get_configured_output_format_none():
+    """未設定時に None を返す。"""
+    with patch("gfo.config.load_user_config", return_value={}):
+        assert get_configured_output_format() is None
+
+
+def test_get_configured_output_format_json():
+    """設定時に値を返す。"""
+    with patch(
+        "gfo.config.load_user_config",
+        return_value={"defaults": {"output": "json"}},
+    ):
+        assert get_configured_output_format() == "json"
 
 
 def test_get_default_host_none():

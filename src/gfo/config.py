@@ -76,6 +76,14 @@ def get_default_output_format() -> str:
     return str(defaults.get("output", "table"))
 
 
+def get_configured_output_format() -> str | None:
+    """config.toml の defaults.output を返す。未設定なら None。"""
+    cfg = load_user_config()
+    defaults: dict[str, Any] = cfg.get("defaults", {})
+    val = defaults.get("output")
+    return str(val) if val is not None else None
+
+
 def get_default_host() -> str | None:
     """config.toml の defaults.host を返す。未設定なら None。"""
     cfg = load_user_config()

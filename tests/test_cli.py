@@ -7,7 +7,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from gfo.cli import _DISPATCH, _ensure_utf8_stdio, _positive_int, create_parser, main
+from gfo.cli import (
+    _DISPATCH,
+    _ensure_utf8_stdio,
+    _positive_int,
+    _resolve_format,
+    create_parser,
+    main,
+)
 from gfo.exceptions import (
     AuthenticationError,
     AuthError,
@@ -632,7 +639,7 @@ def test_main_subcommand_only_returns_1(capsys):
 def test_main_normal_dispatch():
     mock_handler = MagicMock()
     with patch.dict(_DISPATCH, {("pr", "list"): mock_handler}):
-        with patch("gfo.cli.get_default_output_format", return_value="table"):
+        with patch("gfo.cli.get_configured_output_format", return_value="table"):
             result = main(["pr", "list"])
     assert result == 0
     mock_handler.assert_called_once()
@@ -664,7 +671,7 @@ def test_main_default_format_from_config_plain():
     mock_handler = MagicMock()
     with (
         patch.dict(_DISPATCH, {("pr", "list"): mock_handler}),
-        patch("gfo.cli.get_default_output_format", return_value="plain"),
+        patch("gfo.cli.get_configured_output_format", return_value="plain"),
     ):
         result = main(["pr", "list"])
     assert result == 0
@@ -704,6 +711,87 @@ def test_main_no_jq_passes_none():
     assert kwargs["jq"] is None
 
 
+# ── _resolve_format / TTY 検出 ──
+
+
+def test_resolve_format_tty_returns_table():
+    """TTY 時・config 未設定ではデフォルト table。"""
+    with (
+        patch("gfo.cli.get_configured_output_format", return_value=None),
+        patch("gfo.cli.sys.stdout") as mock_stdout,
+        patch.dict("os.environ", {}, clear=False),
+    ):
+        mock_stdout.isatty.return_value = True
+        assert _resolve_format(None, None) == "table"
+
+
+def test_resolve_format_non_tty_returns_json():
+    """非 TTY 時に自動で JSON。"""
+    with (
+        patch("gfo.cli.get_configured_output_format", return_value=None),
+        patch("gfo.cli.sys.stdout") as mock_stdout,
+        patch.dict("os.environ", {}, clear=False),
+    ):
+        mock_stdout.isatty.return_value = False
+        # GFO_NO_AUTO_JSON が設定されていないことを保証
+        import os
+
+        os.environ.pop("GFO_NO_AUTO_JSON", None)
+        assert _resolve_format(None, None) == "json"
+
+
+def test_resolve_format_non_tty_with_opt_out():
+    """GFO_NO_AUTO_JSON=1 で TTY 検出を無効化し table にフォールバック。"""
+    with (
+        patch("gfo.cli.get_configured_output_format", return_value=None),
+        patch("gfo.cli.sys.stdout") as mock_stdout,
+        patch.dict("os.environ", {"GFO_NO_AUTO_JSON": "1"}, clear=False),
+    ):
+        mock_stdout.isatty.return_value = False
+        assert _resolve_format(None, None) == "table"
+
+
+def test_resolve_format_explicit_format_overrides_tty():
+    """--format 指定が TTY 検出より優先。"""
+    with patch("gfo.cli.sys.stdout") as mock_stdout:
+        mock_stdout.isatty.return_value = False
+        assert _resolve_format("table", None) == "table"
+
+
+def test_resolve_format_config_overrides_tty():
+    """config 設定が TTY 検出より優先。"""
+    with (
+        patch("gfo.cli.get_configured_output_format", return_value="plain"),
+        patch("gfo.cli.sys.stdout") as mock_stdout,
+    ):
+        mock_stdout.isatty.return_value = False
+        assert _resolve_format(None, None) == "plain"
+
+
+def test_resolve_format_jq_overrides_all():
+    """--jq が最優先で json を返す。"""
+    assert _resolve_format("table", ".") == "json"
+
+
+def test_main_non_tty_auto_json():
+    """main() E2E: 非 TTY 時に handler に fmt='json' が渡る。"""
+    mock_handler = MagicMock()
+    with (
+        patch.dict(_DISPATCH, {("pr", "list"): mock_handler}),
+        patch("gfo.cli.get_configured_output_format", return_value=None),
+        patch("gfo.cli.sys.stdout") as mock_stdout,
+        patch.dict("os.environ", {}, clear=False),
+    ):
+        mock_stdout.isatty.return_value = False
+        import os
+
+        os.environ.pop("GFO_NO_AUTO_JSON", None)
+        result = main(["pr", "list"])
+    assert result == 0
+    _, kwargs = mock_handler.call_args
+    assert kwargs["fmt"] == "json"
+
+
 def test_main_gfo_error_returns_1(capsys):
     def raise_gfo(args, *, fmt, jq=None):
         raise GfoError("something went wrong")
@@ -719,7 +807,10 @@ def test_main_not_supported_error_returns_5(capsys):
     def raise_nse(args, *, fmt, jq=None):
         raise NotSupportedError("github", "delete-repo", web_url="https://github.com/settings")
 
-    with patch.dict(_DISPATCH, {("pr", "list"): raise_nse}):
+    with (
+        patch.dict(_DISPATCH, {("pr", "list"): raise_nse}),
+        patch("gfo.cli.get_configured_output_format", return_value="table"),
+    ):
         result = main(["pr", "list"])
     assert result == 5
     captured = capsys.readouterr()
@@ -798,7 +889,10 @@ def test_main_not_supported_error_text_format_still_prints_web_url(capsys):
     def raise_nse(args, *, fmt, jq=None):
         raise NotSupportedError("github", "delete-repo", web_url="https://github.com/settings")
 
-    with patch.dict(_DISPATCH, {("pr", "list"): raise_nse}):
+    with (
+        patch.dict(_DISPATCH, {("pr", "list"): raise_nse}),
+        patch("gfo.cli.get_configured_output_format", return_value="table"),
+    ):
         result = main(["pr", "list"])
     assert result == 5
     captured = capsys.readouterr()
