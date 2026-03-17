@@ -9,10 +9,11 @@ from unittest.mock import patch
 
 import pytest
 
-from gfo.exceptions import GfoError
+from gfo.exceptions import AuthError, GfoError, NotSupportedError, RateLimitError
 from gfo.output import (
     _display_width,
     apply_jq_filter,
+    format_error_json,
     format_json,
     format_plain,
     format_table,
@@ -305,6 +306,48 @@ class TestOutput:
         captured = capsys.readouterr()
         parsed = json.loads(captured.out)
         assert parsed[0]["number"] == 1
+
+
+class TestFormatErrorJson:
+    def test_basic_error(self):
+        err = GfoError("something went wrong")
+        result = json.loads(format_error_json(err))
+        assert result == {"error": "general_error", "message": "something went wrong"}
+
+    def test_error_with_hint(self):
+        err = AuthError("github.com")
+        result = json.loads(format_error_json(err))
+        assert result["error"] == "auth_failed"
+        assert "github.com" in result["message"]
+        assert result["hint"] == "Run 'gfo auth login --host github.com'"
+
+    def test_error_without_hint(self):
+        err = GfoError("no hint")
+        result = json.loads(format_error_json(err))
+        assert "hint" not in result
+
+    def test_not_supported_with_web_url(self):
+        err = NotSupportedError("Gitea", "draft PR", web_url="https://example.com")
+        result = json.loads(format_error_json(err))
+        assert result["error"] == "not_supported"
+        assert result["hint"] == "https://example.com"
+
+    def test_rate_limit_with_retry_after(self):
+        err = RateLimitError(retry_after=60)
+        result = json.loads(format_error_json(err))
+        assert result["error"] == "rate_limited"
+        assert result["hint"] == "Retry after 60s."
+
+    def test_rate_limit_without_retry_after(self):
+        err = RateLimitError()
+        result = json.loads(format_error_json(err))
+        assert result["error"] == "rate_limited"
+        assert "hint" not in result
+
+    def test_ensure_ascii_false(self):
+        err = GfoError("日本語エラー")
+        raw = format_error_json(err)
+        assert "日本語エラー" in raw
 
 
 class TestApplyJqFilter:

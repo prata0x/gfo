@@ -170,6 +170,74 @@ class TestUnsupportedServiceError:
         assert isinstance(err, GfoError)
 
 
+class TestErrorCode:
+    """各例外クラスの error_code プロパティをテストする。"""
+
+    @pytest.mark.parametrize(
+        ("exc", "expected_code"),
+        [
+            (GfoError("x"), "general_error"),
+            (GitCommandError("x"), "git_error"),
+            (DetectionError(), "config_error"),
+            (ConfigError("x"), "config_error"),
+            (AuthError("host"), "auth_failed"),
+            (AuthenticationError(401), "auth_failed"),
+            (NotFoundError(), "not_found"),
+            (RateLimitError(), "rate_limited"),
+            (ServerError(500), "server_error"),
+            (NetworkError("x"), "network_error"),
+            (NotSupportedError("S", "op"), "not_supported"),
+            (UnsupportedServiceError("x"), "unsupported_service"),
+        ],
+    )
+    def test_error_code(self, exc, expected_code):
+        assert exc.error_code == expected_code
+
+
+class TestHint:
+    """各例外クラスの hint プロパティをテストする。"""
+
+    def test_gfo_error_hint_none(self):
+        assert GfoError("x").hint is None
+
+    def test_auth_error_hint(self):
+        err = AuthError("github.com")
+        assert err.hint == "Run 'gfo auth login --host github.com'"
+
+    def test_detection_error_hint(self):
+        err = DetectionError()
+        assert err.hint == "Run 'gfo init' to configure manually."
+
+    def test_authentication_error_hint(self):
+        err = AuthenticationError(401)
+        assert err.hint == "Check your token with 'gfo auth status'."
+
+    def test_not_supported_error_hint_with_web_url(self):
+        err = NotSupportedError("Gitea", "op", web_url="https://example.com")
+        assert err.hint == "https://example.com"
+
+    def test_not_supported_error_hint_none_without_web_url(self):
+        err = NotSupportedError("Gitea", "op")
+        assert err.hint is None
+
+    def test_rate_limit_error_hint_with_retry_after(self):
+        err = RateLimitError(retry_after=60)
+        assert err.hint == "Retry after 60s."
+
+    def test_rate_limit_error_hint_none_without_retry_after(self):
+        err = RateLimitError()
+        assert err.hint is None
+
+    def test_network_error_hint_none(self):
+        assert NetworkError("x").hint is None
+
+    def test_config_error_hint_none(self):
+        assert ConfigError("x").hint is None
+
+    def test_server_error_hint_none(self):
+        assert ServerError(500).hint is None
+
+
 class TestCatchByBaseClass:
     """HttpError サブクラスを GfoError で catch できることを確認。"""
 

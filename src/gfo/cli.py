@@ -38,6 +38,7 @@ from gfo import __version__
 from gfo.config import get_default_output_format
 from gfo.exceptions import GfoError, NotSupportedError
 from gfo.i18n import _
+from gfo.output import format_error_json
 
 
 def _positive_int(value: str) -> int:
@@ -614,12 +615,18 @@ def main(argv: list[str] | None = None) -> int:
         handler(args, fmt=resolved_fmt, jq=jq_expr)
         return 0
     except NotSupportedError as err:
-        print(str(err), file=sys.stderr)
-        if err.web_url:
-            print(err.web_url)
+        if resolved_fmt == "json":
+            print(format_error_json(err), file=sys.stderr)
+        else:
+            print(str(err), file=sys.stderr)
+            if err.web_url:
+                print(err.web_url)
         return 1
     except GfoError as err:
-        print(str(err), file=sys.stderr)
+        if resolved_fmt == "json":
+            print(format_error_json(err), file=sys.stderr)
+        else:
+            print(str(err), file=sys.stderr)
         return 1
     except Exception as err:  # pragma: no cover
         print(_("Unexpected error: {err}").format(err=err), file=sys.stderr)

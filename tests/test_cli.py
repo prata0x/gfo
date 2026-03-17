@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from gfo.cli import _DISPATCH, _ensure_utf8_stdio, _positive_int, create_parser, main
-from gfo.exceptions import GfoError, NotSupportedError
+from gfo.exceptions import AuthError, GfoError, NotSupportedError
 
 # ── _positive_int のテスト ──
 
@@ -728,6 +728,73 @@ def test_main_not_supported_error_no_web_url(capsys):
     captured = capsys.readouterr()
     assert "gitlab" in captured.err
     assert captured.out == ""
+
+
+# ── --format json エラー出力のテスト ──
+
+
+def test_main_gfo_error_json_format(capsys):
+    """--format json 指定時に GfoError が JSON で stderr に出力される。"""
+    import json
+
+    def raise_gfo(args, *, fmt, jq=None):
+        raise GfoError("something went wrong")
+
+    with patch.dict(_DISPATCH, {("pr", "list"): raise_gfo}):
+        result = main(["--format", "json", "pr", "list"])
+    assert result == 1
+    captured = capsys.readouterr()
+    parsed = json.loads(captured.err)
+    assert parsed["error"] == "general_error"
+    assert parsed["message"] == "something went wrong"
+    assert "hint" not in parsed
+
+
+def test_main_auth_error_json_format(capsys):
+    """--format json 指定時に AuthError が hint 付き JSON で stderr に出力される。"""
+    import json
+
+    def raise_auth(args, *, fmt, jq=None):
+        raise AuthError("github.com")
+
+    with patch.dict(_DISPATCH, {("pr", "list"): raise_auth}):
+        result = main(["--format", "json", "pr", "list"])
+    assert result == 1
+    captured = capsys.readouterr()
+    parsed = json.loads(captured.err)
+    assert parsed["error"] == "auth_failed"
+    assert "hint" in parsed
+
+
+def test_main_not_supported_error_json_format(capsys):
+    """--format json 指定時に NotSupportedError が JSON で stderr に出力される（web_url は hint に）。"""
+    import json
+
+    def raise_nse(args, *, fmt, jq=None):
+        raise NotSupportedError("github", "delete-repo", web_url="https://github.com/settings")
+
+    with patch.dict(_DISPATCH, {("pr", "list"): raise_nse}):
+        result = main(["--format", "json", "pr", "list"])
+    assert result == 1
+    captured = capsys.readouterr()
+    parsed = json.loads(captured.err)
+    assert parsed["error"] == "not_supported"
+    assert parsed["hint"] == "https://github.com/settings"
+    assert captured.out == ""  # web_url は stdout に出力されない
+
+
+def test_main_not_supported_error_text_format_still_prints_web_url(capsys):
+    """--format table（デフォルト）では NotSupportedError の web_url は stdout に出力される。"""
+
+    def raise_nse(args, *, fmt, jq=None):
+        raise NotSupportedError("github", "delete-repo", web_url="https://github.com/settings")
+
+    with patch.dict(_DISPATCH, {("pr", "list"): raise_nse}):
+        result = main(["pr", "list"])
+    assert result == 1
+    captured = capsys.readouterr()
+    assert "https://github.com/settings" in captured.out
+    assert "github" in captured.err
 
 
 # ── _ensure_utf8_stdio のテスト ──
