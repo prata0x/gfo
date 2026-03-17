@@ -26,6 +26,7 @@ import gfo.commands.pr
 import gfo.commands.release
 import gfo.commands.repo
 import gfo.commands.review
+import gfo.commands.schema
 import gfo.commands.search
 import gfo.commands.secret
 import gfo.commands.ssh_key
@@ -476,6 +477,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     _browse_group.add_argument("--settings", action="store_true", help=_("Open settings page"))
     browse_parser.add_argument("--print", action="store_true", help=_("Print URL only"))
 
+    # gfo schema（サブコマンドなし、browse と同じパターン）
+    schema_parser = subparser_map["schema"] = subparsers.add_parser(
+        "schema", help=_("Show command JSON Schema")
+    )
+    schema_parser.add_argument("--list", dest="list_commands", action="store_true")
+    schema_parser.add_argument("target", nargs="*", default=[])
+
     return parser, subparser_map
 
 
@@ -569,6 +577,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("ssh-key", "create"): gfo.commands.ssh_key.handle_create,
     ("ssh-key", "delete"): gfo.commands.ssh_key.handle_delete,
     ("browse", None): gfo.commands.browse.handle_browse,
+    ("schema", None): gfo.commands.schema.handle_schema,
 }
 
 

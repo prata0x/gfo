@@ -510,7 +510,7 @@ def test_parser_org_repos():
 
 
 def test_dispatch_table_has_68_entries():
-    assert len(_DISPATCH) == 89  # 82 + secret(3) + variable(4)
+    assert len(_DISPATCH) == 90  # 89 + schema
 
 
 def test_dispatch_table_all_keys():
@@ -604,6 +604,7 @@ def test_dispatch_table_all_keys():
         ("ssh-key", "create"),
         ("ssh-key", "delete"),
         ("browse", None),
+        ("schema", None),
     }
     assert set(_DISPATCH.keys()) == expected_keys
 
