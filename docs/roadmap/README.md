@@ -56,7 +56,7 @@
 | 機能カテゴリ | gh | glab | tea | fj | gfo 実装状況 |
 |-------------|:--:|:----:|:---:|:--:|:-----------|
 | **PR CRUD** | ○ | ○ | ○ | ○ | ○ 実装済み |
-| PR reopen | ○ | ○ | ○ | × | **未実装** |
+| PR reopen | ○ | ○ | ○ | × | ○ 実装済み |
 | PR diff | ○ | ○ | × | × | **未実装** |
 | PR checks/status | ○ | ○ | × | ○ | **未実装** |
 | PR files | ○ | ○ | × | × | **未実装** |
@@ -68,7 +68,7 @@
 | PR checkout | ○ | ○ | ○ | ○ | ○ 実装済み |
 | PR merge | ○ | ○ | ○ | ○ | ○ 実装済み |
 | **Issue CRUD** | ○ | ○ | ○ | ○ | ○ 実装済み |
-| Issue reopen | ○ | ○ | ○ | × | **未実装** |
+| Issue reopen | ○ | ○ | ○ | × | ○ 実装済み |
 | Issue reactions | ○ | ○ | × | × | **未実装** |
 | Issue pin/unpin | ○ | × | × | × | **未実装** |
 | Issue dependencies | × | △ | × | × | **未実装** |
@@ -83,15 +83,15 @@
 | Repo languages | ○ | ○ | × | × | **未実装** |
 | Repo transfer | ○ | ○ | × | × | **未実装** |
 | Repo fork | ○ | ○ | ○ | ○ | ○ 実装済み |
-| **Release CRUD** | ○ | ○ | ○ | × | △ view/update なし |
-| Release view | ○ | ○ | × | × | **未実装** |
+| **Release CRUD** | ○ | ○ | ○ | × | ○ 実装済み |
+| Release view | ○ | ○ | × | × | ○ 実装済み |
 | Release latest | ○ | △ | × | × | **未実装** |
-| Release edit/update | ○ | × | ○ | × | **未実装** |
+| Release edit/update | ○ | × | ○ | × | ○ 実装済み |
 | Release assets | ○ | ○ | ○ | × | **未実装** |
-| **Label CRUD** | ○ | ○ | ○ | △ | △ update なし |
+| **Label CRUD** | ○ | ○ | ○ | △ | ○ 実装済み |
 | Label clone | ○ | × | × | × | **未実装** |
-| **Milestone CRUD** | × | ○ | ○ | × | △ view/update/close/reopen なし |
-| Milestone close/reopen | × | × | ○ | × | **未実装** |
+| **Milestone CRUD** | × | ○ | ○ | × | ○ 実装済み |
+| Milestone close/reopen | × | × | ○ | × | ○ 実装済み |
 | **CI/Actions** | ○ | ○ | ○ | ○ | △ list/view/cancel のみ |
 | CI trigger | ○ | ○ | × | ○ | **未実装** |
 | CI retry | ○ | ○ | × | × | **未実装** |
@@ -100,7 +100,7 @@
 | **SSH Key** | ○ | ○ | × | ○ | ○ 実装済み |
 | **GPG Key** | ○ | ○ | × | ○ | **未実装** |
 | **Webhook** | × | × | ○ | × | ○ 実装済み |
-| Webhook test | ○ | ○ | × | × | **未実装** |
+| Webhook test | ○ | ○ | × | × | ○ 実装済み |
 | **Tag protections** | △ | ○ | × | × | **未実装** |
 | **Notification** | ○ | × | ○ | × | ○ 実装済み |
 | **Organization** | ○ | × | ○ | ○ | △ create/delete なし |

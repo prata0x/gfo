@@ -166,6 +166,18 @@ gfo pr close NUMBER
 gfo pr close 42
 ```
 
+### gfo pr reopen
+
+> Azure DevOps, Backlog, Bitbucket not supported
+
+```
+gfo pr reopen NUMBER
+```
+
+```bash
+gfo pr reopen 42
+```
+
 ### gfo pr checkout
 
 ```
@@ -255,6 +267,18 @@ gfo issue close NUMBER
 
 ```bash
 gfo issue close 10
+```
+
+### gfo issue reopen
+
+> Bitbucket, GitBucket, Backlog not supported
+
+```
+gfo issue reopen NUMBER
+```
+
+```bash
+gfo issue reopen 10
 ```
 
 ### gfo issue delete
@@ -407,6 +431,39 @@ gfo release delete TAG
 gfo release delete v0.9.0
 ```
 
+### gfo release view
+
+> GitBucket not supported
+
+```
+gfo release view TAG
+```
+
+```bash
+gfo release view v1.0.0
+```
+
+### gfo release update
+
+> GitBucket not supported
+
+```
+gfo release update TAG [--title TITLE] [--notes NOTES] [--draft | --no-draft] [--prerelease | --no-prerelease]
+```
+
+| Option | Description |
+|---|---|
+| `--title` | Release title |
+| `--notes` | Release notes |
+| `--draft` / `--no-draft` | Toggle draft status |
+| `--prerelease` / `--no-prerelease` | Toggle prerelease status |
+
+```bash
+gfo release update v1.0.0 --title "Version 1.0.0 GA"
+gfo release update v1.0.0 --notes "Updated release notes"
+gfo release update v1.0.0 --no-draft --no-prerelease
+```
+
 ---
 
 ## gfo label
@@ -444,6 +501,24 @@ gfo label delete NAME
 gfo label delete old-label
 ```
 
+### gfo label update
+
+```
+gfo label update NAME [--new-name NEW_NAME] [--color COLOR] [--description DESC]
+```
+
+| Option | Description |
+|---|---|
+| `--new-name` | Rename the label |
+| `--color` | Color (`RRGGBB` format, without `#`) |
+| `--description` | Description |
+
+```bash
+gfo label update bug --color 00ff00
+gfo label update old-name --new-name new-name
+gfo label update bug --description "Updated description"
+```
+
 ---
 
 ## gfo milestone
@@ -478,6 +553,56 @@ gfo milestone delete NUMBER
 
 ```bash
 gfo milestone delete 3
+```
+
+### gfo milestone view
+
+> Backlog not supported
+
+```
+gfo milestone view NUMBER
+```
+
+```bash
+gfo milestone view 1
+```
+
+### gfo milestone update
+
+```
+gfo milestone update NUMBER [--title TITLE] [--description DESC] [--due DATE] [--state STATE]
+```
+
+| Option | Description |
+|---|---|
+| `--title` | Title |
+| `--description` | Description |
+| `--due` | Due date (`YYYY-MM-DD` format) |
+| `--state` | State (`open` / `closed`) |
+
+```bash
+gfo milestone update 1 --title "v2.0 Release"
+gfo milestone update 1 --due 2025-06-30 --state open
+```
+
+### gfo milestone close
+
+```
+gfo milestone close NUMBER
+```
+
+```bash
+gfo milestone close 1
+```
+
+### gfo milestone reopen
+
+```
+gfo milestone reopen NUMBER
+```
+
+```bash
+gfo milestone reopen 1
 ```
 
 ---
@@ -747,6 +872,18 @@ gfo webhook delete ID
 
 ```bash
 gfo webhook delete 5
+```
+
+### gfo webhook test
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo, GitBucket
+
+```
+gfo webhook test ID
+```
+
+```bash
+gfo webhook test 5
 ```
 
 ---

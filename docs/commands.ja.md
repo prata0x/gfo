@@ -166,6 +166,18 @@ gfo pr close NUMBER
 gfo pr close 42
 ```
 
+### gfo pr reopen
+
+> Azure DevOps, Backlog, Bitbucket は非対応
+
+```
+gfo pr reopen NUMBER
+```
+
+```bash
+gfo pr reopen 42
+```
+
 ### gfo pr checkout
 
 ```
@@ -255,6 +267,18 @@ gfo issue close NUMBER
 
 ```bash
 gfo issue close 10
+```
+
+### gfo issue reopen
+
+> Bitbucket, GitBucket, Backlog は非対応
+
+```
+gfo issue reopen NUMBER
+```
+
+```bash
+gfo issue reopen 10
 ```
 
 ### gfo issue delete
@@ -407,6 +431,39 @@ gfo release delete TAG
 gfo release delete v0.9.0
 ```
 
+### gfo release view
+
+> GitBucket は非対応
+
+```
+gfo release view TAG
+```
+
+```bash
+gfo release view v1.0.0
+```
+
+### gfo release update
+
+> GitBucket は非対応
+
+```
+gfo release update TAG [--title TITLE] [--notes NOTES] [--draft | --no-draft] [--prerelease | --no-prerelease]
+```
+
+| オプション | 説明 |
+|---|---|
+| `--title` | リリースタイトル |
+| `--notes` | リリースノート |
+| `--draft` / `--no-draft` | ドラフト状態の切り替え |
+| `--prerelease` / `--no-prerelease` | プレリリース状態の切り替え |
+
+```bash
+gfo release update v1.0.0 --title "Version 1.0.0 GA"
+gfo release update v1.0.0 --notes "Updated release notes"
+gfo release update v1.0.0 --no-draft --no-prerelease
+```
+
 ---
 
 ## gfo label
@@ -444,6 +501,24 @@ gfo label delete NAME
 gfo label delete old-label
 ```
 
+### gfo label update
+
+```
+gfo label update NAME [--new-name NEW_NAME] [--color COLOR] [--description DESC]
+```
+
+| オプション | 説明 |
+|---|---|
+| `--new-name` | ラベル名の変更 |
+| `--color` | 色（`RRGGBB` 形式、`#` なし） |
+| `--description` | 説明 |
+
+```bash
+gfo label update bug --color 00ff00
+gfo label update old-name --new-name new-name
+gfo label update bug --description "Updated description"
+```
+
 ---
 
 ## gfo milestone
@@ -478,6 +553,56 @@ gfo milestone delete NUMBER
 
 ```bash
 gfo milestone delete 3
+```
+
+### gfo milestone view
+
+> Backlog は非対応
+
+```
+gfo milestone view NUMBER
+```
+
+```bash
+gfo milestone view 1
+```
+
+### gfo milestone update
+
+```
+gfo milestone update NUMBER [--title TITLE] [--description DESC] [--due DATE] [--state STATE]
+```
+
+| オプション | 説明 |
+|---|---|
+| `--title` | タイトル |
+| `--description` | 説明 |
+| `--due` | 期日（`YYYY-MM-DD` 形式） |
+| `--state` | 状態（`open` / `closed`） |
+
+```bash
+gfo milestone update 1 --title "v2.0 Release"
+gfo milestone update 1 --due 2025-06-30 --state open
+```
+
+### gfo milestone close
+
+```
+gfo milestone close NUMBER
+```
+
+```bash
+gfo milestone close 1
+```
+
+### gfo milestone reopen
+
+```
+gfo milestone reopen NUMBER
+```
+
+```bash
+gfo milestone reopen 1
 ```
 
 ---
@@ -747,6 +872,18 @@ gfo webhook delete ID
 
 ```bash
 gfo webhook delete 5
+```
+
+### gfo webhook test
+
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo, GitBucket
+
+```
+gfo webhook test ID
+```
+
+```bash
+gfo webhook test 5
 ```
 
 ---

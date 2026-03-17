@@ -81,19 +81,19 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 |---|---|---|
 | `gfo init` | — | Initialize project configuration |
 | `gfo auth` | `login`, `status` | Save token / check auth status |
-| `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `checkout`, `update` | Pull request operations |
-| `gfo issue` | `list`, `create`, `view`, `close`, `delete`, `update` | Issue operations |
+| `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `update` | Pull request operations |
+| `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update` | Issue operations |
 | `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork` | Repository operations |
-| `gfo release` | `list`, `create`, `delete` | Release management |
-| `gfo label` | `list`, `create`, `delete` | Label management |
-| `gfo milestone` | `list`, `create`, `delete` | Milestone management |
+| `gfo release` | `list`, `create`, `view`, `update`, `delete` | Release management |
+| `gfo label` | `list`, `create`, `update`, `delete` | Label management |
+| `gfo milestone` | `list`, `create`, `view`, `update`, `close`, `reopen`, `delete` | Milestone management |
 | `gfo comment` | `list`, `create`, `update`, `delete` | PR / Issue comment operations |
 | `gfo review` | `list`, `create` | PR review operations |
 | `gfo branch` | `list`, `create`, `delete` | Branch operations |
 | `gfo tag` | `list`, `create`, `delete` | Tag operations |
 | `gfo status` | `list`, `create` | Commit status operations |
 | `gfo file` | `get`, `put`, `delete` | Repository file operations |
-| `gfo webhook` | `list`, `create`, `delete` | Webhook management |
+| `gfo webhook` | `list`, `create`, `delete`, `test` | Webhook management |
 | `gfo deploy-key` | `list`, `create`, `delete` | Deploy key management |
 | `gfo collaborator` | `list`, `add`, `remove` | Collaborator management |
 | `gfo ci` | `list`, `view`, `cancel` | CI/CD job operations |

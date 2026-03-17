@@ -81,19 +81,19 @@ gfo auth status
 |---|---|---|
 | `gfo init` | — | プロジェクト設定の初期化 |
 | `gfo auth` | `login`, `status` | トークン保存・認証状態確認 |
-| `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `checkout`, `update` | プルリクエスト操作 |
-| `gfo issue` | `list`, `create`, `view`, `close`, `delete`, `update` | Issue 操作 |
+| `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `update` | プルリクエスト操作 |
+| `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update` | Issue 操作 |
 | `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork` | リポジトリ操作 |
-| `gfo release` | `list`, `create`, `delete` | リリース管理 |
-| `gfo label` | `list`, `create`, `delete` | ラベル管理 |
-| `gfo milestone` | `list`, `create`, `delete` | マイルストーン管理 |
+| `gfo release` | `list`, `create`, `view`, `update`, `delete` | リリース管理 |
+| `gfo label` | `list`, `create`, `update`, `delete` | ラベル管理 |
+| `gfo milestone` | `list`, `create`, `view`, `update`, `close`, `reopen`, `delete` | マイルストーン管理 |
 | `gfo comment` | `list`, `create`, `update`, `delete` | PR / Issue コメント操作 |
 | `gfo review` | `list`, `create` | PR レビュー操作 |
 | `gfo branch` | `list`, `create`, `delete` | ブランチ操作 |
 | `gfo tag` | `list`, `create`, `delete` | タグ操作 |
 | `gfo status` | `list`, `create` | コミットステータス操作 |
 | `gfo file` | `get`, `put`, `delete` | リポジトリ内ファイル操作 |
-| `gfo webhook` | `list`, `create`, `delete` | Webhook 管理 |
+| `gfo webhook` | `list`, `create`, `delete`, `test` | Webhook 管理 |
 | `gfo deploy-key` | `list`, `create`, `delete` | デプロイキー管理 |
 | `gfo collaborator` | `list`, `add`, `remove` | コラボレーター管理 |
 | `gfo ci` | `list`, `view`, `cancel` | CI/CD ジョブ操作 |
