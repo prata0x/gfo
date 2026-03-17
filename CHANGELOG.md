@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2] - 2026-03-17
+
+### Added
+
+- `gfo schema` command (P4: JSON Schema metadata for all commands)
+- Auto-switch to JSON output when stdout is not a TTY (P3: TTY detection)
+- Fine-grained exit codes via `ExitCode(IntEnum)` mapped to each exception type
+- Structured JSON error output on stderr when `--format json` is specified
+
+### Fixed
+
+- Fix issues from code review (H1-H4, M1-M8, L1-L3)
+- Fix GCM opening browser during integration tests
+
+### Other
+
+- Remove `docs/roadmap.md` (P1–P4 complete, P5 deferred)
+
 ## [0.2.1] - 2026-03-17
 
 ### Added
