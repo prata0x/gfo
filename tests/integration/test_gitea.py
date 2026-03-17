@@ -65,6 +65,9 @@ class TestGiteaIntegration(GiteaFamilyIntegrationBase):
             "GIT_ASKPASS": wrapper_path,
             "GFO_GIT_USERNAME": username,
             "GFO_GIT_TOKEN": token,
+            # GCM がブラウザを開かないようにする（GIT_ASKPASS を優先させる）
+            "GCM_INTERACTIVE": "never",
+            "GIT_TERMINAL_PROMPT": "0",
         }
 
     @classmethod

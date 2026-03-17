@@ -10,6 +10,7 @@ Usage: python tests/integration/setup_services.py
 from __future__ import annotations
 
 import base64
+import os
 import re
 import sys
 import time
@@ -479,27 +480,31 @@ def setup_gitbucket() -> str:
     tmpdir = tempfile.mkdtemp(prefix="gfo-gitbucket-")
     try:
         clone_url = f"http://{GITBUCKET_USER}:{GITBUCKET_PASS}@localhost:3003/git/{GITBUCKET_USER}/{TEST_REPO}.git"
+        # GCM がブラウザを開かないようにする
+        _git_env = {**os.environ, "GCM_INTERACTIVE": "never", "GIT_TERMINAL_PROMPT": "0"}
         _run_kw = {"capture_output": True, "text": True, "encoding": "utf-8", "errors": "replace"}
         result = subprocess.run(
             ["git", "clone", clone_url, tmpdir + "/repo"],
             **_run_kw,
+            env=_git_env,
         )
         if result.returncode == 0:
             repo_path = tmpdir + "/repo"
             subprocess.run(
                 ["git", "-C", repo_path, "checkout", "-b", TEST_BRANCH],
                 **_run_kw,
+                env=_git_env,
             )
             # テスト用ファイルを追加
             branch_file = repo_path + "/test-branch-file.txt"
             with open(branch_file, "w") as f:
                 f.write("test content for PR\n")
-            subprocess.run(["git", "-C", repo_path, "add", "."], **_run_kw)
+            subprocess.run(["git", "-C", repo_path, "add", "."], **_run_kw, env=_git_env)
             subprocess.run(
                 ["git", "-C", repo_path, "commit", "-m", "test: add branch file"],
                 **_run_kw,
                 env={
-                    **__import__("os").environ,
+                    **_git_env,
                     "GIT_AUTHOR_NAME": "gfo-test",
                     "GIT_AUTHOR_EMAIL": "test@test.local",
                     "GIT_COMMITTER_NAME": "gfo-test",
@@ -509,6 +514,7 @@ def setup_gitbucket() -> str:
             push_result = subprocess.run(
                 ["git", "-C", repo_path, "push", "origin", TEST_BRANCH],
                 **_run_kw,
+                env=_git_env,
             )
             if push_result.returncode == 0:
                 print(f"  [{prefix}] Branch created from {default_branch}.")
