@@ -10,6 +10,7 @@ from gfo.http import paginate_response_body
 from .base import (
     Branch,
     BranchProtection,
+    CheckRun,
     Comment,
     CommitStatus,
     DeployKey,
@@ -20,6 +21,8 @@ from .base import (
     Organization,
     Pipeline,
     PullRequest,
+    PullRequestCommit,
+    PullRequestFile,
     Release,
     Repository,
     Review,
@@ -522,6 +525,122 @@ class BitbucketAdapter(GitServiceAdapter):
             payload["component"] = {"name": label}
         resp = self._client.put(f"{self._repos_path()}/issues/{number}", json=payload)
         return self._to_issue(resp.json())
+
+    # --- PR diff / checks / files / commits / reviewers / ready ---
+
+    def get_pull_request_diff(self, number: int) -> str:
+        resp = self._client.get(f"{self._repos_path()}/pullrequests/{number}/diff")
+        return str(resp.text)
+
+    def list_pull_request_checks(self, number: int) -> list[CheckRun]:
+        # PR からソースコミットハッシュを取得
+        resp = self._client.get(f"{self._repos_path()}/pullrequests/{number}")
+        data = resp.json()
+        try:
+            commit_hash = data["source"]["commit"]["hash"]
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+        statuses = paginate_response_body(
+            self._client,
+            f"{self._repos_path()}/commit/{commit_hash}/statuses",
+        )
+        status_map = {
+            "SUCCESSFUL": "success",
+            "FAILED": "failure",
+            "INPROGRESS": "pending",
+            "STOPPED": "failure",
+        }
+        results: list[CheckRun] = []
+        for s in statuses:
+            try:
+                raw_state = s.get("state", "INPROGRESS")
+                results.append(
+                    CheckRun(
+                        name=s["key"],
+                        status=status_map.get(raw_state, raw_state.lower()),
+                        conclusion="",
+                        url=s.get("url") or "",
+                        started_at=s.get("created_on") or "",
+                    )
+                )
+            except (KeyError, TypeError, AttributeError) as e:
+                raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return results
+
+    def list_pull_request_files(self, number: int) -> list[PullRequestFile]:
+        results = paginate_response_body(
+            self._client,
+            f"{self._repos_path()}/pullrequests/{number}/diffstat",
+        )
+        files: list[PullRequestFile] = []
+        for d in results:
+            try:
+                old = d.get("old")
+                new = d.get("new")
+                if old and new:
+                    status = "modified"
+                    filename = new["path"]
+                elif new:
+                    status = "added"
+                    filename = new["path"]
+                elif old:
+                    status = "deleted"
+                    filename = old["path"]
+                else:
+                    continue
+                files.append(
+                    PullRequestFile(
+                        filename=filename,
+                        status=status,
+                        additions=d.get("lines_added", 0),
+                        deletions=d.get("lines_removed", 0),
+                    )
+                )
+            except (KeyError, TypeError, AttributeError) as e:
+                raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return files
+
+    def list_pull_request_commits(self, number: int) -> list[PullRequestCommit]:
+        results = paginate_response_body(
+            self._client,
+            f"{self._repos_path()}/pullrequests/{number}/commits",
+        )
+        commits: list[PullRequestCommit] = []
+        for d in results:
+            try:
+                raw_author = (d.get("author") or {}).get("raw") or ""
+                # "Name <email>" 形式から名前部分を抽出
+                if "<" in raw_author:
+                    author = raw_author.split("<")[0].strip()
+                else:
+                    author = raw_author
+                commits.append(
+                    PullRequestCommit(
+                        sha=d["hash"],
+                        message=d.get("message") or "",
+                        author=author,
+                        created_at=d.get("date") or "",
+                    )
+                )
+            except (KeyError, TypeError, AttributeError) as e:
+                raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return commits
+
+    def list_requested_reviewers(self, number: int) -> list[str]:
+        resp = self._client.get(f"{self._repos_path()}/pullrequests/{number}")
+        data = resp.json()
+        reviewers = data.get("reviewers") or []
+        return [r.get("nickname") or "" for r in reviewers if r.get("nickname")]
+
+    def request_reviewers(self, number: int, reviewers: list[str]) -> None:
+        raise NotSupportedError(self.service_name, "pr reviewers add")
+
+    def remove_reviewers(self, number: int, reviewers: list[str]) -> None:
+        raise NotSupportedError(self.service_name, "pr reviewers remove")
+
+    def mark_pull_request_ready(self, number: int) -> None:
+        raise NotSupportedError(self.service_name, "pr ready")
 
     # --- Review (Bitbucket PR approve) ---
 

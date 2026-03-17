@@ -12,6 +12,7 @@ from gfo.http import paginate_top_skip
 from .base import (
     Branch,
     BranchProtection,
+    CheckRun,
     Comment,
     CommitStatus,
     DeployKey,
@@ -22,6 +23,8 @@ from .base import (
     Organization,
     Pipeline,
     PullRequest,
+    PullRequestCommit,
+    PullRequestFile,
     Release,
     Repository,
     Review,
@@ -210,6 +213,140 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         return f"refs/pull/{number}/head"
+
+    def get_pull_request_diff(self, number: int) -> str:
+        raise NotSupportedError(self.service_name, "pr diff")
+
+    def list_pull_request_checks(self, number: int) -> list[CheckRun]:
+        _STATE_MAP = {
+            "succeeded": "success",
+            "failed": "failure",
+            "pending": "pending",
+            "notApplicable": "success",
+            "notSet": "pending",
+            "error": "failure",
+        }
+        results = paginate_top_skip(
+            self._client,
+            f"{self._git_path()}/pullrequests/{number}/statuses",
+            result_key="value",
+        )
+        out: list[CheckRun] = []
+        for s in results:
+            genre = s.get("context", {}).get("genre", "")
+            name = s.get("context", {}).get("name", "")
+            full_name = f"{genre}/{name}" if genre else name
+            state = _STATE_MAP.get(s.get("state", ""), "pending")
+            out.append(
+                CheckRun(
+                    name=full_name,
+                    status=state,
+                    conclusion="",
+                    url=s.get("targetUrl", ""),
+                    started_at=s.get("creationDate", ""),
+                )
+            )
+        return out
+
+    def list_pull_request_files(self, number: int) -> list[PullRequestFile]:
+        _CHANGE_MAP = {
+            "add": "added",
+            "edit": "modified",
+            "delete": "deleted",
+            "rename": "renamed",
+        }
+        # 最新のイテレーションを取得
+        iters = self._client.get(
+            f"{self._git_path()}/pullrequests/{number}/iterations",
+        ).json()
+        iterations = iters.get("value", [])
+        if not iterations:
+            return []
+        last_id = iterations[-1]["id"]
+        resp = self._client.get(
+            f"{self._git_path()}/pullrequests/{number}/iterations/{last_id}/changes",
+        ).json()
+        out: list[PullRequestFile] = []
+        for entry in resp.get("changeEntries", []):
+            item = entry.get("item", {})
+            change_type = entry.get("changeType", "edit")
+            # changeType はカンマ区切りで複合値になる場合がある（例: "rename, edit"）
+            primary = change_type.split(",")[0].strip().lower()
+            out.append(
+                PullRequestFile(
+                    filename=item.get("path", ""),
+                    status=_CHANGE_MAP.get(primary, "modified"),
+                    additions=0,
+                    deletions=0,
+                )
+            )
+        return out
+
+    def list_pull_request_commits(self, number: int) -> list[PullRequestCommit]:
+        results = paginate_top_skip(
+            self._client,
+            f"{self._git_path()}/pullrequests/{number}/commits",
+            result_key="value",
+        )
+        return [
+            PullRequestCommit(
+                sha=c.get("commitId", ""),
+                message=c.get("comment", ""),
+                author=c.get("author", {}).get("name", ""),
+                created_at=c.get("author", {}).get("date", ""),
+            )
+            for c in results
+        ]
+
+    def list_requested_reviewers(self, number: int) -> list[str]:
+        resp = self._client.get(
+            f"{self._git_path()}/pullrequests/{number}/reviewers",
+        ).json()
+        return [r.get("displayName", "") for r in resp.get("value", [])]
+
+    def request_reviewers(self, number: int, reviewers: list[str]) -> None:
+        for reviewer in reviewers:
+            self._client.put(
+                f"{self._git_path()}/pullrequests/{number}/reviewers/{quote(reviewer, safe='')}",
+                json={"vote": 0},
+            )
+
+    def remove_reviewers(self, number: int, reviewers: list[str]) -> None:
+        for reviewer in reviewers:
+            self._client.delete(
+                f"{self._git_path()}/pullrequests/{number}/reviewers/{quote(reviewer, safe='')}",
+            )
+
+    def enable_auto_merge(self, number: int, *, merge_method: str | None = None) -> None:
+        _MERGE_STRATEGY = {
+            "merge": "noFastForward",
+            "squash": "squash",
+            "rebase": "rebaseMerge",
+        }
+        pr_resp = self._client.get(
+            f"{self._git_path()}/pullrequests/{number}",
+        ).json()
+        created_by_id = pr_resp.get("createdBy", {}).get("id", "")
+        strategy = _MERGE_STRATEGY.get(merge_method or "", "noFastForward")
+        self._client.patch(
+            f"{self._git_path()}/pullrequests/{number}",
+            json={
+                "autoCompleteSetBy": {"id": created_by_id},
+                "completionOptions": {"mergeStrategy": strategy},
+            },
+        )
+
+    def mark_pull_request_ready(self, number: int) -> None:
+        self._client.patch(
+            f"{self._git_path()}/pullrequests/{number}",
+            json={"isDraft": False},
+        )
+
+    def dismiss_review(self, number: int, review_id: int, *, message: str = "") -> None:
+        self._client.put(
+            f"{self._git_path()}/pullrequests/{number}/reviewers/{review_id}",
+            json={"vote": 0},
+        )
 
     # --- Issue (Work Item) ---
 

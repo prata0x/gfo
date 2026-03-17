@@ -30,3 +30,9 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         raise ConfigError(_("--body is required when using --comment"))
     review = adapter.create_review(args.number, state=state, body=args.body or "")
     output(review, fmt=fmt, jq=jq)
+
+
+def handle_dismiss(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo review dismiss <number> <review_id> のハンドラ。"""
+    adapter = get_adapter()
+    adapter.dismiss_review(args.number, args.review_id, message=args.message or "")

@@ -6,9 +6,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from gfo.adapter.base import CheckRun, PullRequestCommit, PullRequestFile
 from gfo.commands import pr as pr_cmd
 from gfo.exceptions import ConfigError, NotFoundError
-from tests.test_commands.conftest import make_args
+from tests.test_commands.conftest import make_args, patch_adapter
 
 
 @pytest.fixture
@@ -286,6 +287,153 @@ class TestErrorPropagation:
         with _patch_all(sample_config, mock_adapter):
             with pytest.raises(NotFoundError):
                 pr_cmd.handle_merge(args, fmt="table")
+
+
+class TestHandleDiff:
+    def test_prints_diff(self, capsys):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.get_pull_request_diff.return_value = "diff --git a/file.txt b/file.txt\n"
+            args = make_args(number=1)
+            pr_cmd.handle_diff(args, fmt="table")
+        captured = capsys.readouterr()
+        assert "diff --git" in captured.out
+        adapter.get_pull_request_diff.assert_called_once_with(1)
+
+
+class TestHandleChecks:
+    SAMPLE_CHECK = CheckRun(
+        name="ci/build",
+        status="completed",
+        conclusion="success",
+        url="https://example.com/checks/1",
+        started_at="2024-01-01T00:00:00Z",
+    )
+
+    def test_calls_list_pull_request_checks(self, capsys):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.list_pull_request_checks.return_value = [self.SAMPLE_CHECK]
+            args = make_args(number=1)
+            pr_cmd.handle_checks(args, fmt="table")
+        adapter.list_pull_request_checks.assert_called_once_with(1)
+        out = capsys.readouterr().out
+        assert "ci/build" in out
+
+    def test_json_format(self, capsys):
+        import json
+
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.list_pull_request_checks.return_value = [self.SAMPLE_CHECK]
+            args = make_args(number=1)
+            pr_cmd.handle_checks(args, fmt="json")
+        data = json.loads(capsys.readouterr().out)
+        assert isinstance(data, list)
+        assert data[0]["name"] == "ci/build"
+
+
+class TestHandleFiles:
+    SAMPLE_FILE = PullRequestFile(
+        filename="src/main.py",
+        status="modified",
+        additions=10,
+        deletions=2,
+    )
+
+    def test_calls_list_pull_request_files(self, capsys):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.list_pull_request_files.return_value = [self.SAMPLE_FILE]
+            args = make_args(number=1)
+            pr_cmd.handle_files(args, fmt="table")
+        adapter.list_pull_request_files.assert_called_once_with(1)
+        out = capsys.readouterr().out
+        assert "src/main.py" in out
+
+    def test_json_format(self, capsys):
+        import json
+
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.list_pull_request_files.return_value = [self.SAMPLE_FILE]
+            args = make_args(number=1)
+            pr_cmd.handle_files(args, fmt="json")
+        data = json.loads(capsys.readouterr().out)
+        assert isinstance(data, list)
+        assert data[0]["filename"] == "src/main.py"
+
+
+class TestHandleCommits:
+    SAMPLE_COMMIT = PullRequestCommit(
+        sha="abc1234",
+        message="fix: resolve bug",
+        author="dev-user",
+        created_at="2024-01-01T00:00:00Z",
+    )
+
+    def test_calls_list_pull_request_commits(self, capsys):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.list_pull_request_commits.return_value = [self.SAMPLE_COMMIT]
+            args = make_args(number=1)
+            pr_cmd.handle_commits(args, fmt="table")
+        adapter.list_pull_request_commits.assert_called_once_with(1)
+        out = capsys.readouterr().out
+        assert "abc1234" in out
+
+    def test_json_format(self, capsys):
+        import json
+
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.list_pull_request_commits.return_value = [self.SAMPLE_COMMIT]
+            args = make_args(number=1)
+            pr_cmd.handle_commits(args, fmt="json")
+        data = json.loads(capsys.readouterr().out)
+        assert isinstance(data, list)
+        assert data[0]["sha"] == "abc1234"
+
+
+class TestHandleReviewers:
+    def test_list_action(self, capsys):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.list_requested_reviewers.return_value = []
+            args = make_args(number=1, reviewer_action=None)
+            pr_cmd.handle_reviewers(args, fmt="json")
+        adapter.list_requested_reviewers.assert_called_once_with(1)
+        out = capsys.readouterr().out
+        assert "[]" in out
+
+    def test_add_action(self):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            args = make_args(number=1, reviewer_action="add", users=["user1", "user2"])
+            pr_cmd.handle_reviewers(args, fmt="table")
+        adapter.request_reviewers.assert_called_once_with(1, ["user1", "user2"])
+
+    def test_remove_action(self):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            args = make_args(number=1, reviewer_action="remove", users=["user1"])
+            pr_cmd.handle_reviewers(args, fmt="table")
+        adapter.remove_reviewers.assert_called_once_with(1, ["user1"])
+
+
+class TestHandleUpdateBranch:
+    def test_calls_update_pull_request_branch(self):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            args = make_args(number=1)
+            pr_cmd.handle_update_branch(args, fmt="table")
+        adapter.update_pull_request_branch.assert_called_once_with(1)
+
+
+class TestHandleReady:
+    def test_calls_mark_pull_request_ready(self):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            args = make_args(number=1)
+            pr_cmd.handle_ready(args, fmt="table")
+        adapter.mark_pull_request_ready.assert_called_once_with(1)
+
+
+class TestHandleMergeAuto:
+    def test_auto_merge_calls_enable_auto_merge(self):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            args = make_args(number=1, method="squash", auto=True)
+            pr_cmd.handle_merge(args, fmt="table")
+        adapter.enable_auto_merge.assert_called_once_with(1, merge_method="squash")
+        adapter.merge_pull_request.assert_not_called()
 
 
 def test_pr_list_config_error(capsys):

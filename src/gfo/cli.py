@@ -115,12 +115,35 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_merge = pr_sub.add_parser("merge")
     pr_merge.add_argument("number", type=int)
     pr_merge.add_argument("--method", choices=["merge", "squash", "rebase"], default="merge")
+    pr_merge.add_argument("--auto", action="store_true")
     pr_close = pr_sub.add_parser("close")
     pr_close.add_argument("number", type=int)
     pr_checkout = pr_sub.add_parser("checkout")
     pr_checkout.add_argument("number", type=int)
     pr_reopen = pr_sub.add_parser("reopen")
     pr_reopen.add_argument("number", type=int)
+    pr_diff = pr_sub.add_parser("diff")
+    pr_diff.add_argument("number", type=int)
+    pr_checks = pr_sub.add_parser("checks")
+    pr_checks.add_argument("number", type=int)
+    pr_files = pr_sub.add_parser("files")
+    pr_files.add_argument("number", type=int)
+    pr_commits = pr_sub.add_parser("commits")
+    pr_commits.add_argument("number", type=int)
+    pr_reviewers = pr_sub.add_parser("reviewers")
+    pr_reviewers_sub = pr_reviewers.add_subparsers(dest="reviewer_action")
+    pr_reviewers_list = pr_reviewers_sub.add_parser("list")
+    pr_reviewers_list.add_argument("number", type=int)
+    pr_reviewers_add = pr_reviewers_sub.add_parser("add")
+    pr_reviewers_add.add_argument("number", type=int)
+    pr_reviewers_add.add_argument("users", nargs="+")
+    pr_reviewers_remove = pr_reviewers_sub.add_parser("remove")
+    pr_reviewers_remove.add_argument("number", type=int)
+    pr_reviewers_remove.add_argument("users", nargs="+")
+    pr_update_branch = pr_sub.add_parser("update-branch")
+    pr_update_branch.add_argument("number", type=int)
+    pr_ready = pr_sub.add_parser("ready")
+    pr_ready.add_argument("number", type=int)
 
     # gfo issue → サブサブコマンド
     issue_parser = subparser_map["issue"] = subparsers.add_parser("issue")
@@ -279,6 +302,10 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     _review_group.add_argument("--request-changes", dest="request_changes", action="store_true")
     _review_group.add_argument("--comment", action="store_true")
     review_create.add_argument("--body", default="")
+    review_dismiss = review_sub.add_parser("dismiss")
+    review_dismiss.add_argument("number", type=int)
+    review_dismiss.add_argument("review_id", type=int)
+    review_dismiss.add_argument("--message", default="")
 
     # gfo branch → サブサブコマンド
     branch_parser = subparser_map["branch"] = subparsers.add_parser("branch")
@@ -540,6 +567,13 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("pr", "checkout"): gfo.commands.pr.handle_checkout,
     ("pr", "update"): gfo.commands.pr.handle_update,
     ("pr", "reopen"): gfo.commands.pr.handle_reopen,
+    ("pr", "diff"): gfo.commands.pr.handle_diff,
+    ("pr", "checks"): gfo.commands.pr.handle_checks,
+    ("pr", "files"): gfo.commands.pr.handle_files,
+    ("pr", "commits"): gfo.commands.pr.handle_commits,
+    ("pr", "reviewers"): gfo.commands.pr.handle_reviewers,
+    ("pr", "update-branch"): gfo.commands.pr.handle_update_branch,
+    ("pr", "ready"): gfo.commands.pr.handle_ready,
     ("issue", "list"): gfo.commands.issue.handle_list,
     ("issue", "create"): gfo.commands.issue.handle_create,
     ("issue", "view"): gfo.commands.issue.handle_view,
@@ -575,6 +609,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("comment", "delete"): gfo.commands.comment.handle_delete,
     ("review", "list"): gfo.commands.review.handle_list,
     ("review", "create"): gfo.commands.review.handle_create,
+    ("review", "dismiss"): gfo.commands.review.handle_dismiss,
     ("branch", "list"): gfo.commands.branch.handle_list,
     ("branch", "create"): gfo.commands.branch.handle_create,
     ("branch", "delete"): gfo.commands.branch.handle_delete,

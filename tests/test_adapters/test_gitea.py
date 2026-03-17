@@ -9,6 +9,7 @@ import responses
 
 from gfo.adapter.base import (
     Branch,
+    CheckRun,
     Comment,
     CommitStatus,
     DeployKey,
@@ -16,6 +17,8 @@ from gfo.adapter.base import (
     Milestone,
     Pipeline,
     PullRequest,
+    PullRequestCommit,
+    PullRequestFile,
     Release,
     Repository,
     Review,
@@ -2061,3 +2064,162 @@ class TestDeleteWikiPage:
         )
         gitea_adapter.delete_wiki_page("Home")
         assert mock_responses.calls[0].request.method == "DELETE"
+
+
+# --- Phase 2: PR operations ---
+
+
+class TestGetPullRequestDiffGitea:
+    def test_get_diff(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1.diff",
+            body="diff --git a/file.py b/file.py\n--- a/file.py\n+++ b/file.py",
+            status=200,
+        )
+        diff = gitea_adapter.get_pull_request_diff(1)
+        assert "diff --git" in diff
+
+
+class TestListPullRequestChecksGitea:
+    def test_list_checks(self, mock_responses, gitea_adapter):
+        pr = _pr_data()
+        pr["head"]["sha"] = "abc123"
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1",
+            json=pr,
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/statuses/abc123",
+            json=[
+                {
+                    "context": "ci/build",
+                    "status": "success",
+                    "target_url": "https://ci.example.com/1",
+                    "created_at": "2025-01-01T00:00:00Z",
+                }
+            ],
+            status=200,
+        )
+        checks = gitea_adapter.list_pull_request_checks(1)
+        assert len(checks) == 1
+        assert isinstance(checks[0], CheckRun)
+        assert checks[0].name == "ci/build"
+        assert checks[0].status == "success"
+
+
+class TestListPullRequestFilesGitea:
+    def test_list_files(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1/files",
+            json=[
+                {
+                    "filename": "src/main.py",
+                    "status": "modified",
+                    "additions": 10,
+                    "deletions": 3,
+                }
+            ],
+            status=200,
+        )
+        files = gitea_adapter.list_pull_request_files(1)
+        assert len(files) == 1
+        assert isinstance(files[0], PullRequestFile)
+        assert files[0].filename == "src/main.py"
+        assert files[0].status == "modified"
+        assert files[0].additions == 10
+        assert files[0].deletions == 3
+
+
+class TestListPullRequestCommitsGitea:
+    def test_list_commits(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1/commits",
+            json=[
+                {
+                    "sha": "abc123",
+                    "commit": {
+                        "message": "fix bug",
+                        "author": {"name": "dev1", "date": "2025-01-01T00:00:00Z"},
+                    },
+                    "author": {"login": "dev1"},
+                }
+            ],
+            status=200,
+        )
+        commits = gitea_adapter.list_pull_request_commits(1)
+        assert len(commits) == 1
+        assert isinstance(commits[0], PullRequestCommit)
+        assert commits[0].sha == "abc123"
+        assert commits[0].message == "fix bug"
+        assert commits[0].author == "dev1"
+
+
+class TestListRequestedReviewersGitea:
+    def test_list_reviewers(self, mock_responses, gitea_adapter):
+        pr = _pr_data()
+        pr["requested_reviewers"] = [{"login": "reviewer1"}, {"login": "reviewer2"}]
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1",
+            json=pr,
+            status=200,
+        )
+        reviewers = gitea_adapter.list_requested_reviewers(1)
+        assert reviewers == ["reviewer1", "reviewer2"]
+
+
+class TestRequestReviewersGitea:
+    def test_request(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pulls/1/requested_reviewers",
+            json={},
+            status=201,
+        )
+        gitea_adapter.request_reviewers(1, ["reviewer1"])
+        body = json.loads(mock_responses.calls[0].request.body)
+        assert body["reviewers"] == ["reviewer1"]
+
+
+class TestUpdatePullRequestBranchGitea:
+    def test_update_branch(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pulls/1/update",
+            json={},
+            status=200,
+        )
+        gitea_adapter.update_pull_request_branch(1)
+        assert mock_responses.calls[0].request.method == "POST"
+
+
+class TestDismissReviewGitea:
+    def test_dismiss(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pulls/1/reviews/42/dismissals",
+            json={"id": 42},
+            status=200,
+        )
+        gitea_adapter.dismiss_review(1, 42, message="stale review")
+        body = json.loads(mock_responses.calls[0].request.body)
+        assert body["message"] == "stale review"
+
+
+class TestMarkPullRequestReadyGitea:
+    def test_mark_ready(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/pulls/1",
+            json=_pr_data(),
+            status=200,
+        )
+        gitea_adapter.mark_pull_request_ready(1)
+        body = json.loads(mock_responses.calls[0].request.body)
+        assert body["state"] == "open"

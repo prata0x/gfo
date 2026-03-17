@@ -204,6 +204,31 @@ class Variable:
     updated_at: str
 
 
+@dataclass(frozen=True, slots=True)
+class CheckRun:
+    name: str
+    status: str  # "success" | "failure" | "pending" | "running"
+    conclusion: str  # 詳細。不明なら ""
+    url: str
+    started_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class PullRequestFile:
+    filename: str
+    status: str  # "added" | "modified" | "deleted" | "renamed"
+    additions: int
+    deletions: int
+
+
+@dataclass(frozen=True, slots=True)
+class PullRequestCommit:
+    sha: str
+    message: str
+    author: str
+    created_at: str
+
+
 class GitHubLikeAdapter(ABC):
     """GitHub API 互換サービス（GitHub/Gitea 系）向け共通変換ヘルパー。
 
@@ -416,6 +441,54 @@ class GitHubLikeAdapter(ABC):
         except (KeyError, TypeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
+    @staticmethod
+    def _to_check_run(data: dict) -> CheckRun:
+        try:
+            status_map = {
+                "success": "success",
+                "failure": "failure",
+                "pending": "pending",
+                "error": "failure",
+            }
+            state = data.get("state") or data.get("status") or ""
+            return CheckRun(
+                name=data.get("context") or data.get("name") or "",
+                status=status_map.get(state, state),
+                conclusion="",
+                url=data.get("target_url") or data.get("url") or "",
+                started_at=data.get("created_at") or "",
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
+    def _to_pull_request_file(data: dict) -> PullRequestFile:
+        try:
+            return PullRequestFile(
+                filename=data.get("filename") or "",
+                status=data.get("status") or "modified",
+                additions=data.get("additions") or 0,
+                deletions=data.get("deletions") or 0,
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
+    def _to_pull_request_commit(data: dict) -> PullRequestCommit:
+        try:
+            commit = data.get("commit") or {}
+            author_info = commit.get("author") or {}
+            user = data.get("author") or {}
+            author = user.get("login") or author_info.get("name") or ""
+            return PullRequestCommit(
+                sha=data.get("sha") or "",
+                message=commit.get("message") or "",
+                author=author,
+                created_at=author_info.get("date") or "",
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
 
 class GitServiceAdapter(ABC):
     """Git サービスアダプターの抽象基底クラス。"""
@@ -458,6 +531,39 @@ class GitServiceAdapter(ABC):
         デフォルト実装は NotSupportedError を送出する。
         """
         raise NotSupportedError(self.service_name, "pr checkout")
+
+    def get_pull_request_diff(self, number: int) -> str:
+        raise NotSupportedError(self.service_name, "pr diff")
+
+    def list_pull_request_checks(self, number: int) -> list[CheckRun]:
+        raise NotSupportedError(self.service_name, "pr checks")
+
+    def list_pull_request_files(self, number: int) -> list[PullRequestFile]:
+        raise NotSupportedError(self.service_name, "pr files")
+
+    def list_pull_request_commits(self, number: int) -> list[PullRequestCommit]:
+        raise NotSupportedError(self.service_name, "pr commits")
+
+    def list_requested_reviewers(self, number: int) -> list[str]:
+        raise NotSupportedError(self.service_name, "pr reviewers list")
+
+    def request_reviewers(self, number: int, reviewers: list[str]) -> None:
+        raise NotSupportedError(self.service_name, "pr reviewers add")
+
+    def remove_reviewers(self, number: int, reviewers: list[str]) -> None:
+        raise NotSupportedError(self.service_name, "pr reviewers remove")
+
+    def update_pull_request_branch(self, number: int) -> None:
+        raise NotSupportedError(self.service_name, "pr update-branch")
+
+    def enable_auto_merge(self, number: int, *, merge_method: str | None = None) -> None:
+        raise NotSupportedError(self.service_name, "pr auto-merge")
+
+    def dismiss_review(self, number: int, review_id: int, *, message: str = "") -> None:
+        raise NotSupportedError(self.service_name, "review dismiss")
+
+    def mark_pull_request_ready(self, number: int) -> None:
+        raise NotSupportedError(self.service_name, "pr ready")
 
     # --- Issue ---
     @abstractmethod

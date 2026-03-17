@@ -511,7 +511,7 @@ def test_parser_org_repos():
 
 
 def test_dispatch_table_has_68_entries():
-    assert len(_DISPATCH) == 100  # 89 + schema + phase1 additions
+    assert len(_DISPATCH) == 108  # 100 + phase2 PR operations
 
 
 def test_dispatch_table_all_keys():
@@ -527,6 +527,13 @@ def test_dispatch_table_all_keys():
         ("pr", "checkout"),
         ("pr", "update"),
         ("pr", "reopen"),
+        ("pr", "diff"),
+        ("pr", "checks"),
+        ("pr", "files"),
+        ("pr", "commits"),
+        ("pr", "reviewers"),
+        ("pr", "update-branch"),
+        ("pr", "ready"),
         ("issue", "list"),
         ("issue", "create"),
         ("issue", "view"),
@@ -562,6 +569,7 @@ def test_dispatch_table_all_keys():
         ("comment", "delete"),
         ("review", "list"),
         ("review", "create"),
+        ("review", "dismiss"),
         ("branch", "list"),
         ("branch", "create"),
         ("branch", "delete"),

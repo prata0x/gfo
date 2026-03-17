@@ -9,6 +9,7 @@ from gfo.exceptions import NotSupportedError
 
 from .base import (
     BranchProtection,
+    CheckRun,
     Comment,
     CommitStatus,
     Label,
@@ -16,6 +17,8 @@ from .base import (
     Notification,
     Pipeline,
     PullRequest,
+    PullRequestCommit,
+    PullRequestFile,
     Release,
     Review,
     Secret,
@@ -79,6 +82,41 @@ class GogsAdapter(GiteaAdapter):
         raise NotSupportedError(
             "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
         )
+
+    def get_pull_request_diff(self, number: int) -> str:
+        raise NotSupportedError(
+            "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
+        )
+
+    def list_pull_request_checks(self, number: int) -> list[CheckRun]:
+        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+
+    def list_pull_request_files(self, number: int) -> list[PullRequestFile]:
+        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+
+    def list_pull_request_commits(self, number: int) -> list[PullRequestCommit]:
+        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+
+    def list_requested_reviewers(self, number: int) -> list[str]:
+        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+
+    def request_reviewers(self, number: int, reviewers: list[str]) -> None:
+        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+
+    def remove_reviewers(self, number: int, reviewers: list[str]) -> None:
+        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+
+    def update_pull_request_branch(self, number: int) -> None:
+        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+
+    def enable_auto_merge(self, number: int, *, merge_method: str | None = None) -> None:
+        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+
+    def dismiss_review(self, number: int, review_id: int, *, message: str = "") -> None:
+        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+
+    def mark_pull_request_ready(self, number: int) -> None:
+        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
 
     # --- Issue ---
 

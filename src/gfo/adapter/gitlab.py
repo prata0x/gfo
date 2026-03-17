@@ -11,6 +11,7 @@ from gfo.http import paginate_page_param
 from .base import (
     Branch,
     BranchProtection,
+    CheckRun,
     Comment,
     CommitStatus,
     DeployKey,
@@ -22,6 +23,8 @@ from .base import (
     Organization,
     Pipeline,
     PullRequest,
+    PullRequestCommit,
+    PullRequestFile,
     Release,
     Repository,
     Review,
@@ -678,6 +681,159 @@ class GitLabAdapter(GitServiceAdapter):
             payload["target_branch"] = base
         resp = self._client.put(f"{self._project_path()}/merge_requests/{number}", json=payload)
         return self._to_pull_request(resp.json())
+
+    # --- PR diff / checks / files / commits ---
+
+    def get_pull_request_diff(self, number: int) -> str:
+        resp = self._client.get(f"{self._project_path()}/merge_requests/{number}/diffs")
+        diffs = resp.json()
+        parts: list[str] = []
+        for d in diffs:
+            parts.append(f"--- a/{d['old_path']}\n+++ b/{d['new_path']}")
+            parts.append(d.get("diff", ""))
+        return "\n".join(parts)
+
+    def list_pull_request_checks(self, number: int) -> list[CheckRun]:
+        status_map = {
+            "success": "success",
+            "failed": "failure",
+            "running": "running",
+            "pending": "pending",
+            "canceled": "cancelled",
+            "cancelled": "cancelled",
+            "skipped": "skipped",
+            "manual": "pending",
+            "created": "pending",
+        }
+        items = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/merge_requests/{number}/pipelines",
+        )
+        return [
+            CheckRun(
+                name=p.get("ref") or str(p["id"]),
+                status=status_map.get(p.get("status", ""), p.get("status", "")),
+                conclusion=status_map.get(p.get("status", ""), p.get("status", "")),
+                url=p.get("web_url", ""),
+                started_at=p.get("created_at", ""),
+            )
+            for p in items
+        ]
+
+    def list_pull_request_files(self, number: int) -> list[PullRequestFile]:
+        resp = self._client.get(f"{self._project_path()}/merge_requests/{number}/changes")
+        changes = resp.json().get("changes", [])
+        result: list[PullRequestFile] = []
+        for c in changes:
+            if c.get("new_file"):
+                status = "added"
+            elif c.get("deleted_file"):
+                status = "deleted"
+            elif c.get("renamed_file"):
+                status = "renamed"
+            else:
+                status = "modified"
+            diff_text = c.get("diff", "")
+            additions = sum(
+                1
+                for line in diff_text.splitlines()
+                if line.startswith("+") and not line.startswith("+++")
+            )
+            deletions = sum(
+                1
+                for line in diff_text.splitlines()
+                if line.startswith("-") and not line.startswith("---")
+            )
+            result.append(
+                PullRequestFile(
+                    filename=c["new_path"],
+                    status=status,
+                    additions=additions,
+                    deletions=deletions,
+                )
+            )
+        return result
+
+    def list_pull_request_commits(self, number: int) -> list[PullRequestCommit]:
+        items = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/merge_requests/{number}/commits",
+        )
+        return [
+            PullRequestCommit(
+                sha=c["id"],
+                message=c["message"],
+                author=c.get("author_name", ""),
+                created_at=c.get("created_at", ""),
+            )
+            for c in items
+        ]
+
+    # --- PR reviewers ---
+
+    def list_requested_reviewers(self, number: int) -> list[str]:
+        resp = self._client.get(f"{self._project_path()}/merge_requests/{number}")
+        reviewers = resp.json().get("reviewers", [])
+        return [r["username"] for r in reviewers]
+
+    def _resolve_user_ids(self, usernames: list[str]) -> list[int]:
+        """ユーザー名のリストをユーザー ID のリストに変換する。"""
+        ids: list[int] = []
+        for name in usernames:
+            resp = self._client.get("/users", params={"username": name})
+            users = resp.json()
+            if users:
+                ids.append(users[0]["id"])
+        return ids
+
+    def request_reviewers(self, number: int, reviewers: list[str]) -> None:
+        mr_resp = self._client.get(f"{self._project_path()}/merge_requests/{number}")
+        current_ids = [r["id"] for r in mr_resp.json().get("reviewers", [])]
+        new_ids = self._resolve_user_ids(reviewers)
+        merged = list(dict.fromkeys(current_ids + new_ids))
+        self._client.put(
+            f"{self._project_path()}/merge_requests/{number}",
+            json={"reviewer_ids": merged},
+        )
+
+    def remove_reviewers(self, number: int, reviewers: list[str]) -> None:
+        mr_resp = self._client.get(f"{self._project_path()}/merge_requests/{number}")
+        current_ids = [r["id"] for r in mr_resp.json().get("reviewers", [])]
+        remove_ids = set(self._resolve_user_ids(reviewers))
+        remaining = [uid for uid in current_ids if uid not in remove_ids]
+        self._client.put(
+            f"{self._project_path()}/merge_requests/{number}",
+            json={"reviewer_ids": remaining},
+        )
+
+    # --- PR branch / auto-merge / ready / review dismiss ---
+
+    def update_pull_request_branch(self, number: int) -> None:
+        self._client.put(f"{self._project_path()}/merge_requests/{number}/rebase")
+
+    def enable_auto_merge(self, number: int, *, merge_method: str | None = None) -> None:
+        payload: dict = {"merge_when_pipeline_succeeds": True}
+        if merge_method == "squash":
+            payload["squash"] = True
+        self._client.put(
+            f"{self._project_path()}/merge_requests/{number}/merge",
+            json=payload,
+        )
+
+    def mark_pull_request_ready(self, number: int) -> None:
+        resp = self._client.get(f"{self._project_path()}/merge_requests/{number}")
+        title: str = resp.json()["title"]
+        for prefix in ("Draft: ", "WIP: "):
+            if title.startswith(prefix):
+                title = title[len(prefix) :]
+                break
+        self._client.put(
+            f"{self._project_path()}/merge_requests/{number}",
+            json={"title": title},
+        )
+
+    def dismiss_review(self, number: int, review_id: int, *, message: str = "") -> None:
+        raise NotSupportedError(self.service_name, "review dismiss")
 
     # --- Issue update ---
 

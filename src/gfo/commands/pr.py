@@ -46,7 +46,10 @@ def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 def handle_merge(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr merge <number> のハンドラ。"""
     adapter = get_adapter()
-    adapter.merge_pull_request(args.number, method=args.method)
+    if getattr(args, "auto", False):
+        adapter.enable_auto_merge(args.number, merge_method=args.method)
+    else:
+        adapter.merge_pull_request(args.number, method=args.method)
 
 
 def handle_close(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -80,3 +83,56 @@ def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         base=args.base,
     )
     output(pr, fmt=fmt, jq=jq)
+
+
+def handle_diff(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo pr diff <number> のハンドラ。"""
+    adapter = get_adapter()
+    diff_text = adapter.get_pull_request_diff(args.number)
+    print(diff_text, end="")
+
+
+def handle_checks(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo pr checks <number> のハンドラ。"""
+    adapter = get_adapter()
+    checks = adapter.list_pull_request_checks(args.number)
+    output(checks, fmt=fmt, fields=["name", "status", "conclusion", "url"], jq=jq)
+
+
+def handle_files(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo pr files <number> のハンドラ。"""
+    adapter = get_adapter()
+    files = adapter.list_pull_request_files(args.number)
+    output(files, fmt=fmt, fields=["filename", "status", "additions", "deletions"], jq=jq)
+
+
+def handle_commits(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo pr commits <number> のハンドラ。"""
+    adapter = get_adapter()
+    commits = adapter.list_pull_request_commits(args.number)
+    output(commits, fmt=fmt, fields=["sha", "message", "author", "created_at"], jq=jq)
+
+
+def handle_reviewers(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo pr reviewers list|add|remove のハンドラ。"""
+    adapter = get_adapter()
+    action = getattr(args, "reviewer_action", None)
+    if action == "add":
+        adapter.request_reviewers(args.number, args.users)
+    elif action == "remove":
+        adapter.remove_reviewers(args.number, args.users)
+    else:
+        reviewers = adapter.list_requested_reviewers(args.number)
+        output(reviewers, fmt=fmt, jq=jq)
+
+
+def handle_update_branch(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo pr update-branch <number> のハンドラ。"""
+    adapter = get_adapter()
+    adapter.update_pull_request_branch(args.number)
+
+
+def handle_ready(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo pr ready <number> のハンドラ。"""
+    adapter = get_adapter()
+    adapter.mark_pull_request_ready(args.number)

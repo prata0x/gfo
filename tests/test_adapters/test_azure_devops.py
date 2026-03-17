@@ -15,11 +15,14 @@ from gfo.adapter.azure_devops import (
 )
 from gfo.adapter.base import (
     Branch,
+    CheckRun,
     Comment,
     CommitStatus,
     Issue,
     Pipeline,
     PullRequest,
+    PullRequestCommit,
+    PullRequestFile,
     Repository,
     Review,
     Tag,
@@ -1680,3 +1683,117 @@ class TestDeleteTag:
         )
         with pytest.raises(NotFoundError):
             azure_devops_adapter.delete_tag(name="nonexistent")
+
+
+# --- Phase 2: PR operations ---
+
+
+class TestListPullRequestChecksAzure:
+    def test_list_checks(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests/1/statuses",
+            json={
+                "value": [
+                    {
+                        "context": {"genre": "ci", "name": "build"},
+                        "state": "succeeded",
+                        "targetUrl": "https://dev.azure.com/build/1",
+                        "creationDate": "2025-01-01T00:00:00Z",
+                    }
+                ],
+                "count": 1,
+            },
+            status=200,
+        )
+        checks = azure_devops_adapter.list_pull_request_checks(1)
+        assert len(checks) == 1
+        assert isinstance(checks[0], CheckRun)
+        assert checks[0].name == "ci/build"
+        assert checks[0].status == "success"
+
+
+class TestListPullRequestFilesAzure:
+    def test_list_files(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests/1/iterations",
+            json={"value": [{"id": 1}, {"id": 2}], "count": 2},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests/1/iterations/2/changes",
+            json={
+                "changeEntries": [
+                    {
+                        "item": {"path": "/src/main.py"},
+                        "changeType": "edit",
+                    }
+                ]
+            },
+            status=200,
+        )
+        files = azure_devops_adapter.list_pull_request_files(1)
+        assert len(files) == 1
+        assert isinstance(files[0], PullRequestFile)
+        assert files[0].filename == "/src/main.py"
+        assert files[0].status == "modified"
+
+
+class TestListPullRequestCommitsAzure:
+    def test_list_commits(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests/1/commits",
+            json={
+                "value": [
+                    {
+                        "commitId": "abc123",
+                        "comment": "fix bug",
+                        "author": {"name": "dev1", "date": "2025-01-01T00:00:00Z"},
+                    }
+                ],
+                "count": 1,
+            },
+            status=200,
+        )
+        commits = azure_devops_adapter.list_pull_request_commits(1)
+        assert len(commits) == 1
+        assert isinstance(commits[0], PullRequestCommit)
+        assert commits[0].sha == "abc123"
+        assert commits[0].message == "fix bug"
+        assert commits[0].author == "dev1"
+
+
+class TestListRequestedReviewersAzure:
+    def test_list_reviewers(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests/1/reviewers",
+            json={
+                "value": [
+                    {"displayName": "Reviewer One"},
+                    {"displayName": "Reviewer Two"},
+                ],
+                "count": 2,
+            },
+            status=200,
+        )
+        reviewers = azure_devops_adapter.list_requested_reviewers(1)
+        assert reviewers == ["Reviewer One", "Reviewer Two"]
+
+
+class TestMarkPullRequestReadyAzure:
+    def test_mark_ready(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{GIT}/pullrequests/1",
+            json=_pr_data(),
+            status=200,
+        )
+        azure_devops_adapter.mark_pull_request_ready(1)
+        import json as _json
+
+        body = _json.loads(mock_responses.calls[0].request.body)
+        assert body["isDraft"] is False

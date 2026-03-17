@@ -10,12 +10,15 @@ import responses
 
 from gfo.adapter.base import (
     Branch,
+    CheckRun,
     Comment,
     CommitStatus,
     DeployKey,
     Issue,
     Pipeline,
     PullRequest,
+    PullRequestCommit,
+    PullRequestFile,
     Repository,
     Review,
     Tag,
@@ -1573,3 +1576,115 @@ class TestToPipeline:
         }
         pipeline = BitbucketAdapter._to_pipeline(data)
         assert pipeline.status == "running"
+
+
+# --- Phase 2: PR operations ---
+
+
+class TestGetPullRequestDiffBitbucket:
+    def test_get_diff(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests/1/diff",
+            body="diff --git a/file.py b/file.py\n--- a/file.py\n+++ b/file.py",
+            status=200,
+        )
+        diff = bitbucket_adapter.get_pull_request_diff(1)
+        assert "diff --git" in diff
+
+
+class TestListPullRequestChecksBitbucket:
+    def test_list_checks(self, mock_responses, bitbucket_adapter):
+        pr = _pr_data()
+        pr["source"]["commit"] = {"hash": "abc123"}
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests/1",
+            json=pr,
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/commit/abc123/statuses",
+            json={
+                "values": [
+                    {
+                        "key": "ci/build",
+                        "state": "SUCCESSFUL",
+                        "url": "https://ci.example.com/1",
+                        "created_on": "2025-01-01T00:00:00Z",
+                    }
+                ]
+            },
+            status=200,
+        )
+        checks = bitbucket_adapter.list_pull_request_checks(1)
+        assert len(checks) == 1
+        assert isinstance(checks[0], CheckRun)
+        assert checks[0].name == "ci/build"
+        assert checks[0].status == "success"
+
+
+class TestListPullRequestFilesBitbucket:
+    def test_list_files(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests/1/diffstat",
+            json={
+                "values": [
+                    {
+                        "old": {"path": "src/main.py"},
+                        "new": {"path": "src/main.py"},
+                        "lines_added": 5,
+                        "lines_removed": 2,
+                    }
+                ]
+            },
+            status=200,
+        )
+        files = bitbucket_adapter.list_pull_request_files(1)
+        assert len(files) == 1
+        assert isinstance(files[0], PullRequestFile)
+        assert files[0].filename == "src/main.py"
+        assert files[0].status == "modified"
+        assert files[0].additions == 5
+        assert files[0].deletions == 2
+
+
+class TestListPullRequestCommitsBitbucket:
+    def test_list_commits(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests/1/commits",
+            json={
+                "values": [
+                    {
+                        "hash": "abc123",
+                        "message": "fix bug",
+                        "author": {"raw": "dev1 <dev1@example.com>"},
+                        "date": "2025-01-01T00:00:00Z",
+                    }
+                ]
+            },
+            status=200,
+        )
+        commits = bitbucket_adapter.list_pull_request_commits(1)
+        assert len(commits) == 1
+        assert isinstance(commits[0], PullRequestCommit)
+        assert commits[0].sha == "abc123"
+        assert commits[0].message == "fix bug"
+        assert commits[0].author == "dev1"
+
+
+class TestListRequestedReviewersBitbucket:
+    def test_list_reviewers(self, mock_responses, bitbucket_adapter):
+        pr = _pr_data()
+        pr["reviewers"] = [{"nickname": "reviewer1"}, {"nickname": "reviewer2"}]
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests/1",
+            json=pr,
+            status=200,
+        )
+        reviewers = bitbucket_adapter.list_requested_reviewers(1)
+        assert reviewers == ["reviewer1", "reviewer2"]

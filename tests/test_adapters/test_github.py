@@ -9,6 +9,7 @@ import responses
 
 from gfo.adapter.base import (
     Branch,
+    CheckRun,
     Comment,
     CommitStatus,
     DeployKey,
@@ -16,6 +17,8 @@ from gfo.adapter.base import (
     Milestone,
     Pipeline,
     PullRequest,
+    PullRequestCommit,
+    PullRequestFile,
     Release,
     Repository,
     Review,
@@ -1912,3 +1915,183 @@ class TestSearchIssues:
         issues = github_adapter.search_issues("bug")
         assert len(issues) == 1
         assert isinstance(issues[0], Issue)
+
+
+# --- Phase 2: PR operations ---
+
+
+class TestGetPullRequestDiff:
+    def test_get_diff(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1",
+            body="diff --git a/file.py b/file.py\n--- a/file.py\n+++ b/file.py",
+            status=200,
+        )
+        diff = github_adapter.get_pull_request_diff(1)
+        assert "diff --git" in diff
+        # Accept ヘッダーに diff 形式を指定していることを検証
+        assert "application/vnd.github.diff" in mock_responses.calls[0].request.headers["Accept"]
+
+
+class TestListPullRequestChecks:
+    def test_list_checks(self, mock_responses, github_adapter):
+        pr_data = _pr_data()
+        pr_data["head"]["sha"] = "abc123"
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1",
+            json=pr_data,
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/commits/abc123/check-runs",
+            json={
+                "total_count": 1,
+                "check_runs": [
+                    {
+                        "name": "CI",
+                        "status": "completed",
+                        "conclusion": "success",
+                        "html_url": "https://github.com/runs/1",
+                        "started_at": "2025-01-01T00:00:00Z",
+                    }
+                ],
+            },
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/commits/abc123/status",
+            json={
+                "statuses": [
+                    {
+                        "context": "external-ci",
+                        "state": "success",
+                        "target_url": "https://ci.example.com",
+                        "created_at": "2025-01-01T00:00:00Z",
+                    }
+                ]
+            },
+            status=200,
+        )
+        checks = github_adapter.list_pull_request_checks(1)
+        assert len(checks) == 2
+        assert isinstance(checks[0], CheckRun)
+        assert checks[0].name == "CI"
+        assert checks[0].status == "success"
+        assert checks[1].name == "external-ci"
+        assert checks[1].status == "success"
+
+
+class TestListPullRequestFiles:
+    def test_list_files(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1/files",
+            json=[
+                {
+                    "filename": "src/main.py",
+                    "status": "modified",
+                    "additions": 10,
+                    "deletions": 3,
+                }
+            ],
+            status=200,
+        )
+        files = github_adapter.list_pull_request_files(1)
+        assert len(files) == 1
+        assert isinstance(files[0], PullRequestFile)
+        assert files[0].filename == "src/main.py"
+        assert files[0].status == "modified"
+        assert files[0].additions == 10
+        assert files[0].deletions == 3
+
+
+class TestListPullRequestCommits:
+    def test_list_commits(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1/commits",
+            json=[
+                {
+                    "sha": "abc123",
+                    "commit": {
+                        "message": "fix bug",
+                        "author": {"name": "dev1", "date": "2025-01-01T00:00:00Z"},
+                    },
+                    "author": {"login": "dev1"},
+                }
+            ],
+            status=200,
+        )
+        commits = github_adapter.list_pull_request_commits(1)
+        assert len(commits) == 1
+        assert isinstance(commits[0], PullRequestCommit)
+        assert commits[0].sha == "abc123"
+        assert commits[0].message == "fix bug"
+        assert commits[0].author == "dev1"
+
+
+class TestListRequestedReviewers:
+    def test_list_reviewers(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1/requested_reviewers",
+            json={"users": [{"login": "reviewer1"}, {"login": "reviewer2"}]},
+            status=200,
+        )
+        reviewers = github_adapter.list_requested_reviewers(1)
+        assert reviewers == ["reviewer1", "reviewer2"]
+
+
+class TestRequestReviewers:
+    def test_request(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pulls/1/requested_reviewers",
+            json={},
+            status=201,
+        )
+        github_adapter.request_reviewers(1, reviewers=["reviewer1"])
+        body = json.loads(mock_responses.calls[0].request.body)
+        assert body["reviewers"] == ["reviewer1"]
+
+
+class TestRemoveReviewers:
+    def test_remove(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/pulls/1/requested_reviewers",
+            json={},
+            status=200,
+        )
+        github_adapter.remove_reviewers(1, reviewers=["reviewer1"])
+        body = json.loads(mock_responses.calls[0].request.body)
+        assert body["reviewers"] == ["reviewer1"]
+
+
+class TestUpdatePullRequestBranch:
+    def test_update_branch(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/pulls/1/update-branch",
+            json={"message": "Updating pull request branch."},
+            status=202,
+        )
+        github_adapter.update_pull_request_branch(1)
+        assert mock_responses.calls[0].request.method == "PUT"
+
+
+class TestDismissReview:
+    def test_dismiss(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/pulls/1/reviews/42/dismissals",
+            json={"id": 42, "state": "DISMISSED"},
+            status=200,
+        )
+        github_adapter.dismiss_review(1, 42, message="stale review")
+        body = json.loads(mock_responses.calls[0].request.body)
+        assert body["message"] == "stale review"

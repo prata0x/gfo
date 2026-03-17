@@ -10,6 +10,7 @@ import responses
 
 from gfo.adapter.base import (
     Branch,
+    CheckRun,
     Comment,
     CommitStatus,
     DeployKey,
@@ -17,6 +18,8 @@ from gfo.adapter.base import (
     Milestone,
     Pipeline,
     PullRequest,
+    PullRequestCommit,
+    PullRequestFile,
     Release,
     Repository,
     Review,
@@ -2184,3 +2187,160 @@ class TestToWikiPage:
         assert isinstance(page, WikiPage)
         assert page.title == "Home"
         assert page.content == "# Home"
+
+
+# --- Phase 2: PR operations ---
+
+
+class TestGetPullRequestDiff:
+    def test_get_diff(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests/1/diffs",
+            json=[
+                {
+                    "old_path": "file.py",
+                    "new_path": "file.py",
+                    "diff": "@@ -1,3 +1,4 @@\n+new line",
+                }
+            ],
+            status=200,
+        )
+        diff = gitlab_adapter.get_pull_request_diff(1)
+        assert "--- a/file.py" in diff
+        assert "+++ b/file.py" in diff
+        assert "+new line" in diff
+
+
+class TestListPullRequestChecks:
+    def test_list_checks(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests/1/pipelines",
+            json=[
+                {
+                    "id": 100,
+                    "status": "success",
+                    "ref": "feature",
+                    "web_url": "https://gitlab.com/pipelines/100",
+                    "created_at": "2025-01-01T00:00:00Z",
+                }
+            ],
+            status=200,
+        )
+        checks = gitlab_adapter.list_pull_request_checks(1)
+        assert len(checks) == 1
+        assert isinstance(checks[0], CheckRun)
+        assert checks[0].name == "feature"
+        assert checks[0].status == "success"
+
+
+class TestListPullRequestFiles:
+    def test_list_files(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests/1/changes",
+            json={
+                "changes": [
+                    {
+                        "new_path": "src/main.py",
+                        "old_path": "src/main.py",
+                        "new_file": False,
+                        "deleted_file": False,
+                        "renamed_file": False,
+                        "diff": "@@ -1,3 +1,5 @@\n+line1\n+line2\n-old",
+                    }
+                ]
+            },
+            status=200,
+        )
+        files = gitlab_adapter.list_pull_request_files(1)
+        assert len(files) == 1
+        assert isinstance(files[0], PullRequestFile)
+        assert files[0].filename == "src/main.py"
+        assert files[0].status == "modified"
+        assert files[0].additions == 2
+        assert files[0].deletions == 1
+
+
+class TestListPullRequestCommits:
+    def test_list_commits(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests/1/commits",
+            json=[
+                {
+                    "id": "abc123",
+                    "message": "fix bug",
+                    "author_name": "dev1",
+                    "created_at": "2025-01-01T00:00:00Z",
+                }
+            ],
+            status=200,
+        )
+        commits = gitlab_adapter.list_pull_request_commits(1)
+        assert len(commits) == 1
+        assert isinstance(commits[0], PullRequestCommit)
+        assert commits[0].sha == "abc123"
+        assert commits[0].message == "fix bug"
+        assert commits[0].author == "dev1"
+
+
+class TestListRequestedReviewersGitLab:
+    def test_list_reviewers(self, mock_responses, gitlab_adapter):
+        mr = _mr_data()
+        mr["reviewers"] = [{"username": "reviewer1"}, {"username": "reviewer2"}]
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests/1",
+            json=mr,
+            status=200,
+        )
+        reviewers = gitlab_adapter.list_requested_reviewers(1)
+        assert reviewers == ["reviewer1", "reviewer2"]
+
+
+class TestUpdatePullRequestBranchGitLab:
+    def test_rebase(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1/rebase",
+            json={"rebase_in_progress": True},
+            status=202,
+        )
+        gitlab_adapter.update_pull_request_branch(1)
+        assert mock_responses.calls[0].request.method == "PUT"
+
+
+class TestEnableAutoMergeGitLab:
+    def test_enable(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1/merge",
+            json=_mr_data(),
+            status=200,
+        )
+        gitlab_adapter.enable_auto_merge(1)
+        body = json.loads(mock_responses.calls[0].request.body)
+        assert body["merge_when_pipeline_succeeds"] is True
+
+
+class TestMarkPullRequestReadyGitLab:
+    def test_mark_ready(self, mock_responses, gitlab_adapter):
+        mr = _mr_data()
+        mr["title"] = "Draft: My MR"
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests/1",
+            json=mr,
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1",
+            json=_mr_data(),
+            status=200,
+        )
+        gitlab_adapter.mark_pull_request_ready(1)
+        body = json.loads(mock_responses.calls[1].request.body)
+        assert body["title"] == "My MR"

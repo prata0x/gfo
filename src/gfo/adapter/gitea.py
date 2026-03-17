@@ -11,6 +11,7 @@ from gfo.http import paginate_link_header
 from .base import (
     Branch,
     BranchProtection,
+    CheckRun,
     Comment,
     CommitStatus,
     DeployKey,
@@ -23,6 +24,8 @@ from .base import (
     Organization,
     Pipeline,
     PullRequest,
+    PullRequestCommit,
+    PullRequestFile,
     Release,
     Repository,
     Review,
@@ -394,6 +397,77 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["base"] = base
         resp = self._client.patch(f"{self._repos_path()}/pulls/{number}", json=payload)
         return self._to_pull_request(resp.json())
+
+    def get_pull_request_diff(self, number: int) -> str:
+        resp = self._client.get(f"{self._repos_path()}/pulls/{number}.diff")
+        return str(resp.text)
+
+    def list_pull_request_checks(self, number: int) -> list[CheckRun]:
+        resp = self._client.get(f"{self._repos_path()}/pulls/{number}")
+        sha = resp.json()["head"]["sha"]
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/statuses/{sha}",
+            limit=0,
+            per_page_key="limit",
+        )
+        return [self._to_check_run(r) for r in results]
+
+    def list_pull_request_files(self, number: int) -> list[PullRequestFile]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/pulls/{number}/files",
+            limit=0,
+            per_page_key="limit",
+        )
+        return [self._to_pull_request_file(r) for r in results]
+
+    def list_pull_request_commits(self, number: int) -> list[PullRequestCommit]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/pulls/{number}/commits",
+            limit=0,
+            per_page_key="limit",
+        )
+        return [self._to_pull_request_commit(r) for r in results]
+
+    def list_requested_reviewers(self, number: int) -> list[str]:
+        resp = self._client.get(f"{self._repos_path()}/pulls/{number}")
+        reviewers = resp.json().get("requested_reviewers") or []
+        return [r["login"] for r in reviewers]
+
+    def request_reviewers(self, number: int, reviewers: list[str]) -> None:
+        self._client.post(
+            f"{self._repos_path()}/pulls/{number}/requested_reviewers",
+            json={"reviewers": reviewers},
+        )
+
+    def remove_reviewers(self, number: int, reviewers: list[str]) -> None:
+        self._client.delete(
+            f"{self._repos_path()}/pulls/{number}/requested_reviewers",
+            json={"reviewers": reviewers},
+        )
+
+    def update_pull_request_branch(self, number: int) -> None:
+        self._client.post(f"{self._repos_path()}/pulls/{number}/update", json={})
+
+    def enable_auto_merge(self, number: int, *, merge_method: str | None = None) -> None:
+        self._client.post(
+            f"{self._repos_path()}/pulls/{number}/merge",
+            json={"Do": merge_method or "merge", "merge_when_checks_succeed": True},
+        )
+
+    def dismiss_review(self, number: int, review_id: int, *, message: str = "") -> None:
+        self._client.post(
+            f"{self._repos_path()}/pulls/{number}/reviews/{review_id}/dismissals",
+            json={"message": message},
+        )
+
+    def mark_pull_request_ready(self, number: int) -> None:
+        self._client.patch(
+            f"{self._repos_path()}/pulls/{number}",
+            json={"state": "open"},
+        )
 
     # --- Issue update ---
 

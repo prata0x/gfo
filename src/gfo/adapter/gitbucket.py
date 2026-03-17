@@ -16,11 +16,14 @@ from gfo.http import paginate_link_header
 
 from .base import (
     BranchProtection,
+    CheckRun,
     DeployKey,
     Issue,
     Notification,
     Organization,
     PullRequest,
+    PullRequestCommit,
+    PullRequestFile,
     Release,
     Repository,
     Review,
@@ -66,6 +69,39 @@ class GitBucketAdapter(GitHubAdapter):
         payload = {"title": title, "body": body, "base": base, "head": head, "draft": draft}
         resp = self._client.post(f"{self._repos_path()}/pulls", json=payload)
         return self._to_pull_request(self._parse_response(resp))
+
+    def get_pull_request_diff(self, number: int) -> str:
+        raise NotSupportedError("GitBucket", "pr diff")
+
+    def list_pull_request_checks(self, number: int) -> list[CheckRun]:
+        raise NotSupportedError("GitBucket", "pr checks")
+
+    def list_pull_request_files(self, number: int) -> list[PullRequestFile]:
+        raise NotSupportedError("GitBucket", "pr files")
+
+    def list_pull_request_commits(self, number: int) -> list[PullRequestCommit]:
+        raise NotSupportedError("GitBucket", "pr commits")
+
+    def list_requested_reviewers(self, number: int) -> list[str]:
+        raise NotSupportedError("GitBucket", "pr reviewers")
+
+    def request_reviewers(self, number: int, reviewers: list[str]) -> None:
+        raise NotSupportedError("GitBucket", "pr reviewers")
+
+    def remove_reviewers(self, number: int, reviewers: list[str]) -> None:
+        raise NotSupportedError("GitBucket", "pr reviewers")
+
+    def update_pull_request_branch(self, number: int) -> None:
+        raise NotSupportedError("GitBucket", "pr update-branch")
+
+    def enable_auto_merge(self, number: int, *, merge_method: str | None = None) -> None:
+        raise NotSupportedError("GitBucket", "pr auto-merge")
+
+    def dismiss_review(self, number: int, review_id: int, *, message: str = "") -> None:
+        raise NotSupportedError("GitBucket", "review dismiss")
+
+    def mark_pull_request_ready(self, number: int) -> None:
+        raise NotSupportedError("GitBucket", "pr ready")
 
     # --- Issue ---
 

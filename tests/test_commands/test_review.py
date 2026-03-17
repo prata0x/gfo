@@ -58,3 +58,17 @@ class TestHandleCreate:
             args = make_args(number=1, approve=False, request_changes=False, comment=True, body="")
             with pytest.raises(ConfigError):
                 review_cmd.handle_create(args, fmt="table")
+
+
+class TestHandleDismiss:
+    def test_calls_dismiss_review(self):
+        with patch_adapter("gfo.commands.review") as adapter:
+            args = make_args(number=1, review_id=42, message="outdated")
+            review_cmd.handle_dismiss(args, fmt="table")
+        adapter.dismiss_review.assert_called_once_with(1, 42, message="outdated")
+
+    def test_dismiss_without_message(self):
+        with patch_adapter("gfo.commands.review") as adapter:
+            args = make_args(number=1, review_id=10, message=None)
+            review_cmd.handle_dismiss(args, fmt="table")
+        adapter.dismiss_review.assert_called_once_with(1, 10, message="")

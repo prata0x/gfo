@@ -10,6 +10,7 @@ from gfo.http import paginate_link_header
 from .base import (
     Branch,
     BranchProtection,
+    CheckRun,
     Comment,
     CommitStatus,
     DeployKey,
@@ -22,6 +23,8 @@ from .base import (
     Organization,
     Pipeline,
     PullRequest,
+    PullRequestCommit,
+    PullRequestFile,
     Release,
     Repository,
     Review,
@@ -369,6 +372,121 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["base"] = base
         resp = self._client.patch(f"{self._repos_path()}/pulls/{number}", json=payload)
         return self._to_pull_request(resp.json())
+
+    # --- PR diff / checks / files / commits / reviewers / update-branch / dismiss ---
+
+    def get_pull_request_diff(self, number: int) -> str:
+        resp = self._client.get(
+            f"{self._repos_path()}/pulls/{number}",
+            headers={"Accept": "application/vnd.github.diff"},
+        )
+        return str(resp.text)
+
+    def list_pull_request_checks(self, number: int) -> list[CheckRun]:
+        # PR の head SHA を取得
+        pr_resp = self._client.get(f"{self._repos_path()}/pulls/{number}")
+        sha = pr_resp.json()["head"]["sha"]
+
+        # Check Runs（GitHub Actions 等）
+        runs: list[CheckRun] = []
+        resp = self._client.get(f"{self._repos_path()}/commits/{sha}/check-runs")
+        for cr in resp.json().get("check_runs", []):
+            raw_status = cr.get("status", "queued")
+            if raw_status == "completed":
+                conclusion = cr.get("conclusion") or "failure"
+                status = {
+                    "success": "success",
+                    "failure": "failure",
+                    "cancelled": "cancelled",
+                    "timed_out": "failure",
+                    "action_required": "failure",
+                    "neutral": "success",
+                    "skipped": "success",
+                    "stale": "failure",
+                }.get(conclusion, conclusion)
+            elif raw_status == "in_progress":
+                status = "running"
+                conclusion = ""
+            else:  # queued, waiting, etc.
+                status = "pending"
+                conclusion = ""
+            runs.append(
+                CheckRun(
+                    name=cr.get("name") or "",
+                    status=status,
+                    conclusion=cr.get("conclusion") or conclusion,
+                    url=cr.get("html_url") or cr.get("url") or "",
+                    started_at=cr.get("started_at") or "",
+                )
+            )
+
+        # Commit Statuses（外部 CI 等）
+        status_resp = self._client.get(f"{self._repos_path()}/commits/{sha}/status")
+        for s in status_resp.json().get("statuses", []):
+            state = s.get("state") or ""
+            status_map = {
+                "success": "success",
+                "failure": "failure",
+                "error": "failure",
+                "pending": "pending",
+            }
+            runs.append(
+                CheckRun(
+                    name=s.get("context") or "",
+                    status=status_map.get(state, state),
+                    conclusion=state,
+                    url=s.get("target_url") or "",
+                    started_at=s.get("created_at") or "",
+                )
+            )
+
+        return runs
+
+    def list_pull_request_files(self, number: int) -> list[PullRequestFile]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/pulls/{number}/files",
+            limit=0,
+        )
+        return [self._to_pull_request_file(r) for r in results]
+
+    def list_pull_request_commits(self, number: int) -> list[PullRequestCommit]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/pulls/{number}/commits",
+            limit=0,
+        )
+        return [self._to_pull_request_commit(r) for r in results]
+
+    def list_requested_reviewers(self, number: int) -> list[str]:
+        resp = self._client.get(f"{self._repos_path()}/pulls/{number}/requested_reviewers")
+        data = resp.json()
+        users = data.get("users") or []
+        return [u["login"] for u in users]
+
+    def request_reviewers(self, number: int, reviewers: list[str]) -> None:
+        self._client.post(
+            f"{self._repos_path()}/pulls/{number}/requested_reviewers",
+            json={"reviewers": reviewers},
+        )
+
+    def remove_reviewers(self, number: int, reviewers: list[str]) -> None:
+        self._client.delete(
+            f"{self._repos_path()}/pulls/{number}/requested_reviewers",
+            json={"reviewers": reviewers},
+        )
+
+    def update_pull_request_branch(self, number: int) -> None:
+        self._client.put(
+            f"{self._repos_path()}/pulls/{number}/update-branch",
+            json={},
+        )
+
+    def dismiss_review(self, number: int, review_id: int, *, message: str = "") -> None:
+        self._client.put(
+            f"{self._repos_path()}/pulls/{number}/reviews/{review_id}/dismissals",
+            json={"message": message},
+        )
 
     # --- Issue update ---
 
