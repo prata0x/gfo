@@ -73,6 +73,9 @@ class GitBucketAdapter(GitHubAdapter):
         """GitBucket は PATCH /issues/{number} 未実装のため非対応。"""
         raise NotSupportedError("GitBucket", "issue close")
 
+    def reopen_issue(self, number: int) -> None:
+        raise NotSupportedError("GitBucket", "issue reopen")
+
     # --- Release ---
 
     @staticmethod
@@ -138,6 +141,20 @@ class GitBucketAdapter(GitHubAdapter):
         }
         resp = self._client.post(f"{self._repos_path()}/releases", json=payload)
         return self._to_release(self._parse_response(resp))
+
+    def get_release(self, *, tag: str) -> Release:
+        raise NotSupportedError("GitBucket", "release view")
+
+    def update_release(
+        self,
+        *,
+        tag: str,
+        title: str | None = None,
+        notes: str | None = None,
+        draft: bool | None = None,
+        prerelease: bool | None = None,
+    ) -> Release:
+        raise NotSupportedError("GitBucket", "release update")
 
     # --- Browse ---
 

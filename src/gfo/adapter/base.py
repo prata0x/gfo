@@ -448,6 +448,9 @@ class GitServiceAdapter(ABC):
     @abstractmethod
     def close_pull_request(self, number: int) -> None: ...
 
+    def reopen_pull_request(self, number: int) -> None:
+        raise NotSupportedError(self.service_name, "pr reopen")
+
     def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         """PR チェックアウト用の refspec を返す。
 
@@ -483,6 +486,9 @@ class GitServiceAdapter(ABC):
 
     @abstractmethod
     def close_issue(self, number: int) -> None: ...
+
+    def reopen_issue(self, number: int) -> None:
+        raise NotSupportedError(self.service_name, "issue reopen")
 
     def delete_issue(self, number: int) -> None:
         raise NotSupportedError(self.service_name, "issue delete")
@@ -528,6 +534,20 @@ class GitServiceAdapter(ABC):
     def delete_release(self, *, tag: str) -> None:
         raise NotSupportedError(self.service_name, "release delete")
 
+    def get_release(self, *, tag: str) -> Release:
+        raise NotSupportedError(self.service_name, "release view")
+
+    def update_release(
+        self,
+        *,
+        tag: str,
+        title: str | None = None,
+        notes: str | None = None,
+        draft: bool | None = None,
+        prerelease: bool | None = None,
+    ) -> Release:
+        raise NotSupportedError(self.service_name, "release update")
+
     # --- Label ---
     @abstractmethod
     def list_labels(self, *, limit: int = 0) -> list[Label]: ...
@@ -540,6 +560,16 @@ class GitServiceAdapter(ABC):
     def delete_label(self, *, name: str) -> None:
         raise NotSupportedError(self.service_name, "label delete")
 
+    def update_label(
+        self,
+        *,
+        name: str,
+        new_name: str | None = None,
+        color: str | None = None,
+        description: str | None = None,
+    ) -> Label:
+        raise NotSupportedError(self.service_name, "label update")
+
     # --- Milestone ---
     @abstractmethod
     def list_milestones(self, *, limit: int = 0) -> list[Milestone]: ...
@@ -551,6 +581,20 @@ class GitServiceAdapter(ABC):
 
     def delete_milestone(self, *, number: int) -> None:
         raise NotSupportedError(self.service_name, "milestone delete")
+
+    def get_milestone(self, number: int) -> Milestone:
+        raise NotSupportedError(self.service_name, "milestone view")
+
+    def update_milestone(
+        self,
+        number: int,
+        *,
+        title: str | None = None,
+        description: str | None = None,
+        due_date: str | None = None,
+        state: str | None = None,
+    ) -> Milestone:
+        raise NotSupportedError(self.service_name, "milestone update")
 
     # --- Comment ---
     @abstractmethod
@@ -670,6 +714,9 @@ class GitServiceAdapter(ABC):
 
     def delete_webhook(self, *, hook_id: int) -> None:
         raise NotSupportedError(self.service_name, "webhook delete")
+
+    def test_webhook(self, *, hook_id: int) -> None:
+        raise NotSupportedError(self.service_name, "webhook test")
 
     # --- DeployKey ---
     def list_deploy_keys(self, *, limit: int = 30) -> list[DeployKey]:

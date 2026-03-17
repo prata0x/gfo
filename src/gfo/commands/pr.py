@@ -55,6 +55,12 @@ def handle_close(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     adapter.close_pull_request(args.number)
 
 
+def handle_reopen(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo pr reopen <number> のハンドラ。"""
+    adapter = get_adapter()
+    adapter.reopen_pull_request(args.number)
+
+
 def handle_checkout(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr checkout <number> のハンドラ。"""
     adapter = get_adapter()

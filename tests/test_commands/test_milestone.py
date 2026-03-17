@@ -28,6 +28,8 @@ def _make_adapter(sample_milestone: Milestone) -> MagicMock:
     adapter = MagicMock()
     adapter.list_milestones.return_value = [sample_milestone]
     adapter.create_milestone.return_value = sample_milestone
+    adapter.get_milestone.return_value = sample_milestone
+    adapter.update_milestone.return_value = sample_milestone
     return adapter
 
 
@@ -222,3 +224,94 @@ class TestHandleDelete:
         out = capsys.readouterr().out
         assert "5" in out
         assert "Deleted" in out
+
+
+class TestHandleView:
+    def setup_method(self):
+        self.milestone = _make_milestone()
+        self.adapter = _make_adapter(self.milestone)
+
+    def test_view_calls_get_milestone(self, sample_config):
+        args = make_args(number=1)
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_view(args, fmt="table")
+
+        self.adapter.get_milestone.assert_called_once_with(1)
+
+    def test_view_json_format(self, sample_config, capsys):
+        args = make_args(number=1)
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_view(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data[0]["title"] == "v1.0"
+
+    def test_view_outputs_title(self, sample_config, capsys):
+        args = make_args(number=1)
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_view(args, fmt="table")
+
+        out = capsys.readouterr().out
+        assert "v1.0" in out
+
+
+class TestHandleUpdate:
+    def setup_method(self):
+        self.milestone = _make_milestone()
+        self.adapter = _make_adapter(self.milestone)
+
+    def test_update_calls_adapter(self, sample_config):
+        args = make_args(
+            number=1, title="v2.0", description="Updated", due="2026-06-01", state="closed"
+        )
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_update(args, fmt="table")
+
+        self.adapter.update_milestone.assert_called_once_with(
+            1, title="v2.0", description="Updated", due_date="2026-06-01", state="closed"
+        )
+
+    def test_update_with_none_args(self, sample_config):
+        args = make_args(number=1, title=None, description=None, due=None, state=None)
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_update(args, fmt="table")
+
+        self.adapter.update_milestone.assert_called_once_with(
+            1, title=None, description=None, due_date=None, state=None
+        )
+
+    def test_update_json_format(self, sample_config, capsys):
+        args = make_args(number=1, title="v2.0", description=None, due=None, state=None)
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_update(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data[0]["title"] == "v1.0"
+
+
+class TestHandleClose:
+    def setup_method(self):
+        self.milestone = _make_milestone()
+        self.adapter = _make_adapter(self.milestone)
+
+    def test_close_calls_update_with_closed(self, sample_config):
+        args = make_args(number=3)
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_close(args, fmt="table")
+
+        self.adapter.update_milestone.assert_called_once_with(3, state="closed")
+
+
+class TestHandleReopen:
+    def setup_method(self):
+        self.milestone = _make_milestone()
+        self.adapter = _make_adapter(self.milestone)
+
+    def test_reopen_calls_update_with_open(self, sample_config):
+        args = make_args(number=3)
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_reopen(args, fmt="table")
+
+        self.adapter.update_milestone.assert_called_once_with(3, state="open")

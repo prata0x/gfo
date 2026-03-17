@@ -172,6 +172,12 @@ class BitbucketAdapter(GitServiceAdapter):
             f"{self._repos_path()}/pullrequests/{number}/decline",
         )
 
+    def reopen_pull_request(self, number: int) -> None:
+        self._client.put(
+            f"{self._repos_path()}/pullrequests/{number}",
+            json={"state": "OPEN"},
+        )
+
     def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         if pr is None:
             pr = self.get_pull_request(number)
@@ -238,6 +244,12 @@ class BitbucketAdapter(GitServiceAdapter):
         self._client.put(
             f"{self._repos_path()}/issues/{number}",
             json={"state": "resolved"},
+        )
+
+    def reopen_issue(self, number: int) -> None:
+        self._client.put(
+            f"{self._repos_path()}/issues/{number}",
+            json={"state": "open"},
         )
 
     def delete_issue(self, number: int) -> None:

@@ -49,3 +49,27 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     adapter = get_adapter()
     adapter.delete_label(name=name)
     print(_("Deleted label '{name}'.").format(name=name))
+
+
+def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo label update <name> のハンドラ。"""
+    name = args.name.strip()
+    if not name:
+        raise ConfigError(_("name must not be empty."))
+    color = args.color
+    if color is not None:
+        color = color.removeprefix("#")
+        if not re.fullmatch(r"[0-9a-fA-F]{6}", color):
+            raise ConfigError(
+                _("Invalid color '{color}'. Expected 6-digit hex color (e.g. ff0000).").format(
+                    color=args.color
+                )
+            )
+    adapter = get_adapter()
+    label = adapter.update_label(
+        name=name,
+        new_name=args.new_name,
+        color=color,
+        description=args.description,
+    )
+    output(label, fmt=fmt, jq=jq)

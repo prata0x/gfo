@@ -202,6 +202,12 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             json={"status": "abandoned"},
         )
 
+    def reopen_pull_request(self, number: int) -> None:
+        self._client.patch(
+            f"{self._git_path()}/pullrequests/{number}",
+            json={"status": "active"},
+        )
+
     def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         return f"refs/pull/{number}/head"
 
@@ -296,6 +302,14 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     def close_issue(self, number: int) -> None:
         patch_ops = [{"op": "replace", "path": "/fields/System.State", "value": "Closed"}]
+        self._client.patch(
+            f"{self._wit_path()}/workitems/{number}",
+            data=_json.dumps(patch_ops),
+            headers={"Content-Type": "application/json-patch+json"},
+        )
+
+    def reopen_issue(self, number: int) -> None:
+        patch_ops = [{"op": "replace", "path": "/fields/System.State", "value": "New"}]
         self._client.patch(
             f"{self._wit_path()}/workitems/{number}",
             data=_json.dumps(patch_ops),

@@ -30,6 +30,8 @@ def _make_adapter(sample_release: Release) -> MagicMock:
     adapter = MagicMock()
     adapter.list_releases.return_value = [sample_release]
     adapter.create_release.return_value = sample_release
+    adapter.get_release.return_value = sample_release
+    adapter.update_release.return_value = sample_release
     return adapter
 
 
@@ -183,3 +185,87 @@ class TestHandleDelete:
         with _patch_all(sample_config, self.adapter):
             with pytest.raises(ConfigError):
                 release_cmd.handle_delete(args, fmt="table")
+
+
+class TestHandleView:
+    def setup_method(self):
+        self.release = _make_release()
+        self.adapter = _make_adapter(self.release)
+
+    def test_view_calls_adapter(self, sample_config):
+        args = make_args(tag="v1.0.0")
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_view(args, fmt="table")
+
+        self.adapter.get_release.assert_called_once_with(tag="v1.0.0")
+
+    def test_view_json_format(self, sample_config, capsys):
+        args = make_args(tag="v1.0.0")
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_view(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert isinstance(data, list)
+        assert data[0]["tag"] == "v1.0.0"
+        assert data[0]["title"] == "Version 1.0.0"
+
+    def test_empty_tag_raises_config_error(self, sample_config):
+        args = make_args(tag="")
+        with _patch_all(sample_config, self.adapter):
+            with pytest.raises(ConfigError):
+                release_cmd.handle_view(args, fmt="table")
+
+    def test_whitespace_only_tag_raises_config_error(self, sample_config):
+        args = make_args(tag="   ")
+        with _patch_all(sample_config, self.adapter):
+            with pytest.raises(ConfigError):
+                release_cmd.handle_view(args, fmt="table")
+
+
+class TestHandleUpdate:
+    def setup_method(self):
+        self.release = _make_release()
+        self.adapter = _make_adapter(self.release)
+
+    def test_update_calls_adapter(self, sample_config):
+        args = make_args(
+            tag="v1.0.0", title="New Title", notes="New notes", draft=True, prerelease=False
+        )
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_update(args, fmt="table")
+
+        self.adapter.update_release.assert_called_once_with(
+            tag="v1.0.0",
+            title="New Title",
+            notes="New notes",
+            draft=True,
+            prerelease=False,
+        )
+
+    def test_update_with_none_fields(self, sample_config):
+        args = make_args(tag="v1.0.0", title=None, notes=None, draft=None, prerelease=None)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_update(args, fmt="table")
+
+        call_kwargs = self.adapter.update_release.call_args.kwargs
+        assert call_kwargs["title"] is None
+        assert call_kwargs["notes"] is None
+        assert call_kwargs["draft"] is None
+        assert call_kwargs["prerelease"] is None
+
+    def test_update_json_format(self, sample_config, capsys):
+        args = make_args(tag="v1.0.0", title="Updated", notes=None, draft=None, prerelease=None)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_update(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert isinstance(data, list)
+        assert data[0]["tag"] == "v1.0.0"
+
+    def test_empty_tag_raises_config_error(self, sample_config):
+        args = make_args(tag="", title=None, notes=None, draft=None, prerelease=None)
+        with _patch_all(sample_config, self.adapter):
+            with pytest.raises(ConfigError):
+                release_cmd.handle_update(args, fmt="table")

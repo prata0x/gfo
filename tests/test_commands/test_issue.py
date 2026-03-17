@@ -339,6 +339,27 @@ class TestHandleClose:
         self.adapter.close_issue.assert_called_once_with(42)
 
 
+class TestHandleReopen:
+    def setup_method(self):
+        self.config = _make_config()
+        self.issue = _make_issue()
+        self.adapter = _make_adapter(self.issue)
+
+    def test_calls_reopen_issue(self):
+        args = make_args(number=1)
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_reopen(args, fmt="table")
+
+        self.adapter.reopen_issue.assert_called_once_with(1)
+
+    def test_different_number(self):
+        args = make_args(number=42)
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_reopen(args, fmt="table")
+
+        self.adapter.reopen_issue.assert_called_once_with(42)
+
+
 class TestHandleDelete:
     def setup_method(self):
         self.config = _make_config()

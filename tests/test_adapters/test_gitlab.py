@@ -494,6 +494,19 @@ class TestClosePullRequest:
         assert req_body["state_event"] == "close"
 
 
+class TestReopenPullRequest:
+    def test_reopen(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1",
+            json=_mr_data(state="opened"),
+            status=200,
+        )
+        gitlab_adapter.reopen_pull_request(1)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["state_event"] == "reopen"
+
+
 class TestCheckoutRefspec:
     def test_refspec(self, gitlab_adapter):
         assert gitlab_adapter.get_pr_checkout_refspec(42) == "refs/merge-requests/42/head"
@@ -594,6 +607,19 @@ class TestCloseIssue:
         gitlab_adapter.close_issue(3)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["state_event"] == "close"
+
+
+class TestReopenIssue:
+    def test_reopen(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/issues/3",
+            json=_issue_data(iid=3, state="opened"),
+            status=200,
+        )
+        gitlab_adapter.reopen_issue(3)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["state_event"] == "reopen"
 
 
 # --- Repository 系 ---
@@ -722,6 +748,68 @@ class TestCreateRelease:
         gitlab_adapter.create_release(tag="v1.0.0-rc1", prerelease=True)
         req_body = json.loads(mock_responses.calls[1].request.body)
         assert req_body["upcoming_release"] is True
+
+
+class TestGetRelease:
+    def test_get(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/releases/v1.0.0",
+            json=_release_data(),
+            status=200,
+        )
+        rel = gitlab_adapter.get_release(tag="v1.0.0")
+        assert isinstance(rel, Release)
+        assert rel.tag == "v1.0.0"
+
+
+class TestUpdateRelease:
+    def test_update(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/releases/v1.0.0",
+            json=_release_data(),
+            status=200,
+        )
+        rel = gitlab_adapter.update_release(tag="v1.0.0", title="Updated")
+        assert isinstance(rel, Release)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["name"] == "Updated"
+
+    def test_update_notes(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/releases/v1.0.0",
+            json=_release_data(),
+            status=200,
+        )
+        gitlab_adapter.update_release(tag="v1.0.0", notes="New notes")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["description"] == "New notes"
+
+    def test_update_prerelease(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/releases/v1.0.0",
+            json=_release_data(),
+            status=200,
+        )
+        gitlab_adapter.update_release(tag="v1.0.0", prerelease=True)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["upcoming_release"] is True
+
+    def test_update_no_optional_fields(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/releases/v1.0.0",
+            json=_release_data(),
+            status=200,
+        )
+        gitlab_adapter.update_release(tag="v1.0.0")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "name" not in req_body
+        assert "description" not in req_body
+        assert "upcoming_release" not in req_body
 
 
 # --- Label 系 ---
@@ -1015,6 +1103,65 @@ class TestDeleteLabel:
         assert "%20" in mock_responses.calls[0].request.url
 
 
+class TestUpdateLabel:
+    def test_update(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/labels/bug",
+            json=_label_data(name="bug-fix"),
+            status=200,
+        )
+        label = gitlab_adapter.update_label(name="bug", new_name="bug-fix")
+        assert label.name == "bug-fix"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["name"] == "bug-fix"
+
+    def test_update_color(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/labels/bug",
+            json=_label_data(),
+            status=200,
+        )
+        gitlab_adapter.update_label(name="bug", color="ff0000")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["color"] == "#ff0000"
+
+    def test_update_description(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/labels/bug",
+            json=_label_data(),
+            status=200,
+        )
+        gitlab_adapter.update_label(name="bug", description="Updated desc")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["description"] == "Updated desc"
+
+    def test_name_url_encoded(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/labels/my%20label",
+            json=_label_data(name="my label"),
+            status=200,
+        )
+        gitlab_adapter.update_label(name="my label", new_name="renamed")
+        assert "%20" in mock_responses.calls[0].request.url
+
+    def test_optional_fields_omitted(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/labels/bug",
+            json=_label_data(),
+            status=200,
+        )
+        gitlab_adapter.update_label(name="bug")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "name" not in req_body
+        assert "color" not in req_body
+        assert "description" not in req_body
+
+
 class TestDeleteMilestone:
     def test_delete(self, mock_responses, gitlab_adapter):
         # delete_milestone は iid→global id 解決のため GET を先に呼ぶ
@@ -1039,6 +1186,115 @@ class TestDeleteMilestone:
             status=204,
         )
         gitlab_adapter.delete_milestone(number=3)
+
+
+def _milestone_iid_resolve_mocks(mock_responses, iid=3, global_id=99):
+    """iid→global id 解決用の GET モックを登録する。"""
+    mock_responses.add(
+        responses.GET,
+        f"{PROJECT}/milestones",
+        json=[
+            {
+                "id": global_id,
+                "iid": iid,
+                "title": "v1.0",
+                "state": "active",
+                "description": None,
+                "due_date": None,
+            }
+        ],
+        status=200,
+    )
+
+
+class TestGetMilestone:
+    def test_get(self, mock_responses, gitlab_adapter):
+        _milestone_iid_resolve_mocks(mock_responses, iid=1, global_id=42)
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/milestones/42",
+            json=_milestone_data(),
+            status=200,
+        )
+        ms = gitlab_adapter.get_milestone(1)
+        assert isinstance(ms, Milestone)
+        assert ms.title == "v1.0"
+
+    def test_get_not_found(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/milestones",
+            json=[],
+            status=200,
+        )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.get_milestone(999)
+
+
+class TestUpdateMilestone:
+    def test_update_title(self, mock_responses, gitlab_adapter):
+        _milestone_iid_resolve_mocks(mock_responses, iid=1, global_id=42)
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/milestones/42",
+            json=_milestone_data(),
+            status=200,
+        )
+        ms = gitlab_adapter.update_milestone(1, title="v2.0")
+        assert isinstance(ms, Milestone)
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["title"] == "v2.0"
+
+    def test_update_state_closed(self, mock_responses, gitlab_adapter):
+        _milestone_iid_resolve_mocks(mock_responses, iid=1, global_id=42)
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/milestones/42",
+            json=_milestone_data(),
+            status=200,
+        )
+        gitlab_adapter.update_milestone(1, state="closed")
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["state_event"] == "close"
+
+    def test_update_state_open(self, mock_responses, gitlab_adapter):
+        _milestone_iid_resolve_mocks(mock_responses, iid=1, global_id=42)
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/milestones/42",
+            json=_milestone_data(),
+            status=200,
+        )
+        gitlab_adapter.update_milestone(1, state="open")
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["state_event"] == "activate"
+
+    def test_update_due_date(self, mock_responses, gitlab_adapter):
+        _milestone_iid_resolve_mocks(mock_responses, iid=1, global_id=42)
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/milestones/42",
+            json=_milestone_data(),
+            status=200,
+        )
+        gitlab_adapter.update_milestone(1, due_date="2026-06-01")
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["due_date"] == "2026-06-01"
+
+    def test_update_optional_fields_omitted(self, mock_responses, gitlab_adapter):
+        _milestone_iid_resolve_mocks(mock_responses, iid=1, global_id=42)
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/milestones/42",
+            json=_milestone_data(),
+            status=200,
+        )
+        gitlab_adapter.update_milestone(1)
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert "title" not in req_body
+        assert "description" not in req_body
+        assert "due_date" not in req_body
+        assert "state_event" not in req_body
 
 
 class TestDeleteIssue:
@@ -1481,6 +1737,17 @@ class TestDeleteWebhook:
         )
         gitlab_adapter.delete_webhook(hook_id=100)
         assert mock_responses.calls[0].request.method == "DELETE"
+
+
+class TestTestWebhook:
+    def test_test(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/hooks/100/test/push_events",
+            status=200,
+        )
+        gitlab_adapter.test_webhook(hook_id=100)
+        assert mock_responses.calls[0].request.method == "POST"
 
 
 # --- DeployKey 系 ---

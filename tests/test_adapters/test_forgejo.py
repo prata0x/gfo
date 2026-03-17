@@ -267,6 +267,19 @@ class TestClosePullRequest:
         assert req_body["state"] == "closed"
 
 
+class TestReopenPullRequest:
+    def test_reopen(self, mock_responses, forgejo_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/pulls/1",
+            json=_pr_data(state="open"),
+            status=200,
+        )
+        forgejo_adapter.reopen_pull_request(1)
+        req_body = json_mod.loads(mock_responses.calls[0].request.body)
+        assert req_body["state"] == "open"
+
+
 class TestListIssues:
     def test_list(self, mock_responses, forgejo_adapter):
         mock_responses.add(
@@ -387,6 +400,38 @@ class TestDeleteInheritance:
             status=204,
         )
         forgejo_adapter.delete_milestone(number=3)
+
+    def test_get_milestone(self, mock_responses, forgejo_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/milestones/1",
+            json={
+                "number": 1,
+                "title": "v1.0",
+                "description": "desc",
+                "state": "open",
+                "due_on": "2026-01-01",
+            },
+            status=200,
+        )
+        ms = forgejo_adapter.get_milestone(1)
+        assert ms.title == "v1.0"
+
+    def test_update_milestone(self, mock_responses, forgejo_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/milestones/1",
+            json={
+                "number": 1,
+                "title": "v2.0",
+                "description": "desc",
+                "state": "closed",
+                "due_on": "2026-01-01",
+            },
+            status=200,
+        )
+        ms = forgejo_adapter.update_milestone(1, title="v2.0", state="closed")
+        assert ms.title == "v2.0"
 
     def test_delete_issue(self, mock_responses, forgejo_adapter):
         mock_responses.add(

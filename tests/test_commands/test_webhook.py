@@ -39,3 +39,17 @@ class TestHandleDelete:
             args = make_args(id=1)
             webhook_cmd.handle_delete(args, fmt="table")
         adapter.delete_webhook.assert_called_once_with(hook_id=1)
+
+
+class TestHandleTest:
+    def test_calls_test_webhook(self):
+        with patch_adapter("gfo.commands.webhook") as adapter:
+            args = make_args(id=1)
+            webhook_cmd.handle_test(args, fmt="table")
+        adapter.test_webhook.assert_called_once_with(hook_id=1)
+
+    def test_different_id(self):
+        with patch_adapter("gfo.commands.webhook") as adapter:
+            args = make_args(id=42)
+            webhook_cmd.handle_test(args, fmt="table")
+        adapter.test_webhook.assert_called_once_with(hook_id=42)

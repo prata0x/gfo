@@ -26,3 +26,9 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo webhook delete <id> のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_webhook(hook_id=args.id)
+
+
+def handle_test(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo webhook test <id> のハンドラ。"""
+    adapter = get_adapter()
+    adapter.test_webhook(hook_id=args.id)

@@ -82,6 +82,12 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             json={"state": "closed"},
         )
 
+    def reopen_pull_request(self, number: int) -> None:
+        self._client.patch(
+            f"{self._repos_path()}/pulls/{number}",
+            json={"state": "open"},
+        )
+
     def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         return f"refs/pull/{number}/head"
 
@@ -134,6 +140,12 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.patch(
             f"{self._repos_path()}/issues/{number}",
             json={"state": "closed"},
+        )
+
+    def reopen_issue(self, number: int) -> None:
+        self._client.patch(
+            f"{self._repos_path()}/issues/{number}",
+            json={"state": "open"},
         )
 
     # --- Repository ---
@@ -196,6 +208,33 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         release_id = resp.json()["id"]
         self._client.delete(f"{self._repos_path()}/releases/{release_id}")
 
+    def get_release(self, *, tag: str) -> Release:
+        resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
+        return self._to_release(resp.json())
+
+    def update_release(
+        self,
+        *,
+        tag: str,
+        title: str | None = None,
+        notes: str | None = None,
+        draft: bool | None = None,
+        prerelease: bool | None = None,
+    ) -> Release:
+        resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
+        release_id = resp.json()["id"]
+        payload: dict = {}
+        if title is not None:
+            payload["name"] = title
+        if notes is not None:
+            payload["body"] = notes
+        if draft is not None:
+            payload["draft"] = draft
+        if prerelease is not None:
+            payload["prerelease"] = prerelease
+        resp = self._client.patch(f"{self._repos_path()}/releases/{release_id}", json=payload)
+        return self._to_release(resp.json())
+
     # --- Label ---
 
     def list_labels(self, *, limit: int = 0) -> list[Label]:
@@ -215,6 +254,25 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def delete_label(self, *, name: str) -> None:
         self._client.delete(f"{self._repos_path()}/labels/{quote(name, safe='')}")
+
+    def update_label(
+        self,
+        *,
+        name: str,
+        new_name: str | None = None,
+        color: str | None = None,
+        description: str | None = None,
+    ) -> Label:
+        quoted = quote(name, safe="")
+        payload: dict = {}
+        if new_name is not None:
+            payload["new_name"] = new_name
+        if color is not None:
+            payload["color"] = color.removeprefix("#")
+        if description is not None:
+            payload["description"] = description
+        resp = self._client.patch(f"{self._repos_path()}/labels/{quoted}", json=payload)
+        return self._to_label(resp.json())
 
     # --- Milestone ---
 
@@ -237,6 +295,31 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def delete_milestone(self, *, number: int) -> None:
         self._client.delete(f"{self._repos_path()}/milestones/{number}")
+
+    def get_milestone(self, number: int) -> Milestone:
+        resp = self._client.get(f"{self._repos_path()}/milestones/{number}")
+        return self._to_milestone(resp.json())
+
+    def update_milestone(
+        self,
+        number: int,
+        *,
+        title: str | None = None,
+        description: str | None = None,
+        due_date: str | None = None,
+        state: str | None = None,
+    ) -> Milestone:
+        payload: dict = {}
+        if title is not None:
+            payload["title"] = title
+        if description is not None:
+            payload["description"] = description
+        if due_date is not None:
+            payload["due_on"] = due_date
+        if state is not None:
+            payload["state"] = state
+        resp = self._client.patch(f"{self._repos_path()}/milestones/{number}", json=payload)
+        return self._to_milestone(resp.json())
 
     # --- Comment ---
 
@@ -512,6 +595,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def delete_webhook(self, *, hook_id: int) -> None:
         self._client.delete(f"{self._repos_path()}/hooks/{hook_id}")
+
+    def test_webhook(self, *, hook_id: int) -> None:
+        self._client.post(f"{self._repos_path()}/hooks/{hook_id}/tests")
 
     # --- DeployKey ---
 

@@ -36,3 +36,35 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     adapter = get_adapter()
     adapter.delete_milestone(number=args.number)
     print(_("Deleted milestone '{number}'.").format(number=args.number))
+
+
+def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo milestone view のハンドラ。"""
+    adapter = get_adapter()
+    milestone = adapter.get_milestone(args.number)
+    output(milestone, fmt=fmt, jq=jq)
+
+
+def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo milestone update のハンドラ。"""
+    adapter = get_adapter()
+    milestone = adapter.update_milestone(
+        args.number,
+        title=args.title,
+        description=args.description,
+        due_date=args.due,
+        state=args.state,
+    )
+    output(milestone, fmt=fmt, jq=jq)
+
+
+def handle_close(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo milestone close のハンドラ。"""
+    adapter = get_adapter()
+    adapter.update_milestone(args.number, state="closed")
+
+
+def handle_reopen(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo milestone reopen のハンドラ。"""
+    adapter = get_adapter()
+    adapter.update_milestone(args.number, state="open")

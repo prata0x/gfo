@@ -163,3 +163,15 @@ class TestDeleteDefaults:
             self.adapter.delete_milestone(number=1)
         assert exc_info.value.service == "stub"
         assert exc_info.value.operation == "milestone delete"
+
+    def test_get_milestone_raises_not_supported_error(self):
+        with pytest.raises(NotSupportedError) as exc_info:
+            self.adapter.get_milestone(1)
+        assert exc_info.value.service == "stub"
+        assert exc_info.value.operation == "milestone view"
+
+    def test_update_milestone_raises_not_supported_error(self):
+        with pytest.raises(NotSupportedError) as exc_info:
+            self.adapter.update_milestone(1, title="v2.0")
+        assert exc_info.value.service == "stub"
+        assert exc_info.value.operation == "milestone update"

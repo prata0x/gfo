@@ -119,6 +119,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_close.add_argument("number", type=int)
     pr_checkout = pr_sub.add_parser("checkout")
     pr_checkout.add_argument("number", type=int)
+    pr_reopen = pr_sub.add_parser("reopen")
+    pr_reopen.add_argument("number", type=int)
 
     # gfo issue → サブサブコマンド
     issue_parser = subparser_map["issue"] = subparsers.add_parser("issue")
@@ -141,6 +143,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_close.add_argument("number", type=int)
     issue_delete = issue_sub.add_parser("delete")
     issue_delete.add_argument("number", type=int)
+    issue_reopen = issue_sub.add_parser("reopen")
+    issue_reopen.add_argument("number", type=int)
 
     # gfo repo → サブサブコマンド
     repo_parser = subparser_map["repo"] = subparsers.add_parser("repo")
@@ -175,6 +179,16 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     release_create.add_argument("--prerelease", action="store_true")
     release_delete = release_sub.add_parser("delete")
     release_delete.add_argument("tag")
+    release_view = release_sub.add_parser("view")
+    release_view.add_argument("tag")
+    release_update = release_sub.add_parser("update")
+    release_update.add_argument("tag")
+    release_update.add_argument("--title")
+    release_update.add_argument("--notes")
+    release_update.add_argument("--draft", action="store_true", default=None)
+    release_update.add_argument("--no-draft", dest="draft", action="store_false")
+    release_update.add_argument("--prerelease", action="store_true", default=None)
+    release_update.add_argument("--no-prerelease", dest="prerelease", action="store_false")
 
     # gfo label → サブサブコマンド
     label_parser = subparser_map["label"] = subparsers.add_parser("label")
@@ -186,6 +200,11 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     label_create.add_argument("--description")
     label_delete = label_sub.add_parser("delete")
     label_delete.add_argument("name")
+    label_update = label_sub.add_parser("update")
+    label_update.add_argument("name")
+    label_update.add_argument("--new-name", dest="new_name")
+    label_update.add_argument("--color")
+    label_update.add_argument("--description")
 
     # gfo milestone → サブサブコマンド
     milestone_parser = subparser_map["milestone"] = subparsers.add_parser("milestone")
@@ -197,6 +216,18 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     milestone_create.add_argument("--due")
     milestone_delete = milestone_sub.add_parser("delete")
     milestone_delete.add_argument("number", type=int)
+    milestone_view = milestone_sub.add_parser("view")
+    milestone_view.add_argument("number", type=int)
+    milestone_update = milestone_sub.add_parser("update")
+    milestone_update.add_argument("number", type=int)
+    milestone_update.add_argument("--title")
+    milestone_update.add_argument("--description")
+    milestone_update.add_argument("--due")
+    milestone_update.add_argument("--state", choices=["open", "closed"])
+    milestone_close = milestone_sub.add_parser("close")
+    milestone_close.add_argument("number", type=int)
+    milestone_reopen = milestone_sub.add_parser("reopen")
+    milestone_reopen.add_argument("number", type=int)
 
     # gfo comment → サブサブコマンド
     comment_parser = subparser_map["comment"] = subparsers.add_parser("comment")
@@ -313,6 +344,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     webhook_create.add_argument("--secret")
     webhook_delete = webhook_sub.add_parser("delete")
     webhook_delete.add_argument("id", type=int)
+    webhook_test = webhook_sub.add_parser("test")
+    webhook_test.add_argument("id", type=int)
 
     # gfo deploy-key → サブサブコマンド
     deploy_key_parser = subparser_map["deploy-key"] = subparsers.add_parser("deploy-key")
@@ -506,12 +539,14 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("pr", "close"): gfo.commands.pr.handle_close,
     ("pr", "checkout"): gfo.commands.pr.handle_checkout,
     ("pr", "update"): gfo.commands.pr.handle_update,
+    ("pr", "reopen"): gfo.commands.pr.handle_reopen,
     ("issue", "list"): gfo.commands.issue.handle_list,
     ("issue", "create"): gfo.commands.issue.handle_create,
     ("issue", "view"): gfo.commands.issue.handle_view,
     ("issue", "close"): gfo.commands.issue.handle_close,
     ("issue", "delete"): gfo.commands.issue.handle_delete,
     ("issue", "update"): gfo.commands.issue.handle_update,
+    ("issue", "reopen"): gfo.commands.issue.handle_reopen,
     ("repo", "list"): gfo.commands.repo.handle_list,
     ("repo", "create"): gfo.commands.repo.handle_create,
     ("repo", "clone"): gfo.commands.repo.handle_clone,
@@ -521,12 +556,19 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("release", "list"): gfo.commands.release.handle_list,
     ("release", "create"): gfo.commands.release.handle_create,
     ("release", "delete"): gfo.commands.release.handle_delete,
+    ("release", "view"): gfo.commands.release.handle_view,
+    ("release", "update"): gfo.commands.release.handle_update,
     ("label", "list"): gfo.commands.label.handle_list,
     ("label", "create"): gfo.commands.label.handle_create,
     ("label", "delete"): gfo.commands.label.handle_delete,
+    ("label", "update"): gfo.commands.label.handle_update,
     ("milestone", "list"): gfo.commands.milestone.handle_list,
     ("milestone", "create"): gfo.commands.milestone.handle_create,
     ("milestone", "delete"): gfo.commands.milestone.handle_delete,
+    ("milestone", "view"): gfo.commands.milestone.handle_view,
+    ("milestone", "update"): gfo.commands.milestone.handle_update,
+    ("milestone", "close"): gfo.commands.milestone.handle_close,
+    ("milestone", "reopen"): gfo.commands.milestone.handle_reopen,
     ("comment", "list"): gfo.commands.comment.handle_list,
     ("comment", "create"): gfo.commands.comment.handle_create,
     ("comment", "update"): gfo.commands.comment.handle_update,
@@ -547,6 +589,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("webhook", "list"): gfo.commands.webhook.handle_list,
     ("webhook", "create"): gfo.commands.webhook.handle_create,
     ("webhook", "delete"): gfo.commands.webhook.handle_delete,
+    ("webhook", "test"): gfo.commands.webhook.handle_test,
     ("deploy-key", "list"): gfo.commands.deploy_key.handle_list,
     ("deploy-key", "create"): gfo.commands.deploy_key.handle_create,
     ("deploy-key", "delete"): gfo.commands.deploy_key.handle_delete,

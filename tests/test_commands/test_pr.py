@@ -210,6 +210,22 @@ class TestHandleClose:
         mock_adapter.close_pull_request.assert_called_once_with(1)
 
 
+class TestHandleReopen:
+    def test_calls_reopen_pull_request(self, sample_config, mock_adapter):
+        args = make_args(number=1)
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_reopen(args, fmt="table")
+
+        mock_adapter.reopen_pull_request.assert_called_once_with(1)
+
+    def test_different_number(self, sample_config, mock_adapter):
+        args = make_args(number=42)
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_reopen(args, fmt="table")
+
+        mock_adapter.reopen_pull_request.assert_called_once_with(42)
+
+
 class TestHandleCheckout:
     def test_fetches_and_checks_out(self, sample_config, mock_adapter):
         args = make_args(number=1)

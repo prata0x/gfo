@@ -194,6 +194,9 @@ class BacklogAdapter(GitServiceAdapter):
     def close_pull_request(self, number: int) -> None:
         self._client.patch(f"{self._pr_path()}/{number}", json={"statusId": _STATUS_CLOSED_ID})
 
+    def reopen_pull_request(self, number: int) -> None:
+        self._client.patch(f"{self._pr_path()}/{number}", json={"statusId": 1})
+
     def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         if pr is None:
             pr = self.get_pull_request(number)
@@ -298,6 +301,9 @@ class BacklogAdapter(GitServiceAdapter):
             f"/issues/{self._project_key}-{number}", json={"statusId": _STATUS_CLOSED_ID}
         )
 
+    def reopen_issue(self, number: int) -> None:
+        self._client.patch(f"/issues/{self._project_key}-{number}", json={"statusId": 1})
+
     def delete_issue(self, number: int) -> None:
         self._client.delete(f"/issues/{self._project_key}-{number}")
 
@@ -370,6 +376,34 @@ class BacklogAdapter(GitServiceAdapter):
         self, *, title: str, description: str | None = None, due_date: str | None = None
     ) -> Milestone:
         raise NotSupportedError(self.service_name, "milestones")
+
+    def update_milestone(
+        self,
+        number: int,
+        *,
+        title: str | None = None,
+        description: str | None = None,
+        due_date: str | None = None,
+        state: str | None = None,
+    ) -> Milestone:
+        payload: dict = {}
+        if title is not None:
+            payload["name"] = title
+        if description is not None:
+            payload["description"] = description
+        if due_date is not None:
+            payload["releaseDueDate"] = due_date
+        if state is not None:
+            payload["archived"] = state == "closed"
+        resp = self._client.patch(f"/projects/{self._project_key}/versions/{number}", json=payload)
+        data = resp.json()
+        return Milestone(
+            number=data["id"],
+            title=data.get("name") or "",
+            description=data.get("description"),
+            state="closed" if data.get("archived") else "open",
+            due_date=data.get("releaseDueDate"),
+        )
 
     # --- 変換ヘルパー（Comment / Branch / Tag / Webhook / WikiPage）---
 

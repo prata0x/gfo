@@ -386,6 +386,19 @@ class TestClosePullRequest:
         assert req_body["statusId"] == 4
 
 
+class TestReopenPullRequest:
+    def test_reopen(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{PR_PATH}/1",
+            json=_pr_data(status_id=1),
+            status=200,
+        )
+        backlog_adapter.reopen_pull_request(1)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["statusId"] == 1
+
+
 class TestCheckoutRefspec:
     def test_with_pr(self, backlog_adapter):
         data = _pr_data()
@@ -815,6 +828,19 @@ class TestCloseIssue:
         assert req_body["statusId"] == 4
 
 
+class TestReopenIssue:
+    def test_reopen(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/issues/TEST-3",
+            json=_issue_data(id=3, status_id=1),
+            status=200,
+        )
+        backlog_adapter.reopen_issue(3)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["statusId"] == 1
+
+
 # --- Repository 系 ---
 
 
@@ -923,6 +949,81 @@ class TestNotSupported:
     def test_create_milestone(self, backlog_adapter):
         with pytest.raises(NotSupportedError):
             backlog_adapter.create_milestone(title="v1.0")
+
+
+class TestUpdateMilestoneBacklog:
+    def test_update_title(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/projects/TEST/versions/1",
+            json={
+                "id": 1,
+                "name": "v2.0",
+                "description": "desc",
+                "archived": False,
+                "releaseDueDate": None,
+            },
+            status=200,
+        )
+        ms = backlog_adapter.update_milestone(1, title="v2.0")
+        assert ms.title == "v2.0"
+        assert ms.state == "open"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["name"] == "v2.0"
+
+    def test_update_state_closed(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/projects/TEST/versions/1",
+            json={
+                "id": 1,
+                "name": "v1.0",
+                "description": None,
+                "archived": True,
+                "releaseDueDate": None,
+            },
+            status=200,
+        )
+        ms = backlog_adapter.update_milestone(1, state="closed")
+        assert ms.state == "closed"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["archived"] is True
+
+    def test_update_state_open(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/projects/TEST/versions/1",
+            json={
+                "id": 1,
+                "name": "v1.0",
+                "description": None,
+                "archived": False,
+                "releaseDueDate": None,
+            },
+            status=200,
+        )
+        ms = backlog_adapter.update_milestone(1, state="open")
+        assert ms.state == "open"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["archived"] is False
+
+    def test_update_due_date(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/projects/TEST/versions/1",
+            json={
+                "id": 1,
+                "name": "v1.0",
+                "description": None,
+                "archived": False,
+                "releaseDueDate": "2026-06-01",
+            },
+            status=200,
+        )
+        ms = backlog_adapter.update_milestone(1, due_date="2026-06-01")
+        assert ms.due_date == "2026-06-01"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["releaseDueDate"] == "2026-06-01"
 
 
 # --- _resolve_merged_status_id キャッシュ ---

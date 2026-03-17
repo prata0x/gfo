@@ -2,15 +2,15 @@
 
 ## TODO
 
-1. [ ] **PR reopen** (#1) — closed PR を再オープン。8サービス対応可能
-2. [ ] **Issue reopen** (#2) — closed Issue を再オープン。7サービス対応可能
-3. [ ] **Label update** (#9) — ラベル名・色・説明の変更。6サービス対応可能
-4. [ ] **Milestone update** (#10) — マイルストーン情報の更新。7サービス対応可能
-5. [ ] **Milestone view** (#11) — マイルストーン詳細取得。7サービス対応可能
-6. [ ] **Release view** (#5) — リリース詳細取得。6サービス対応可能
-7. [ ] **Release update** (#6) — リリース情報の更新。5サービス対応可能
-8. [ ] **Milestone close / reopen** (#25) — マイルストーンの状態変更。7サービス対応可能
-9. [ ] **Webhook test** (#42) — Webhook のテスト送信。5サービス対応可能
+1. [x] **PR reopen** (#1) — closed PR を再オープン。8サービス対応可能
+2. [x] **Issue reopen** (#2) — closed Issue を再オープン。7サービス対応可能
+3. [x] **Label update** (#9) — ラベル名・色・説明の変更。6サービス対応可能
+4. [x] **Milestone update** (#10) — マイルストーン情報の更新。7サービス対応可能
+5. [x] **Milestone view** (#11) — マイルストーン詳細取得。7サービス対応可能
+6. [x] **Release view** (#5) — リリース詳細取得。6サービス対応可能
+7. [x] **Release update** (#6) — リリース情報の更新。5サービス対応可能
+8. [x] **Milestone close / reopen** (#25) — マイルストーンの状態変更。7サービス対応可能
+9. [x] **Webhook test** (#42) — Webhook のテスト送信。5サービス対応可能
 
 ---
 

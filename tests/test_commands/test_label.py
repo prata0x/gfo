@@ -254,3 +254,66 @@ class TestHandleDelete:
             label_cmd.handle_delete(args, fmt="table")
 
         self.adapter.delete_label.assert_called_once_with(name="bug")
+
+
+class TestHandleUpdate:
+    def setup_method(self):
+        self.label = _make_label()
+        self.adapter = _make_adapter(self.label)
+
+    def test_basic_update(self, sample_config):
+        self.adapter.update_label.return_value = self.label
+        args = make_args(name="bug", new_name=None, color=None, description=None)
+        with _patch_all(sample_config, self.adapter):
+            label_cmd.handle_update(args, fmt="table")
+        self.adapter.update_label.assert_called_once_with(
+            name="bug", new_name=None, color=None, description=None
+        )
+
+    def test_with_color(self, sample_config):
+        self.adapter.update_label.return_value = self.label
+        args = make_args(name="bug", new_name=None, color="ff0000", description=None)
+        with _patch_all(sample_config, self.adapter):
+            label_cmd.handle_update(args, fmt="table")
+        self.adapter.update_label.assert_called_once_with(
+            name="bug", new_name=None, color="ff0000", description=None
+        )
+
+    def test_with_color_hash_prefix(self, sample_config):
+        self.adapter.update_label.return_value = self.label
+        args = make_args(name="bug", new_name=None, color="#ff0000", description=None)
+        with _patch_all(sample_config, self.adapter):
+            label_cmd.handle_update(args, fmt="table")
+        self.adapter.update_label.assert_called_once_with(
+            name="bug", new_name=None, color="ff0000", description=None
+        )
+
+    def test_invalid_color(self, sample_config):
+        args = make_args(name="bug", new_name=None, color="xyz", description=None)
+        with _patch_all(sample_config, self.adapter):
+            with pytest.raises(ConfigError):
+                label_cmd.handle_update(args, fmt="table")
+
+    def test_json_format(self, sample_config, capsys):
+        self.adapter.update_label.return_value = self.label
+        args = make_args(name="bug", new_name=None, color=None, description=None)
+        with _patch_all(sample_config, self.adapter):
+            label_cmd.handle_update(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data[0]["name"] == "bug"
+
+    def test_whitespace_only_name_raises_config_error(self, sample_config):
+        args = make_args(name="   ", new_name=None, color=None, description=None)
+        with _patch_all(sample_config, self.adapter):
+            with pytest.raises(ConfigError, match="name must not be empty"):
+                label_cmd.handle_update(args, fmt="table")
+
+    def test_name_stripped_before_call(self, sample_config):
+        self.adapter.update_label.return_value = self.label
+        args = make_args(name="  bug  ", new_name=None, color=None, description=None)
+        with _patch_all(sample_config, self.adapter):
+            label_cmd.handle_update(args, fmt="table")
+        self.adapter.update_label.assert_called_once_with(
+            name="bug", new_name=None, color=None, description=None
+        )

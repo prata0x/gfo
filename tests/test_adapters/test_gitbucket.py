@@ -263,6 +263,19 @@ class TestClosePullRequest:
         assert req_body["state"] == "closed"
 
 
+class TestReopenPullRequest:
+    def test_reopen(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/pulls/1",
+            json=_pr_data(state="open"),
+            status=200,
+        )
+        gitbucket_adapter.reopen_pull_request(1)
+        req_body = json_mod.loads(mock_responses.calls[0].request.body)
+        assert req_body["state"] == "open"
+
+
 class TestListIssues:
     def test_list(self, mock_responses, gitbucket_adapter):
         mock_responses.add(
@@ -372,6 +385,38 @@ class TestDeleteInheritance:
         )
         gitbucket_adapter.delete_milestone(number=3)
 
+    def test_get_milestone(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/milestones/1",
+            json={
+                "number": 1,
+                "title": "v1.0",
+                "description": "desc",
+                "state": "open",
+                "due_on": "2026-01-01",
+            },
+            status=200,
+        )
+        ms = gitbucket_adapter.get_milestone(1)
+        assert ms.title == "v1.0"
+
+    def test_update_milestone(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/milestones/1",
+            json={
+                "number": 1,
+                "title": "v2.0",
+                "description": "desc",
+                "state": "closed",
+                "due_on": "2026-01-01",
+            },
+            status=200,
+        )
+        ms = gitbucket_adapter.update_milestone(1, title="v2.0", state="closed")
+        assert ms.title == "v2.0"
+
     def test_delete_issue_raises_not_supported(self, gitbucket_adapter):
         """GitBucket は issue delete 未対応（GitHub 継承）→ NotSupportedError。"""
         from gfo.exceptions import NotSupportedError
@@ -393,6 +438,14 @@ class TestNotSupported:
     def test_delete_repository_raises(self, gitbucket_adapter):
         with pytest.raises(NotSupportedError):
             gitbucket_adapter.delete_repository()
+
+    def test_get_release_raises(self, gitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.get_release(tag="v1.0.0")
+
+    def test_update_release_raises(self, gitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.update_release(tag="v1.0.0")
 
     def test_list_reviews_raises(self, gitbucket_adapter):
         with pytest.raises(NotSupportedError):
@@ -469,6 +522,10 @@ class TestCloseIssue:
     def test_close_issue_raises_not_supported(self, gitbucket_adapter):
         with pytest.raises(NotSupportedError):
             gitbucket_adapter.close_issue(1)
+
+    def test_reopen_issue_raises_not_supported(self, gitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.reopen_issue(1)
 
 
 class TestToRelease:

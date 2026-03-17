@@ -70,6 +70,11 @@ class GogsAdapter(GiteaAdapter):
             "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
         )
 
+    def reopen_pull_request(self, number: int) -> None:
+        raise NotSupportedError(
+            "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
+        )
+
     def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         raise NotSupportedError(
             "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
@@ -93,6 +98,16 @@ class GogsAdapter(GiteaAdapter):
     def delete_label(self, *, name: str) -> None:
         raise NotSupportedError("Gogs", "label operations")
 
+    def update_label(
+        self,
+        *,
+        name: str,
+        new_name: str | None = None,
+        color: str | None = None,
+        description: str | None = None,
+    ) -> Label:
+        raise NotSupportedError("Gogs", "label operations")
+
     # --- Milestone（非サポート）---
 
     def list_milestones(self, *, limit: int = 0) -> list[Milestone]:
@@ -104,6 +119,20 @@ class GogsAdapter(GiteaAdapter):
         raise NotSupportedError("Gogs", "milestone operations")
 
     def delete_milestone(self, *, number: int) -> None:
+        raise NotSupportedError("Gogs", "milestone operations")
+
+    def get_milestone(self, number: int) -> Milestone:
+        raise NotSupportedError("Gogs", "milestone operations")
+
+    def update_milestone(
+        self,
+        number: int,
+        *,
+        title: str | None = None,
+        description: str | None = None,
+        due_date: str | None = None,
+        state: str | None = None,
+    ) -> Milestone:
         raise NotSupportedError("Gogs", "milestone operations")
 
     # --- Release（非サポート）---
@@ -123,6 +152,20 @@ class GogsAdapter(GiteaAdapter):
         raise NotSupportedError("Gogs", "release operations")
 
     def delete_release(self, *, tag: str) -> None:
+        raise NotSupportedError("Gogs", "release operations")
+
+    def get_release(self, *, tag: str) -> Release:
+        raise NotSupportedError("Gogs", "release operations")
+
+    def update_release(
+        self,
+        *,
+        tag: str,
+        title: str | None = None,
+        notes: str | None = None,
+        draft: bool | None = None,
+        prerelease: bool | None = None,
+    ) -> Release:
         raise NotSupportedError("Gogs", "release operations")
 
     # --- PR update（PR 非対応）---

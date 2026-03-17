@@ -207,6 +207,12 @@ class GitLabAdapter(GitServiceAdapter):
             json={"state_event": "close"},
         )
 
+    def reopen_pull_request(self, number: int) -> None:
+        self._client.put(
+            f"{self._project_path()}/merge_requests/{number}",
+            json={"state_event": "reopen"},
+        )
+
     def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         return f"refs/merge-requests/{number}/head"
 
@@ -258,6 +264,12 @@ class GitLabAdapter(GitServiceAdapter):
         self._client.put(
             f"{self._project_path()}/issues/{number}",
             json={"state_event": "close"},
+        )
+
+    def reopen_issue(self, number: int) -> None:
+        self._client.put(
+            f"{self._project_path()}/issues/{number}",
+            json={"state_event": "reopen"},
         )
 
     def delete_issue(self, number: int) -> None:
@@ -327,6 +339,33 @@ class GitLabAdapter(GitServiceAdapter):
     def delete_release(self, *, tag: str) -> None:
         self._client.delete(f"{self._project_path()}/releases/{quote(tag, safe='')}")
 
+    def get_release(self, *, tag: str) -> Release:
+        resp = self._client.get(f"{self._project_path()}/releases/{quote(tag, safe='')}")
+        return self._to_release(resp.json())
+
+    def update_release(
+        self,
+        *,
+        tag: str,
+        title: str | None = None,
+        notes: str | None = None,
+        draft: bool | None = None,
+        prerelease: bool | None = None,
+    ) -> Release:
+        payload: dict = {}
+        if title is not None:
+            payload["name"] = title
+        if notes is not None:
+            payload["description"] = notes
+        if prerelease is not None:
+            payload["upcoming_release"] = prerelease
+        # GitLab は draft をサポートしないため無視
+        resp = self._client.put(
+            f"{self._project_path()}/releases/{quote(tag, safe='')}",
+            json=payload,
+        )
+        return self._to_release(resp.json())
+
     # --- Label ---
 
     def list_labels(self, *, limit: int = 0) -> list[Label]:
@@ -350,6 +389,25 @@ class GitLabAdapter(GitServiceAdapter):
 
     def delete_label(self, *, name: str) -> None:
         self._client.delete(f"{self._project_path()}/labels/{quote(name, safe='')}")
+
+    def update_label(
+        self,
+        *,
+        name: str,
+        new_name: str | None = None,
+        color: str | None = None,
+        description: str | None = None,
+    ) -> Label:
+        quoted = quote(name, safe="")
+        payload: dict = {}
+        if new_name is not None:
+            payload["name"] = new_name
+        if color is not None:
+            payload["color"] = f"#{color.removeprefix('#')}"
+        if description is not None:
+            payload["description"] = description
+        resp = self._client.put(f"{self._project_path()}/labels/{quoted}", json=payload)
+        return self._to_label(resp.json())
 
     # --- Milestone ---
 
@@ -381,6 +439,42 @@ class GitLabAdapter(GitServiceAdapter):
             raise NotFoundError(f"{self._project_path()}/milestones?iid[]={number}")
         global_id = milestones[0]["id"]
         self._client.delete(f"{self._project_path()}/milestones/{global_id}")
+
+    def _resolve_milestone_id(self, number: int) -> int:
+        """iid から GitLab 内部 ID を解決する。"""
+        resp = self._client.get(f"{self._project_path()}/milestones", params={"iid[]": number})
+        milestones = resp.json()
+        if not milestones:
+            raise NotFoundError(f"{self._project_path()}/milestones?iid[]={number}")
+        return int(milestones[0]["id"])
+
+    def get_milestone(self, number: int) -> Milestone:
+        global_id = self._resolve_milestone_id(number)
+        resp = self._client.get(f"{self._project_path()}/milestones/{global_id}")
+        return self._to_milestone(resp.json())
+
+    def update_milestone(
+        self,
+        number: int,
+        *,
+        title: str | None = None,
+        description: str | None = None,
+        due_date: str | None = None,
+        state: str | None = None,
+    ) -> Milestone:
+        global_id = self._resolve_milestone_id(number)
+        payload: dict = {}
+        if title is not None:
+            payload["title"] = title
+        if description is not None:
+            payload["description"] = description
+        if due_date is not None:
+            payload["due_date"] = due_date
+        if state is not None:
+            state_map = {"closed": "close", "open": "activate"}
+            payload["state_event"] = state_map.get(state, state)
+        resp = self._client.put(f"{self._project_path()}/milestones/{global_id}", json=payload)
+        return self._to_milestone(resp.json())
 
     # --- 変換ヘルパー（追加分） ---
 
@@ -834,6 +928,9 @@ class GitLabAdapter(GitServiceAdapter):
 
     def delete_webhook(self, *, hook_id: int) -> None:
         self._client.delete(f"{self._project_path()}/hooks/{hook_id}")
+
+    def test_webhook(self, *, hook_id: int) -> None:
+        self._client.post(f"{self._project_path()}/hooks/{hook_id}/test/push_events")
 
     # --- DeployKey ---
 

@@ -42,3 +42,29 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     adapter = get_adapter()
     adapter.delete_release(tag=tag)
     print(_("Deleted release '{tag}'.").format(tag=tag))
+
+
+def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo release view のハンドラ。"""
+    tag = (args.tag or "").strip()
+    if not tag:
+        raise ConfigError(_("tag must not be empty."))
+    adapter = get_adapter()
+    release = adapter.get_release(tag=tag)
+    output(release, fmt=fmt, jq=jq)
+
+
+def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo release update のハンドラ。"""
+    tag = (args.tag or "").strip()
+    if not tag:
+        raise ConfigError(_("tag must not be empty."))
+    adapter = get_adapter()
+    release = adapter.update_release(
+        tag=tag,
+        title=args.title,
+        notes=args.notes,
+        draft=args.draft,
+        prerelease=args.prerelease,
+    )
+    output(release, fmt=fmt, jq=jq)

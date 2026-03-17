@@ -461,6 +461,19 @@ class TestClosePullRequest:
         assert req_body["status"] == "abandoned"
 
 
+class TestReopenPullRequest:
+    def test_reopen(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{GIT}/pullrequests/1",
+            json=_pr_data(status="active"),
+            status=200,
+        )
+        azure_devops_adapter.reopen_pull_request(1)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["status"] == "active"
+
+
 class TestCheckoutRefspec:
     def test_refspec(self, azure_devops_adapter):
         assert azure_devops_adapter.get_pr_checkout_refspec(42) == "refs/pull/42/head"
@@ -702,6 +715,23 @@ class TestCloseIssue:
         assert ops[0]["op"] == "replace"
         assert ops[0]["path"] == "/fields/System.State"
         assert ops[0]["value"] == "Closed"
+
+
+class TestReopenIssue:
+    def test_reopen(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{WIT}/workitems/3",
+            json=_issue_data(id=3, state="New"),
+            status=200,
+        )
+        azure_devops_adapter.reopen_issue(3)
+        req = mock_responses.calls[0].request
+        assert req.headers["Content-Type"] == "application/json-patch+json"
+        ops = json.loads(req.body)
+        assert ops[0]["op"] == "replace"
+        assert ops[0]["path"] == "/fields/System.State"
+        assert ops[0]["value"] == "New"
 
 
 # --- Repository 系 ---

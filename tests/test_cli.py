@@ -511,7 +511,7 @@ def test_parser_org_repos():
 
 
 def test_dispatch_table_has_68_entries():
-    assert len(_DISPATCH) == 90  # 89 + schema
+    assert len(_DISPATCH) == 100  # 89 + schema + phase1 additions
 
 
 def test_dispatch_table_all_keys():
@@ -526,12 +526,14 @@ def test_dispatch_table_all_keys():
         ("pr", "close"),
         ("pr", "checkout"),
         ("pr", "update"),
+        ("pr", "reopen"),
         ("issue", "list"),
         ("issue", "create"),
         ("issue", "view"),
         ("issue", "close"),
         ("issue", "delete"),
         ("issue", "update"),
+        ("issue", "reopen"),
         ("repo", "list"),
         ("repo", "create"),
         ("repo", "clone"),
@@ -541,12 +543,19 @@ def test_dispatch_table_all_keys():
         ("release", "list"),
         ("release", "create"),
         ("release", "delete"),
+        ("release", "view"),
+        ("release", "update"),
         ("label", "list"),
         ("label", "create"),
         ("label", "delete"),
+        ("label", "update"),
         ("milestone", "list"),
         ("milestone", "create"),
         ("milestone", "delete"),
+        ("milestone", "view"),
+        ("milestone", "update"),
+        ("milestone", "close"),
+        ("milestone", "reopen"),
         ("comment", "list"),
         ("comment", "create"),
         ("comment", "update"),
@@ -567,6 +576,7 @@ def test_dispatch_table_all_keys():
         ("webhook", "list"),
         ("webhook", "create"),
         ("webhook", "delete"),
+        ("webhook", "test"),
         ("deploy-key", "list"),
         ("deploy-key", "create"),
         ("deploy-key", "delete"),

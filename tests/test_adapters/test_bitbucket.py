@@ -347,6 +347,19 @@ class TestClosePullRequest:
         assert "/decline" in mock_responses.calls[0].request.url
 
 
+class TestReopenPullRequest:
+    def test_reopen(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/pullrequests/1",
+            json=_pr_data(state="OPEN"),
+            status=200,
+        )
+        bitbucket_adapter.reopen_pull_request(1)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["state"] == "OPEN"
+
+
 class TestCheckoutRefspec:
     def test_with_pr(self, bitbucket_adapter):
         pr = BitbucketAdapter._to_pull_request(_pr_data())
@@ -541,6 +554,19 @@ class TestCloseIssue:
         bitbucket_adapter.close_issue(3)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["state"] == "resolved"
+
+
+class TestReopenIssue:
+    def test_reopen(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/issues/3",
+            json=_issue_data(id=3, state="open"),
+            status=200,
+        )
+        bitbucket_adapter.reopen_issue(3)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["state"] == "open"
 
 
 class TestDeleteIssue:

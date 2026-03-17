@@ -493,6 +493,19 @@ class TestClosePullRequest:
         assert req_body["state"] == "closed"
 
 
+class TestReopenPullRequest:
+    def test_reopen(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/pulls/1",
+            json=_pr_data(state="open"),
+            status=200,
+        )
+        github_adapter.reopen_pull_request(1)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["state"] == "open"
+
+
 class TestCheckoutRefspec:
     def test_refspec(self, github_adapter):
         assert github_adapter.get_pr_checkout_refspec(42) == "refs/pull/42/head"
@@ -581,6 +594,19 @@ class TestCloseIssue:
         github_adapter.close_issue(3)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["state"] == "closed"
+
+
+class TestReopenIssue:
+    def test_reopen(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/issues/3",
+            json=_issue_data(number=3, state="open"),
+            status=200,
+        )
+        github_adapter.reopen_issue(3)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["state"] == "open"
 
 
 # --- Repository 系 ---
@@ -694,6 +720,95 @@ class TestCreateRelease:
         assert isinstance(rel, Release)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["tag_name"] == "v1.0.0"
+
+
+class TestGetRelease:
+    def test_get(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json=_release_data(),
+            status=200,
+        )
+        rel = github_adapter.get_release(tag="v1.0.0")
+        assert isinstance(rel, Release)
+        assert rel.tag == "v1.0.0"
+
+    def test_tag_url_encoded(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0%2Brc1",
+            json=_release_data(tag="v1.0.0+rc1"),
+            status=200,
+        )
+        rel = github_adapter.get_release(tag="v1.0.0+rc1")
+        assert rel.tag == "v1.0.0+rc1"
+
+
+class TestUpdateRelease:
+    def test_update(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json={"id": 42, "tag_name": "v1.0.0"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/releases/42",
+            json=_release_data(),
+            status=200,
+        )
+        rel = github_adapter.update_release(tag="v1.0.0", title="Updated")
+        assert isinstance(rel, Release)
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["name"] == "Updated"
+
+    def test_update_all_fields(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json={"id": 42, "tag_name": "v1.0.0"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/releases/42",
+            json=_release_data(),
+            status=200,
+        )
+        github_adapter.update_release(
+            tag="v1.0.0",
+            title="New",
+            notes="Notes",
+            draft=True,
+            prerelease=True,
+        )
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["name"] == "New"
+        assert req_body["body"] == "Notes"
+        assert req_body["draft"] is True
+        assert req_body["prerelease"] is True
+
+    def test_update_no_optional_fields(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json={"id": 42, "tag_name": "v1.0.0"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/releases/42",
+            json=_release_data(),
+            status=200,
+        )
+        github_adapter.update_release(tag="v1.0.0")
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert "name" not in req_body
+        assert "body" not in req_body
+        assert "draft" not in req_body
+        assert "prerelease" not in req_body
 
 
 # --- Label 系 ---
@@ -979,6 +1094,65 @@ class TestDeleteLabel:
         assert "%20" in mock_responses.calls[0].request.url
 
 
+class TestUpdateLabel:
+    def test_update(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/labels/bug",
+            json=_label_data(name="bug-fix"),
+            status=200,
+        )
+        label = github_adapter.update_label(name="bug", new_name="bug-fix")
+        assert label.name == "bug-fix"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["new_name"] == "bug-fix"
+
+    def test_update_color(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/labels/bug",
+            json=_label_data(),
+            status=200,
+        )
+        github_adapter.update_label(name="bug", color="ff0000")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["color"] == "ff0000"
+
+    def test_update_description(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/labels/bug",
+            json=_label_data(),
+            status=200,
+        )
+        github_adapter.update_label(name="bug", description="Updated desc")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["description"] == "Updated desc"
+
+    def test_name_url_encoded(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/labels/my%20label",
+            json=_label_data(name="my label"),
+            status=200,
+        )
+        github_adapter.update_label(name="my label", new_name="renamed")
+        assert "%20" in mock_responses.calls[0].request.url
+
+    def test_optional_fields_omitted(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/labels/bug",
+            json=_label_data(),
+            status=200,
+        )
+        github_adapter.update_label(name="bug")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "new_name" not in req_body
+        assert "color" not in req_body
+        assert "description" not in req_body
+
+
 class TestDeleteMilestone:
     def test_delete(self, mock_responses, github_adapter):
         mock_responses.add(
@@ -987,6 +1161,79 @@ class TestDeleteMilestone:
             status=204,
         )
         github_adapter.delete_milestone(number=3)
+
+
+class TestGetMilestone:
+    def test_get(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/milestones/1",
+            json=_milestone_data(),
+            status=200,
+        )
+        ms = github_adapter.get_milestone(1)
+        assert isinstance(ms, Milestone)
+        assert ms.title == "v1.0"
+
+    def test_get_number(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/milestones/5",
+            json=_milestone_data(number=5),
+            status=200,
+        )
+        ms = github_adapter.get_milestone(5)
+        assert ms.number == 5
+
+
+class TestUpdateMilestone:
+    def test_update_title(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/milestones/1",
+            json=_milestone_data(),
+            status=200,
+        )
+        ms = github_adapter.update_milestone(1, title="v2.0")
+        assert isinstance(ms, Milestone)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["title"] == "v2.0"
+
+    def test_update_state(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/milestones/1",
+            json=_milestone_data(),
+            status=200,
+        )
+        github_adapter.update_milestone(1, state="closed")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["state"] == "closed"
+
+    def test_update_due_date(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/milestones/1",
+            json=_milestone_data(),
+            status=200,
+        )
+        github_adapter.update_milestone(1, due_date="2026-01-01")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["due_on"] == "2026-01-01"
+
+    def test_update_optional_fields_omitted(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/milestones/1",
+            json=_milestone_data(),
+            status=200,
+        )
+        github_adapter.update_milestone(1)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "title" not in req_body
+        assert "description" not in req_body
+        assert "due_on" not in req_body
+        assert "state" not in req_body
 
 
 class TestDeleteRepository:
@@ -1481,6 +1728,17 @@ class TestDeleteWebhook:
         )
         github_adapter.delete_webhook(hook_id=100)
         assert mock_responses.calls[0].request.method == "DELETE"
+
+
+class TestTestWebhook:
+    def test_test(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/hooks/100/tests",
+            status=204,
+        )
+        github_adapter.test_webhook(hook_id=100)
+        assert mock_responses.calls[0].request.method == "POST"
 
 
 # --- DeployKey 系 ---

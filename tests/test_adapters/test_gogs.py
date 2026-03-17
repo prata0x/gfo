@@ -73,6 +73,11 @@ class TestNotSupportedOperations:
             gogs_adapter.get_pr_checkout_refspec(1)
         assert exc_info.value.web_url == f"{WEB_BASE}/test-owner/test-repo/pulls/1"
 
+    def test_reopen_pull_request(self, gogs_adapter):
+        with pytest.raises(NotSupportedError) as exc_info:
+            gogs_adapter.reopen_pull_request(1)
+        assert exc_info.value.web_url == f"{WEB_BASE}/test-owner/test-repo/pulls/1"
+
     def test_list_labels(self, gogs_adapter):
         with pytest.raises(NotSupportedError) as exc_info:
             gogs_adapter.list_labels()
@@ -98,9 +103,24 @@ class TestNotSupportedOperations:
             gogs_adapter.delete_label(name="bug")
         assert exc_info.value.web_url is None
 
+    def test_update_label(self, gogs_adapter):
+        with pytest.raises(NotSupportedError) as exc_info:
+            gogs_adapter.update_label(name="bug", new_name="bug-fix")
+        assert exc_info.value.web_url is None
+
     def test_delete_milestone(self, gogs_adapter):
         with pytest.raises(NotSupportedError) as exc_info:
             gogs_adapter.delete_milestone(number=1)
+        assert exc_info.value.web_url is None
+
+    def test_get_milestone(self, gogs_adapter):
+        with pytest.raises(NotSupportedError) as exc_info:
+            gogs_adapter.get_milestone(1)
+        assert exc_info.value.web_url is None
+
+    def test_update_milestone(self, gogs_adapter):
+        with pytest.raises(NotSupportedError) as exc_info:
+            gogs_adapter.update_milestone(1, title="v2.0")
         assert exc_info.value.web_url is None
 
     def test_list_releases(self, gogs_adapter):
@@ -116,6 +136,16 @@ class TestNotSupportedOperations:
     def test_delete_release(self, gogs_adapter):
         with pytest.raises(NotSupportedError) as exc_info:
             gogs_adapter.delete_release(tag="v1.0.0")
+        assert exc_info.value.web_url is None
+
+    def test_get_release(self, gogs_adapter):
+        with pytest.raises(NotSupportedError) as exc_info:
+            gogs_adapter.get_release(tag="v1.0.0")
+        assert exc_info.value.web_url is None
+
+    def test_update_release(self, gogs_adapter):
+        with pytest.raises(NotSupportedError) as exc_info:
+            gogs_adapter.update_release(tag="v1.0.0")
         assert exc_info.value.web_url is None
 
     def test_update_pull_request(self, gogs_adapter):
