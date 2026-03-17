@@ -83,8 +83,8 @@ gfo auth status
 | `gfo auth` | `login`, `status` | トークン保存・認証状態確認 |
 | `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `update`, `diff`, `checks`, `files`, `commits`, `reviewers`, `update-branch`, `ready` | プルリクエスト操作 |
 | `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update` | Issue 操作 |
-| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork` | リポジトリ操作 |
-| `gfo release` | `list`, `create`, `view`, `update`, `delete` | リリース管理 |
+| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `update`, `archive`, `languages`, `topics`, `compare` | リポジトリ操作 |
+| `gfo release` | `list`, `create`, `view`, `update`, `delete`, `asset` | リリース管理 |
 | `gfo label` | `list`, `create`, `update`, `delete` | ラベル管理 |
 | `gfo milestone` | `list`, `create`, `view`, `update`, `close`, `reopen`, `delete` | マイルストーン管理 |
 | `gfo comment` | `list`, `create`, `update`, `delete` | PR / Issue コメント操作 |
@@ -107,6 +107,7 @@ gfo auth status
 | `gfo ssh-key` | `list`, `create`, `delete` | SSH 鍵管理 |
 | `gfo secret` | `list`, `set`, `delete` | CI/CD シークレット管理 |
 | `gfo variable` | `list`, `set`, `get`, `delete` | CI/CD 変数管理 |
+| `gfo api` | `METHOD`, `PATH` | 任意の API エンドポイント呼び出し |
 | `gfo schema` | `--list`, `[command] [subcommand]` | コマンドの JSON Schema を表示（AI エージェント向け） |
 
 各コマンドの詳細なオプション・使用例は [docs/commands.ja.md](docs/commands.ja.md) を参照してください。
@@ -155,6 +156,13 @@ api_url = "https://gitlab.example.com/api/v4"
 | PR マージ | ○ | ○ | ○ | ○ | × | ○ | ○ | × | ○ |
 | Issue | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | Release | ○ | ○ | × | × | × | ○ | ○ | × | ○ |
+| Release Asset | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| Repo Update | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
+| Repo Archive | ○ | ○ | × | ○ | × | ○ | ○ | × | × |
+| Repo Languages | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| Repo Topics | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| Repo Compare | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
+| Raw API | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | Label | ○ | ○ | × | × | × | ○ | ○ | × | ○ |
 | Milestone | ○ | ○ | × | × | × | ○ | ○ | × | ○ |
 | PR Diff | ○ | ○ | ○ | × | × | ○ | ○ | × | × |

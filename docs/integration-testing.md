@@ -339,6 +339,14 @@ cp tests/integration/.env.example tests/integration/.env
 | pr ready | skip | o | skip | o | o | o | skip | skip | skip |
 | pr merge --auto | skip | o | skip | o | o | o | skip | skip | skip |
 | review dismiss | o | skip | skip | o | o | o | skip | skip | skip |
+| repo update | o | o | o | o | o | o | skip | skip | skip |
+| repo archive | o | o | skip | o | o | o | skip | skip | skip |
+| repo languages | o | o | skip | skip | o | o | skip | skip | skip |
+| repo topics | o | o | skip | skip | o | o | skip | skip | skip |
+| repo compare | o | o | o | o | o | o | skip | skip | skip |
+| release latest | o | o | skip | skip | o | o | skip | o | skip |
+| release asset | o | o | skip | skip | o | o | skip | skip | skip |
+| raw api | o | o | o | o | o | o | o | o | o |
 
 > **Legend**: o = full coverage, △ = partial coverage, skip = not supported by the service
 >

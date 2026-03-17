@@ -75,19 +75,19 @@
 | Issue timeline | ○ | △ | × | × | **未実装** |
 | Issue comment | ○ | ○ | ○ | ○ | ○ 実装済み |
 | **Repo CRUD** | ○ | ○ | ○ | ○ | ○ 実装済み |
-| Repo update/edit | ○ | ○ | ○ | × | **未実装** |
-| Repo archive | ○ | ○ | × | × | **未実装** |
+| Repo update/edit | ○ | ○ | ○ | × | ○ 実装済み |
+| Repo archive | ○ | ○ | × | × | ○ 実装済み |
 | Repo migrate | × | ○ | ○ | ○ | **未実装** |
-| Repo topics | ○ | △ | × | × | **未実装** |
-| Repo compare | ○ | ○ | × | × | **未実装** |
-| Repo languages | ○ | ○ | × | × | **未実装** |
+| Repo topics | ○ | △ | × | × | ○ 実装済み |
+| Repo compare | ○ | ○ | × | × | ○ 実装済み |
+| Repo languages | ○ | ○ | × | × | ○ 実装済み |
 | Repo transfer | ○ | ○ | × | × | **未実装** |
 | Repo fork | ○ | ○ | ○ | ○ | ○ 実装済み |
 | **Release CRUD** | ○ | ○ | ○ | × | ○ 実装済み |
 | Release view | ○ | ○ | × | × | ○ 実装済み |
-| Release latest | ○ | △ | × | × | **未実装** |
+| Release latest | ○ | △ | × | × | ○ 実装済み |
 | Release edit/update | ○ | × | ○ | × | ○ 実装済み |
-| Release assets | ○ | ○ | ○ | × | **未実装** |
+| Release assets | ○ | ○ | ○ | × | ○ 実装済み |
 | **Label CRUD** | ○ | ○ | ○ | △ | ○ 実装済み |
 | Label clone | ○ | × | × | × | **未実装** |
 | **Milestone CRUD** | × | ○ | ○ | × | ○ 実装済み |
@@ -112,7 +112,7 @@
 | **Package management** | ○ | ○ | × | × | **未実装** |
 | **Push mirrors** | × | ○ | × | × | **未実装** |
 | **Time tracking** | × | ○ | ○ | × | **未実装** |
-| **Raw API call** | ○ | ○ | ○ | × | **未実装** |
+| **Raw API call** | ○ | ○ | ○ | × | ○ 実装済み |
 | **User whoami** | × | × | ○ | ○ | ○ 実装済み |
 | **Collaborator** | × | × | × | × | ○ 実装済み |
 | **Deploy Key** | ○ | ○ | × | × | ○ 実装済み |

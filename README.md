@@ -83,8 +83,8 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 | `gfo auth` | `login`, `status` | Save token / check auth status |
 | `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `update`, `diff`, `checks`, `files`, `commits`, `reviewers`, `update-branch`, `ready` | Pull request operations |
 | `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update` | Issue operations |
-| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork` | Repository operations |
-| `gfo release` | `list`, `create`, `view`, `update`, `delete` | Release management |
+| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `update`, `archive`, `languages`, `topics`, `compare` | Repository operations |
+| `gfo release` | `list`, `create`, `view`, `update`, `delete`, `asset` | Release management |
 | `gfo label` | `list`, `create`, `update`, `delete` | Label management |
 | `gfo milestone` | `list`, `create`, `view`, `update`, `close`, `reopen`, `delete` | Milestone management |
 | `gfo comment` | `list`, `create`, `update`, `delete` | PR / Issue comment operations |
@@ -107,6 +107,7 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 | `gfo ssh-key` | `list`, `create`, `delete` | SSH key management |
 | `gfo secret` | `list`, `set`, `delete` | CI/CD secret management |
 | `gfo variable` | `list`, `set`, `get`, `delete` | CI/CD variable management |
+| `gfo api` | `METHOD`, `PATH` | Send raw API request |
 | `gfo schema` | `--list`, `[command] [subcommand]` | Show command JSON Schema (for AI agents) |
 
 See [docs/commands.md](docs/commands.md) for detailed options and examples for each command.
@@ -155,6 +156,13 @@ api_url = "https://gitlab.example.com/api/v4"
 | PR Merge | ○ | ○ | ○ | ○ | × | ○ | ○ | × | ○ |
 | Issue | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | Release | ○ | ○ | × | × | × | ○ | ○ | × | ○ |
+| Release Asset | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| Repo Update | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
+| Repo Archive | ○ | ○ | × | ○ | × | ○ | ○ | × | × |
+| Repo Languages | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| Repo Topics | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| Repo Compare | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
+| Raw API | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | Label | ○ | ○ | × | × | × | ○ | ○ | × | ○ |
 | Milestone | ○ | ○ | × | × | × | ○ | ○ | × | ○ |
 | PR Diff | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
