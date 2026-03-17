@@ -497,6 +497,71 @@ gfo repo fork
 gfo repo fork --org myorg
 ```
 
+### gfo repo update
+
+リポジトリの設定を更新します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
+
+```
+gfo repo update [--description TEXT] [--private | --public] [--default-branch BRANCH]
+```
+
+| オプション | 説明 |
+|---|---|
+| `--description TEXT` | リポジトリの説明 |
+| `--private` | リポジトリを非公開に設定 |
+| `--public` | リポジトリを公開に設定 |
+| `--default-branch BRANCH` | デフォルトブランチを変更 |
+
+### gfo repo archive
+
+リポジトリをアーカイブします。
+
+> **対応サービス**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
+
+```
+gfo repo archive [--yes]
+```
+
+| オプション | 説明 |
+|---|---|
+| `--yes`, `-y` | 確認プロンプトをスキップ |
+
+### gfo repo languages
+
+リポジトリの言語統計を表示します。
+
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo repo languages
+```
+
+### gfo repo topics
+
+リポジトリのトピックを管理します。
+
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo repo topics list
+gfo repo topics add <topic>
+gfo repo topics remove <topic>
+gfo repo topics set <topic> [<topic> ...]
+```
+
+### gfo repo compare
+
+2 つのブランチまたはコミットを比較します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
+
+```
+gfo repo compare <base>...<head>
+gfo repo compare <base>..<head>
+```
+
 ---
 
 ## gfo release
@@ -542,11 +607,17 @@ gfo release delete v0.9.0
 > GitBucket は非対応
 
 ```
-gfo release view TAG
+gfo release view TAG [--latest]
 ```
+
+| オプション | 説明 |
+|---|---|
+| `TAG` | 表示するリリースのタグ |
+| `--latest` | 最新リリースを表示（TAG を省略可能） |
 
 ```bash
 gfo release view v1.0.0
+gfo release view --latest
 ```
 
 ### gfo release update

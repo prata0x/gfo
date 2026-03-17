@@ -497,6 +497,71 @@ gfo repo fork
 gfo repo fork --org myorg
 ```
 
+### gfo repo update
+
+Update repository settings.
+
+> **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
+
+```
+gfo repo update [--description TEXT] [--private | --public] [--default-branch BRANCH]
+```
+
+| Option | Description |
+|---|---|
+| `--description TEXT` | Repository description |
+| `--private` | Set repository as private |
+| `--public` | Set repository as public |
+| `--default-branch BRANCH` | Change default branch |
+
+### gfo repo archive
+
+Archive a repository.
+
+> **Supported services**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
+
+```
+gfo repo archive [--yes]
+```
+
+| Option | Description |
+|---|---|
+| `--yes`, `-y` | Skip confirmation prompt |
+
+### gfo repo languages
+
+Show repository language statistics.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo repo languages
+```
+
+### gfo repo topics
+
+Manage repository topics.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo repo topics list
+gfo repo topics add <topic>
+gfo repo topics remove <topic>
+gfo repo topics set <topic> [<topic> ...]
+```
+
+### gfo repo compare
+
+Compare two branches or commits.
+
+> **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
+
+```
+gfo repo compare <base>...<head>
+gfo repo compare <base>..<head>
+```
+
 ---
 
 ## gfo release
@@ -542,11 +607,17 @@ gfo release delete v0.9.0
 > GitBucket not supported
 
 ```
-gfo release view TAG
+gfo release view TAG [--latest]
 ```
+
+| Option | Description |
+|---|---|
+| `TAG` | Release tag to view |
+| `--latest` | View the latest release (TAG can be omitted) |
 
 ```bash
 gfo release view v1.0.0
+gfo release view --latest
 ```
 
 ### gfo release update
@@ -568,6 +639,19 @@ gfo release update TAG [--title TITLE] [--notes NOTES] [--draft | --no-draft] [-
 gfo release update v1.0.0 --title "Version 1.0.0 GA"
 gfo release update v1.0.0 --notes "Updated release notes"
 gfo release update v1.0.0 --no-draft --no-prerelease
+```
+
+### gfo release asset
+
+Manage release assets.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo release asset list --tag TAG
+gfo release asset upload --tag TAG <file> [--name NAME]
+gfo release asset download --tag TAG [--asset-id ID | --pattern GLOB] [--dir DIR]
+gfo release asset delete --tag TAG <asset_id>
 ```
 
 ---
@@ -1561,4 +1645,33 @@ gfo schema pr list --jq '.output'
     }
   }
 }
+```
+
+---
+
+## gfo api
+
+Send a raw API request to the configured service.
+
+> **Supported services**: All services
+
+```
+gfo api <METHOD> <PATH> [--data JSON] [--header HEADER]
+```
+
+| Option | Description |
+|---|---|
+| `METHOD` | HTTP method (GET, POST, PUT, PATCH, DELETE) |
+| `PATH` | API path (e.g., `/repos/owner/repo`) |
+| `--data`, `-d` | Request body as JSON string |
+| `--header`, `-H` | HTTP header (can be repeated, format: `Key: Value`) |
+
+**Examples:**
+
+```bash
+# Get repository info
+gfo api GET /repos/owner/repo
+
+# Create an issue
+gfo api POST /repos/owner/repo/issues --data '{"title": "Bug report"}'
 ```
