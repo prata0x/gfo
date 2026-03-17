@@ -6,6 +6,7 @@ import argparse
 import os
 import sys
 from collections.abc import Callable
+from typing import NoReturn
 
 import gfo.commands.auth_cmd
 import gfo.commands.branch
@@ -38,7 +39,7 @@ import gfo.commands.webhook
 import gfo.commands.wiki
 from gfo import __version__
 from gfo.config import get_configured_output_format
-from gfo.exceptions import GfoError, NotSupportedError
+from gfo.exceptions import ConfigError, GfoError, NotSupportedError
 from gfo.i18n import _
 from gfo.output import format_error_json
 
@@ -54,6 +55,13 @@ def _positive_int(value: str) -> int:
     return ivalue
 
 
+class _GfoArgumentParser(argparse.ArgumentParser):
+    """argparse のエラーを ConfigError に変換するサブクラス。"""
+
+    def error(self, message: str) -> NoReturn:
+        raise ConfigError(message)
+
+
 def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.ArgumentParser]]:
     """メインパーサーと全サブコマンドパーサーを構築して返す。
 
@@ -61,7 +69,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         (parser, subparser_map): メインパーサーと {コマンド名: サブパーサー} の辞書。
     """
 
-    parser = argparse.ArgumentParser(prog="gfo", description=_("Git Forge Operator"))
+    parser = _GfoArgumentParser(prog="gfo", description=_("Git Forge Operator"))
     parser.add_argument("--format", choices=["table", "json", "plain"], default=None)
     parser.add_argument(
         "--jq",
@@ -607,11 +615,33 @@ def _resolve_format(args_format: str | None, jq_expr: str | None) -> str:
     return "table"
 
 
+def _pre_parse_format(argv: list[str] | None) -> str | None:
+    """parse_args 前に --format を簡易判定する（argparse エラーの JSON 構造化用）。"""
+    args = argv if argv is not None else sys.argv[1:]
+    for i, arg in enumerate(args):
+        if arg == "--format" and i + 1 < len(args):
+            return args[i + 1]
+        if arg.startswith("--format="):
+            return arg.split("=", 1)[1]
+        if arg == "--jq":
+            return "json"
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI エントリポイント。"""
     _ensure_utf8_stdio()
     parser, subparser_map = create_parser()
-    args = parser.parse_args(argv)
+
+    try:
+        args = parser.parse_args(argv)
+    except ConfigError as err:
+        pre_fmt = _pre_parse_format(argv)
+        if pre_fmt == "json":
+            print(format_error_json(err), file=sys.stderr)
+        else:
+            print(str(err), file=sys.stderr)
+        return err.exit_code
 
     if args.command is None:
         parser.print_help()
@@ -635,19 +665,13 @@ def main(argv: list[str] | None = None) -> int:
     try:
         handler(args, fmt=resolved_fmt, jq=jq_expr)
         return 0
-    except NotSupportedError as err:
-        if resolved_fmt == "json":
-            print(format_error_json(err), file=sys.stderr)
-        else:
-            print(str(err), file=sys.stderr)
-            if err.web_url:
-                print(err.web_url)
-        return err.exit_code
     except GfoError as err:
         if resolved_fmt == "json":
             print(format_error_json(err), file=sys.stderr)
         else:
             print(str(err), file=sys.stderr)
+            if isinstance(err, NotSupportedError) and err.web_url:
+                print(err.web_url)
         return err.exit_code
     except Exception as err:  # pragma: no cover
         print(_("Unexpected error: {err}").format(err=err), file=sys.stderr)

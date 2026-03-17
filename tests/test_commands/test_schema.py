@@ -266,3 +266,58 @@ class TestHandleSchema:
 
         missing = set(_DISPATCH.keys()) - set(_OUTPUT_MAP.keys()) - {("schema", None)}
         assert missing == set(), f"_OUTPUT_MAP に不足: {missing}"
+
+    def test_too_many_arguments(self):
+        """target に 3 個以上渡すと ConfigError。"""
+        args = make_args(
+            command="schema", subcommand=None, list_commands=False, target=["pr", "list", "extra"]
+        )
+        with pytest.raises(ConfigError):
+            handle_schema(args, fmt="json")
+
+    def test_list_commands_has_descriptions(self, capsys):
+        """--list で description が空でないコマンドがあること（M6 確認）。"""
+        args = make_args(command="schema", subcommand=None, list_commands=True, target=[])
+        handle_schema(args, fmt="json")
+        out = json.loads(capsys.readouterr().out)
+        descriptions = [item["description"] for item in out if item["description"]]
+        assert len(descriptions) > 0
+
+
+class TestParserNargsOptional:
+    """nargs='?' の位置引数が required に含まれないこと（H4）。"""
+
+    def setup_method(self):
+        _, self.subparser_map = create_parser()
+
+    def _get_subcmd_parser(self, cmd, subcmd):
+        import argparse as _ap
+
+        cmd_parser = self.subparser_map[cmd]
+        for action in cmd_parser._actions:
+            if isinstance(action, _ap._SubParsersAction):
+                return action.choices[subcmd]
+        raise KeyError(subcmd)
+
+    def test_repo_view_repo_not_required(self):
+        """repo view の repo (nargs='?') は required に含まれない。"""
+        parser = self._get_subcmd_parser("repo", "view")
+        schema = _parser_to_input_schema(parser)
+        assert "repo" not in schema.get("required", [])
+
+    def test_notification_read_id_not_required(self):
+        """notification read の id (nargs='?') は required に含まれない。"""
+        parser = self._get_subcmd_parser("notification", "read")
+        schema = _parser_to_input_schema(parser)
+        assert "id" not in schema.get("required", [])
+
+
+class TestOutputMapDictSync:
+    """_OUTPUT_MAP で dict 型のエントリが全て _SPECIAL_OUTPUT に存在する（M2）。"""
+
+    def test_dict_entries_in_special_output(self):
+        from gfo.commands.schema import _OUTPUT_MAP, _SPECIAL_OUTPUT
+
+        dict_keys = [k for k, v in _OUTPUT_MAP.items() if v is dict]
+        for k in dict_keys:
+            assert k in _SPECIAL_OUTPUT, f"{k} は _OUTPUT_MAP で dict だが _SPECIAL_OUTPUT にない"

@@ -86,6 +86,8 @@ def output(
     data: Any, *, fmt: str = "table", fields: list[str] | None = None, jq: str | None = None
 ) -> None:
     """データを指定フォーマットで stdout に出力する。"""
+    # handle_schema() 等から _resolve_format() を経由せず直接呼ばれるため、
+    # jq 指定時に fmt が "json" でない場合の防御的な上書きが必要
     if jq and fmt != "json":
         fmt = "json"
     if isinstance(data, list):
@@ -118,6 +120,7 @@ def output(
     elif fmt == "plain":
         print(format_plain(items, fields))
     else:
+        # fmt は通常 "table"。未知の値が渡された場合もテーブルにフォールバックする
         print(format_table(items, fields))
 
 

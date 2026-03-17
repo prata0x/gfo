@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import json
+import logging
 import types
 import typing
 from typing import Any, get_type_hints
@@ -34,6 +35,8 @@ from gfo.adapter.base import (
 )
 from gfo.exceptions import ConfigError
 from gfo.output import apply_jq_filter
+
+logger = logging.getLogger(__name__)
 
 _OUTPUT_MAP: dict[tuple[str, str | None], type | None] = {
     ("pr", "list"): list[PullRequest],
@@ -183,6 +186,7 @@ def _python_type_to_json_schema(tp: Any) -> dict:
     if tp is bool:
         return {"type": "boolean"}
 
+    logger.warning("Unknown type %r, falling back to string schema", tp)
     return {"type": "string"}
 
 
@@ -225,7 +229,14 @@ def _dataclass_to_json_schema(cls: type) -> dict:
 
 
 def _parser_to_input_schema(parser: argparse.ArgumentParser) -> dict:
-    """argparse パーサーから入力スキーマを生成する。"""
+    """argparse パーサーから入力スキーマを生成する。
+
+    NOTE: argparse の非公開 API を使用している:
+      - parser._actions: 登録済みアクションリストへのアクセス
+      - _HelpAction, _SubParsersAction, _StoreTrueAction, _StoreFalseAction, _AppendAction:
+        アクション種別の判定に使用
+    argparse の内部実装変更により動作しなくなる可能性がある。
+    """
     properties: dict[str, dict] = {}
     required: list[str] = []
     seen_dests: set[str] = set()
@@ -275,7 +286,9 @@ def _parser_to_input_schema(parser: argparse.ArgumentParser) -> dict:
 
         # 位置引数 or required
         if not action.option_strings:
-            required.append(dest)
+            # nargs="?" (0個or1個) や nargs="*" (0個以上) は省略可能
+            if action.nargs not in ("?", "*"):
+                required.append(dest)
         elif action.required:
             required.append(dest)
 
@@ -292,7 +305,11 @@ def _get_subcommand_parser(
     command: str,
     subcommand: str,
 ) -> argparse.ArgumentParser:
-    """サブコマンドパーサーを取得する。"""
+    """サブコマンドパーサーを取得する。
+
+    NOTE: argparse の非公開 API を使用:
+      - cmd_parser._actions, _SubParsersAction: サブパーサーの探索に使用
+    """
     cmd_parser = subparser_map[command]
     for action in cmd_parser._actions:
         if isinstance(action, argparse._SubParsersAction):
@@ -348,10 +365,18 @@ def _build_command_schema(
     return result
 
 
+def _print_json(json_str: str, jq: str | None) -> None:
+    """JSON 文字列を出力する。jq 式があれば適用する。"""
+    if jq:
+        print(apply_jq_filter(json_str, jq))
+    else:
+        print(json_str)
+
+
 def handle_schema(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     from gfo.cli import _DISPATCH, create_parser
 
-    _, subparser_map = create_parser()
+    main_parser, subparser_map = create_parser()
 
     target: list[str] = args.target
     list_commands: bool = args.list_commands
@@ -367,17 +392,39 @@ def handle_schema(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
                 try:
                     p = _get_subcommand_parser(subparser_map, command, subcommand)
                     desc = p.description or ""
+                    # p.description が空の場合、add_parser() の help= を参照する
+                    # NOTE: _choices_actions は argparse 非公開 API
+                    if not desc:
+                        cmd_parser = subparser_map[command]
+                        for act in cmd_parser._actions:
+                            if isinstance(act, argparse._SubParsersAction):
+                                for ca in act._choices_actions:
+                                    if ca.dest == subcommand and ca.help:
+                                        desc = ca.help
+                                        break
+                                break
                 except (ConfigError, KeyError):
+                    logger.warning("Failed to get parser for %s %s", command, subcommand)
                     desc = ""
             else:
                 desc = subparser_map.get(command, argparse.ArgumentParser()).description or ""
+                # description が空の場合、add_parser() の help= を参照する
+                # NOTE: _choices_actions は argparse 非公開 API
+                if not desc:
+                    for act in main_parser._actions:
+                        if isinstance(act, argparse._SubParsersAction):
+                            for ca in act._choices_actions:
+                                if ca.dest == command and ca.help:
+                                    desc = ca.help
+                                    break
+                            break
             result.append({"command": cmd_label, "description": desc})
         json_str = json.dumps(result, indent=2, ensure_ascii=False)
-        if jq:
-            print(apply_jq_filter(json_str, jq))
-        else:
-            print(json_str)
+        _print_json(json_str, jq)
         return
+
+    if len(target) > 2:
+        raise ConfigError(f"Too many arguments: {' '.join(target)}")
 
     command = target[0]
     subcommand = target[1] if len(target) > 1 else None
@@ -389,10 +436,7 @@ def handle_schema(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
             raise ConfigError(f"Unknown command: {command} {subcommand}")
         schema = _build_command_schema(key, subparser_map)
         json_str = json.dumps(schema, indent=2, ensure_ascii=False)
-        if jq:
-            print(apply_jq_filter(json_str, jq))
-        else:
-            print(json_str)
+        _print_json(json_str, jq)
     else:
         # コマンドグループ — 該当 command 配下の全サブコマンド
         if command not in subparser_map:
@@ -407,7 +451,4 @@ def handle_schema(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         else:
             schemas = [_build_command_schema(k, subparser_map) for k in group_keys]
             json_str = json.dumps(schemas, indent=2, ensure_ascii=False)
-        if jq:
-            print(apply_jq_filter(json_str, jq))
-        else:
-            print(json_str)
+        _print_json(json_str, jq)

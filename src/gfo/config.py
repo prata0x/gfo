@@ -96,7 +96,10 @@ def get_host_config(host: str) -> dict[str, Any] | None:
     """config.toml の hosts.{host} セクションを返す。未設定なら None。"""
     cfg = load_user_config()
     hosts: dict[str, Any] = cfg.get("hosts", {})
-    result = hosts.get(host.lower()) or hosts.get(host)
+    lower = host.lower()
+    result = hosts.get(lower)
+    if result is None and lower != host:
+        result = hosts.get(host)
     return result if isinstance(result, dict) else None
 
 
@@ -143,6 +146,8 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
             organization = detect_result.organization
             project_key = detect_result.project
         except (DetectionError, ConfigError, GitCommandError, ValueError, OSError):
+            # ValueError: detect_from_url() 内の urlparse / URL 分解で不正 URL 時に発生
+            # OSError: get_remote_url() のサブプロセス実行失敗時に発生
             # bare リポジトリや CI 環境向け: git config の gfo.owner/gfo.repo を使用
             owner = gfo.git_util.git_config_get("gfo.owner", cwd=cwd) or ""
             repo = gfo.git_util.git_config_get("gfo.repo", cwd=cwd) or ""

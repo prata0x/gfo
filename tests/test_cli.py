@@ -11,6 +11,7 @@ from gfo.cli import (
     _DISPATCH,
     _ensure_utf8_stdio,
     _positive_int,
+    _pre_parse_format,
     _resolve_format,
     create_parser,
     main,
@@ -347,7 +348,7 @@ def test_parser_browse_print():
 def test_parser_browse_mutually_exclusive():
     """--pr と --issue は同時指定できない。"""
     parser, _ = create_parser()
-    with pytest.raises(SystemExit):
+    with pytest.raises(ConfigError):
         parser.parse_args(["browse", "--pr", "1", "--issue", "2"])
 
 
@@ -994,3 +995,42 @@ def test_ensure_utf8_stdio_skips_utf8_stream(monkeypatch):
     monkeypatch.setattr("sys.stderr", fake)
     _ensure_utf8_stdio()
     assert called == []
+
+
+# ── argparse エラーの構造化テスト (M8) ──
+
+
+def test_main_argparse_error_returns_config_exit_code(capsys):
+    """不正な引数で ConfigError が発生し、exit_code 6 を返す。"""
+    result = main(["pr", "list", "--unknown-flag"])
+    assert result == 6
+    err = capsys.readouterr().err
+    assert "unrecognized arguments" in err
+
+
+def test_main_argparse_error_json_format(capsys):
+    """--format json 指定時に argparse エラーが JSON 構造化される。"""
+    result = main(["--format", "json", "pr", "list", "--unknown-flag"])
+    assert result == 6
+    err = capsys.readouterr().err
+    import json
+
+    data = json.loads(err)
+    assert data["error"] == "config_error"
+
+
+# ── _pre_parse_format のテスト ──
+
+
+def test_pre_parse_format_none():
+    assert _pre_parse_format([]) is None
+    assert _pre_parse_format(["pr", "list"]) is None
+
+
+def test_pre_parse_format_flag():
+    assert _pre_parse_format(["--format", "json"]) == "json"
+    assert _pre_parse_format(["--format=plain"]) == "plain"
+
+
+def test_pre_parse_format_jq():
+    assert _pre_parse_format(["--jq", ".command"]) == "json"

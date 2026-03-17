@@ -263,14 +263,14 @@ class TestHint:
         err = RateLimitError()
         assert err.hint is None
 
-    def test_network_error_hint_none(self):
-        assert NetworkError("x").hint is None
+    def test_network_error_hint(self):
+        assert NetworkError("x").hint == "Check your network connection and try again."
 
     def test_config_error_hint_none(self):
         assert ConfigError("x").hint is None
 
-    def test_server_error_hint_none(self):
-        assert ServerError(500).hint is None
+    def test_server_error_hint(self):
+        assert ServerError(500).hint == "Please try again later."
 
 
 class TestCatchByBaseClass:

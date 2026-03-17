@@ -34,6 +34,7 @@ class GitCommandError(GfoError):
 
     def __init__(self, message: str):
         super().__init__(_("Git error: {message}").format(message=message))
+        self.hint = _("Check that git is installed and the repository exists.")
 
 
 class DetectionError(GfoError):
@@ -135,6 +136,7 @@ class ServerError(HttpError):
 
     def __init__(self, status_code: int, url: str = ""):
         super().__init__(status_code, _("Server error. Please try again later."), url)
+        self.hint = _("Please try again later.")
 
 
 class NetworkError(GfoError):
@@ -142,6 +144,10 @@ class NetworkError(GfoError):
 
     error_code = "network_error"
     exit_code = ExitCode.NETWORK
+
+    def __init__(self, message: str = ""):
+        super().__init__(message or _("Network error."))
+        self.hint = _("Check your network connection and try again.")
 
 
 class NotSupportedError(GfoError):
