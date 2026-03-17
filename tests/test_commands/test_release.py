@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from gfo.adapter.base import Release
+from gfo.adapter.base import Release, ReleaseAsset
 from gfo.commands import release as release_cmd
 from gfo.exceptions import ConfigError
 from tests.test_commands.conftest import make_args
@@ -26,11 +26,22 @@ def _make_release() -> Release:
     )
 
 
+def _make_asset() -> ReleaseAsset:
+    return ReleaseAsset(
+        id=1,
+        name="app-v1.0.0.zip",
+        size=1024,
+        download_url="https://github.com/test-owner/test-repo/releases/download/v1.0.0/app-v1.0.0.zip",
+        created_at="2024-01-01T00:00:00Z",
+    )
+
+
 def _make_adapter(sample_release: Release) -> MagicMock:
     adapter = MagicMock()
     adapter.list_releases.return_value = [sample_release]
     adapter.create_release.return_value = sample_release
     adapter.get_release.return_value = sample_release
+    adapter.get_latest_release.return_value = sample_release
     adapter.update_release.return_value = sample_release
     return adapter
 
@@ -269,3 +280,135 @@ class TestHandleUpdate:
         with _patch_all(sample_config, self.adapter):
             with pytest.raises(ConfigError):
                 release_cmd.handle_update(args, fmt="table")
+
+
+class TestHandleViewLatest:
+    def setup_method(self):
+        self.release = _make_release()
+        self.adapter = _make_adapter(self.release)
+
+    def test_latest_flag_calls_get_latest_release(self, sample_config):
+        args = make_args(tag=None, latest=True)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_view(args, fmt="table")
+
+        self.adapter.get_latest_release.assert_called_once()
+        self.adapter.get_release.assert_not_called()
+
+    def test_tag_still_works(self, sample_config):
+        args = make_args(tag="v1.0.0", latest=False)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_view(args, fmt="table")
+
+        self.adapter.get_release.assert_called_once_with(tag="v1.0.0")
+
+    def test_no_tag_no_latest_raises(self, sample_config):
+        args = make_args(tag=None, latest=False)
+        with _patch_all(sample_config, self.adapter):
+            with pytest.raises(ConfigError, match="tag must not be empty"):
+                release_cmd.handle_view(args, fmt="table")
+
+
+class TestHandleAsset:
+    def setup_method(self):
+        self.release = _make_release()
+        self.adapter = _make_adapter(self.release)
+        self.asset = _make_asset()
+
+    def test_asset_list(self, sample_config, capsys):
+        self.adapter.list_release_assets.return_value = [self.asset]
+        args = make_args(asset_action="list", tag="v1.0.0")
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_asset(args, fmt="json")
+
+        self.adapter.list_release_assets.assert_called_once_with(tag="v1.0.0")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data[0]["name"] == "app-v1.0.0.zip"
+
+    def test_asset_upload(self, sample_config, capsys):
+        self.adapter.upload_release_asset.return_value = self.asset
+        args = make_args(asset_action="upload", tag="v1.0.0", file="app.zip", name=None)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_asset(args, fmt="json")
+
+        self.adapter.upload_release_asset.assert_called_once_with(
+            tag="v1.0.0",
+            file_path="app.zip",
+            name=None,
+        )
+
+    def test_asset_download_by_id(self, sample_config, capsys):
+        self.adapter.download_release_asset.return_value = "/tmp/app.zip"
+        args = make_args(
+            asset_action="download",
+            tag="v1.0.0",
+            asset_id="1",
+            pattern=None,
+            dir=".",
+        )
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_asset(args, fmt="table")
+
+        self.adapter.download_release_asset.assert_called_once_with(
+            tag="v1.0.0",
+            asset_id="1",
+            output_dir=".",
+        )
+
+    def test_asset_download_by_pattern(self, sample_config, capsys):
+        self.adapter.list_release_assets.return_value = [self.asset]
+        self.adapter.download_release_asset.return_value = "/tmp/app-v1.0.0.zip"
+        args = make_args(
+            asset_action="download",
+            tag="v1.0.0",
+            asset_id=None,
+            pattern="*.zip",
+            dir="/tmp",
+        )
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_asset(args, fmt="table")
+
+        self.adapter.download_release_asset.assert_called_once_with(
+            tag="v1.0.0",
+            asset_id=1,
+            output_dir="/tmp",
+        )
+
+    def test_asset_download_no_match_raises(self, sample_config):
+        self.adapter.list_release_assets.return_value = [self.asset]
+        args = make_args(
+            asset_action="download",
+            tag="v1.0.0",
+            asset_id=None,
+            pattern="*.tar.gz",
+            dir=".",
+        )
+        with _patch_all(sample_config, self.adapter):
+            with pytest.raises(ConfigError, match="No assets match"):
+                release_cmd.handle_asset(args, fmt="table")
+
+    def test_asset_download_no_id_no_pattern_raises(self, sample_config):
+        args = make_args(
+            asset_action="download",
+            tag="v1.0.0",
+            asset_id=None,
+            pattern=None,
+            dir=".",
+        )
+        with _patch_all(sample_config, self.adapter):
+            with pytest.raises(ConfigError, match="--asset-id or --pattern"):
+                release_cmd.handle_asset(args, fmt="table")
+
+    def test_asset_delete(self, sample_config, capsys):
+        args = make_args(asset_action="delete", tag="v1.0.0", asset_id="1")
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_asset(args, fmt="table")
+
+        self.adapter.delete_release_asset.assert_called_once_with(tag="v1.0.0", asset_id="1")
+
+    def test_no_action_raises(self, sample_config):
+        args = make_args(asset_action=None)
+        with _patch_all(sample_config, self.adapter):
+            with pytest.raises(ConfigError):
+                release_cmd.handle_asset(args, fmt="table")

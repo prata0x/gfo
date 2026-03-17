@@ -2095,3 +2095,131 @@ class TestDismissReview:
         github_adapter.dismiss_review(1, 42, message="stale review")
         body = json.loads(mock_responses.calls[0].request.body)
         assert body["message"] == "stale review"
+
+
+# --- Phase 3: リポジトリ操作・リリースアセット ---
+
+
+class TestUpdateRepository:
+    @responses.activate
+    def test_update_description(self, github_adapter):
+        responses.add(responses.PATCH, f"{REPOS}", json=_repo_data(), status=200)
+        repo = github_adapter.update_repository(description="new desc")
+        assert isinstance(repo, Repository)
+        assert json.loads(responses.calls[0].request.body)["description"] == "new desc"
+
+    @responses.activate
+    def test_update_private(self, github_adapter):
+        responses.add(responses.PATCH, f"{REPOS}", json=_repo_data(), status=200)
+        github_adapter.update_repository(private=True)
+        assert json.loads(responses.calls[0].request.body)["private"] is True
+
+
+class TestArchiveRepository:
+    @responses.activate
+    def test_archive(self, github_adapter):
+        responses.add(responses.PATCH, f"{REPOS}", json=_repo_data(), status=200)
+        github_adapter.archive_repository()
+        assert json.loads(responses.calls[0].request.body)["archived"] is True
+
+
+class TestGetLanguages:
+    @responses.activate
+    def test_get_languages(self, github_adapter):
+        responses.add(
+            responses.GET, f"{REPOS}/languages", json={"Python": 45678, "Go": 1234}, status=200
+        )
+        result = github_adapter.get_languages()
+        assert result == {"Python": 45678, "Go": 1234}
+
+
+class TestTopics:
+    @responses.activate
+    def test_list_topics(self, github_adapter):
+        responses.add(
+            responses.GET, f"{REPOS}/topics", json={"names": ["python", "cli"]}, status=200
+        )
+        result = github_adapter.list_topics()
+        assert result == ["python", "cli"]
+
+    @responses.activate
+    def test_set_topics(self, github_adapter):
+        responses.add(responses.PUT, f"{REPOS}/topics", json={"names": ["a", "b"]}, status=200)
+        result = github_adapter.set_topics(["a", "b"])
+        assert result == ["a", "b"]
+
+    @responses.activate
+    def test_add_topic(self, github_adapter):
+        responses.add(responses.GET, f"{REPOS}/topics", json={"names": ["a"]}, status=200)
+        responses.add(responses.PUT, f"{REPOS}/topics", json={"names": ["a", "b"]}, status=200)
+        result = github_adapter.add_topic("b")
+        assert "b" in result
+
+    @responses.activate
+    def test_remove_topic(self, github_adapter):
+        responses.add(responses.GET, f"{REPOS}/topics", json={"names": ["a", "b"]}, status=200)
+        responses.add(responses.PUT, f"{REPOS}/topics", json={"names": ["a"]}, status=200)
+        result = github_adapter.remove_topic("b")
+        assert "b" not in result
+
+
+class TestCompare:
+    @responses.activate
+    def test_compare(self, github_adapter):
+        from gfo.adapter.base import CompareResult
+
+        responses.add(
+            responses.GET,
+            f"{REPOS}/compare/main...feature",
+            json={
+                "total_commits": 3,
+                "ahead_by": 3,
+                "behind_by": 0,
+                "files": [
+                    {"filename": "a.py", "status": "modified", "additions": 10, "deletions": 2}
+                ],
+            },
+            status=200,
+        )
+        result = github_adapter.compare("main", "feature")
+        assert isinstance(result, CompareResult)
+        assert result.total_commits == 3
+        assert len(result.files) == 1
+
+
+class TestGetLatestRelease:
+    @responses.activate
+    def test_get_latest(self, github_adapter):
+        responses.add(responses.GET, f"{REPOS}/releases/latest", json=_release_data(), status=200)
+        release = github_adapter.get_latest_release()
+        assert release.tag == "v1.0.0"
+
+
+class TestReleaseAssets:
+    @responses.activate
+    def test_list_release_assets(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json={
+                **_release_data(),
+                "assets": [
+                    {
+                        "id": 1,
+                        "name": "app.zip",
+                        "size": 1024,
+                        "browser_download_url": "https://example.com/app.zip",
+                        "created_at": "2025-01-01T00:00:00Z",
+                    }
+                ],
+            },
+            status=200,
+        )
+        assets = github_adapter.list_release_assets(tag="v1.0.0")
+        assert len(assets) == 1
+        assert assets[0].name == "app.zip"
+
+    @responses.activate
+    def test_delete_release_asset(self, github_adapter):
+        responses.add(responses.DELETE, f"{REPOS}/releases/assets/1", status=204)
+        github_adapter.delete_release_asset(tag="v1.0.0", asset_id=1)

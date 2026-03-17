@@ -2223,3 +2223,135 @@ class TestMarkPullRequestReadyGitea:
         gitea_adapter.mark_pull_request_ready(1)
         body = json.loads(mock_responses.calls[0].request.body)
         assert body["state"] == "open"
+
+
+# --- Phase 3: リポジトリ操作・リリースアセット ---
+
+
+class TestUpdateRepositoryGitea:
+    @responses.activate
+    def test_update_description(self, gitea_adapter):
+        responses.add(responses.PATCH, f"{REPOS}", json=_repo_data(), status=200)
+        repo = gitea_adapter.update_repository(description="new desc")
+        assert isinstance(repo, Repository)
+        assert json.loads(responses.calls[0].request.body)["description"] == "new desc"
+
+    @responses.activate
+    def test_update_private(self, gitea_adapter):
+        responses.add(responses.PATCH, f"{REPOS}", json=_repo_data(), status=200)
+        gitea_adapter.update_repository(private=True)
+        assert json.loads(responses.calls[0].request.body)["private"] is True
+
+
+class TestArchiveRepositoryGitea:
+    @responses.activate
+    def test_archive(self, gitea_adapter):
+        responses.add(responses.PATCH, f"{REPOS}", json=_repo_data(), status=200)
+        gitea_adapter.archive_repository()
+        assert json.loads(responses.calls[0].request.body)["archived"] is True
+
+
+class TestGetLanguagesGitea:
+    @responses.activate
+    def test_get_languages(self, gitea_adapter):
+        responses.add(
+            responses.GET, f"{REPOS}/languages", json={"Python": 45678, "Go": 1234}, status=200
+        )
+        result = gitea_adapter.get_languages()
+        assert result == {"Python": 45678, "Go": 1234}
+
+
+class TestTopicsGitea:
+    @responses.activate
+    def test_list_topics(self, gitea_adapter):
+        responses.add(responses.GET, f"{REPOS}/topics", json={"topics": ["python"]}, status=200)
+        result = gitea_adapter.list_topics()
+        assert result == ["python"]
+
+    @responses.activate
+    def test_set_topics(self, gitea_adapter):
+        responses.add(responses.PUT, f"{REPOS}/topics", json={"topics": ["a", "b"]}, status=200)
+        result = gitea_adapter.set_topics(["a", "b"])
+        assert result == ["a", "b"]
+
+    @responses.activate
+    def test_add_topic(self, gitea_adapter):
+        responses.add(responses.PUT, f"{REPOS}/topics/newtopic", status=204)
+        responses.add(
+            responses.GET, f"{REPOS}/topics", json={"topics": ["python", "newtopic"]}, status=200
+        )
+        result = gitea_adapter.add_topic("newtopic")
+        assert "newtopic" in result
+
+    @responses.activate
+    def test_remove_topic(self, gitea_adapter):
+        responses.add(responses.DELETE, f"{REPOS}/topics/oldtopic", status=204)
+        responses.add(responses.GET, f"{REPOS}/topics", json={"topics": ["python"]}, status=200)
+        result = gitea_adapter.remove_topic("oldtopic")
+        assert "oldtopic" not in result
+
+
+class TestCompareGitea:
+    @responses.activate
+    def test_compare(self, gitea_adapter):
+        from gfo.adapter.base import CompareResult
+
+        responses.add(
+            responses.GET,
+            f"{REPOS}/compare/main...feature",
+            json={
+                "total_commits": 3,
+                "files": [
+                    {"filename": "a.py", "status": "modified", "additions": 10, "deletions": 2}
+                ],
+            },
+            status=200,
+        )
+        result = gitea_adapter.compare("main", "feature")
+        assert isinstance(result, CompareResult)
+        assert result.total_commits == 3
+        assert len(result.files) == 1
+
+
+class TestGetLatestReleaseGitea:
+    @responses.activate
+    def test_get_latest(self, gitea_adapter):
+        responses.add(responses.GET, f"{REPOS}/releases", json=[_release_data()], status=200)
+        release = gitea_adapter.get_latest_release()
+        assert release.tag == "v1.0.0"
+
+
+class TestReleaseAssetsGitea:
+    @responses.activate
+    def test_list_release_assets(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json={
+                **_release_data(),
+                "assets": [
+                    {
+                        "id": 1,
+                        "name": "app.zip",
+                        "size": 1024,
+                        "browser_download_url": "https://example.com/app.zip",
+                        "created_at": "2025-01-01T00:00:00Z",
+                    }
+                ],
+            },
+            status=200,
+        )
+        assets = gitea_adapter.list_release_assets(tag="v1.0.0")
+        assert len(assets) == 1
+        assert assets[0].name == "app.zip"
+
+    @responses.activate
+    def test_delete_release_asset(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json={**_release_data(), "id": 42},
+            status=200,
+        )
+        responses.add(responses.DELETE, f"{REPOS}/releases/42/assets/1", status=204)
+        gitea_adapter.delete_release_asset(tag="v1.0.0", asset_id=1)

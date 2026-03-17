@@ -15,6 +15,8 @@ from .base import (
     CheckRun,
     Comment,
     CommitStatus,
+    CompareFile,
+    CompareResult,
     DeployKey,
     GitServiceAdapter,
     Issue,
@@ -493,6 +495,44 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         except (KeyError, TypeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
         self._client.delete(f"/git/repositories/{repo_id}")
+
+    def update_repository(self, *, description=None, private=None, default_branch=None):
+        payload = {}
+        if default_branch is not None:
+            payload["defaultBranch"] = _add_refs_prefix(default_branch)
+        resp = self._client.patch(self._git_path(), json=payload)
+        return self._to_repository(resp.json(), self._project)
+
+    def archive_repository(self):
+        self._client.patch(self._git_path(), json={"isDisabled": True})
+
+    def compare(self, base, head):
+        resp = self._client.get(
+            f"/git/repositories/{quote(self._repo, safe='')}/diffs/commits",
+            params={"baseVersion": base, "targetVersion": head},
+        )
+        data = resp.json()
+        changes = data.get("changes") or []
+        files = tuple(
+            CompareFile(
+                filename=c.get("item", {}).get("path", "").lstrip("/"),
+                status={
+                    "add": "added",
+                    "edit": "modified",
+                    "delete": "deleted",
+                    "rename": "renamed",
+                }.get(c.get("changeType", "edit"), "modified"),
+                additions=0,
+                deletions=0,
+            )
+            for c in changes
+        )
+        return CompareResult(
+            total_commits=0,
+            ahead_by=data.get("aheadCount", 0),
+            behind_by=data.get("behindCount", 0),
+            files=files,
+        )
 
     # --- NotSupported ---
 

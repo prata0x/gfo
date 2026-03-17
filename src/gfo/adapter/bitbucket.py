@@ -13,6 +13,8 @@ from .base import (
     CheckRun,
     Comment,
     CommitStatus,
+    CompareFile,
+    CompareResult,
     DeployKey,
     GitServiceAdapter,
     Issue,
@@ -286,6 +288,38 @@ class BitbucketAdapter(GitServiceAdapter):
 
     def delete_repository(self) -> None:
         self._client.delete(self._repos_path())
+
+    def update_repository(self, *, description=None, private=None, default_branch=None):
+        payload = {}
+        if description is not None:
+            payload["description"] = description
+        if private is not None:
+            payload["is_private"] = private
+        # Bitbucket doesn't support changing default_branch via API
+        resp = self._client.put(self._repos_path(), json=payload)
+        return self._to_repository(resp.json())
+
+    def compare(self, base, head):
+        results = paginate_response_body(
+            self._client,
+            f"{self._repos_path()}/diffstat/{quote(base, safe='')}..{quote(head, safe='')}",
+            limit=0,
+        )
+        files = tuple(
+            CompareFile(
+                filename=r.get("new", {}).get("path") or r.get("old", {}).get("path") or "",
+                status=r.get("status", "modified"),
+                additions=r.get("lines_added", 0),
+                deletions=r.get("lines_removed", 0),
+            )
+            for r in results
+        )
+        return CompareResult(
+            total_commits=0,
+            ahead_by=0,
+            behind_by=0,
+            files=files,
+        )
 
     # --- NotSupported ---
 

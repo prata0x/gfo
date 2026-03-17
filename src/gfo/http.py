@@ -129,6 +129,75 @@ class HttpClient:
         """DELETE リクエスト。"""
         return self.request("DELETE", path, **kwargs)
 
+    def download_file(
+        self, url: str, output_path: str, *, headers: dict | None = None, timeout: int = 300
+    ) -> None:
+        """ストリーミングダウンロード。"""
+        merged_params = {**self._default_params, **self._auth_params}
+        merged_headers = dict(self._session.headers)
+        if headers:
+            merged_headers.update(headers)
+        try:
+            resp = self._session.get(
+                url,
+                params=merged_params,
+                headers=merged_headers,
+                stream=True,
+                timeout=timeout,
+            )
+        except requests.RequestException as e:
+            raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
+        self._handle_response(resp)
+        with open(output_path, "wb") as f:
+            for chunk in resp.iter_content(chunk_size=8192):
+                f.write(chunk)
+
+    def upload_file(
+        self,
+        path: str,
+        file_path: str,
+        *,
+        name: str | None = None,
+        content_type: str = "application/octet-stream",
+        timeout: int = 300,
+    ) -> requests.Response:
+        """ファイルアップロード（raw binary）。GitHub 用。"""
+        import os
+
+        fname = name or os.path.basename(file_path)
+        url = self._base_url + path
+        merged_params = {**self._default_params, **self._auth_params, "name": fname}
+        upload_headers = {"Content-Type": content_type}
+        with open(file_path, "rb") as f:
+            return self._retry_loop(
+                lambda: self._session.post(
+                    url,
+                    params=merged_params,
+                    data=f.read(),
+                    headers=upload_headers,
+                    timeout=timeout,
+                )
+            )
+
+    def upload_multipart(
+        self, path: str, file_path: str, *, field_name: str = "attachment", timeout: int = 300
+    ) -> requests.Response:
+        """multipart/form-data アップロード。Gitea 用。"""
+        import os
+
+        url = self._base_url + path
+        merged_params = {**self._default_params, **self._auth_params}
+        with open(file_path, "rb") as f:
+            files = {field_name: (os.path.basename(file_path), f)}
+            return self._retry_loop(
+                lambda: self._session.post(
+                    url,
+                    params=merged_params,
+                    files=files,
+                    timeout=timeout,
+                )
+            )
+
     def get_absolute(
         self, url: str, *, params: dict | None = None, timeout: int = 30
     ) -> requests.Response:

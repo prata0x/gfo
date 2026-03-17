@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from gfo.adapter.base import Repository
+from gfo.adapter.base import CompareFile, CompareResult, Repository
 from gfo.commands import repo as repo_cmd
 from gfo.exceptions import ConfigError
 from tests.test_commands.conftest import make_args
@@ -691,3 +692,191 @@ class TestParseRepoArg:
         owner, name = repo_cmd._parse_repo_arg("my-org/my-repo")
         assert owner == "my-org"
         assert name == "my-repo"
+
+
+class TestHandleUpdate:
+    def test_calls_update_repository(self, sample_config, sample_repo, capsys):
+        adapter = MagicMock()
+        adapter.update_repository.return_value = sample_repo
+        args = make_args(description="new desc", private=True, default_branch="develop")
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_update(args, fmt="table")
+
+        adapter.update_repository.assert_called_once_with(
+            description="new desc",
+            private=True,
+            default_branch="develop",
+        )
+
+    def test_json_format(self, sample_config, sample_repo, capsys):
+        adapter = MagicMock()
+        adapter.update_repository.return_value = sample_repo
+        args = make_args(description=None, private=None, default_branch=None)
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_update(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data[0]["name"] == "test-repo"
+
+    def test_passes_none_for_unset_args(self, sample_config, sample_repo):
+        adapter = MagicMock()
+        adapter.update_repository.return_value = sample_repo
+        args = make_args(description=None, private=None, default_branch=None)
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_update(args, fmt="table")
+
+        adapter.update_repository.assert_called_once_with(
+            description=None,
+            private=None,
+            default_branch=None,
+        )
+
+
+class TestHandleArchive:
+    def test_archive_with_yes_flag(self, sample_config, capsys):
+        adapter = MagicMock()
+        adapter._owner = "test-owner"
+        adapter._repo = "test-repo"
+        args = make_args(yes=True)
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_archive(args, fmt="table")
+
+        adapter.archive_repository.assert_called_once()
+        out = capsys.readouterr().out
+        assert "Archived" in out
+
+    def test_archive_confirmation_no(self, sample_config, capsys):
+        adapter = MagicMock()
+        adapter._owner = "test-owner"
+        adapter._repo = "test-repo"
+        args = make_args(yes=False)
+        with (
+            patch("gfo.commands.repo.get_adapter", return_value=adapter),
+            patch("builtins.input", return_value="n"),
+        ):
+            repo_cmd.handle_archive(args, fmt="table")
+
+        adapter.archive_repository.assert_not_called()
+        out = capsys.readouterr().out
+        assert "Aborted" in out
+
+    def test_archive_confirmation_yes(self, sample_config, capsys):
+        adapter = MagicMock()
+        adapter._owner = "test-owner"
+        adapter._repo = "test-repo"
+        args = make_args(yes=False)
+        with (
+            patch("gfo.commands.repo.get_adapter", return_value=adapter),
+            patch("builtins.input", return_value="y"),
+        ):
+            repo_cmd.handle_archive(args, fmt="table")
+
+        adapter.archive_repository.assert_called_once()
+
+
+class TestHandleLanguages:
+    def test_outputs_json(self, sample_config, capsys):
+        adapter = MagicMock()
+        adapter.get_languages.return_value = {"Python": 45678, "Go": 12345}
+        args = make_args()
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_languages(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["Python"] == 45678
+        assert data["Go"] == 12345
+
+    def test_empty_languages(self, sample_config, capsys):
+        adapter = MagicMock()
+        adapter.get_languages.return_value = {}
+        args = make_args()
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_languages(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data == {}
+
+
+class TestHandleTopics:
+    def test_list(self, sample_config, capsys):
+        adapter = MagicMock()
+        adapter.list_topics.return_value = ["python", "cli"]
+        args = make_args(topics_action="list")
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_topics(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data == ["python", "cli"]
+
+    def test_add(self, sample_config, capsys):
+        adapter = MagicMock()
+        adapter.add_topic.return_value = ["python", "cli", "new-topic"]
+        args = make_args(topics_action="add", topic="new-topic")
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_topics(args, fmt="json")
+
+        adapter.add_topic.assert_called_once_with("new-topic")
+
+    def test_remove(self, sample_config, capsys):
+        adapter = MagicMock()
+        adapter.remove_topic.return_value = ["python"]
+        args = make_args(topics_action="remove", topic="cli")
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_topics(args, fmt="json")
+
+        adapter.remove_topic.assert_called_once_with("cli")
+
+    def test_set(self, sample_config, capsys):
+        adapter = MagicMock()
+        adapter.set_topics.return_value = ["a", "b"]
+        args = make_args(topics_action="set", topics=["a", "b"])
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_topics(args, fmt="json")
+
+        adapter.set_topics.assert_called_once_with(["a", "b"])
+
+    def test_no_action_raises(self, sample_config):
+        args = make_args(topics_action=None)
+        with patch("gfo.commands.repo.get_adapter", return_value=MagicMock()):
+            with pytest.raises(ConfigError):
+                repo_cmd.handle_topics(args, fmt="json")
+
+
+class TestParseCompareSpec:
+    def test_triple_dot(self):
+        base, head = repo_cmd._parse_compare_spec("main...feature")
+        assert base == "main"
+        assert head == "feature"
+
+    def test_double_dot(self):
+        base, head = repo_cmd._parse_compare_spec("main..feature")
+        assert base == "main"
+        assert head == "feature"
+
+    def test_invalid_raises(self):
+        with pytest.raises(ConfigError):
+            repo_cmd._parse_compare_spec("main-feature")
+
+
+class TestHandleCompare:
+    def test_calls_compare(self, sample_config, capsys):
+        result = CompareResult(
+            total_commits=3,
+            ahead_by=3,
+            behind_by=0,
+            files=(CompareFile(filename="a.py", status="modified", additions=10, deletions=2),),
+        )
+        adapter = MagicMock()
+        adapter.compare.return_value = result
+        args = make_args(spec="main...feature")
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_compare(args, fmt="json")
+
+        adapter.compare.assert_called_once_with("main", "feature")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data[0]["total_commits"] == 3

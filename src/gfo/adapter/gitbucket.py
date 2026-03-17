@@ -17,6 +17,7 @@ from gfo.http import paginate_link_header
 from .base import (
     BranchProtection,
     CheckRun,
+    CompareResult,
     DeployKey,
     Issue,
     Notification,
@@ -25,6 +26,7 @@ from .base import (
     PullRequestCommit,
     PullRequestFile,
     Release,
+    ReleaseAsset,
     Repository,
     Review,
     Secret,
@@ -351,3 +353,54 @@ class GitBucketAdapter(GitHubAdapter):
 
     def delete_deploy_key(self, *, key_id: int) -> None:
         raise NotSupportedError("GitBucket", "deploy key operations")
+
+    # --- Repo update/archive（GitBucket は GitHub 互換度が限定的）---
+
+    def archive_repository(self) -> None:
+        raise NotSupportedError("GitBucket", "repo archive")
+
+    def get_languages(self) -> dict[str, int | float]:
+        raise NotSupportedError("GitBucket", "repo languages")
+
+    def list_topics(self) -> list[str]:
+        raise NotSupportedError("GitBucket", "repo topics")
+
+    def set_topics(self, topics: list[str]) -> list[str]:
+        raise NotSupportedError("GitBucket", "repo topics")
+
+    def add_topic(self, topic: str) -> list[str]:
+        raise NotSupportedError("GitBucket", "repo topics")
+
+    def remove_topic(self, topic: str) -> list[str]:
+        raise NotSupportedError("GitBucket", "repo topics")
+
+    def compare(self, base: str, head: str) -> CompareResult:
+        raise NotSupportedError("GitBucket", "repo compare")
+
+    # --- Release（GitBucket の Release API 制限）---
+
+    def get_latest_release(self) -> Release:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/releases",
+            limit=1,
+        )
+        if not results:
+            from gfo.exceptions import NotFoundError
+
+            raise NotFoundError()
+        return self._to_release(results[0])
+
+    def list_release_assets(self, *, tag: str) -> list[ReleaseAsset]:
+        raise NotSupportedError("GitBucket", "release asset operations")
+
+    def upload_release_asset(
+        self, *, tag: str, file_path: str, name: str | None = None
+    ) -> ReleaseAsset:
+        raise NotSupportedError("GitBucket", "release asset operations")
+
+    def download_release_asset(self, *, tag: str, asset_id: int | str, output_dir: str) -> str:
+        raise NotSupportedError("GitBucket", "release asset operations")
+
+    def delete_release_asset(self, *, tag: str, asset_id: int | str) -> None:
+        raise NotSupportedError("GitBucket", "release asset operations")

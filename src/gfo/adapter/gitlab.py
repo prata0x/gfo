@@ -14,6 +14,8 @@ from .base import (
     CheckRun,
     Comment,
     CommitStatus,
+    CompareFile,
+    CompareResult,
     DeployKey,
     GitServiceAdapter,
     Issue,
@@ -26,6 +28,7 @@ from .base import (
     PullRequestCommit,
     PullRequestFile,
     Release,
+    ReleaseAsset,
     Repository,
     Review,
     Secret,
@@ -307,6 +310,78 @@ class GitLabAdapter(GitServiceAdapter):
     def delete_repository(self) -> None:
         self._client.delete(self._project_path())
 
+    def update_repository(self, *, description=None, private=None, default_branch=None):
+        payload = {}
+        if description is not None:
+            payload["description"] = description
+        if private is not None:
+            payload["visibility"] = "private" if private else "public"
+        if default_branch is not None:
+            payload["default_branch"] = default_branch
+        resp = self._client.put(self._project_path(), json=payload)
+        return self._to_repository(resp.json())
+
+    def archive_repository(self):
+        self._client.post(f"{self._project_path()}/archive")
+
+    def get_languages(self):
+        resp = self._client.get(f"{self._project_path()}/languages")
+        return dict(resp.json())
+
+    # --- Topics ---
+
+    def list_topics(self):
+        resp = self._client.get(self._project_path())
+        return list(resp.json().get("topics", []))
+
+    def set_topics(self, topics):
+        resp = self._client.put(self._project_path(), json={"topics": topics})
+        return list(resp.json().get("topics", []))
+
+    def add_topic(self, topic):
+        current = self.list_topics()
+        if topic not in current:
+            current.append(topic)
+        return self.set_topics(current)
+
+    def remove_topic(self, topic):
+        current = self.list_topics()
+        if topic in current:
+            current.remove(topic)
+        return self.set_topics(current)
+
+    # --- Compare ---
+
+    def compare(self, base, head):
+        resp = self._client.get(
+            f"{self._project_path()}/repository/compare",
+            params={"from": base, "to": head},
+        )
+        data = resp.json()
+        commits = data.get("commits") or []
+        diffs = data.get("diffs") or []
+        files = tuple(
+            CompareFile(
+                filename=d.get("new_path") or d.get("old_path") or "",
+                status="added"
+                if d.get("new_file")
+                else "deleted"
+                if d.get("deleted_file")
+                else "renamed"
+                if d.get("renamed_file")
+                else "modified",
+                additions=0,
+                deletions=0,
+            )
+            for d in diffs
+        )
+        return CompareResult(
+            total_commits=len(commits),
+            ahead_by=len(commits),
+            behind_by=0,
+            files=files,
+        )
+
     # --- Release ---
 
     def list_releases(self, *, limit: int = 30) -> list[Release]:
@@ -368,6 +443,89 @@ class GitLabAdapter(GitServiceAdapter):
             json=payload,
         )
         return self._to_release(resp.json())
+
+    def get_latest_release(self):
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/releases",
+            limit=1,
+        )
+        if not results:
+            from gfo.exceptions import NotFoundError
+
+            raise NotFoundError()
+        return self._to_release(results[0])
+
+    # --- Release Assets ---
+
+    def list_release_assets(self, *, tag):
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/releases/{quote(tag, safe='')}/assets/links",
+            limit=0,
+        )
+        return [
+            ReleaseAsset(
+                id=r["id"],
+                name=r.get("name") or "",
+                size=0,
+                download_url=r.get("url") or r.get("direct_asset_url") or "",
+                created_at="",
+            )
+            for r in results
+        ]
+
+    def upload_release_asset(self, *, tag, file_path, name=None):
+        import os
+
+        fname = name or os.path.basename(file_path)
+        # Step 1: Upload to project uploads
+        url = f"{self._project_path()}/uploads"
+        with open(file_path, "rb") as f:
+            files = {"file": (fname, f)}
+            upload_resp = self._client._retry_loop(
+                lambda: self._client._session.post(
+                    self._client.base_url + url,
+                    files=files,
+                    timeout=300,
+                )
+            )
+        self._client._handle_response(upload_resp)
+        upload_data = upload_resp.json()
+        file_url = upload_data.get("full_path") or upload_data.get("url") or ""
+        if not file_url.startswith("http"):
+            file_url = self._client.base_url.rsplit("/api/v4", 1)[0] + file_url
+        # Step 2: Create release link
+        link_resp = self._client.post(
+            f"{self._project_path()}/releases/{quote(tag, safe='')}/assets/links",
+            json={"name": fname, "url": file_url},
+        )
+        link_data = link_resp.json()
+        return ReleaseAsset(
+            id=link_data["id"],
+            name=link_data.get("name") or fname,
+            size=0,
+            download_url=link_data.get("url") or link_data.get("direct_asset_url") or "",
+            created_at="",
+        )
+
+    def download_release_asset(self, *, tag, asset_id, output_dir):
+        import os
+
+        resp = self._client.get(
+            f"{self._project_path()}/releases/{quote(tag, safe='')}/assets/links/{asset_id}"
+        )
+        data = resp.json()
+        url = data.get("direct_asset_url") or data.get("url") or ""
+        asset_name = data.get("name") or f"asset-{asset_id}"
+        output_path = os.path.join(output_dir, asset_name)
+        self._client.download_file(url, output_path)
+        return output_path
+
+    def delete_release_asset(self, *, tag, asset_id):
+        self._client.delete(
+            f"{self._project_path()}/releases/{quote(tag, safe='')}/assets/links/{asset_id}"
+        )
 
     # --- Label ---
 

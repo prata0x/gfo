@@ -511,7 +511,9 @@ def test_parser_org_repos():
 
 
 def test_dispatch_table_has_68_entries():
-    assert len(_DISPATCH) == 108  # 100 + phase2 PR operations
+    assert (
+        len(_DISPATCH) == 115
+    )  # 108 + phase3 (repo update/archive/languages/topics/compare, release asset, api)
 
 
 def test_dispatch_table_all_keys():
@@ -547,11 +549,17 @@ def test_dispatch_table_all_keys():
         ("repo", "view"),
         ("repo", "delete"),
         ("repo", "fork"),
+        ("repo", "update"),
+        ("repo", "archive"),
+        ("repo", "languages"),
+        ("repo", "topics"),
+        ("repo", "compare"),
         ("release", "list"),
         ("release", "create"),
         ("release", "delete"),
         ("release", "view"),
         ("release", "update"),
+        ("release", "asset"),
         ("label", "list"),
         ("label", "create"),
         ("label", "delete"),
@@ -623,6 +631,7 @@ def test_dispatch_table_all_keys():
         ("ssh-key", "create"),
         ("ssh-key", "delete"),
         ("browse", None),
+        ("api", None),
         ("schema", None),
     }
     assert set(_DISPATCH.keys()) == expected_keys

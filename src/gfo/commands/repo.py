@@ -195,3 +195,92 @@ def handle_fork(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     adapter = get_adapter()
     repo = adapter.fork_repository(organization=getattr(args, "org", None))
     output(repo, fmt=fmt, jq=jq)
+
+
+def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo repo update のハンドラ。"""
+    adapter = get_adapter()
+    repo = adapter.update_repository(
+        description=getattr(args, "description", None),
+        private=getattr(args, "private", None),
+        default_branch=getattr(args, "default_branch", None),
+    )
+    output(repo, fmt=fmt, jq=jq)
+
+
+def handle_archive(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo repo archive のハンドラ。"""
+    adapter = get_adapter()
+    repo_name = f"{adapter._owner}/{adapter._repo}"
+    if not getattr(args, "yes", False):
+        confirm = input(
+            _("Are you sure you want to archive repository '{repo_name}'? [y/N]: ").format(
+                repo_name=repo_name
+            )
+        )
+        if confirm.lower() not in ("y", "yes"):
+            print(_("Aborted."))
+            return
+    adapter.archive_repository()
+    print(_("Archived repository '{repo_name}'.").format(repo_name=repo_name))
+
+
+def handle_languages(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo repo languages のハンドラ。"""
+    import json
+
+    from gfo.output import apply_jq_filter
+
+    adapter = get_adapter()
+    languages = adapter.get_languages()
+    json_str = json.dumps(languages, indent=2, ensure_ascii=False)
+    if jq:
+        print(apply_jq_filter(json_str, jq))
+    else:
+        print(json_str)
+
+
+def handle_topics(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo repo topics のハンドラ。"""
+    import json
+
+    from gfo.output import apply_jq_filter
+
+    adapter = get_adapter()
+    action = getattr(args, "topics_action", None)
+    if action is None:
+        raise ConfigError(_("Specify a subcommand: list, add, remove, set"))
+
+    if action == "list":
+        topics = adapter.list_topics()
+    elif action == "add":
+        topics = adapter.add_topic(args.topic)
+    elif action == "remove":
+        topics = adapter.remove_topic(args.topic)
+    elif action == "set":
+        topics = adapter.set_topics(args.topics)
+    else:
+        raise ConfigError(_("Unknown topics action: {action}").format(action=action))
+
+    json_str = json.dumps(topics, indent=2, ensure_ascii=False)
+    if jq:
+        print(apply_jq_filter(json_str, jq))
+    else:
+        print(json_str)
+
+
+def _parse_compare_spec(spec: str) -> tuple[str, str]:
+    """compare spec をパースして (base, head) を返す。"""
+    for sep in ("...", ".."):
+        if sep in spec:
+            parts = spec.split(sep, 1)
+            return parts[0].strip(), parts[1].strip()
+    raise ConfigError(_("Invalid compare spec. Use 'base...head' or 'base..head'."))
+
+
+def handle_compare(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo repo compare のハンドラ。"""
+    adapter = get_adapter()
+    base, head = _parse_compare_spec(args.spec)
+    result = adapter.compare(base, head)
+    output(result, fmt=fmt, jq=jq)

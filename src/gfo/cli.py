@@ -8,6 +8,7 @@ import sys
 from collections.abc import Callable
 from typing import NoReturn
 
+import gfo.commands.api
 import gfo.commands.auth_cmd
 import gfo.commands.branch
 import gfo.commands.branch_protect
@@ -189,6 +190,38 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_delete = repo_sub.add_parser("delete")
     repo_delete.add_argument("--yes", "-y", action="store_true", help=_("Skip confirmation prompt"))
 
+    # gfo repo update
+    repo_update = repo_sub.add_parser("update")
+    repo_update.add_argument("--description")
+    _repo_private_group = repo_update.add_mutually_exclusive_group()
+    _repo_private_group.add_argument("--private", dest="private", action="store_true", default=None)
+    _repo_private_group.add_argument("--public", dest="private", action="store_false")
+    repo_update.add_argument("--default-branch", dest="default_branch")
+
+    # gfo repo archive
+    repo_archive = repo_sub.add_parser("archive")
+    repo_archive.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
+
+    # gfo repo languages
+    repo_sub.add_parser("languages")
+
+    # gfo repo topics → サブサブコマンド
+    repo_topics = repo_sub.add_parser("topics")
+    repo_topics_sub = repo_topics.add_subparsers(dest="topics_action")
+    repo_topics_sub.add_parser("list")
+    repo_topics_add = repo_topics_sub.add_parser("add")
+    repo_topics_add.add_argument("topic")
+    repo_topics_remove = repo_topics_sub.add_parser("remove")
+    repo_topics_remove.add_argument("topic")
+    repo_topics_set = repo_topics_sub.add_parser("set")
+    repo_topics_set.add_argument("topics", nargs="+")
+
+    # gfo repo compare
+    repo_compare = repo_sub.add_parser("compare")
+    repo_compare.add_argument("spec")
+
     # gfo release → サブサブコマンド
     release_parser = subparser_map["release"] = subparsers.add_parser("release")
     release_sub = release_parser.add_subparsers(dest="subcommand")
@@ -203,7 +236,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     release_delete = release_sub.add_parser("delete")
     release_delete.add_argument("tag")
     release_view = release_sub.add_parser("view")
-    release_view.add_argument("tag")
+    release_view.add_argument("tag", nargs="?")
+    release_view.add_argument("--latest", action="store_true")
     release_update = release_sub.add_parser("update")
     release_update.add_argument("tag")
     release_update.add_argument("--title")
@@ -212,6 +246,24 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     release_update.add_argument("--no-draft", dest="draft", action="store_false")
     release_update.add_argument("--prerelease", action="store_true", default=None)
     release_update.add_argument("--no-prerelease", dest="prerelease", action="store_false")
+
+    # gfo release asset → サブサブコマンド
+    release_asset = release_sub.add_parser("asset")
+    release_asset_sub = release_asset.add_subparsers(dest="asset_action")
+    asset_list = release_asset_sub.add_parser("list")
+    asset_list.add_argument("--tag", required=True)
+    asset_upload = release_asset_sub.add_parser("upload")
+    asset_upload.add_argument("--tag", required=True)
+    asset_upload.add_argument("file")
+    asset_upload.add_argument("--name")
+    asset_download = release_asset_sub.add_parser("download")
+    asset_download.add_argument("--tag", required=True)
+    asset_download.add_argument("--pattern")
+    asset_download.add_argument("--dir", default=".")
+    asset_download.add_argument("--asset-id", dest="asset_id")
+    asset_delete = release_asset_sub.add_parser("delete")
+    asset_delete.add_argument("--tag", required=True)
+    asset_delete.add_argument("asset_id")
 
     # gfo label → サブサブコマンド
     label_parser = subparser_map["label"] = subparsers.add_parser("label")
@@ -545,6 +597,16 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     _browse_group.add_argument("--settings", action="store_true", help=_("Open settings page"))
     browse_parser.add_argument("--print", action="store_true", help=_("Print URL only"))
 
+    # gfo api（サブコマンドなし）
+    api_parser = subparser_map["api"] = subparsers.add_parser("api", help=_("Send raw API request"))
+    api_parser.add_argument(
+        "method",
+        choices=["GET", "POST", "PUT", "PATCH", "DELETE", "get", "post", "put", "patch", "delete"],
+    )
+    api_parser.add_argument("path")
+    api_parser.add_argument("--data", "-d")
+    api_parser.add_argument("--header", "-H", action="append")
+
     # gfo schema（サブコマンドなし、browse と同じパターン）
     schema_parser = subparser_map["schema"] = subparsers.add_parser(
         "schema", help=_("Show command JSON Schema")
@@ -587,11 +649,17 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("repo", "view"): gfo.commands.repo.handle_view,
     ("repo", "delete"): gfo.commands.repo.handle_delete,
     ("repo", "fork"): gfo.commands.repo.handle_fork,
+    ("repo", "update"): gfo.commands.repo.handle_update,
+    ("repo", "archive"): gfo.commands.repo.handle_archive,
+    ("repo", "languages"): gfo.commands.repo.handle_languages,
+    ("repo", "topics"): gfo.commands.repo.handle_topics,
+    ("repo", "compare"): gfo.commands.repo.handle_compare,
     ("release", "list"): gfo.commands.release.handle_list,
     ("release", "create"): gfo.commands.release.handle_create,
     ("release", "delete"): gfo.commands.release.handle_delete,
     ("release", "view"): gfo.commands.release.handle_view,
     ("release", "update"): gfo.commands.release.handle_update,
+    ("release", "asset"): gfo.commands.release.handle_asset,
     ("label", "list"): gfo.commands.label.handle_list,
     ("label", "create"): gfo.commands.label.handle_create,
     ("label", "delete"): gfo.commands.label.handle_delete,
@@ -663,6 +731,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("ssh-key", "create"): gfo.commands.ssh_key.handle_create,
     ("ssh-key", "delete"): gfo.commands.ssh_key.handle_delete,
     ("browse", None): gfo.commands.browse.handle_browse,
+    ("api", None): gfo.commands.api.handle_api,
     ("schema", None): gfo.commands.schema.handle_schema,
 }
 

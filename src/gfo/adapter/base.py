@@ -229,6 +229,31 @@ class PullRequestCommit:
     created_at: str
 
 
+@dataclass(frozen=True, slots=True)
+class CompareFile:
+    filename: str
+    status: str  # "added" | "modified" | "deleted" | "renamed"
+    additions: int
+    deletions: int
+
+
+@dataclass(frozen=True, slots=True)
+class CompareResult:
+    total_commits: int
+    ahead_by: int
+    behind_by: int
+    files: tuple[CompareFile, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ReleaseAsset:
+    id: int | str
+    name: str
+    size: int
+    download_url: str
+    created_at: str
+
+
 class GitHubLikeAdapter(ABC):
     """GitHub API 互換サービス（GitHub/Gitea 系）向け共通変換ヘルパー。
 
@@ -462,6 +487,19 @@ class GitHubLikeAdapter(ABC):
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod
+    def _to_release_asset(data: dict) -> ReleaseAsset:
+        try:
+            return ReleaseAsset(
+                id=data["id"],
+                name=data["name"],
+                size=data.get("size") or 0,
+                download_url=data.get("browser_download_url") or "",
+                created_at=data.get("created_at") or "",
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    @staticmethod
     def _to_pull_request_file(data: dict) -> PullRequestFile:
         try:
             return PullRequestFile(
@@ -622,6 +660,36 @@ class GitServiceAdapter(ABC):
         """リポジトリを削除する。引数なし（self._owner, self._repo を使用）。"""
         raise NotSupportedError(self.service_name, "repo delete")
 
+    def update_repository(
+        self,
+        *,
+        description: str | None = None,
+        private: bool | None = None,
+        default_branch: str | None = None,
+    ) -> Repository:
+        raise NotSupportedError(self.service_name, "repo update")
+
+    def archive_repository(self) -> None:
+        raise NotSupportedError(self.service_name, "repo archive")
+
+    def get_languages(self) -> dict[str, int | float]:
+        raise NotSupportedError(self.service_name, "repo languages")
+
+    def list_topics(self) -> list[str]:
+        raise NotSupportedError(self.service_name, "repo topics list")
+
+    def set_topics(self, topics: list[str]) -> list[str]:
+        raise NotSupportedError(self.service_name, "repo topics set")
+
+    def add_topic(self, topic: str) -> list[str]:
+        raise NotSupportedError(self.service_name, "repo topics add")
+
+    def remove_topic(self, topic: str) -> list[str]:
+        raise NotSupportedError(self.service_name, "repo topics remove")
+
+    def compare(self, base: str, head: str) -> CompareResult:
+        raise NotSupportedError(self.service_name, "repo compare")
+
     # --- Release ---
     @abstractmethod
     def list_releases(self, *, limit: int = 30) -> list[Release]: ...
@@ -653,6 +721,24 @@ class GitServiceAdapter(ABC):
         prerelease: bool | None = None,
     ) -> Release:
         raise NotSupportedError(self.service_name, "release update")
+
+    def get_latest_release(self) -> Release:
+        raise NotSupportedError(self.service_name, "release latest")
+
+    def list_release_assets(self, *, tag: str) -> list[ReleaseAsset]:
+        raise NotSupportedError(self.service_name, "release asset list")
+
+    def upload_release_asset(
+        self, *, tag: str, file_path: str, name: str | None = None
+    ) -> ReleaseAsset:
+        raise NotSupportedError(self.service_name, "release asset upload")
+
+    def download_release_asset(self, *, tag: str, asset_id: int | str, output_dir: str) -> str:
+        """アセットをダウンロードし、保存先パスを返す。"""
+        raise NotSupportedError(self.service_name, "release asset download")
+
+    def delete_release_asset(self, *, tag: str, asset_id: int | str) -> None:
+        raise NotSupportedError(self.service_name, "release asset delete")
 
     # --- Label ---
     @abstractmethod

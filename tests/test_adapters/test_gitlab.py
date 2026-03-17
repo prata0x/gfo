@@ -2344,3 +2344,153 @@ class TestMarkPullRequestReadyGitLab:
         gitlab_adapter.mark_pull_request_ready(1)
         body = json.loads(mock_responses.calls[1].request.body)
         assert body["title"] == "My MR"
+
+
+# --- Phase 3: リポジトリ操作・リリースアセット ---
+
+
+class TestUpdateRepositoryGitLab:
+    @responses.activate
+    def test_update_description(self, gitlab_adapter):
+        responses.add(responses.PUT, f"{PROJECT}", json=_repo_data(), status=200)
+        repo = gitlab_adapter.update_repository(description="new desc")
+        assert isinstance(repo, Repository)
+        assert json.loads(responses.calls[0].request.body)["description"] == "new desc"
+
+    @responses.activate
+    def test_update_private(self, gitlab_adapter):
+        responses.add(responses.PUT, f"{PROJECT}", json=_repo_data(), status=200)
+        gitlab_adapter.update_repository(private=True)
+        body = json.loads(responses.calls[0].request.body)
+        assert body["visibility"] == "private"
+
+    @responses.activate
+    def test_update_public(self, gitlab_adapter):
+        responses.add(responses.PUT, f"{PROJECT}", json=_repo_data(), status=200)
+        gitlab_adapter.update_repository(private=False)
+        body = json.loads(responses.calls[0].request.body)
+        assert body["visibility"] == "public"
+
+
+class TestArchiveRepositoryGitLab:
+    @responses.activate
+    def test_archive(self, gitlab_adapter):
+        responses.add(responses.POST, f"{PROJECT}/archive", json=_repo_data(), status=200)
+        gitlab_adapter.archive_repository()
+        assert responses.calls[0].request.method == "POST"
+
+
+class TestGetLanguagesGitLab:
+    @responses.activate
+    def test_get_languages(self, gitlab_adapter):
+        responses.add(
+            responses.GET, f"{PROJECT}/languages", json={"Python": 78.5, "Go": 21.5}, status=200
+        )
+        result = gitlab_adapter.get_languages()
+        assert result["Python"] == 78.5
+
+
+class TestTopicsGitLab:
+    @responses.activate
+    def test_list_topics(self, gitlab_adapter):
+        responses.add(
+            responses.GET,
+            f"{PROJECT}",
+            json={**_repo_data(), "topics": ["python", "cli"]},
+            status=200,
+        )
+        result = gitlab_adapter.list_topics()
+        assert result == ["python", "cli"]
+
+    @responses.activate
+    def test_set_topics(self, gitlab_adapter):
+        responses.add(
+            responses.PUT, f"{PROJECT}", json={**_repo_data(), "topics": ["a", "b"]}, status=200
+        )
+        result = gitlab_adapter.set_topics(["a", "b"])
+        assert result == ["a", "b"]
+
+    @responses.activate
+    def test_add_topic(self, gitlab_adapter):
+        responses.add(
+            responses.GET, f"{PROJECT}", json={**_repo_data(), "topics": ["a"]}, status=200
+        )
+        responses.add(
+            responses.PUT, f"{PROJECT}", json={**_repo_data(), "topics": ["a", "b"]}, status=200
+        )
+        result = gitlab_adapter.add_topic("b")
+        assert "b" in result
+
+    @responses.activate
+    def test_remove_topic(self, gitlab_adapter):
+        responses.add(
+            responses.GET, f"{PROJECT}", json={**_repo_data(), "topics": ["a", "b"]}, status=200
+        )
+        responses.add(
+            responses.PUT, f"{PROJECT}", json={**_repo_data(), "topics": ["a"]}, status=200
+        )
+        result = gitlab_adapter.remove_topic("b")
+        assert "b" not in result
+
+
+class TestCompareGitLab:
+    @responses.activate
+    def test_compare(self, gitlab_adapter):
+        from gfo.adapter.base import CompareResult
+
+        responses.add(
+            responses.GET,
+            f"{PROJECT}/repository/compare",
+            json={
+                "commits": [{"id": "abc"}, {"id": "def"}, {"id": "ghi"}],
+                "diffs": [
+                    {
+                        "new_path": "a.py",
+                        "old_path": "a.py",
+                        "new_file": False,
+                        "deleted_file": False,
+                        "renamed_file": False,
+                    }
+                ],
+            },
+            status=200,
+        )
+        result = gitlab_adapter.compare("main", "feature")
+        assert isinstance(result, CompareResult)
+        assert result.total_commits == 3
+        assert len(result.files) == 1
+        assert result.files[0].status == "modified"
+
+
+class TestGetLatestReleaseGitLab:
+    @responses.activate
+    def test_get_latest(self, gitlab_adapter):
+        responses.add(responses.GET, f"{PROJECT}/releases", json=[_release_data()], status=200)
+        release = gitlab_adapter.get_latest_release()
+        assert release.tag == "v1.0.0"
+
+
+class TestReleaseAssetsGitLab:
+    @responses.activate
+    def test_list_release_assets(self, gitlab_adapter):
+        responses.add(
+            responses.GET,
+            f"{PROJECT}/releases/v1.0.0/assets/links",
+            json=[
+                {
+                    "id": 1,
+                    "name": "app.zip",
+                    "url": "https://example.com/app.zip",
+                    "direct_asset_url": "https://example.com/app.zip",
+                },
+            ],
+            status=200,
+        )
+        assets = gitlab_adapter.list_release_assets(tag="v1.0.0")
+        assert len(assets) == 1
+        assert assets[0].name == "app.zip"
+
+    @responses.activate
+    def test_delete_release_asset(self, gitlab_adapter):
+        responses.add(responses.DELETE, f"{PROJECT}/releases/v1.0.0/assets/links/1", status=204)
+        gitlab_adapter.delete_release_asset(tag="v1.0.0", asset_id=1)

@@ -12,6 +12,7 @@ from .base import (
     CheckRun,
     Comment,
     CommitStatus,
+    CompareResult,
     Label,
     Milestone,
     Notification,
@@ -20,6 +21,8 @@ from .base import (
     PullRequestCommit,
     PullRequestFile,
     Release,
+    ReleaseAsset,
+    Repository,
     Review,
     Secret,
     Tag,
@@ -402,3 +405,50 @@ class GogsAdapter(GiteaAdapter):
 
     def delete_wiki_page(self, page_id: int | str) -> None:
         raise NotSupportedError("Gogs", "wiki operations")
+
+    # --- Repo update/archive/languages/topics/compare（Gogs 0.13 未対応）---
+
+    def update_repository(
+        self, *, description=None, private=None, default_branch=None
+    ) -> Repository:
+        raise NotSupportedError("Gogs", "repo update")
+
+    def archive_repository(self) -> None:
+        raise NotSupportedError("Gogs", "repo archive")
+
+    def get_languages(self) -> dict[str, int | float]:
+        raise NotSupportedError("Gogs", "repo languages")
+
+    def list_topics(self) -> list[str]:
+        raise NotSupportedError("Gogs", "repo topics")
+
+    def set_topics(self, topics: list[str]) -> list[str]:
+        raise NotSupportedError("Gogs", "repo topics")
+
+    def add_topic(self, topic: str) -> list[str]:
+        raise NotSupportedError("Gogs", "repo topics")
+
+    def remove_topic(self, topic: str) -> list[str]:
+        raise NotSupportedError("Gogs", "repo topics")
+
+    def compare(self, base: str, head: str) -> CompareResult:
+        raise NotSupportedError("Gogs", "repo compare")
+
+    # --- Release assets（Gogs 0.13: Release 非対応のため）---
+
+    def get_latest_release(self) -> Release:
+        raise NotSupportedError("Gogs", "release operations")
+
+    def list_release_assets(self, *, tag: str) -> list[ReleaseAsset]:
+        raise NotSupportedError("Gogs", "release operations")
+
+    def upload_release_asset(
+        self, *, tag: str, file_path: str, name: str | None = None
+    ) -> ReleaseAsset:
+        raise NotSupportedError("Gogs", "release operations")
+
+    def download_release_asset(self, *, tag: str, asset_id: int | str, output_dir: str) -> str:
+        raise NotSupportedError("Gogs", "release operations")
+
+    def delete_release_asset(self, *, tag: str, asset_id: int | str) -> None:
+        raise NotSupportedError("Gogs", "release operations")

@@ -14,6 +14,8 @@ from .base import (
     CheckRun,
     Comment,
     CommitStatus,
+    CompareFile,
+    CompareResult,
     DeployKey,
     GitHubLikeAdapter,
     GitServiceAdapter,
@@ -181,6 +183,65 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def delete_repository(self) -> None:
         self._client.delete(self._repos_path())
 
+    def update_repository(self, *, description=None, private=None, default_branch=None):
+        payload = {}
+        if description is not None:
+            payload["description"] = description
+        if private is not None:
+            payload["private"] = private
+        if default_branch is not None:
+            payload["default_branch"] = default_branch
+        resp = self._client.patch(self._repos_path(), json=payload)
+        return self._to_repository(resp.json())
+
+    def archive_repository(self):
+        self._client.patch(self._repos_path(), json={"archived": True})
+
+    def get_languages(self):
+        resp = self._client.get(f"{self._repos_path()}/languages")
+        return dict(resp.json())
+
+    # --- Topics ---
+
+    def list_topics(self):
+        resp = self._client.get(f"{self._repos_path()}/topics")
+        return list(resp.json().get("topics") or [])
+
+    def set_topics(self, topics):
+        resp = self._client.put(f"{self._repos_path()}/topics", json={"topics": topics})
+        return list(resp.json().get("topics") or [])
+
+    def add_topic(self, topic):
+        self._client.put(f"{self._repos_path()}/topics/{quote(topic, safe='')}")
+        return self.list_topics()
+
+    def remove_topic(self, topic):
+        self._client.delete(f"{self._repos_path()}/topics/{quote(topic, safe='')}")
+        return self.list_topics()
+
+    # --- Compare ---
+
+    def compare(self, base, head):
+        resp = self._client.get(
+            f"{self._repos_path()}/compare/{quote(base, safe='')}...{quote(head, safe='')}"
+        )
+        data = resp.json()
+        files = tuple(
+            CompareFile(
+                filename=f.get("filename", ""),
+                status=f.get("status", "modified"),
+                additions=f.get("additions", 0),
+                deletions=f.get("deletions", 0),
+            )
+            for f in (data.get("files") or [])
+        )
+        return CompareResult(
+            total_commits=data.get("total_commits", 0),
+            ahead_by=data.get("total_commits", 0),
+            behind_by=0,
+            files=files,
+        )
+
     # --- Release ---
 
     def list_releases(self, *, limit: int = 30) -> list[Release]:
@@ -242,6 +303,57 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["prerelease"] = prerelease
         resp = self._client.patch(f"{self._repos_path()}/releases/{release_id}", json=payload)
         return self._to_release(resp.json())
+
+    def get_latest_release(self):
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/releases",
+            limit=1,
+            per_page_key="limit",
+        )
+        if not results:
+            from gfo.exceptions import NotFoundError
+
+            raise NotFoundError()
+        return self._to_release(results[0])
+
+    def list_release_assets(self, *, tag):
+        resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
+        assets = resp.json().get("assets") or []
+        return [self._to_release_asset(a) for a in assets]
+
+    def upload_release_asset(self, *, tag, file_path, name=None):
+        resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
+        release_id = resp.json()["id"]
+        resp = self._client.upload_multipart(
+            f"{self._repos_path()}/releases/{release_id}/assets",
+            file_path,
+            field_name="attachment",
+        )
+        return self._to_release_asset(resp.json())
+
+    def download_release_asset(self, *, tag, asset_id, output_dir):
+        import os
+
+        resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
+        release_id = resp.json()["id"]
+        meta_resp = self._client.get(
+            f"{self._repos_path()}/releases/{release_id}/assets/{asset_id}"
+        )
+        data = meta_resp.json()
+        asset_name = data.get("name") or f"asset-{asset_id}"
+        output_path = os.path.join(output_dir, asset_name)
+        url = (
+            data.get("browser_download_url")
+            or f"{self._client.base_url}{self._repos_path()}/releases/{release_id}/assets/{asset_id}"
+        )
+        self._client.download_file(url, output_path)
+        return output_path
+
+    def delete_release_asset(self, *, tag, asset_id):
+        resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
+        release_id = resp.json()["id"]
+        self._client.delete(f"{self._repos_path()}/releases/{release_id}/assets/{asset_id}")
 
     # --- Label ---
 
