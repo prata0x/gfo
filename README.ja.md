@@ -81,14 +81,14 @@ gfo auth status
 |---|---|---|
 | `gfo init` | — | プロジェクト設定の初期化 |
 | `gfo auth` | `login`, `status` | トークン保存・認証状態確認 |
-| `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `update` | プルリクエスト操作 |
+| `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `update`, `diff`, `checks`, `files`, `commits`, `reviewers`, `update-branch`, `ready` | プルリクエスト操作 |
 | `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update` | Issue 操作 |
 | `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork` | リポジトリ操作 |
 | `gfo release` | `list`, `create`, `view`, `update`, `delete` | リリース管理 |
 | `gfo label` | `list`, `create`, `update`, `delete` | ラベル管理 |
 | `gfo milestone` | `list`, `create`, `view`, `update`, `close`, `reopen`, `delete` | マイルストーン管理 |
 | `gfo comment` | `list`, `create`, `update`, `delete` | PR / Issue コメント操作 |
-| `gfo review` | `list`, `create` | PR レビュー操作 |
+| `gfo review` | `list`, `create`, `dismiss` | PR レビュー操作 |
 | `gfo branch` | `list`, `create`, `delete` | ブランチ操作 |
 | `gfo tag` | `list`, `create`, `delete` | タグ操作 |
 | `gfo status` | `list`, `create` | コミットステータス操作 |
@@ -157,7 +157,16 @@ api_url = "https://gitlab.example.com/api/v4"
 | Release | ○ | ○ | × | × | × | ○ | ○ | × | ○ |
 | Label | ○ | ○ | × | × | × | ○ | ○ | × | ○ |
 | Milestone | ○ | ○ | × | × | × | ○ | ○ | × | ○ |
+| PR Diff | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
+| PR Checks | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
+| PR Files | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
+| PR Commits | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
+| PR Reviewers | ○ | ○ | △ | ○ | × | ○ | ○ | × | × |
+| PR Update Branch | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| PR Auto Merge | × | ○ | × | ○ | × | ○ | ○ | × | × |
+| PR Ready | × | ○ | × | ○ | × | ○ | ○ | × | × |
 | Review | ○ | ○ | × | × | × | × | × | × | × |
+| Review Dismiss | ○ | × | × | ○ | × | ○ | ○ | × | × |
 | Wiki | × | ○ | × | × | × | ○ | ○ | × | × |
 | CI/CD | ○ | ○ | × | × | × | ○ | ○ | × | × |
 | Search | ○ | ○ | × | × | × | × | × | × | × |
@@ -172,6 +181,7 @@ api_url = "https://gitlab.example.com/api/v4"
 > ×: 非対応（`NotSupportedError` を返します）
 >
 > **補足**:
+> - PR Reviewers（Bitbucket）: `list` のみ対応（`add` / `remove` は非対応）。
 > - Branch Protect（Bitbucket）: 強制プッシュと削除の制御のみ対応。レビュー要件・ステータスチェック・管理者への適用は非対応。
 > - Org（Azure DevOps）: `list`, `view`, `repos` のみ対応。`members` は非対応（メンバー管理には Teams を使用）。
 

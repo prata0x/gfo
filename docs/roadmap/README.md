@@ -57,13 +57,13 @@
 |-------------|:--:|:----:|:---:|:--:|:-----------|
 | **PR CRUD** | ○ | ○ | ○ | ○ | ○ 実装済み |
 | PR reopen | ○ | ○ | ○ | × | ○ 実装済み |
-| PR diff | ○ | ○ | × | × | **未実装** |
-| PR checks/status | ○ | ○ | × | ○ | **未実装** |
-| PR files | ○ | ○ | × | × | **未実装** |
-| PR commits | ○ | ○ | × | × | **未実装** |
-| PR requested reviewers | ○ | ○ | × | × | **未実装** |
-| PR update branch | ○ | ○ | × | × | **未実装** |
-| PR ready (draft解除) | ○ | ○ | × | × | **未実装** |
+| PR diff | ○ | ○ | × | × | ○ 実装済み |
+| PR checks/status | ○ | ○ | × | ○ | ○ 実装済み |
+| PR files | ○ | ○ | × | × | ○ 実装済み |
+| PR commits | ○ | ○ | × | × | ○ 実装済み |
+| PR requested reviewers | ○ | ○ | × | × | ○ 実装済み |
+| PR update branch | ○ | ○ | × | × | ○ 実装済み |
+| PR ready (draft解除) | ○ | ○ | × | × | ○ 実装済み |
 | PR review/approve | ○ | ○ | ○ | × | ○ 実装済み |
 | PR checkout | ○ | ○ | ○ | ○ | ○ 実装済み |
 | PR merge | ○ | ○ | ○ | ○ | ○ 実装済み |

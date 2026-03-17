@@ -144,16 +144,20 @@ gfo pr view 42
 > Backlog does not support PR merge
 
 ```
-gfo pr merge NUMBER [--method {merge,squash,rebase}]
+gfo pr merge NUMBER [--method {merge,squash,rebase}] [--auto]
 ```
 
 | Option | Default | Description |
 |---|---|---|
 | `--method` | `merge` | Merge method |
+| `--auto` | — | Enable auto-merge (merges automatically when conditions are met) |
+
+> `--auto` supported services: GitLab, Azure DevOps, Gitea, Forgejo
 
 ```bash
 gfo pr merge 42
 gfo pr merge 42 --method squash
+gfo pr merge 42 --auto
 ```
 
 ### gfo pr close
@@ -199,6 +203,108 @@ gfo pr update NUMBER [--title TITLE] [--body BODY] [--base BRANCH]
 ```bash
 gfo pr update 42 --title "Updated title"
 gfo pr update 42 --base develop
+```
+
+### gfo pr diff
+
+Show the diff for a pull request.
+
+> **Supported services**: GitHub, GitLab, Bitbucket, Gitea, Forgejo
+
+```
+gfo pr diff NUMBER
+```
+
+```bash
+gfo pr diff 42
+```
+
+### gfo pr checks
+
+Show CI checks and statuses for a pull request.
+
+> **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
+
+```
+gfo pr checks NUMBER
+```
+
+```bash
+gfo pr checks 42
+```
+
+### gfo pr files
+
+Show the list of files changed in a pull request.
+
+> **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
+
+```
+gfo pr files NUMBER
+```
+
+```bash
+gfo pr files 42
+```
+
+### gfo pr commits
+
+Show the list of commits in a pull request.
+
+> **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
+
+```
+gfo pr commits NUMBER
+```
+
+```bash
+gfo pr commits 42
+```
+
+### gfo pr reviewers
+
+Manage reviewers for a pull request.
+
+> **Supported services**: GitHub, GitLab, Bitbucket (list only), Azure DevOps, Gitea, Forgejo
+
+```
+gfo pr reviewers list NUMBER
+gfo pr reviewers add NUMBER USERNAME [USERNAME ...]
+gfo pr reviewers remove NUMBER USERNAME [USERNAME ...]
+```
+
+```bash
+gfo pr reviewers list 42
+gfo pr reviewers add 42 alice bob
+gfo pr reviewers remove 42 alice
+```
+
+### gfo pr update-branch
+
+Update the PR branch with the latest from the base branch.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo pr update-branch NUMBER
+```
+
+```bash
+gfo pr update-branch 42
+```
+
+### gfo pr ready
+
+Mark a draft PR as ready for review.
+
+> **Supported services**: GitLab, Azure DevOps, Gitea, Forgejo
+
+```
+gfo pr ready NUMBER
+```
+
+```bash
+gfo pr ready 42
 ```
 
 ---
@@ -685,6 +791,25 @@ One of `--approve`, `--request-changes`, or `--comment` is required.
 gfo review create 42 --approve
 gfo review create 42 --request-changes --body "Please fix the tests"
 gfo review create 42 --comment --body "Looks interesting, will review more later"
+```
+
+### gfo review dismiss
+
+Dismiss a review.
+
+> **Supported services**: GitHub, Azure DevOps, Gitea, Forgejo
+
+```
+gfo review dismiss NUMBER REVIEW_ID [--message MESSAGE]
+```
+
+| Option | Description |
+|---|---|
+| `--message` | Message explaining the reason for dismissal |
+
+```bash
+gfo review dismiss 42 12345
+gfo review dismiss 42 12345 --message "Outdated review"
 ```
 
 ---

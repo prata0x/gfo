@@ -330,6 +330,15 @@ cp tests/integration/.env.example tests/integration/.env
 | ssh-key | o | o | o | skip | o | o | o | skip | skip |
 | secret | o | o | o | skip | o | o | skip | skip | skip |
 | variable | o | o | o | skip | o | o | skip | skip | skip |
+| pr diff | o | o | o | skip | o | o | skip | skip | skip |
+| pr checks | o | o | o | o | o | o | skip | skip | skip |
+| pr files | o | o | o | o | o | o | skip | skip | skip |
+| pr commits | o | o | o | o | o | o | skip | skip | skip |
+| pr reviewers | o | o | △ | o | o | o | skip | skip | skip |
+| pr update-branch | o | o | skip | skip | o | o | skip | skip | skip |
+| pr ready | skip | o | skip | o | o | o | skip | skip | skip |
+| pr merge --auto | skip | o | skip | o | o | o | skip | skip | skip |
+| review dismiss | o | skip | skip | o | o | o | skip | skip | skip |
 
 > **凡例**: o = 完全カバー、△ = 部分カバー、skip = サービス非対応
 >
@@ -337,6 +346,7 @@ cp tests/integration/.env.example tests/integration/.env
 > - GitHub/GitLab notification: list のみ（既読テストが不完全）
 > - Azure DevOps org: list/view のみ（members 非対応）
 > - Gogs org: list のみ
+> - Bitbucket pr reviewers: list のみ（add/remove 非対応）
 
 ---
 

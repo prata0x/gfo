@@ -144,16 +144,20 @@ gfo pr view 42
 > Backlog は PR マージ非対応
 
 ```
-gfo pr merge NUMBER [--method {merge,squash,rebase}]
+gfo pr merge NUMBER [--method {merge,squash,rebase}] [--auto]
 ```
 
 | オプション | デフォルト | 説明 |
 |---|---|---|
 | `--method` | `merge` | マージ方法 |
+| `--auto` | — | 自動マージを有効化（条件を満たしたら自動でマージ） |
+
+> `--auto` 対応サービス: GitLab, Azure DevOps, Gitea, Forgejo
 
 ```bash
 gfo pr merge 42
 gfo pr merge 42 --method squash
+gfo pr merge 42 --auto
 ```
 
 ### gfo pr close
@@ -199,6 +203,108 @@ gfo pr update NUMBER [--title TITLE] [--body BODY] [--base BRANCH]
 ```bash
 gfo pr update 42 --title "Updated title"
 gfo pr update 42 --base develop
+```
+
+### gfo pr diff
+
+PR の差分を表示します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Gitea, Forgejo
+
+```
+gfo pr diff NUMBER
+```
+
+```bash
+gfo pr diff 42
+```
+
+### gfo pr checks
+
+PR に関連する CI チェック・ステータスを表示します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
+
+```
+gfo pr checks NUMBER
+```
+
+```bash
+gfo pr checks 42
+```
+
+### gfo pr files
+
+PR で変更されたファイル一覧を表示します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
+
+```
+gfo pr files NUMBER
+```
+
+```bash
+gfo pr files 42
+```
+
+### gfo pr commits
+
+PR に含まれるコミット一覧を表示します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
+
+```
+gfo pr commits NUMBER
+```
+
+```bash
+gfo pr commits 42
+```
+
+### gfo pr reviewers
+
+PR のレビュアーを管理します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket（list のみ）, Azure DevOps, Gitea, Forgejo
+
+```
+gfo pr reviewers list NUMBER
+gfo pr reviewers add NUMBER USERNAME [USERNAME ...]
+gfo pr reviewers remove NUMBER USERNAME [USERNAME ...]
+```
+
+```bash
+gfo pr reviewers list 42
+gfo pr reviewers add 42 alice bob
+gfo pr reviewers remove 42 alice
+```
+
+### gfo pr update-branch
+
+PR のブランチをベースブランチの最新に更新します。
+
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo pr update-branch NUMBER
+```
+
+```bash
+gfo pr update-branch 42
+```
+
+### gfo pr ready
+
+ドラフト PR を「レビュー準備完了」に変更します。
+
+> **対応サービス**: GitLab, Azure DevOps, Gitea, Forgejo
+
+```
+gfo pr ready NUMBER
+```
+
+```bash
+gfo pr ready 42
 ```
 
 ---
@@ -685,6 +791,25 @@ gfo review create NUMBER {--approve | --request-changes | --comment} [--body BOD
 gfo review create 42 --approve
 gfo review create 42 --request-changes --body "Please fix the tests"
 gfo review create 42 --comment --body "Looks interesting, will review more later"
+```
+
+### gfo review dismiss
+
+レビューを却下（dismiss）します。
+
+> **対応サービス**: GitHub, Azure DevOps, Gitea, Forgejo
+
+```
+gfo review dismiss NUMBER REVIEW_ID [--message MESSAGE]
+```
+
+| オプション | 説明 |
+|---|---|
+| `--message` | 却下理由のメッセージ |
+
+```bash
+gfo review dismiss 42 12345
+gfo review dismiss 42 12345 --message "Outdated review"
 ```
 
 ---

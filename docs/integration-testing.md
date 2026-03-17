@@ -330,6 +330,15 @@ cp tests/integration/.env.example tests/integration/.env
 | ssh-key | o | o | o | skip | o | o | o | skip | skip |
 | secret | o | o | o | skip | o | o | skip | skip | skip |
 | variable | o | o | o | skip | o | o | skip | skip | skip |
+| pr diff | o | o | o | skip | o | o | skip | skip | skip |
+| pr checks | o | o | o | o | o | o | skip | skip | skip |
+| pr files | o | o | o | o | o | o | skip | skip | skip |
+| pr commits | o | o | o | o | o | o | skip | skip | skip |
+| pr reviewers | o | o | △ | o | o | o | skip | skip | skip |
+| pr update-branch | o | o | skip | skip | o | o | skip | skip | skip |
+| pr ready | skip | o | skip | o | o | o | skip | skip | skip |
+| pr merge --auto | skip | o | skip | o | o | o | skip | skip | skip |
+| review dismiss | o | skip | skip | o | o | o | skip | skip | skip |
 
 > **Legend**: o = full coverage, △ = partial coverage, skip = not supported by the service
 >
@@ -337,6 +346,7 @@ cp tests/integration/.env.example tests/integration/.env
 > - GitHub/GitLab notification: list only (mark-as-read tests incomplete)
 > - Azure DevOps org: list/view only (members not supported)
 > - Gogs org: list only
+> - Bitbucket pr reviewers: list only (add/remove not supported)
 
 ---
 

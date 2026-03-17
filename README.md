@@ -81,14 +81,14 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 |---|---|---|
 | `gfo init` | — | Initialize project configuration |
 | `gfo auth` | `login`, `status` | Save token / check auth status |
-| `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `update` | Pull request operations |
+| `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `update`, `diff`, `checks`, `files`, `commits`, `reviewers`, `update-branch`, `ready` | Pull request operations |
 | `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update` | Issue operations |
 | `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork` | Repository operations |
 | `gfo release` | `list`, `create`, `view`, `update`, `delete` | Release management |
 | `gfo label` | `list`, `create`, `update`, `delete` | Label management |
 | `gfo milestone` | `list`, `create`, `view`, `update`, `close`, `reopen`, `delete` | Milestone management |
 | `gfo comment` | `list`, `create`, `update`, `delete` | PR / Issue comment operations |
-| `gfo review` | `list`, `create` | PR review operations |
+| `gfo review` | `list`, `create`, `dismiss` | PR review operations |
 | `gfo branch` | `list`, `create`, `delete` | Branch operations |
 | `gfo tag` | `list`, `create`, `delete` | Tag operations |
 | `gfo status` | `list`, `create` | Commit status operations |
@@ -157,7 +157,16 @@ api_url = "https://gitlab.example.com/api/v4"
 | Release | ○ | ○ | × | × | × | ○ | ○ | × | ○ |
 | Label | ○ | ○ | × | × | × | ○ | ○ | × | ○ |
 | Milestone | ○ | ○ | × | × | × | ○ | ○ | × | ○ |
+| PR Diff | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
+| PR Checks | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
+| PR Files | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
+| PR Commits | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
+| PR Reviewers | ○ | ○ | △ | ○ | × | ○ | ○ | × | × |
+| PR Update Branch | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| PR Auto Merge | × | ○ | × | ○ | × | ○ | ○ | × | × |
+| PR Ready | × | ○ | × | ○ | × | ○ | ○ | × | × |
 | Review | ○ | ○ | × | × | × | × | × | × | × |
+| Review Dismiss | ○ | × | × | ○ | × | ○ | ○ | × | × |
 | Wiki | × | ○ | × | × | × | ○ | ○ | × | × |
 | CI/CD | ○ | ○ | × | × | × | ○ | ○ | × | × |
 | Search | ○ | ○ | × | × | × | × | × | × | × |
@@ -172,6 +181,7 @@ api_url = "https://gitlab.example.com/api/v4"
 > ×: Not supported (returns `NotSupportedError`)
 >
 > **Footnotes**:
+> - PR Reviewers (Bitbucket): `list` only (`add` / `remove` not supported).
 > - Branch Protect (Bitbucket): Only force-push and deletion control; review requirements, status checks, and admin enforcement are not supported.
 > - Org (Azure DevOps): `list`, `view`, `repos` only; `members` is not supported (use Teams for member management).
 
