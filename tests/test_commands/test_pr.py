@@ -273,11 +273,11 @@ class TestErrorPropagation:
 
 
 def test_pr_list_config_error(capsys):
-    """resolve_project_config が ConfigError を投げた場合に CLI で exit code 1 になる。"""
+    """resolve_project_config が ConfigError を投げた場合に CLI で exit code 6 になる。"""
     from gfo.cli import main
 
     with patch("gfo.commands.pr.get_adapter", side_effect=ConfigError("not configured")):
         result = main(["pr", "list"])
 
-    assert result == 1
+    assert result == 6
     assert "not configured" in capsys.readouterr().err

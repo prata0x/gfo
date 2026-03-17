@@ -8,7 +8,16 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from gfo.cli import _DISPATCH, _ensure_utf8_stdio, _positive_int, create_parser, main
-from gfo.exceptions import AuthError, GfoError, NotSupportedError
+from gfo.exceptions import (
+    AuthenticationError,
+    AuthError,
+    ConfigError,
+    GfoError,
+    NetworkError,
+    NotFoundError,
+    NotSupportedError,
+    RateLimitError,
+)
 
 # ── _positive_int のテスト ──
 
@@ -706,13 +715,13 @@ def test_main_gfo_error_returns_1(capsys):
     assert "something went wrong" in captured.err
 
 
-def test_main_not_supported_error_returns_1(capsys):
+def test_main_not_supported_error_returns_5(capsys):
     def raise_nse(args, *, fmt, jq=None):
         raise NotSupportedError("github", "delete-repo", web_url="https://github.com/settings")
 
     with patch.dict(_DISPATCH, {("pr", "list"): raise_nse}):
         result = main(["pr", "list"])
-    assert result == 1
+    assert result == 5
     captured = capsys.readouterr()
     assert "github" in captured.err
     assert "https://github.com/settings" in captured.out
@@ -724,7 +733,7 @@ def test_main_not_supported_error_no_web_url(capsys):
 
     with patch.dict(_DISPATCH, {("pr", "list"): raise_nse}):
         result = main(["pr", "list"])
-    assert result == 1
+    assert result == 5
     captured = capsys.readouterr()
     assert "gitlab" in captured.err
     assert captured.out == ""
@@ -759,7 +768,7 @@ def test_main_auth_error_json_format(capsys):
 
     with patch.dict(_DISPATCH, {("pr", "list"): raise_auth}):
         result = main(["--format", "json", "pr", "list"])
-    assert result == 1
+    assert result == 2
     captured = capsys.readouterr()
     parsed = json.loads(captured.err)
     assert parsed["error"] == "auth_failed"
@@ -775,7 +784,7 @@ def test_main_not_supported_error_json_format(capsys):
 
     with patch.dict(_DISPATCH, {("pr", "list"): raise_nse}):
         result = main(["--format", "json", "pr", "list"])
-    assert result == 1
+    assert result == 5
     captured = capsys.readouterr()
     parsed = json.loads(captured.err)
     assert parsed["error"] == "not_supported"
@@ -791,7 +800,7 @@ def test_main_not_supported_error_text_format_still_prints_web_url(capsys):
 
     with patch.dict(_DISPATCH, {("pr", "list"): raise_nse}):
         result = main(["pr", "list"])
-    assert result == 1
+    assert result == 5
     captured = capsys.readouterr()
     assert "https://github.com/settings" in captured.out
     assert "github" in captured.err
@@ -815,6 +824,64 @@ def test_ensure_utf8_stdio_reconfigures_non_utf8(monkeypatch):
     monkeypatch.setattr("sys.stderr", fake)
     _ensure_utf8_stdio()
     assert called.get("utf-8") is True
+
+
+def test_main_auth_error_returns_2(capsys):
+    def raise_err(args, *, fmt, jq=None):
+        raise AuthError("github.com")
+
+    with patch.dict(_DISPATCH, {("pr", "list"): raise_err}):
+        result = main(["pr", "list"])
+    assert result == 2
+    assert "github.com" in capsys.readouterr().err
+
+
+def test_main_authentication_error_returns_2(capsys):
+    def raise_err(args, *, fmt, jq=None):
+        raise AuthenticationError(401)
+
+    with patch.dict(_DISPATCH, {("pr", "list"): raise_err}):
+        result = main(["pr", "list"])
+    assert result == 2
+
+
+def test_main_not_found_error_returns_3(capsys):
+    def raise_err(args, *, fmt, jq=None):
+        raise NotFoundError()
+
+    with patch.dict(_DISPATCH, {("pr", "list"): raise_err}):
+        result = main(["pr", "list"])
+    assert result == 3
+
+
+def test_main_rate_limit_error_returns_4(capsys):
+    def raise_err(args, *, fmt, jq=None):
+        raise RateLimitError(retry_after=60)
+
+    with patch.dict(_DISPATCH, {("pr", "list"): raise_err}):
+        result = main(["pr", "list"])
+    assert result == 4
+
+
+def test_main_config_error_returns_6(capsys):
+    def raise_err(args, *, fmt, jq=None):
+        raise ConfigError("bad config")
+
+    with patch.dict(_DISPATCH, {("pr", "list"): raise_err}):
+        result = main(["pr", "list"])
+    assert result == 6
+
+
+def test_main_network_error_returns_7(capsys):
+    def raise_err(args, *, fmt, jq=None):
+        raise NetworkError("Connection refused")
+
+    with patch.dict(_DISPATCH, {("pr", "list"): raise_err}):
+        result = main(["pr", "list"])
+    assert result == 7
+
+
+# ── _ensure_utf8_stdio のテスト ──
 
 
 def test_ensure_utf8_stdio_skips_utf8_stream(monkeypatch):

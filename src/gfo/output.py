@@ -72,7 +72,11 @@ def apply_jq_filter(json_str: str, expression: str) -> str:
 
 def format_error_json(err: GfoError) -> str:
     """GfoError を JSON 文字列にフォーマットする。"""
-    d: dict[str, str] = {"error": err.error_code, "message": str(err)}
+    d: dict[str, Any] = {
+        "error": err.error_code,
+        "message": str(err),
+        "exit_code": int(err.exit_code),
+    }
     if hasattr(err, "hint") and err.hint:
         d["hint"] = err.hint
     return json.dumps(d, ensure_ascii=False)

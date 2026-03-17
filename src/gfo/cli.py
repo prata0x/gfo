@@ -621,13 +621,13 @@ def main(argv: list[str] | None = None) -> int:
             print(str(err), file=sys.stderr)
             if err.web_url:
                 print(err.web_url)
-        return 1
+        return err.exit_code
     except GfoError as err:
         if resolved_fmt == "json":
             print(format_error_json(err), file=sys.stderr)
         else:
             print(str(err), file=sys.stderr)
-        return 1
+        return err.exit_code
     except Exception as err:  # pragma: no cover
         print(_("Unexpected error: {err}").format(err=err), file=sys.stderr)
         return 1

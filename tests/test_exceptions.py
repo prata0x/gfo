@@ -7,6 +7,7 @@ from gfo.exceptions import (
     AuthError,
     ConfigError,
     DetectionError,
+    ExitCode,
     GfoError,
     GitCommandError,
     HttpError,
@@ -192,6 +193,40 @@ class TestErrorCode:
     )
     def test_error_code(self, exc, expected_code):
         assert exc.error_code == expected_code
+
+
+class TestExitCode:
+    """各例外クラスの exit_code プロパティをテストする。"""
+
+    @pytest.mark.parametrize(
+        ("exc", "expected_exit_code"),
+        [
+            (GfoError("x"), ExitCode.GENERAL),
+            (GitCommandError("x"), ExitCode.GENERAL),
+            (DetectionError(), ExitCode.CONFIG),
+            (ConfigError("x"), ExitCode.CONFIG),
+            (AuthError("host"), ExitCode.AUTH),
+            (AuthenticationError(401), ExitCode.AUTH),
+            (NotFoundError(), ExitCode.NOT_FOUND),
+            (RateLimitError(), ExitCode.RATE_LIMIT),
+            (ServerError(500), ExitCode.GENERAL),
+            (NetworkError("x"), ExitCode.NETWORK),
+            (NotSupportedError("S", "op"), ExitCode.NOT_SUPPORTED),
+            (UnsupportedServiceError("x"), ExitCode.GENERAL),
+        ],
+    )
+    def test_exit_code(self, exc, expected_exit_code):
+        assert exc.exit_code == expected_exit_code
+
+    def test_exit_code_is_int(self):
+        """exit_code は int として使用可能。"""
+        err = AuthError("host")
+        assert int(err.exit_code) == 2
+
+    def test_http_error_inherits_general(self):
+        """HttpError は GfoError の GENERAL を継承する。"""
+        err = HttpError(400, "Bad Request")
+        assert err.exit_code == ExitCode.GENERAL
 
 
 class TestHint:
