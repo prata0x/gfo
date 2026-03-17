@@ -107,6 +107,7 @@ gfo auth status
 | `gfo ssh-key` | `list`, `create`, `delete` | SSH 鍵管理 |
 | `gfo secret` | `list`, `set`, `delete` | CI/CD シークレット管理 |
 | `gfo variable` | `list`, `set`, `get`, `delete` | CI/CD 変数管理 |
+| `gfo schema` | `--list`, `[command] [subcommand]` | コマンドの JSON Schema を表示（AI エージェント向け） |
 
 各コマンドの詳細なオプション・使用例は [docs/commands.ja.md](docs/commands.ja.md) を参照してください。
 

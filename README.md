@@ -107,6 +107,7 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 | `gfo ssh-key` | `list`, `create`, `delete` | SSH key management |
 | `gfo secret` | `list`, `set`, `delete` | CI/CD secret management |
 | `gfo variable` | `list`, `set`, `get`, `delete` | CI/CD variable management |
+| `gfo schema` | `--list`, `[command] [subcommand]` | Show command JSON Schema (for AI agents) |
 
 See [docs/commands.md](docs/commands.md) for detailed options and examples for each command.
 

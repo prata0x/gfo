@@ -1236,3 +1236,67 @@ gfo variable get NODE_ENV
 ```
 gfo variable delete NAME
 ```
+
+---
+
+## gfo schema
+
+コマンドの JSON Schema を表示します。AI エージェントがコマンドの入出力をプログラム的に把握するために設計されています。
+
+> **対応サービス**: N/A（メタデータコマンド、API 呼び出しなし）
+
+```
+gfo schema [--list] [COMMAND [SUBCOMMAND]]
+```
+
+| オプション / 引数 | 説明 |
+|---|---|
+| `--list` | 全コマンド一覧を説明付きで表示 |
+| `COMMAND` | 指定コマンド配下の全サブコマンドのスキーマを表示 |
+| `COMMAND SUBCOMMAND` | 特定コマンドの入力・出力スキーマを表示 |
+| （なし） | `--list` と同じ |
+
+`--format` の指定に関わらず、出力は常に JSON です。
+
+**例:**
+
+```bash
+# 全コマンド一覧
+gfo schema --list
+
+# 特定コマンドのスキーマ
+gfo schema pr list
+
+# pr 配下の全サブコマンドのスキーマ
+gfo schema pr
+
+# jq フィルタを適用
+gfo schema pr list --jq '.output'
+```
+
+**出力形式（`gfo schema pr list`）:**
+
+```json
+{
+  "command": "pr list",
+  "input": {
+    "type": "object",
+    "properties": {
+      "state": {"type": "string", "enum": ["open","closed","merged","all"], "default": "open"},
+      "limit": {"type": "integer", "default": 30}
+    }
+  },
+  "output": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "number": {"type": "integer"},
+        "title": {"type": "string"},
+        ...
+      },
+      "required": ["number", "title", ...]
+    }
+  }
+}
+```

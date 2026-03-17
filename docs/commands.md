@@ -1236,3 +1236,67 @@ gfo variable get NODE_ENV
 ```
 gfo variable delete NAME
 ```
+
+---
+
+## gfo schema
+
+Show JSON Schema for commands. Designed for AI agents to discover command inputs/outputs programmatically.
+
+> **Supported services**: N/A (metadata command, no API calls)
+
+```
+gfo schema [--list] [COMMAND [SUBCOMMAND]]
+```
+
+| Option / Argument | Description |
+|---|---|
+| `--list` | List all available commands with descriptions |
+| `COMMAND` | Show schemas for all subcommands under this command group |
+| `COMMAND SUBCOMMAND` | Show input/output schema for a specific command |
+| (none) | Same as `--list` |
+
+Output is always JSON regardless of `--format`.
+
+**Examples:**
+
+```bash
+# List all commands
+gfo schema --list
+
+# Show schema for a specific command
+gfo schema pr list
+
+# Show schemas for all pr subcommands
+gfo schema pr
+
+# Apply jq filter
+gfo schema pr list --jq '.output'
+```
+
+**Output format (`gfo schema pr list`):**
+
+```json
+{
+  "command": "pr list",
+  "input": {
+    "type": "object",
+    "properties": {
+      "state": {"type": "string", "enum": ["open","closed","merged","all"], "default": "open"},
+      "limit": {"type": "integer", "default": 30}
+    }
+  },
+  "output": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "number": {"type": "integer"},
+        "title": {"type": "string"},
+        ...
+      },
+      "required": ["number", "title", ...]
+    }
+  }
+}
+```

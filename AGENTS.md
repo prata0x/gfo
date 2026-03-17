@@ -49,7 +49,8 @@ src/gfo/
 │   ├── backlog.py / gitea.py / forgejo.py / gogs.py / gitbucket.py
 └── commands/
     ├── init.py / auth_cmd.py / pr.py / issue.py
-    └── repo.py / release.py / label.py / milestone.py
+    ├── repo.py / release.py / label.py / milestone.py
+    └── schema.py
 
 tests/
 ├── conftest.py / test_adapter_base.py / test_auth.py / test_cli.py / test_config.py
