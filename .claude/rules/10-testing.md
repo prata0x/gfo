@@ -52,3 +52,5 @@ def test_something(adapter):
 - **API 反映ラグ**: set/delete 直後の get/list に `time.sleep(3)` を入れること
   - GitHub/Bitbucket で確認済みの反映遅延への対策
 - **プライベート API 依存**: TODO コメント付きで最小限に抑えること
+- **git 操作時の GCM 抑制**: `subprocess.run` で `git clone`/`git push` 等を実行する場合、環境変数に `GCM_INTERACTIVE=never` と `GIT_TERMINAL_PROMPT=0` を設定すること
+  - 理由: Windows の Git Credential Manager (GCM) が `GIT_ASKPASS` より先に介入し、ブラウザで認証ページを開いてしまう
