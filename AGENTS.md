@@ -50,6 +50,7 @@ src/gfo/
 └── commands/
     ├── init.py / auth_cmd.py / pr.py / issue.py
     ├── repo.py / release.py / label.py / milestone.py
+    ├── package.py
     └── schema.py
 
 tests/
@@ -80,4 +81,4 @@ pytest
 pytest tests/test_commands/test_pr.py -v
 ```
 
-カバレッジ: 1570 テスト、99%（`__main__.py` の 4 行のみ未カバー）
+カバレッジ: 2552 テスト、88%
