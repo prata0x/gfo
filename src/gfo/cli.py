@@ -44,7 +44,7 @@ import gfo.commands.variable
 import gfo.commands.webhook
 import gfo.commands.wiki
 from gfo import __version__
-from gfo._context import cli_remote
+from gfo._context import cli_remote, cli_repo
 from gfo.config import get_configured_output_format
 from gfo.exceptions import ConfigError, GfoError, NotSupportedError
 from gfo.i18n import _
@@ -92,6 +92,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         default=None,
         metavar="REMOTE",
         help=_("Use specified git remote instead of origin"),
+    )
+    parser.add_argument(
+        "--repo",
+        dest="global_repo",
+        default=None,
+        metavar="REPO",
+        help=_("Specify target repository (URL or HOST/OWNER/REPO)"),
     )
 
     subparsers = parser.add_subparsers(dest="command")
@@ -1235,8 +1242,21 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 1
 
-    # --remote の ContextVar 設定
-    remote_token = cli_remote.set(getattr(args, "global_remote", None))
+    # --repo と --remote の排他検証
+    repo_value = getattr(args, "global_repo", None)
+    remote_value = getattr(args, "global_remote", None)
+    if repo_value and remote_value:
+        pre_fmt = _pre_parse_format(argv)
+        excl_err = ConfigError(_("--repo and --remote are mutually exclusive."))
+        if pre_fmt == "json":
+            print(format_error_json(excl_err), file=sys.stderr)
+        else:
+            print(str(excl_err), file=sys.stderr)
+        return excl_err.exit_code
+
+    # --remote / --repo の ContextVar 設定
+    remote_token = cli_remote.set(remote_value)
+    repo_token = cli_repo.set(repo_value)
 
     try:
         jq_expr = args.jq
@@ -1270,3 +1290,4 @@ def main(argv: list[str] | None = None) -> int:
             return 1
     finally:
         cli_remote.reset(remote_token)
+        cli_repo.reset(repo_token)

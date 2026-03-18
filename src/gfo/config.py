@@ -130,10 +130,10 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
     import gfo.detect
     import gfo.git_util
 
-    # --remote 指定時は git config ショートカットをスキップ
-    from gfo._context import cli_remote
+    # --remote / --repo 指定時は git config ショートカットをスキップ
+    from gfo._context import cli_remote, cli_repo
 
-    override_active = cli_remote.get() is not None
+    override_active = cli_remote.get() is not None or cli_repo.get() is not None
 
     # 1-2. git config から service_type / host を取得（saved_type / saved_host: git config 保存値）
     saved_type = gfo.git_util.git_config_get("gfo.type", cwd=cwd)

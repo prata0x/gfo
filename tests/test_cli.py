@@ -1138,3 +1138,59 @@ def test_main_resets_context_var_on_error():
         main(["--remote", "upstream", "pr", "list"])
 
     assert cli_remote.get() is None
+
+
+# ── --repo グローバルオプションのテスト ──
+
+
+def test_parser_repo_option():
+    parser, _ = create_parser()
+    args = parser.parse_args(["--repo", "github.com/owner/repo", "pr", "list"])
+    assert args.global_repo == "github.com/owner/repo"
+
+
+def test_parser_no_repo_defaults():
+    """--repo 未指定時のデフォルトは None。"""
+    parser, _ = create_parser()
+    args = parser.parse_args(["pr", "list"])
+    assert args.global_repo is None
+
+
+def test_main_sets_context_var_repo():
+    """main() が --repo で cli_repo ContextVar を設定する。"""
+    from gfo._context import cli_repo
+
+    captured_value = None
+
+    def capture_handler(args, *, fmt, jq=None):
+        nonlocal captured_value
+        captured_value = cli_repo.get()
+
+    with patch.dict(_DISPATCH, {("pr", "list"): capture_handler}):
+        main(["--repo", "github.com/owner/repo", "pr", "list"])
+
+    assert captured_value == "github.com/owner/repo"
+    # main() 終了後はリセットされている
+    assert cli_repo.get() is None
+
+
+def test_main_resets_context_var_repo_on_error():
+    """main() でエラーが発生しても cli_repo ContextVar はリセットされる。"""
+    from gfo._context import cli_repo
+
+    def raise_handler(args, *, fmt, jq=None):
+        raise GfoError("test error")
+
+    with patch.dict(_DISPATCH, {("pr", "list"): raise_handler}):
+        main(["--repo", "github.com/owner/repo", "pr", "list"])
+
+    assert cli_repo.get() is None
+
+
+def test_main_repo_and_remote_mutually_exclusive(capsys):
+    """--repo と --remote の同時指定はエラーになる。"""
+    exit_code = main(["--repo", "github.com/owner/repo", "--remote", "upstream", "pr", "list"])
+    assert exit_code != 0
+    captured = capsys.readouterr()
+    assert "--repo" in captured.err
+    assert "--remote" in captured.err

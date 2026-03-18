@@ -127,14 +127,27 @@
 
 ---
 
-## 5. 未決事項
+## 5. `--repo` オプション実装（完了）
 
-### `--repo HOST/OWNER/REPO` の設計メモ
+### 5.1 実装内容
 
-将来このオプションを追加する場合の検討事項:
+- [x] `_context.py`: `cli_repo` ContextVar 追加
+- [x] `detect.py`: `_parse_repo_option()` 追加（`detect_from_url()` の再利用戦略）
+- [x] `detect.py`: `detect_service()` の `--repo` パス追加
+- [x] `config.py`: `override_active` に `cli_repo` チェック追加
+- [x] `cli.py`: `--repo` オプション追加、`--remote` との排他検証、ContextVar 設定/リセット
+- [x] テスト追加（`_parse_repo_option`, `detect_service` の `--repo` パス, CLI 排他検証, `resolve_project_config`）
+- [x] ドキュメント更新（commands.md, commands.ja.md, spec.md, README.md, README.ja.md）
+- [x] ルールファイル更新（09-config-auth.md）
 
-- **パース形式**: スラッシュ区切りだと Azure DevOps の `HOST/ORG/PROJECT/REPO` が4セグメントになる
-  - 案A: `HOST/PATH` として host 以降をサービス依存でパース
-  - 案B: URL 形式 (`https://dev.azure.com/org/project/_git/repo`) をそのまま受け付ける（既存の `detect_from_url()` を流用可能）
-- **service_type の自動検出**: host から既知ホストテーブル + API プローブで判定する既存ロジックが使える
-- **認証**: git config に依存しないため、`credentials.toml` または環境変数からの解決が必要
+### 5.2 パース戦略
+
+`_parse_repo_option(value)`:
+1. `detect_from_url(value)` → URL 形式（HTTPS/SSH/SCP）に対応
+2. 失敗時 `detect_from_url(f"https://{value}")` → `HOST/PATH` 形式に対応
+3. 両方失敗 → `ConfigError`（書式例を含むエラーメッセージ）
+
+### 5.3 既知の制約
+
+- **非標準ポート**: `host:port/path` 形式は SCP パターンと曖昧。ポート付きは `ssh://host:port/path` や `https://host:port/path` の URL 形式を使うよう案内
+- **git リポジトリ外での暗黙デフォルト値**: `gfo pr create` 等で `--head`/`--base` を省略した場合、`get_current_branch()` が失敗する

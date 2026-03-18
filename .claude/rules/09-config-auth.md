@@ -58,6 +58,16 @@ paths:
 - 指定リモートの URL で `get_remote_url(remote=...)` を呼ぶ
 - `dest` は `global_remote`（`init --host` との衝突回避）
 
+## `--repo` グローバルオプション
+
+- `cli.main()` で `contextvars.ContextVar`（`cli_repo`）に値を設定
+- `--remote` と排他（同時指定時は `ConfigError`）
+- `detect_service()` 内の `_parse_repo_option()` で値をパース
+- 受け付ける形式: HTTPS URL, SSH URL, SCP 形式, `HOST/OWNER/REPO`
+- パース戦略: `detect_from_url(value)` → 失敗時 `detect_from_url(f"https://{value}")` → 両方失敗で `ConfigError`
+- 指定時 → git config ショートカットをスキップし、URL からサービスを自動検出
+- `dest` は `global_repo`
+
 ## リモート解決のフォールバック
 
 - `get_remote_url()` / `get_default_branch()` のデフォルトリモート解決順: origin → 最初の非 origin リモート

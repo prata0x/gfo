@@ -241,17 +241,49 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
     return None
 
 
+# ── --repo オプションパーサー ──
+
+
+def _parse_repo_option(value: str) -> DetectResult:
+    """--repo オプションの値をパースして DetectResult を返す。"""
+    from gfo.exceptions import ConfigError
+    from gfo.i18n import _
+
+    if not value or not value.strip():
+        raise ConfigError(_("--repo value must not be empty. Use URL or HOST/OWNER/REPO format."))
+
+    # 1. URL 形式を試す (https://, ssh://, git@host:path)
+    try:
+        return detect_from_url(value)
+    except DetectionError:
+        pass
+
+    # 2. HOST/PATH 形式 → https:// を補完して再試行
+    try:
+        return detect_from_url(f"https://{value}")
+    except DetectionError:
+        raise ConfigError(
+            _("Cannot parse --repo value: {value}. Use URL or HOST/OWNER/REPO format.").format(
+                value=value
+            )
+        )
+
+
 # ── 統合検出フロー ──
 
 
 def detect_service(cwd: str | None = None) -> DetectResult:
     """完全な検出フローを実行する。"""
-    from gfo._context import cli_remote
+    from gfo._context import cli_remote, cli_repo
 
+    override_repo = cli_repo.get()
     override_remote = cli_remote.get()
 
-    # --remote 指定時は git config ショートカットをスキップ
-    if not override_remote:
+    # --repo 指定時: URL/HOST/PATH からパースし、サービス検出フローに合流
+    if override_repo:
+        result = _parse_repo_option(override_repo)
+    elif not override_remote:
+        # --remote も --repo も未指定時
         # 1. git config ショートカット（saved_type / saved_host: git config に保存済みの値）
         saved_type = git_config_get("gfo.type", cwd=cwd)
         saved_host = git_config_get("gfo.host", cwd=cwd)
@@ -268,13 +300,13 @@ def detect_service(cwd: str | None = None) -> DetectResult:
             # service_type と host を git config の値で統一する
             result = dataclasses.replace(result, service_type=saved_type, host=saved_host)
             return result
-
-    # 2. URL パース
-    if override_remote:
-        remote_url = get_remote_url(remote=override_remote, cwd=cwd)
-    else:
+        # git config ショートカット不成立 → URL パースへ
         remote_url = get_remote_url(cwd=cwd)
-    result = detect_from_url(remote_url)
+        result = detect_from_url(remote_url)
+    else:
+        # 2. --remote 指定時: URL パース
+        remote_url = get_remote_url(remote=override_remote, cwd=cwd)
+        result = detect_from_url(remote_url)
 
     # 3. config.toml hosts 参照
     if result.service_type is None:
@@ -295,7 +327,11 @@ def detect_service(cwd: str | None = None) -> DetectResult:
 
     # 4. プローブ（SSH URL も含め常に HTTPS を優先する）
     if result.service_type is None:
-        scheme = "http" if remote_url.startswith("http://") else "https"
+        # --repo 指定時は remote_url が存在しないため常に https
+        if override_repo:
+            scheme = "https"
+        else:
+            scheme = "http" if remote_url.startswith("http://") else "https"
         probed = probe_unknown_host(result.host, scheme=scheme)
         if probed is not None:
             result = dataclasses.replace(result, service_type=probed)

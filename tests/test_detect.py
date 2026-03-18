@@ -5,8 +5,14 @@ from unittest.mock import patch
 import pytest
 import responses
 
-from gfo.detect import detect_from_url, detect_service, get_known_service_type, probe_unknown_host
-from gfo.exceptions import DetectionError
+from gfo.detect import (
+    _parse_repo_option,
+    detect_from_url,
+    detect_service,
+    get_known_service_type,
+    probe_unknown_host,
+)
+from gfo.exceptions import ConfigError, DetectionError
 
 # ── URL パーステスト ──
 
@@ -591,3 +597,146 @@ class TestDetectServiceHostsConfig:
         with patch("gfo.config.get_hosts_config", side_effect=AttributeError("no attr")):
             with pytest.raises(DetectionError):
                 detect_service()
+
+
+# ── _parse_repo_option テスト ──
+
+
+class TestParseRepoOption:
+    def test_https_url(self):
+        r = _parse_repo_option("https://github.com/owner/repo")
+        assert r.service_type == "github"
+        assert r.host == "github.com"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+
+    def test_https_url_with_git_suffix(self):
+        r = _parse_repo_option("https://github.com/owner/repo.git")
+        assert r.service_type == "github"
+        assert r.repo == "repo"
+
+    def test_ssh_url_with_port(self):
+        r = _parse_repo_option("ssh://git@forgejo.example.com:2222/owner/repo.git")
+        assert r.host == "forgejo.example.com"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+
+    def test_scp_format(self):
+        r = _parse_repo_option("git@github.com:owner/repo.git")
+        assert r.service_type == "github"
+        assert r.host == "github.com"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+
+    def test_host_path(self):
+        r = _parse_repo_option("github.com/owner/repo")
+        assert r.service_type == "github"
+        assert r.host == "github.com"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+
+    def test_host_path_gitlab_subgroup(self):
+        r = _parse_repo_option("gitlab.com/group/subgroup/repo")
+        assert r.service_type == "gitlab"
+        assert r.owner == "group/subgroup"
+        assert r.repo == "repo"
+
+    def test_host_path_azure_devops(self):
+        r = _parse_repo_option("dev.azure.com/org/project/_git/repo")
+        assert r.service_type == "azure-devops"
+        assert r.organization == "org"
+        assert r.project == "project"
+        assert r.repo == "repo"
+
+    def test_host_path_backlog(self):
+        r = _parse_repo_option("space.backlog.com/git/PROJECT/repo")
+        assert r.service_type == "backlog"
+        assert r.owner == "PROJECT"
+        assert r.project == "PROJECT"
+        assert r.repo == "repo"
+
+    def test_empty_string_raises_config_error(self):
+        with pytest.raises(ConfigError):
+            _parse_repo_option("")
+
+    def test_whitespace_only_raises_config_error(self):
+        with pytest.raises(ConfigError):
+            _parse_repo_option("   ")
+
+    def test_invalid_format_raises_config_error(self):
+        """URL としても HOST/PATH としてもパースできない値は ConfigError になる。"""
+        with patch("gfo.detect.detect_from_url", side_effect=DetectionError("cannot parse")):
+            with pytest.raises(ConfigError, match="Cannot parse --repo value"):
+                _parse_repo_option("not-valid")
+
+
+# ── detect_service の --repo パステスト ──
+
+
+class TestDetectServiceRepoOverride:
+    def test_repo_override_known_host(self):
+        """--repo 指定時に既知ホストの service_type が正しく解決される。"""
+        from gfo._context import cli_repo
+
+        token = cli_repo.set("github.com/owner/repo")
+        try:
+            r = detect_service()
+            assert r.service_type == "github"
+            assert r.host == "github.com"
+            assert r.owner == "owner"
+            assert r.repo == "repo"
+        finally:
+            cli_repo.reset(token)
+
+    def test_repo_override_https_url(self):
+        """--repo に HTTPS URL を指定した場合の動作。"""
+        from gfo._context import cli_repo
+
+        token = cli_repo.set("https://gitlab.com/group/repo.git")
+        try:
+            r = detect_service()
+            assert r.service_type == "gitlab"
+            assert r.owner == "group"
+            assert r.repo == "repo"
+        finally:
+            cli_repo.reset(token)
+
+    @patch("gfo.detect.probe_unknown_host", return_value="gitea")
+    def test_repo_override_unknown_host_probe(self, mock_probe):
+        """--repo で未知ホスト指定時にプローブで解決される。"""
+        from gfo._context import cli_repo
+
+        token = cli_repo.set("git.example.com/owner/repo")
+        try:
+            with patch("gfo.config.get_hosts_config", return_value={}):
+                r = detect_service()
+            assert r.service_type == "gitea"
+            mock_probe.assert_called_once_with("git.example.com", scheme="https")
+        finally:
+            cli_repo.reset(token)
+
+    def test_repo_override_skips_git_config_shortcut(self):
+        """--repo 指定時は git config ショートカットをスキップする。"""
+        from gfo._context import cli_repo
+
+        token = cli_repo.set("github.com/owner/repo")
+        try:
+            with patch("gfo.detect.git_config_get") as mock_config:
+                r = detect_service()
+                # git_config_get は呼ばれない
+                mock_config.assert_not_called()
+            assert r.service_type == "github"
+        finally:
+            cli_repo.reset(token)
+
+    def test_repo_override_hosts_config_fallback(self):
+        """--repo で未知ホスト → hosts config で解決される。"""
+        from gfo._context import cli_repo
+
+        token = cli_repo.set("git.example.com/owner/repo")
+        try:
+            with patch("gfo.config.get_hosts_config", return_value={"git.example.com": "forgejo"}):
+                r = detect_service()
+            assert r.service_type == "forgejo"
+        finally:
+            cli_repo.reset(token)
