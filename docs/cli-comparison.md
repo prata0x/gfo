@@ -54,7 +54,7 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 
 | コマンド | gh | glab | tea | fj | gfo |
 |---|---|---|---|---|---|
-| review | — (pr 内) | — (mr 内) | — (pr 内) | — | Y |
+| review | — (pr 内) | — (mr 内) | — (pr 内) | — | Y (pr 内) |
 
 **ラベル・マイルストーン**
 
@@ -138,7 +138,7 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 | checkout | Y | Y | Y | Y | Y |
 | diff | Y | Y | — | Y | Y |
 | checks | Y | Y | — | — | Y |
-| review | Y | Y | Y (`approve`/`reject`) | — | — (別コマンド `review`) |
+| review | Y | Y | Y (`approve`/`reject`) | — | Y (list/create/dismiss) |
 | comment | Y | Y (`note`) | — | — | Y (list/create/edit/delete) |
 | ready | Y | — | — | — | Y |
 | files | — | — | — | — | Y |
@@ -336,7 +336,6 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 
 | コマンド | 説明 | サブコマンド |
 |---|---|---|
-| `review` | PR レビューを独立管理 | `list`, `create`, `dismiss` |
 | `branch` | リモートブランチ管理 | `list`, `create`, `delete` |
 | `tag` | タグ管理 | `list`, `create`, `delete` |
 | `status` | コミットステータス管理 | `list`, `create` |

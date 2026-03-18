@@ -511,7 +511,7 @@ def test_parser_org_repos():
 
 
 def test_dispatch_table_has_68_entries():
-    assert len(_DISPATCH) == 145  # comment 4→2 (pr comment, issue comment)
+    assert len(_DISPATCH) == 143  # comment 4→2, review 3→1
 
 
 def test_dispatch_table_all_keys():
@@ -573,9 +573,7 @@ def test_dispatch_table_all_keys():
         ("milestone", "reopen"),
         ("pr", "comment"),
         ("issue", "comment"),
-        ("review", "list"),
-        ("review", "create"),
-        ("review", "dismiss"),
+        ("pr", "review"),
         ("branch", "list"),
         ("branch", "create"),
         ("branch", "delete"),

@@ -96,6 +96,42 @@ class TestHandleCreate:
                 review_cmd.handle_create(args, fmt="table")
 
 
+class TestHandleReview:
+    """handle_review ディスパッチャのテスト。"""
+
+    def test_dispatches_to_list(self, capsys):
+        with patch_adapter("gfo.commands.review") as adapter:
+            adapter.list_reviews.return_value = [SAMPLE_REVIEW]
+            args = make_args(review_action="list", number=1)
+            review_cmd.handle_review(args, fmt="table")
+        adapter.list_reviews.assert_called_once_with(1)
+
+    def test_dispatches_to_create(self):
+        with patch_adapter("gfo.commands.review") as adapter:
+            adapter.create_review.return_value = SAMPLE_REVIEW
+            args = make_args(
+                review_action="create",
+                number=1,
+                approve=True,
+                request_changes=False,
+                comment=False,
+                body="",
+            )
+            review_cmd.handle_review(args, fmt="table")
+        adapter.create_review.assert_called_once_with(1, state="APPROVE", body="")
+
+    def test_dispatches_to_dismiss(self):
+        with patch_adapter("gfo.commands.review") as adapter:
+            args = make_args(review_action="dismiss", number=1, review_id=42, message="outdated")
+            review_cmd.handle_review(args, fmt="table")
+        adapter.dismiss_review.assert_called_once_with(1, 42, message="outdated")
+
+    def test_no_action_raises(self):
+        args = make_args(review_action=None)
+        with pytest.raises(SystemExit):
+            review_cmd.handle_review(args, fmt="table")
+
+
 class TestHandleDismiss:
     def test_calls_dismiss_review(self):
         with patch_adapter("gfo.commands.review") as adapter:

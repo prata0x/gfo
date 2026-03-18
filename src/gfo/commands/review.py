@@ -41,3 +41,16 @@ def handle_dismiss(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
             review_id=args.review_id, number=args.number
         )
     )
+
+
+def handle_review(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo pr review のハンドラ。"""
+    action = getattr(args, "review_action", None)
+    if action == "list":
+        handle_list(args, fmt=fmt, jq=jq)
+    elif action == "create":
+        handle_create(args, fmt=fmt, jq=jq)
+    elif action == "dismiss":
+        handle_dismiss(args, fmt=fmt, jq=jq)
+    else:
+        raise SystemExit(_("review action required: list, create, dismiss"))

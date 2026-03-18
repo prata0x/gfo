@@ -309,6 +309,29 @@ gfo pr ready NUMBER
 gfo pr ready 42
 ```
 
+### gfo pr review
+
+PR のレビューを操作します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
+
+```
+gfo pr review list NUMBER
+gfo pr review create NUMBER {--approve | --request-changes | --comment} [--body BODY]
+gfo pr review dismiss NUMBER REVIEW_ID [--message MESSAGE]
+```
+
+`--approve`, `--request-changes`, `--comment` のいずれか 1 つが必須です。
+
+```bash
+gfo pr review list 42
+gfo pr review create 42 --approve
+gfo pr review create 42 --request-changes --body "Please fix the tests"
+gfo pr review create 42 --comment --body "Looks interesting, will review more later"
+gfo pr review dismiss 42 12345
+gfo pr review dismiss 42 12345 --message "Outdated review"
+```
+
 ### gfo pr comment
 
 PR のコメントを管理します。
@@ -1083,57 +1106,6 @@ gfo milestone reopen NUMBER
 
 ```bash
 gfo milestone reopen 1
-```
-
----
-
-## gfo review
-
-PR のレビューを操作します。
-
-> **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
-
-### gfo review list
-
-```
-gfo review list NUMBER
-```
-
-```bash
-gfo review list 42
-```
-
-### gfo review create
-
-```
-gfo review create NUMBER {--approve | --request-changes | --comment} [--body BODY]
-```
-
-`--approve`, `--request-changes`, `--comment` のいずれか 1 つが必須です。
-
-```bash
-gfo review create 42 --approve
-gfo review create 42 --request-changes --body "Please fix the tests"
-gfo review create 42 --comment --body "Looks interesting, will review more later"
-```
-
-### gfo review dismiss
-
-レビューを却下（dismiss）します。
-
-> **対応サービス**: GitHub, Azure DevOps, Gitea, Forgejo
-
-```
-gfo review dismiss NUMBER REVIEW_ID [--message MESSAGE]
-```
-
-| オプション | 説明 |
-|---|---|
-| `--message` | 却下理由のメッセージ |
-
-```bash
-gfo review dismiss 42 12345
-gfo review dismiss 42 12345 --message "Outdated review"
 ```
 
 ---

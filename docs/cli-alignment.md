@@ -149,7 +149,7 @@ gfo のコマンド/サブコマンド/オプション名を他ツール（gh, g
 |---|---|---|
 | 1 | `update` → `edit` (完了済み) | pr, issue, repo, release, label, milestone, comment, wiki |
 | 2 | `comment` を pr/issue サブコマンドに移動 (完了済み) | comment コマンド廃止、pr/issue に統合 |
-| 3 | `review` を pr サブコマンドに移動 | review コマンド廃止、pr に統合 |
+| 3 | `review` を pr サブコマンドに移動 (完了済み) | review コマンド廃止、pr に統合 |
 | 4 | `merge --method` → `--merge/--squash/--rebase` | pr merge |
 
 ### 機能追加

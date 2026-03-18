@@ -182,6 +182,25 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_ready = pr_sub.add_parser("ready", help=_("Mark as ready for review"))
     pr_ready.add_argument("number", type=int, help=_("PR number"))
 
+    # gfo pr review → サブサブコマンド
+    pr_review = pr_sub.add_parser("review", help=_("Manage PR reviews"))
+    pr_review_sub = pr_review.add_subparsers(dest="review_action")
+    pr_review_list = pr_review_sub.add_parser("list", help=_("List reviews"))
+    pr_review_list.add_argument("number", type=int, help=_("PR number"))
+    pr_review_create = pr_review_sub.add_parser("create", help=_("Create review"))
+    pr_review_create.add_argument("number", type=int, help=_("PR number"))
+    _pr_review_group = pr_review_create.add_mutually_exclusive_group(required=True)
+    _pr_review_group.add_argument("--approve", action="store_true", help=_("Approve"))
+    _pr_review_group.add_argument(
+        "--request-changes", dest="request_changes", action="store_true", help=_("Request changes")
+    )
+    _pr_review_group.add_argument("--comment", action="store_true", help=_("Comment only"))
+    pr_review_create.add_argument("--body", default="", help=_("Body"))
+    pr_review_dismiss = pr_review_sub.add_parser("dismiss", help=_("Dismiss review"))
+    pr_review_dismiss.add_argument("number", type=int, help=_("PR number"))
+    pr_review_dismiss.add_argument("review_id", type=int, help=_("Review ID"))
+    pr_review_dismiss.add_argument("--message", default="", help=_("Message"))
+
     # gfo pr comment → サブサブコマンド
     pr_comment = pr_sub.add_parser("comment", help=_("Manage PR comments"))
     pr_comment_sub = pr_comment.add_subparsers(dest="comment_action")
@@ -454,27 +473,6 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     # gfo repo fork（既存 repo に追加）
     repo_fork = repo_sub.add_parser("fork", help=_("Fork repository"))
     repo_fork.add_argument("--org", help=_("Organization to fork into"))
-
-    # gfo review → サブサブコマンド
-    review_parser = subparser_map["review"] = subparsers.add_parser(
-        "review", help=_("Manage reviews")
-    )
-    review_sub = review_parser.add_subparsers(dest="subcommand")
-    review_list = review_sub.add_parser("list", help=_("List reviews"))
-    review_list.add_argument("number", type=int, help=_("PR number"))
-    review_create = review_sub.add_parser("create", help=_("Create review"))
-    review_create.add_argument("number", type=int, help=_("PR number"))
-    _review_group = review_create.add_mutually_exclusive_group(required=True)
-    _review_group.add_argument("--approve", action="store_true", help=_("Approve"))
-    _review_group.add_argument(
-        "--request-changes", dest="request_changes", action="store_true", help=_("Request changes")
-    )
-    _review_group.add_argument("--comment", action="store_true", help=_("Comment only"))
-    review_create.add_argument("--body", default="", help=_("Body"))
-    review_dismiss = review_sub.add_parser("dismiss", help=_("Dismiss review"))
-    review_dismiss.add_argument("number", type=int, help=_("PR number"))
-    review_dismiss.add_argument("review_id", type=int, help=_("Review ID"))
-    review_dismiss.add_argument("--message", default="", help=_("Message"))
 
     # gfo branch → サブサブコマンド
     branch_parser = subparser_map["branch"] = subparsers.add_parser(
@@ -1082,9 +1080,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("milestone", "reopen"): gfo.commands.milestone.handle_reopen,
     ("pr", "comment"): gfo.commands.comment.handle_pr_comment,
     ("issue", "comment"): gfo.commands.comment.handle_issue_comment,
-    ("review", "list"): gfo.commands.review.handle_list,
-    ("review", "create"): gfo.commands.review.handle_create,
-    ("review", "dismiss"): gfo.commands.review.handle_dismiss,
+    ("pr", "review"): gfo.commands.review.handle_review,
     ("branch", "list"): gfo.commands.branch.handle_list,
     ("branch", "create"): gfo.commands.branch.handle_create,
     ("branch", "delete"): gfo.commands.branch.handle_delete,
