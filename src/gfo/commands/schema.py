@@ -454,9 +454,16 @@ def _print_json(json_str: str, jq: str | None) -> None:
 
 
 def handle_schema(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    import gfo.cli
     from gfo.cli import _DISPATCH, create_parser
 
-    main_parser, subparser_map = create_parser()
+    # schema 出力は常に英語: _() を恒等関数に差し替えて翻訳をバイパスする
+    _original_gettext = gfo.cli._
+    gfo.cli._ = lambda s: s  # type: ignore[assignment]
+    try:
+        main_parser, subparser_map = create_parser()
+    finally:
+        gfo.cli._ = _original_gettext
 
     target: list[str] = args.target
     list_commands: bool = args.list_commands

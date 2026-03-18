@@ -336,3 +336,43 @@ class TestOutputMapDictSync:
         dict_keys = [k for k, v in _OUTPUT_MAP.items() if v is dict]
         for k in dict_keys:
             assert k in _SPECIAL_OUTPUT, f"{k} は _OUTPUT_MAP で dict だが _SPECIAL_OUTPUT にない"
+
+
+class TestSchemaAlwaysEnglish:
+    """schema 出力はロケールに関係なく常に英語であること。"""
+
+    def test_parameter_descriptions_english(self, capsys):
+        """翻訳関数が有効でも schema の description は英語 msgid のまま。"""
+        import gfo.cli
+
+        original = gfo.cli._
+        gfo.cli._ = lambda s: f"[翻訳]{s}"
+        try:
+            args = make_args(
+                command="schema", subcommand=None, list_commands=False, target=["pr", "list"]
+            )
+            handle_schema(args, fmt="json")
+        finally:
+            gfo.cli._ = original
+        out = json.loads(capsys.readouterr().out)
+        props = out["input"]["properties"]
+        # description に翻訳マーカーが混入していないこと
+        for name, prop in props.items():
+            desc = prop.get("description", "")
+            assert "[翻訳]" not in desc, f"{name} の description に翻訳が混入: {desc}"
+
+    def test_command_descriptions_english(self, capsys):
+        """翻訳関数が有効でも schema --list の description は英語。"""
+        import gfo.cli
+
+        original = gfo.cli._
+        gfo.cli._ = lambda s: f"[翻訳]{s}"
+        try:
+            args = make_args(command="schema", subcommand=None, list_commands=True, target=[])
+            handle_schema(args, fmt="json")
+        finally:
+            gfo.cli._ = original
+        out = json.loads(capsys.readouterr().out)
+        for item in out:
+            desc = item.get("description", "")
+            assert "[翻訳]" not in desc, f"{item['command']} の description に翻訳が混入: {desc}"
