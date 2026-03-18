@@ -91,22 +91,25 @@ gfo auth status
    | Administration | `Read and write` | `gfo branch-protect`、`gfo repo delete` を使う場合 |
    | Secrets | `Read and write` | `gfo secret` を使う場合 |
    | Variables | `Read and write` | `gfo variable` を使う場合 |
+   | Actions | `Read and write` | `gfo ci`（ワークフローの実行・リトライ・ログ取得） |
 
    **Account permissions:**
 
    | 権限 | アクセスレベル | 用途 |
    |------|---------------|------|
    | Git SSH keys | `Read and write` | `gfo ssh-key` を使う場合 |
+   | GPG keys | `Read and write` | `gfo gpg-key` を使う場合 |
 
    **Organization permissions（組織リポジトリの場合）:**
 
    | 権限 | アクセスレベル | 用途 |
    |------|---------------|------|
-   | Members | `Read-only` | `gfo org` を使う場合 |
+   | Members | `Read-only` | `gfo org`（一覧・詳細・メンバー）を使う場合 |
+   | Administration | `Read and write` | `gfo org create` / `gfo org delete` を使う場合 |
 
 7. **Generate token** をクリックしてトークンをコピー
 
-> **注意**: `gfo notification` は Fine-grained Token では使用できません。Classic Token の `notifications` スコープが必要です。
+> **注意**: `gfo notification`、`gfo pr checks`、`gfo package` は Fine-grained Token では使用できません。Classic Token が必要です（`notifications`、`repo`（checks 含む）、`read:packages` / `write:packages`）。
 
 ```bash
 gfo auth login --host github.com
@@ -115,7 +118,7 @@ gfo auth login --host github.com
 
 **Classic Personal Access Token**
 
-- スコープ: `repo`（フルアクセス）、`notifications`（`gfo notification` 用）、`admin:public_key`（`gfo ssh-key` 用）、`read:org`（`gfo org` 用）
+- スコープ: `repo`（フルアクセス）、`notifications`（`gfo notification` 用）、`admin:public_key`（`gfo ssh-key` 用）、`read:org`（`gfo org` 一覧用）、`admin:org`（`gfo org create/delete` 用）、`write:gpg_key`（`gfo gpg-key` 用）、`write:packages`（`gfo package` 用）
 - Settings → Developer settings → Personal access tokens → Tokens (classic) から発行
 
 ---
@@ -171,8 +174,8 @@ gfo auth login --host gitlab.example.com
    | `write:pullrequest:bitbucket` | `gfo pr`（作成・マージ・クローズ） |
    | `read:issue:bitbucket` | `gfo issue`（一覧・詳細、Issue Tracker 使用時） |
    | `write:issue:bitbucket` | `gfo issue`（作成・状態変更、Issue Tracker 使用時） |
-   | `read:pipeline:bitbucket` | `gfo secret` / `gfo variable` の一覧 |
-   | `write:pipeline:bitbucket` | `gfo secret` / `gfo variable` の更新 |
+   | `read:pipeline:bitbucket` | `gfo secret` / `gfo variable` の一覧、`gfo ci logs`（ログ取得） |
+   | `write:pipeline:bitbucket` | `gfo secret` / `gfo variable` の更新、`gfo ci trigger` / `gfo ci retry`（パイプライン実行） |
    | `admin:pipeline:bitbucket` | `gfo secret` / `gfo variable` の作成・削除 |
    | `read:ssh-key:bitbucket` | SSH 鍵一覧（`gfo ssh-key` を使う場合） |
    | `write:ssh-key:bitbucket` | SSH 鍵作成・更新（`gfo ssh-key` を使う場合） |
@@ -209,6 +212,7 @@ gfo auth login --host bitbucket.org
    |----------|---------------|------|
    | Code | `Read & write` | `gfo repo`、`gfo pr`、`gfo release` |
    | Work Items | `Read & write` | `gfo issue` を使う場合 |
+   | Build | `Read & execute` | `gfo ci`（パイプラインの実行・リトライ・ログ取得）を使う場合 |
    | Project and Team | `Read` | `gfo org` を使う場合 |
 
 5. **Create** をクリックしてトークンをコピー
@@ -263,10 +267,15 @@ gfo auth login --host yourspace.backlog.com
    | `issue` | 読み取り | `gfo issue`（一覧・詳細）、`gfo label`、`gfo milestone` |
    | `issue` | 読み取りと書き込み | `gfo issue`（作成・更新・削除）、`gfo label`、`gfo milestone` |
    | `organization` | 読み取り | `gfo org`（組織一覧・詳細・メンバー） |
+   | `organization` | 読み取りと書き込み | `gfo org create` / `gfo org delete`（組織の作成・削除） |
+   | `package` | 読み取り | `gfo package`（パッケージ一覧） |
+   | `package` | 読み取りと書き込み | `gfo package`（パッケージ削除） |
    | `user` | 読み取り | 認証ユーザー情報の取得 |
-   | `user` | 読み取りと書き込み | `gfo ssh-key`（SSH 鍵管理） |
+   | `user` | 読み取りと書き込み | `gfo ssh-key`（SSH 鍵管理）、`gfo gpg-key`（GPG 鍵管理） |
    | `notification` | 読み取り | `gfo notification`（通知一覧） |
    | `notification` | 読み取りと書き込み | `gfo notification`（既読マーク） |
+
+   > **注意**: `gfo repo transfer`、`gfo repo mirror`、`gfo tag-protect` はリポジトリの管理者権限が必要です。
 
 4. **Generate Token** をクリック
 
@@ -291,10 +300,15 @@ Gitea と同じ手順・スコープ体系です。
    | `issue` | 読み取り | `gfo issue`（一覧・詳細）、`gfo label`、`gfo milestone` |
    | `issue` | 読み取りと書き込み | `gfo issue`（作成・更新・削除）、`gfo label`、`gfo milestone` |
    | `organization` | 読み取り | `gfo org`（組織一覧・詳細・メンバー） |
+   | `organization` | 読み取りと書き込み | `gfo org create` / `gfo org delete`（組織の作成・削除） |
+   | `package` | 読み取り | `gfo package`（パッケージ一覧） |
+   | `package` | 読み取りと書き込み | `gfo package`（パッケージ削除） |
    | `user` | 読み取り | 認証ユーザー情報の取得 |
-   | `user` | 読み取りと書き込み | `gfo ssh-key`（SSH 鍵管理） |
+   | `user` | 読み取りと書き込み | `gfo ssh-key`（SSH 鍵管理）、`gfo gpg-key`（GPG 鍵管理） |
    | `notification` | 読み取り | `gfo notification`（通知一覧） |
    | `notification` | 読み取りと書き込み | `gfo notification`（既読マーク） |
+
+   > **注意**: `gfo repo transfer`、`gfo repo mirror`、`gfo tag-protect` はリポジトリの管理者権限が必要です。
 
 4. **Generate Token** をクリック
 
