@@ -149,9 +149,10 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_view.add_argument("number", type=int, help=_("PR number"))
     pr_merge = pr_sub.add_parser("merge", help=_("Merge pull request"))
     pr_merge.add_argument("number", type=int, help=_("PR number"))
-    pr_merge.add_argument(
-        "--method", choices=["merge", "squash", "rebase"], default="merge", help=_("Merge method")
-    )
+    _merge_method = pr_merge.add_mutually_exclusive_group()
+    _merge_method.add_argument("--merge", action="store_true", help=_("Create a merge commit"))
+    _merge_method.add_argument("--squash", action="store_true", help=_("Squash and merge"))
+    _merge_method.add_argument("--rebase", action="store_true", help=_("Rebase and merge"))
     pr_merge.add_argument("--auto", action="store_true", help=_("Enable auto-merge"))
     pr_close = pr_sub.add_parser("close", help=_("Close pull request"))
     pr_close.add_argument("number", type=int, help=_("PR number"))

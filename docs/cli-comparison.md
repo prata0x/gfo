@@ -167,9 +167,9 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 
 | オプション | gh | glab | tea | fj | gfo |
 |---|---|---|---|---|---|
-| `--merge` | Y | — | Y (`--style merge`) | Y (`--merge`) | Y (`--method merge`) |
-| `--squash` | Y | Y | Y (`--style squash`) | Y (`--squash`) | Y (`--method squash`) |
-| `--rebase` | Y | Y | Y (`--style rebase`) | Y (`--rebase`) | Y (`--method rebase`) |
+| `--merge` | Y | — | Y (`--style merge`) | Y (`--merge`) | Y |
+| `--squash` | Y | Y | Y (`--style squash`) | Y (`--squash`) | Y |
+| `--rebase` | Y | Y | Y (`--style rebase`) | Y (`--rebase`) | Y |
 | `--auto` | Y | Y (`--when-pipeline-succeeds`) | — | — | Y |
 | `--delete-branch` | Y | Y | Y | — | — |
 

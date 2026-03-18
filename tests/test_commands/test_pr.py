@@ -188,18 +188,25 @@ class TestHandleView:
 
 class TestHandleMerge:
     def test_calls_merge_pull_request(self, sample_config, mock_adapter):
-        args = make_args(number=1, method="merge")
+        args = make_args(number=1, merge=False, squash=False, rebase=False)
         with _patch_all(sample_config, mock_adapter):
             pr_cmd.handle_merge(args, fmt="table")
 
         mock_adapter.merge_pull_request.assert_called_once_with(1, method="merge")
 
     def test_squash_method(self, sample_config, mock_adapter):
-        args = make_args(number=2, method="squash")
+        args = make_args(number=2, squash=True)
         with _patch_all(sample_config, mock_adapter):
             pr_cmd.handle_merge(args, fmt="table")
 
         mock_adapter.merge_pull_request.assert_called_once_with(2, method="squash")
+
+    def test_rebase_method(self, sample_config, mock_adapter):
+        args = make_args(number=3, rebase=True)
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_merge(args, fmt="table")
+
+        mock_adapter.merge_pull_request.assert_called_once_with(3, method="rebase")
 
 
 class TestHandleClose:
@@ -430,7 +437,7 @@ class TestHandleReady:
 class TestHandleMergeAuto:
     def test_auto_merge_calls_enable_auto_merge(self):
         with patch_adapter("gfo.commands.pr") as adapter:
-            args = make_args(number=1, method="squash", auto=True)
+            args = make_args(number=1, squash=True, auto=True)
             pr_cmd.handle_merge(args, fmt="table")
         adapter.enable_auto_merge.assert_called_once_with(1, merge_method="squash")
         adapter.merge_pull_request.assert_not_called()

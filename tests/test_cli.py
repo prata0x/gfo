@@ -126,9 +126,10 @@ def test_parser_pr_view():
 
 def test_parser_pr_merge():
     parser, _ = create_parser()
-    args = parser.parse_args(["pr", "merge", "5", "--method", "squash"])
+    args = parser.parse_args(["pr", "merge", "5", "--squash"])
     assert args.number == 5
-    assert args.method == "squash"
+    assert args.squash is True
+    assert args.rebase is False
 
 
 def test_parser_pr_close():

@@ -46,20 +46,17 @@ gfo のコマンド/サブコマンド/オプション名を他ツール（gh, g
 
 ---
 
-## 3. `merge --method` → 個別フラグ
+## 3. `merge --method` → 個別フラグ ✅
 
-**現状**: gfo は `merge --method merge/squash/rebase`。
+~~**現状**: gfo は `merge --method merge/squash/rebase`。~~
 
-| オプション | gh | glab | tea | fj | gfo (現在) |
+| オプション | gh | glab | tea | fj | gfo |
 |---|---|---|---|---|---|
-| マージ | `--merge` | — (デフォルト) | `--style merge` | `--merge` | `--method merge` |
-| スカッシュ | `--squash` | `--squash` | `--style squash` | `--squash` | `--method squash` |
-| リベース | `--rebase` | `--rebase` | `--style rebase` | `--rebase` | `--method rebase` |
+| マージ | `--merge` | — (デフォルト) | `--style merge` | `--merge` | `--merge` |
+| スカッシュ | `--squash` | `--squash` | `--style squash` | `--squash` | `--squash` |
+| リベース | `--rebase` | `--rebase` | `--style rebase` | `--rebase` | `--rebase` |
 
-**判定: 個別フラグに変更**
-
-- gh / glab / fj が個別フラグ方式で一致。`--method` を使っているのは gfo のみ。
-- `--merge`, `--squash`, `--rebase` の 3 フラグに変更（排他）。
+**完了**: `--method` を `--merge` / `--squash` / `--rebase` の相互排他フラグに変更済み。
 
 ---
 

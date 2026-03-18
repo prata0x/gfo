@@ -146,20 +146,22 @@ gfo pr view 42
 > Backlog は PR マージ非対応
 
 ```
-gfo pr merge NUMBER [--method {merge,squash,rebase}] [--auto]
+gfo pr merge NUMBER [--merge | --squash | --rebase] [--auto]
 ```
 
-| オプション | デフォルト | 説明 |
-|---|---|---|
-| `--method` | `merge` | マージ方法 |
-| `--auto` | — | 自動マージを有効化（条件を満たしたら自動でマージ） |
+| オプション | 説明 |
+|---|---|
+| `--merge` | マージコミットを作成（デフォルト） |
+| `--squash` | スカッシュしてマージ |
+| `--rebase` | リベースしてマージ |
+| `--auto` | 自動マージを有効化（条件を満たしたら自動でマージ） |
 
 > `--auto` 対応サービス: GitLab, Azure DevOps, Gitea, Forgejo
 
 ```bash
 gfo pr merge 42
-gfo pr merge 42 --method squash
-gfo pr merge 42 --auto
+gfo pr merge 42 --squash
+gfo pr merge 42 --rebase --auto
 ```
 
 ### gfo pr close

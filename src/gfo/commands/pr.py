@@ -46,11 +46,17 @@ def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 def handle_merge(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr merge <number> のハンドラ。"""
     adapter = get_adapter()
+    if getattr(args, "squash", False):
+        method = "squash"
+    elif getattr(args, "rebase", False):
+        method = "rebase"
+    else:
+        method = "merge"
     if getattr(args, "auto", False):
-        adapter.enable_auto_merge(args.number, merge_method=args.method)
+        adapter.enable_auto_merge(args.number, merge_method=method)
         print(_("Enabled auto-merge for PR #{number}.").format(number=args.number))
     else:
-        adapter.merge_pull_request(args.number, method=args.method)
+        adapter.merge_pull_request(args.number, method=method)
         print(_("Merged PR #{number}.").format(number=args.number))
 
 

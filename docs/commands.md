@@ -146,20 +146,22 @@ gfo pr view 42
 > Backlog does not support PR merge
 
 ```
-gfo pr merge NUMBER [--method {merge,squash,rebase}] [--auto]
+gfo pr merge NUMBER [--merge | --squash | --rebase] [--auto]
 ```
 
-| Option | Default | Description |
-|---|---|---|
-| `--method` | `merge` | Merge method |
-| `--auto` | — | Enable auto-merge (merges automatically when conditions are met) |
+| Option | Description |
+|---|---|
+| `--merge` | Create a merge commit (default) |
+| `--squash` | Squash and merge |
+| `--rebase` | Rebase and merge |
+| `--auto` | Enable auto-merge (merges automatically when conditions are met) |
 
 > `--auto` supported services: GitLab, Azure DevOps, Gitea, Forgejo
 
 ```bash
 gfo pr merge 42
-gfo pr merge 42 --method squash
-gfo pr merge 42 --auto
+gfo pr merge 42 --squash
+gfo pr merge 42 --rebase --auto
 ```
 
 ### gfo pr close
