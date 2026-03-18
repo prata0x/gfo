@@ -3,11 +3,26 @@
 from __future__ import annotations
 
 import argparse
+import sys
+from dataclasses import dataclass
 
-from gfo.commands import get_adapter, get_adapter_with_config
-from gfo.exceptions import ConfigError
+from gfo.commands import (
+    create_adapter_from_spec,
+    get_adapter,
+    get_adapter_with_config,
+    parse_service_spec,
+)
+from gfo.exceptions import ConfigError, NotSupportedError
 from gfo.i18n import _
 from gfo.output import output
+
+
+@dataclass(frozen=True, slots=True)
+class MigrateResult:
+    source_number: int
+    target_number: int | None
+    success: bool
+    error: str | None = None
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -188,3 +203,113 @@ def handle_time(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     elif action == "delete":
         adapter.delete_time_entry(args.number, args.entry_id)
         print(_("Deleted time entry '{entry_id}'.").format(entry_id=args.entry_id))
+
+
+def _sync_labels(src, dst) -> set[str]:
+    """ソース側のラベルをターゲット側に同期し、利用可能なラベル名セットを返す。"""
+    try:
+        src_labels = src.list_labels()
+    except NotSupportedError:
+        return set()
+    try:
+        dst_labels = dst.list_labels()
+    except NotSupportedError:
+        print(_("Warning: target service does not support labels."), file=sys.stderr)
+        return set()
+    dst_label_names = {lb.name for lb in dst_labels}
+    for lb in src_labels:
+        if lb.name not in dst_label_names:
+            try:
+                dst.create_label(name=lb.name, color=lb.color or "")
+                dst_label_names.add(lb.name)
+            except NotSupportedError:
+                print(
+                    _("Warning: could not create label '{name}' on target.").format(name=lb.name),
+                    file=sys.stderr,
+                )
+    return dst_label_names
+
+
+def _migrate_one_issue(src, dst, number, available_labels, src_spec_str) -> MigrateResult:
+    """単一の Issue を移行する。"""
+    try:
+        issue = src.get_issue(number)
+
+        # body の先頭に移行元メタデータを埋め込み
+        if issue.url:
+            header = f"> *Migrated from [{src_spec_str}#{number}]({issue.url})*"
+        else:
+            header = f"> *Migrated from {src_spec_str}#{number}*"
+        header += f"\n> *Original author: @{issue.author} | Created: {issue.created_at}*"
+        original_body = issue.body or ""
+        new_body = f"{header}\n---\n{original_body}"
+
+        # label: available_labels に含まれるもの → 最初の1つ
+        label = None
+        for lb_name in issue.labels:
+            if lb_name in available_labels:
+                label = lb_name
+                break
+
+        # assignee: 最初の1名
+        assignee = issue.assignees[0] if issue.assignees else None
+
+        created = dst.create_issue(
+            title=issue.title,
+            body=new_body,
+            assignee=assignee,
+            label=label,
+        )
+
+        # コメント移行
+        comments = src.list_comments("issue", number)
+        for comment in comments:
+            new_comment_body = (
+                f"> *Comment by @{comment.author} on {comment.created_at}*\n\n{comment.body}"
+            )
+            dst.create_comment("issue", created.number, body=new_comment_body)
+
+        return MigrateResult(
+            source_number=number,
+            target_number=created.number,
+            success=True,
+        )
+    except Exception as e:
+        return MigrateResult(
+            source_number=number,
+            target_number=None,
+            success=False,
+            error=str(e),
+        )
+
+
+def handle_migrate(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo issue migrate のハンドラ。"""
+    src_spec = parse_service_spec(args.from_spec)
+    dst_spec = parse_service_spec(args.to_spec)
+    src_adapter = create_adapter_from_spec(src_spec)
+    dst_adapter = create_adapter_from_spec(dst_spec)
+
+    # 移行対象 Issue 番号を決定
+    if getattr(args, "number", None) is not None:
+        numbers = [args.number]
+    elif getattr(args, "numbers", None) is not None:
+        numbers = [int(n) for n in args.numbers.split(",")]
+    elif getattr(args, "migrate_all", False):
+        numbers = [i.number for i in src_adapter.list_issues(state="all", limit=0)]
+    else:
+        raise ConfigError(_("Specify --number, --numbers, or --all."))
+
+    # ラベル同期
+    available_labels = _sync_labels(src_adapter, dst_adapter)
+
+    # 移行元メタデータ文字列
+    src_spec_str = f"{src_spec.service_type}:{src_spec.owner}/{src_spec.repo}"
+
+    # 各 Issue を移行
+    results = []
+    for num in numbers:
+        result = _migrate_one_issue(src_adapter, dst_adapter, num, available_labels, src_spec_str)
+        results.append(result)
+
+    output(results, fmt=fmt, fields=["source_number", "target_number", "success", "error"], jq=jq)

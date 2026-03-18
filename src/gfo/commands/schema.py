@@ -198,6 +198,8 @@ _OUTPUT_MAP: dict[tuple[str, str | None], type | None] = {
     ("init", None): None,
     ("auth", "login"): None,
     ("auth", "status"): None,
+    ("issue", "migrate"): list,
+    ("batch", "pr"): list,
 }
 
 # file get / user whoami の特殊出力スキーマ

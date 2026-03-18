@@ -10,6 +10,7 @@ from typing import NoReturn
 
 import gfo.commands.api
 import gfo.commands.auth_cmd
+import gfo.commands.batch
 import gfo.commands.branch
 import gfo.commands.branch_protect
 import gfo.commands.browse
@@ -173,6 +174,14 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_delete.add_argument("number", type=int)
     issue_reopen = issue_sub.add_parser("reopen")
     issue_reopen.add_argument("number", type=int)
+
+    issue_migrate = issue_sub.add_parser("migrate")
+    issue_migrate.add_argument("--from", dest="from_spec", required=True)
+    issue_migrate.add_argument("--to", dest="to_spec", required=True)
+    migrate_target = issue_migrate.add_mutually_exclusive_group(required=True)
+    migrate_target.add_argument("--number", type=int)
+    migrate_target.add_argument("--numbers")
+    migrate_target.add_argument("--all", dest="migrate_all", action="store_true")
 
     # gfo issue-template → サブサブコマンド
     it_parser = subparser_map["issue-template"] = subparsers.add_parser(
@@ -778,6 +787,22 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     api_parser.add_argument("--data", "-d")
     api_parser.add_argument("--header", "-H", action="append")
 
+    # gfo batch → サブコマンド
+    batch_parser = subparser_map["batch"] = subparsers.add_parser("batch")
+    batch_sub = batch_parser.add_subparsers(dest="subcommand")
+
+    # gfo batch pr → サブサブコマンド
+    batch_pr = batch_sub.add_parser("pr")
+    batch_pr_sub = batch_pr.add_subparsers(dest="batch_pr_action")
+    batch_pr_create = batch_pr_sub.add_parser("create")
+    batch_pr_create.add_argument("--repos", required=True)
+    batch_pr_create.add_argument("--title", required=True)
+    batch_pr_create.add_argument("--body", default="")
+    batch_pr_create.add_argument("--head", required=True)
+    batch_pr_create.add_argument("--base", default="main")
+    batch_pr_create.add_argument("--draft", action="store_true")
+    batch_pr_create.add_argument("--dry-run", dest="dry_run", action="store_true")
+
     # gfo schema（サブコマンドなし、browse と同じパターン）
     schema_parser = subparser_map["schema"] = subparsers.add_parser(
         "schema", help=_("Show command JSON Schema")
@@ -892,6 +917,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("issue", "pin"): gfo.commands.issue.handle_pin,
     ("issue", "unpin"): gfo.commands.issue.handle_unpin,
     ("issue", "time"): gfo.commands.issue.handle_time,
+    ("issue", "migrate"): gfo.commands.issue.handle_migrate,
     ("search", "prs"): gfo.commands.search.handle_prs,
     ("search", "commits"): gfo.commands.search.handle_commits,
     ("label", "clone"): gfo.commands.label.handle_clone,
@@ -934,6 +960,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("browse", None): gfo.commands.browse.handle_browse,
     ("api", None): gfo.commands.api.handle_api,
     ("schema", None): gfo.commands.schema.handle_schema,
+    ("batch", "pr"): gfo.commands.batch.handle_batch_pr,
 }
 
 
