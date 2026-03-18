@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from gfo.adapter.base import WikiPage
+from gfo.adapter.base import WikiPage, WikiRevision
 from gfo.commands import wiki as wiki_cmd
 from tests.test_commands.conftest import make_args, patch_adapter
 
@@ -57,3 +57,22 @@ class TestHandleDelete:
             args = make_args(id="1")
             wiki_cmd.handle_delete(args, fmt="table")
         adapter.delete_wiki_page.assert_called_once_with("1")
+
+
+# --- Phase 5: wiki revisions ---
+
+SAMPLE_REVISION = WikiRevision(
+    sha="abc123",
+    author="alice",
+    message="Update page",
+    created_at="2024-01-01T00:00:00Z",
+)
+
+
+class TestHandleRevisions:
+    def test_calls_list_wiki_revisions(self, capsys):
+        with patch_adapter("gfo.commands.wiki") as adapter:
+            adapter.list_wiki_revisions.return_value = [SAMPLE_REVISION]
+            args = make_args(page_name="Home")
+            wiki_cmd.handle_revisions(args, fmt="table")
+        adapter.list_wiki_revisions.assert_called_once_with("Home")

@@ -942,3 +942,59 @@ class TestHandleMigrate:
         with patch("gfo.commands.repo.get_adapter", return_value=adapter):
             with pytest.raises(HttpError):
                 repo_cmd.handle_migrate(args, fmt="table")
+
+
+# --- Phase 5: star / unstar / mirror / transfer ---
+
+
+class TestHandleStar:
+    def test_star_repository(self, sample_config, mock_adapter, capsys):
+        mock_adapter._owner = "test-owner"
+        mock_adapter._repo = "test-repo"
+        with _patch_all(sample_config, mock_adapter):
+            args = make_args()
+            repo_cmd.handle_star(args, fmt="table")
+        mock_adapter.star_repository.assert_called_once()
+
+    def test_unstar_repository(self, sample_config, mock_adapter, capsys):
+        mock_adapter._owner = "test-owner"
+        mock_adapter._repo = "test-repo"
+        with _patch_all(sample_config, mock_adapter):
+            args = make_args()
+            repo_cmd.handle_unstar(args, fmt="table")
+        mock_adapter.unstar_repository.assert_called_once()
+
+
+class TestHandleMirror:
+    def test_list_mirrors(self, sample_config, mock_adapter, capsys):
+        from gfo.adapter.base import PushMirror
+
+        mock_adapter.list_push_mirrors.return_value = [
+            PushMirror(
+                id=1,
+                remote_name="mirror",
+                remote_address="https://mirror.example.com",
+                interval="8h",
+                created_at="2024-01-01T00:00:00Z",
+            )
+        ]
+        with _patch_all(sample_config, mock_adapter):
+            args = make_args(mirror_action="list")
+            repo_cmd.handle_mirror(args, fmt="table")
+        mock_adapter.list_push_mirrors.assert_called_once()
+
+    def test_sync_mirror(self, sample_config, mock_adapter, capsys):
+        with _patch_all(sample_config, mock_adapter):
+            args = make_args(mirror_action="sync")
+            repo_cmd.handle_mirror(args, fmt="table")
+        mock_adapter.sync_mirror.assert_called_once()
+
+
+class TestHandleTransfer:
+    def test_transfer_with_yes(self, sample_config, mock_adapter, capsys):
+        mock_adapter._owner = "test-owner"
+        mock_adapter._repo = "test-repo"
+        with _patch_all(sample_config, mock_adapter):
+            args = make_args(new_owner="new-owner", team_id=None, yes=True)
+            repo_cmd.handle_transfer(args, fmt="table")
+        mock_adapter.transfer_repository.assert_called_once_with("new-owner", team_ids=None)

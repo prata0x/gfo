@@ -2489,3 +2489,168 @@ class TestMigrateRepository:
         body = json_mod.loads(responses.calls[1].request.body)
         assert body["vcs_username"] == "x-access-token"
         assert body["vcs_password"] == "secret-token"
+
+
+# --- Phase 5: Reaction / Search / Star / Transfer / Pin / Timeline ---
+
+
+class TestIssueReactions:
+    @responses.activate
+    def test_list_issue_reactions(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/issues/1/reactions",
+            json=[
+                {
+                    "id": 1,
+                    "content": "+1",
+                    "user": {"login": "alice"},
+                    "created_at": "2024-01-01T00:00:00Z",
+                }
+            ],
+        )
+        result = github_adapter.list_issue_reactions(1)
+        assert len(result) == 1
+        assert result[0].content == "+1"
+
+    @responses.activate
+    def test_add_issue_reaction(self, github_adapter):
+        responses.add(
+            responses.POST,
+            f"{REPOS}/issues/1/reactions",
+            json={
+                "id": 1,
+                "content": "+1",
+                "user": {"login": "alice"},
+                "created_at": "2024-01-01T00:00:00Z",
+            },
+        )
+        result = github_adapter.add_issue_reaction(1, "+1")
+        assert result.content == "+1"
+
+
+class TestSearchPullRequests:
+    @responses.activate
+    def test_search_pull_requests(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{BASE}/search/issues",
+            json={
+                "items": [
+                    {
+                        "number": 1,
+                        "title": "Fix bug",
+                        "body": "",
+                        "state": "open",
+                        "user": {"login": "alice"},
+                        "html_url": "",
+                        "created_at": "2024-01-01T00:00:00Z",
+                        "pull_request": {},
+                        "draft": False,
+                    }
+                ]
+            },
+        )
+        result = github_adapter.search_pull_requests("bug", limit=10)
+        assert len(result) == 1
+        assert result[0].title == "Fix bug"
+
+
+class TestSearchCommits:
+    @responses.activate
+    def test_search_commits(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{BASE}/search/commits",
+            json={
+                "items": [
+                    {
+                        "sha": "abc123",
+                        "commit": {
+                            "message": "fix",
+                            "author": {
+                                "name": "alice",
+                                "date": "2024-01-01T00:00:00Z",
+                            },
+                        },
+                        "author": {"login": "alice"},
+                        "html_url": "",
+                    }
+                ]
+            },
+        )
+        result = github_adapter.search_commits("fix", limit=10)
+        assert len(result) == 1
+        assert result[0].sha == "abc123"
+
+
+class TestRepoStarUnstar:
+    @responses.activate
+    def test_star_repository(self, github_adapter):
+        responses.add(
+            responses.PUT,
+            f"{BASE}/user/starred/test-owner/test-repo",
+            status=204,
+        )
+        github_adapter.star_repository()
+
+    @responses.activate
+    def test_unstar_repository(self, github_adapter):
+        responses.add(
+            responses.DELETE,
+            f"{BASE}/user/starred/test-owner/test-repo",
+            status=204,
+        )
+        github_adapter.unstar_repository()
+
+
+class TestRepoTransfer:
+    @responses.activate
+    def test_transfer_repository(self, github_adapter):
+        responses.add(
+            responses.POST,
+            f"{REPOS}/transfer",
+            json={},
+        )
+        github_adapter.transfer_repository("new-owner")
+
+
+class TestIssuePin:
+    @responses.activate
+    def test_pin_issue(self, github_adapter):
+        responses.add(
+            responses.POST,
+            f"{REPOS}/issues/1/pin",
+            json={},
+        )
+        github_adapter.pin_issue(1)
+
+    @responses.activate
+    def test_unpin_issue(self, github_adapter):
+        responses.add(
+            responses.DELETE,
+            f"{REPOS}/issues/1/pin",
+            status=204,
+        )
+        github_adapter.unpin_issue(1)
+
+
+class TestIssueTimeline:
+    @responses.activate
+    def test_get_issue_timeline(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/issues/1/timeline",
+            json=[
+                {
+                    "id": 1,
+                    "event": "labeled",
+                    "actor": {"login": "alice"},
+                    "created_at": "2024-01-01T00:00:00Z",
+                    "label": {"name": "bug"},
+                }
+            ],
+        )
+        result = github_adapter.get_issue_timeline(1)
+        assert len(result) == 1
+        assert result[0].event == "labeled"

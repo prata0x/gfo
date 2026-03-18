@@ -40,3 +40,10 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo wiki delete <id> のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_wiki_page(args.id)
+
+
+def handle_revisions(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo wiki revisions <page_name> のハンドラ。"""
+    adapter = get_adapter()
+    revisions = adapter.list_wiki_revisions(args.page_name)
+    output(revisions, fmt=fmt, fields=["sha", "author", "message", "created_at"], jq=jq)

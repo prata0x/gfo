@@ -12,6 +12,7 @@ from .base import (
     BranchProtection,
     CheckRun,
     Comment,
+    Commit,
     CommitStatus,
     CompareFile,
     CompareResult,
@@ -29,6 +30,7 @@ from .base import (
     PullRequest,
     PullRequestCommit,
     PullRequestFile,
+    Reaction,
     Release,
     Repository,
     Review,
@@ -36,6 +38,7 @@ from .base import (
     SshKey,
     Tag,
     TagProtection,
+    TimelineEvent,
     Variable,
     Webhook,
 )
@@ -1516,3 +1519,177 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 break
             page += 1
         return [self._to_issue(r) for r in results if "pull_request" not in r]
+
+    # --- Issue Reaction ---
+
+    def list_issue_reactions(self, number: int) -> list[Reaction]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/issues/{number}/reactions",
+            limit=0,
+        )
+        return [
+            Reaction(
+                id=r["id"],
+                content=r["content"],
+                user=r["user"]["login"],
+                created_at=r.get("created_at") or "",
+            )
+            for r in results
+        ]
+
+    def add_issue_reaction(self, number: int, reaction: str) -> Reaction:
+        resp = self._client.post(
+            f"{self._repos_path()}/issues/{number}/reactions",
+            json={"content": reaction},
+        )
+        r = resp.json()
+        return Reaction(
+            id=r["id"],
+            content=r["content"],
+            user=r["user"]["login"],
+            created_at=r.get("created_at") or "",
+        )
+
+    def remove_issue_reaction(self, number: int, reaction: str) -> None:
+        reactions = self.list_issue_reactions(number)
+        for r in reactions:
+            if r.content == reaction:
+                self._client.delete(f"{self._repos_path()}/issues/{number}/reactions/{r.id}")
+                return
+
+    # --- Issue Timeline ---
+
+    def get_issue_timeline(self, number: int, *, limit: int = 30) -> list[TimelineEvent]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/issues/{number}/timeline",
+            limit=limit,
+        )
+        return [
+            TimelineEvent(
+                id=e.get("id") or 0,
+                event=e.get("event") or "",
+                actor=(e.get("actor") or {}).get("login") or "",
+                created_at=e.get("created_at") or "",
+                detail=e.get("label", {}).get("name") or e.get("body") or "",
+            )
+            for e in results
+        ]
+
+    # --- Issue Pin ---
+
+    def pin_issue(self, number: int) -> None:
+        self._client.post(f"{self._repos_path()}/issues/{number}/pin", json={})
+
+    def unpin_issue(self, number: int) -> None:
+        self._client.delete(f"{self._repos_path()}/issues/{number}/pin")
+
+    # --- Search PR ---
+
+    def search_pull_requests(
+        self, query: str, *, state: str | None = None, limit: int = 30
+    ) -> list[PullRequest]:
+        search_query = f"is:pull-request {query}"
+        if state and state != "all":
+            search_query += f" is:{state}"
+        results: list[dict] = []
+        per_page = min(limit, 30) if limit > 0 else 30
+        page = 1
+        while True:
+            resp = self._client.get(
+                "/search/issues",
+                params={"q": search_query, "per_page": per_page, "page": page},
+            )
+            body = resp.json()
+            page_data: list[dict] = body.get("items", []) if isinstance(body, dict) else []
+            if not page_data:
+                break
+            results.extend(page_data)
+            if limit > 0 and len(results) >= limit:
+                results = results[:limit]
+                break
+            if len(page_data) < per_page:
+                break
+            page += 1
+        prs = []
+        for r in results:
+            pr_data = r.get("pull_request", {})
+            prs.append(
+                PullRequest(
+                    number=r["number"],
+                    title=r["title"],
+                    body=r.get("body"),
+                    state="merged" if pr_data.get("merged_at") else r["state"],
+                    author=r["user"]["login"],
+                    source_branch="",
+                    target_branch="",
+                    draft=r.get("draft", False),
+                    url=r.get("html_url") or pr_data.get("html_url") or "",
+                    created_at=r["created_at"],
+                    updated_at=r.get("updated_at"),
+                )
+            )
+        return prs
+
+    # --- Search Commit ---
+
+    def search_commits(
+        self,
+        query: str,
+        *,
+        author: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        limit: int = 30,
+    ) -> list[Commit]:
+        search_query = query
+        if author:
+            search_query += f" author:{author}"
+        results: list[dict] = []
+        per_page = min(limit, 30) if limit > 0 else 30
+        page = 1
+        while True:
+            resp = self._client.get(
+                "/search/commits",
+                params={"q": search_query, "per_page": per_page, "page": page},
+            )
+            body = resp.json()
+            page_data: list[dict] = body.get("items", []) if isinstance(body, dict) else []
+            if not page_data:
+                break
+            results.extend(page_data)
+            if limit > 0 and len(results) >= limit:
+                results = results[:limit]
+                break
+            if len(page_data) < per_page:
+                break
+            page += 1
+        return [
+            Commit(
+                sha=r.get("sha") or "",
+                message=(r.get("commit") or {}).get("message") or "",
+                author=(r.get("author") or {}).get("login")
+                or (r.get("commit") or {}).get("author", {}).get("name")
+                or "",
+                url=r.get("html_url") or "",
+                created_at=(r.get("commit") or {}).get("author", {}).get("date") or "",
+            )
+            for r in results
+        ]
+
+    # --- Repo Transfer ---
+
+    def transfer_repository(self, new_owner: str, *, team_ids: list[int] | None = None) -> None:
+        payload: dict = {"new_owner": new_owner}
+        if team_ids:
+            payload["team_ids"] = team_ids
+        self._client.post(f"{self._repos_path()}/transfer", json=payload)
+
+    # --- Repo Star ---
+
+    def star_repository(self) -> None:
+        self._client.put(f"/user/starred/{self._owner}/{self._repo}", json={})
+
+    def unstar_repository(self) -> None:
+        self._client.delete(f"/user/starred/{self._owner}/{self._repo}")

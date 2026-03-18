@@ -317,3 +317,37 @@ class TestHandleUpdate:
         self.adapter.update_label.assert_called_once_with(
             name="bug", new_name=None, color=None, description=None
         )
+
+
+# --- Phase 5: label clone ---
+
+
+class TestHandleClone:
+    def test_clone_labels(self, sample_config, capsys):
+        from gfo.config import ProjectConfig
+
+        mock_cfg = ProjectConfig(
+            service_type="github",
+            host="github.com",
+            api_url="https://api.github.com",
+            owner="src-owner",
+            repo="src-repo",
+        )
+        source_adapter = MagicMock()
+        source_adapter.list_labels.return_value = [_make_label()]
+        dest_adapter = MagicMock()
+        dest_adapter.list_labels.return_value = []
+
+        mock_adapter_cls = MagicMock(return_value=source_adapter)
+
+        with (
+            patch("gfo.commands.label.get_adapter", return_value=dest_adapter),
+            patch("gfo.config.resolve_project_config", return_value=mock_cfg),
+            patch("gfo.auth.resolve_token", return_value="test-token"),
+            patch("gfo.config.build_default_api_url", return_value="https://api.github.com"),
+            patch("gfo.adapter.registry.create_http_client"),
+            patch("gfo.adapter.registry.get_adapter_class", return_value=mock_adapter_cls),
+        ):
+            args = make_args(source="src-owner/src-repo", overwrite=False)
+            label_cmd.handle_clone(args, fmt="table")
+        dest_adapter.create_label.assert_called_once()

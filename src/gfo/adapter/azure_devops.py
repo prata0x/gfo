@@ -14,6 +14,7 @@ from .base import (
     BranchProtection,
     CheckRun,
     Comment,
+    Commit,
     CommitStatus,
     CompareFile,
     CompareResult,
@@ -32,6 +33,8 @@ from .base import (
     Repository,
     Review,
     Tag,
+    TimeEntry,
+    TimelineEvent,
     Webhook,
 )
 from .registry import register
@@ -1393,3 +1396,148 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
             raise GfoError(f"Unexpected API response: {type(batch_body)}")
         return [self._to_issue(item) for item in batch_body.get("value", [])]
+
+    # --- Issue Dependencies (Work Item Links) ---
+
+    def list_issue_dependencies(self, number):
+        resp = self._client.get(
+            f"{self._wit_path()}/workitems/{number}", params={"$expand": "relations"}
+        )
+        data = resp.json()
+        deps = []
+        for rel in data.get("relations") or []:
+            if "System.LinkTypes.Dependency" in (rel.get("rel") or ""):
+                url = rel.get("url") or ""
+                dep_id = int(url.rsplit("/", 1)[-1]) if "/" in url else 0
+                if dep_id:
+                    dep = self.get_issue(dep_id)
+                    deps.append(dep)
+        return deps
+
+    def add_issue_dependency(self, number, depends_on):
+        parsed = urlparse(self._client.base_url)
+        base = f"{parsed.scheme}://{parsed.hostname}"
+        if parsed.port:
+            base += f":{parsed.port}"
+        target_url = f"{base}/{self._org}/{self._project}/_apis/wit/workitems/{depends_on}"
+        patch = [
+            {
+                "op": "add",
+                "path": "/relations/-",
+                "value": {"rel": "System.LinkTypes.Dependency-Forward", "url": target_url},
+            }
+        ]
+        self._client.patch(
+            f"{self._wit_path()}/workitems/{number}",
+            json=patch,
+            headers={"Content-Type": "application/json-patch+json"},
+        )
+
+    def remove_issue_dependency(self, number, depends_on):
+        resp = self._client.get(
+            f"{self._wit_path()}/workitems/{number}", params={"$expand": "relations"}
+        )
+        data = resp.json()
+        for i, rel in enumerate(data.get("relations") or []):
+            if "System.LinkTypes.Dependency" in (rel.get("rel") or ""):
+                url = rel.get("url") or ""
+                dep_id = int(url.rsplit("/", 1)[-1]) if "/" in url else 0
+                if dep_id == depends_on:
+                    patch = [{"op": "remove", "path": f"/relations/{i}"}]
+                    self._client.patch(
+                        f"{self._wit_path()}/workitems/{number}",
+                        json=patch,
+                        headers={"Content-Type": "application/json-patch+json"},
+                    )
+                    return
+
+    # --- Issue Timeline (Work Item Updates) ---
+
+    def get_issue_timeline(self, number, *, limit=30):
+        resp = self._client.get(f"{self._wit_path()}/workitems/{number}/updates")
+        updates = resp.json().get("value") or []
+        events = []
+        for u in updates[:limit]:
+            fields = u.get("fields") or {}
+            detail_parts = []
+            for field_name, change in fields.items():
+                new_val = change.get("newValue") or ""
+                if new_val:
+                    detail_parts.append(f"{field_name}: {new_val}")
+            if detail_parts:
+                events.append(
+                    TimelineEvent(
+                        id=u.get("id") or 0,
+                        event="updated",
+                        actor=(u.get("revisedBy") or {}).get("displayName") or "",
+                        created_at=(
+                            u.get("revisedDate")
+                            or u.get("fields", {}).get("System.ChangedDate", {}).get("newValue")
+                            or ""
+                        ),
+                        detail="; ".join(detail_parts[:3]),
+                    )
+                )
+        return events
+
+    # --- Search PRs ---
+
+    def search_pull_requests(self, query, *, state=None, limit=30):
+        params = {"searchCriteria.includeLinks": "false"}
+        if state and state != "all":
+            api_state = _PR_STATE_TO_API.get(state, state)
+            params["searchCriteria.status"] = api_state
+        results = paginate_top_skip(
+            self._client, f"{self._git_path()}/pullrequests", params=params, limit=limit
+        )
+        prs = [self._to_pull_request(r) for r in results]
+        if query:
+            query_lower = query.lower()
+            prs = [
+                p
+                for p in prs
+                if query_lower in p.title.lower() or (p.body and query_lower in p.body.lower())
+            ]
+        return prs
+
+    # --- Search Commits ---
+
+    def search_commits(self, query, *, author=None, since=None, until=None, limit=30):
+        params = {}
+        if author:
+            params["searchCriteria.author"] = author
+        if since:
+            params["searchCriteria.fromDate"] = since
+        if until:
+            params["searchCriteria.toDate"] = until
+        results = paginate_top_skip(
+            self._client, f"{self._git_path()}/commits", params=params, limit=limit
+        )
+        commits = [
+            Commit(
+                sha=c.get("commitId") or "",
+                message=c.get("comment") or "",
+                author=(c.get("author") or {}).get("name") or "",
+                url=c.get("remoteUrl") or c.get("url") or "",
+                created_at=(c.get("author") or {}).get("date") or "",
+            )
+            for c in results
+        ]
+        if query:
+            query_lower = query.lower()
+            commits = [c for c in commits if query_lower in c.message.lower()]
+        return commits
+
+    # --- Time Tracking (Completed Work) ---
+
+    def add_time_entry(self, issue_number, duration):
+        hours = duration / 3600
+        patch = [
+            {"op": "add", "path": "/fields/Microsoft.VSTS.Scheduling.CompletedWork", "value": hours}
+        ]
+        self._client.patch(
+            f"{self._wit_path()}/workitems/{issue_number}",
+            json=patch,
+            headers={"Content-Type": "application/json-patch+json"},
+        )
+        return TimeEntry(id=0, user="", duration=duration, created_at="")

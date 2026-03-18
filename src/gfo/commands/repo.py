@@ -298,3 +298,70 @@ def handle_migrate(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
         auth_token=getattr(args, "auth_token", None),
     )
     output(repo, fmt=fmt, jq=jq)
+
+
+def handle_mirror(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo repo mirror list/add/remove/sync のハンドラ。"""
+    adapter = get_adapter()
+    action = getattr(args, "mirror_action", None)
+    if action is None:
+        raise ConfigError(_("Specify a subcommand: list, add, remove, sync"))
+    if action == "list":
+        mirrors = adapter.list_push_mirrors()
+        output(mirrors, fmt=fmt, fields=["id", "remote_name", "remote_address", "interval"], jq=jq)
+    elif action == "add":
+        mirror = adapter.create_push_mirror(
+            args.remote_address,
+            interval=getattr(args, "interval", "8h"),
+            auth_token=getattr(args, "auth_token", None),
+        )
+        output(mirror, fmt=fmt, jq=jq)
+    elif action == "remove":
+        adapter.delete_push_mirror(args.mirror_name)
+        print(_("Deleted push mirror '{name}'.").format(name=args.mirror_name))
+    elif action == "sync":
+        adapter.sync_mirror()
+        print(_("Mirror sync triggered."))
+
+
+def handle_transfer(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo repo transfer <new_owner> のハンドラ。"""
+    adapter = get_adapter()
+    repo_name = f"{adapter._owner}/{adapter._repo}"
+    if not getattr(args, "yes", False):
+        confirm = input(
+            _(
+                "Are you sure you want to transfer repository '{repo_name}' to '{new_owner}'? [y/N]: "
+            ).format(repo_name=repo_name, new_owner=args.new_owner)
+        )
+        if confirm.lower() not in ("y", "yes"):
+            print(_("Aborted."))
+            return
+    team_ids = None
+    raw = getattr(args, "team_id", None)
+    if raw is not None:
+        team_ids = [raw]
+    adapter.transfer_repository(args.new_owner, team_ids=team_ids)
+    print(
+        _("Transferred repository '{repo_name}' to '{new_owner}'.").format(
+            repo_name=repo_name, new_owner=args.new_owner
+        )
+    )
+
+
+def handle_star(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo repo star のハンドラ。"""
+    adapter = get_adapter()
+    adapter.star_repository()
+    print(
+        _("Starred repository '{owner}/{repo}'.").format(owner=adapter._owner, repo=adapter._repo)
+    )
+
+
+def handle_unstar(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo repo unstar のハンドラ。"""
+    adapter = get_adapter()
+    adapter.unstar_repository()
+    print(
+        _("Unstarred repository '{owner}/{repo}'.").format(owner=adapter._owner, repo=adapter._repo)
+    )

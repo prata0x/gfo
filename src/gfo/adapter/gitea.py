@@ -13,6 +13,7 @@ from .base import (
     BranchProtection,
     CheckRun,
     Comment,
+    Commit,
     CommitStatus,
     CompareFile,
     CompareResult,
@@ -26,10 +27,13 @@ from .base import (
     Milestone,
     Notification,
     Organization,
+    Package,
     Pipeline,
     PullRequest,
     PullRequestCommit,
     PullRequestFile,
+    PushMirror,
+    Reaction,
     Release,
     Repository,
     Review,
@@ -37,9 +41,12 @@ from .base import (
     SshKey,
     Tag,
     TagProtection,
+    TimeEntry,
+    TimelineEvent,
     Variable,
     Webhook,
     WikiPage,
+    WikiRevision,
 )
 from .registry import register
 
@@ -1398,3 +1405,333 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             )
         except (KeyError, TypeError) as e:
             raise GfoError(f"Unexpected API response: {e}") from e
+
+    # --- Issue Reaction ---
+
+    def list_issue_reactions(self, number: int) -> list[Reaction]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/issues/{number}/reactions",
+            limit=0,
+            per_page_key="limit",
+        )
+        return [
+            Reaction(
+                id=r.get("id") or 0,
+                content=r.get("content") or "",
+                user=(r.get("user") or {}).get("login") or "",
+                created_at=r.get("created_at") or "",
+            )
+            for r in results
+        ]
+
+    def add_issue_reaction(self, number: int, reaction: str) -> Reaction:
+        resp = self._client.post(
+            f"{self._repos_path()}/issues/{number}/reactions",
+            json={"content": reaction},
+        )
+        r = resp.json()
+        return Reaction(
+            id=r.get("id") or 0,
+            content=r.get("content") or "",
+            user=(r.get("user") or {}).get("login") or "",
+            created_at=r.get("created_at") or "",
+        )
+
+    def remove_issue_reaction(self, number: int, reaction: str) -> None:
+        self._client.delete(
+            f"{self._repos_path()}/issues/{number}/reactions",
+            json={"content": reaction},
+        )
+
+    # --- Issue Dependency ---
+
+    def list_issue_dependencies(self, number: int) -> list[Issue]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/issues/{number}/dependencies",
+            limit=0,
+            per_page_key="limit",
+        )
+        return [self._to_issue(r) for r in results]
+
+    def add_issue_dependency(self, number: int, depends_on: int) -> None:
+        self._client.post(
+            f"{self._repos_path()}/issues/{number}/dependencies",
+            json={"id": depends_on},
+        )
+
+    def remove_issue_dependency(self, number: int, depends_on: int) -> None:
+        self._client.delete(
+            f"{self._repos_path()}/issues/{number}/dependencies",
+            json={"id": depends_on},
+        )
+
+    # --- Issue Timeline ---
+
+    def get_issue_timeline(self, number: int, *, limit: int = 30) -> list[TimelineEvent]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/issues/{number}/timeline",
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [
+            TimelineEvent(
+                id=e.get("id") or 0,
+                event=e.get("type") or "",
+                actor=(e.get("user") or {}).get("login") or "",
+                created_at=e.get("created_at") or "",
+                detail=e.get("body") or (e.get("label") or {}).get("name") or "",
+            )
+            for e in results
+        ]
+
+    # --- Issue Pin ---
+
+    def pin_issue(self, number: int) -> None:
+        self._client.post(f"{self._repos_path()}/issues/{number}/pin", json={})
+
+    def unpin_issue(self, number: int) -> None:
+        self._client.delete(f"{self._repos_path()}/issues/{number}/pin")
+
+    # --- Search PR / Commit ---
+
+    def search_pull_requests(
+        self, query: str, *, state: str | None = None, limit: int = 30
+    ) -> list[PullRequest]:
+        params: dict = {}
+        if query:
+            params["q"] = query
+        if state and state != "all":
+            params["state"] = state
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/pulls",
+            params=params,
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [self._to_pull_request(r) for r in results]
+
+    def search_commits(
+        self,
+        query: str,
+        *,
+        author: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        limit: int = 30,
+    ) -> list[Commit]:
+        params: dict = {}
+        if query:
+            params["keyword"] = query
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/git/commits",
+            params=params,
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [
+            Commit(
+                sha=c.get("sha") or "",
+                message=(c.get("commit") or {}).get("message") or c.get("message") or "",
+                author=(c.get("author") or {}).get("login")
+                or (c.get("commit") or {}).get("author", {}).get("name")
+                or "",
+                url=c.get("html_url") or "",
+                created_at=(c.get("commit") or {}).get("author", {}).get("date")
+                or c.get("created")
+                or "",
+            )
+            for c in results
+        ]
+
+    # --- Package ---
+
+    def list_packages(self, *, package_type: str | None = None, limit: int = 30) -> list[Package]:
+        params: dict = {}
+        if package_type:
+            params["type"] = package_type
+        results = paginate_link_header(
+            self._client,
+            f"/packages/{quote(self._owner, safe='')}",
+            params=params,
+            limit=limit,
+            per_page_key="limit",
+        )
+        return [
+            Package(
+                name=p.get("name") or "",
+                type=p.get("type") or "",
+                version=p.get("version") or "",
+                owner=p.get("owner", {}).get("login") or self._owner,
+                url=p.get("html_url") or "",
+                created_at=p.get("created_at") or "",
+            )
+            for p in results
+        ]
+
+    def get_package(self, package_type: str, name: str, *, version: str | None = None) -> Package:
+        if version:
+            resp = self._client.get(
+                f"/packages/{quote(self._owner, safe='')}"
+                f"/{package_type}/{quote(name, safe='')}/{quote(version, safe='')}"
+            )
+            p = resp.json()
+            return Package(
+                name=p.get("name") or "",
+                type=p.get("type") or package_type,
+                version=p.get("version") or version or "",
+                owner=self._owner,
+                url=p.get("html_url") or "",
+                created_at=p.get("created_at") or "",
+            )
+        # version 未指定: 一覧から最初の一致を返す
+        results = paginate_link_header(
+            self._client,
+            f"/packages/{quote(self._owner, safe='')}",
+            params={"type": package_type, "q": name},
+            limit=1,
+            per_page_key="limit",
+        )
+        if not results:
+            raise NotFoundError(f"Package '{name}' not found")
+        resp_data = results[0]
+        return Package(
+            name=resp_data.get("name") or "",
+            type=resp_data.get("type") or "",
+            version=resp_data.get("version") or "",
+            owner=resp_data.get("owner", {}).get("login") or self._owner,
+            url=resp_data.get("html_url") or "",
+            created_at=resp_data.get("created_at") or "",
+        )
+
+    def delete_package(self, package_type: str, name: str, version: str) -> None:
+        self._client.delete(
+            f"/packages/{quote(self._owner, safe='')}"
+            f"/{package_type}/{quote(name, safe='')}/{quote(version, safe='')}"
+        )
+
+    # --- Time Tracking ---
+
+    def list_time_entries(self, issue_number: int) -> list[TimeEntry]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/issues/{issue_number}/times",
+            limit=0,
+            per_page_key="limit",
+        )
+        return [
+            TimeEntry(
+                id=t["id"],
+                user=(t.get("user") or {}).get("login") or "",
+                duration=t.get("time") or 0,
+                created_at=t.get("created") or "",
+            )
+            for t in results
+        ]
+
+    def add_time_entry(self, issue_number: int, duration: int) -> TimeEntry:
+        resp = self._client.post(
+            f"{self._repos_path()}/issues/{issue_number}/times",
+            json={"time": duration},
+        )
+        t = resp.json()
+        return TimeEntry(
+            id=t["id"],
+            user=(t.get("user") or {}).get("login") or "",
+            duration=t.get("time") or 0,
+            created_at=t.get("created") or "",
+        )
+
+    def delete_time_entry(self, issue_number: int, entry_id: int | str) -> None:
+        self._client.delete(f"{self._repos_path()}/issues/{issue_number}/times/{entry_id}")
+
+    # --- Push Mirror ---
+
+    def list_push_mirrors(self) -> list[PushMirror]:
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/push_mirrors",
+            limit=0,
+            per_page_key="limit",
+        )
+        return [
+            PushMirror(
+                id=m.get("id") or 0,
+                remote_name=m.get("remote_name") or "",
+                remote_address=m.get("remote_address") or "",
+                interval=m.get("interval") or "",
+                created_at=m.get("created_unix") or "",
+                last_update=m.get("last_update"),
+                last_error=m.get("last_error"),
+            )
+            for m in results
+        ]
+
+    def create_push_mirror(
+        self,
+        remote_address: str,
+        *,
+        interval: str = "8h",
+        sync_on_commit: bool = True,
+        auth_token: str | None = None,
+    ) -> PushMirror:
+        payload: dict = {
+            "remote_address": remote_address,
+            "interval": interval,
+            "sync_on_commit": sync_on_commit,
+        }
+        if auth_token:
+            payload["remote_password"] = auth_token
+        resp = self._client.post(f"{self._repos_path()}/push_mirrors", json=payload)
+        m = resp.json()
+        return PushMirror(
+            id=m.get("id") or 0,
+            remote_name=m.get("remote_name") or "",
+            remote_address=m.get("remote_address") or "",
+            interval=m.get("interval") or "",
+            created_at=m.get("created_unix") or "",
+            last_update=m.get("last_update"),
+            last_error=m.get("last_error"),
+        )
+
+    def delete_push_mirror(self, mirror_name: str) -> None:
+        self._client.delete(f"{self._repos_path()}/push_mirrors/{mirror_name}")
+
+    def sync_mirror(self) -> None:
+        self._client.post(f"{self._repos_path()}/mirror-sync", json={})
+
+    # --- Repo Transfer ---
+
+    def transfer_repository(self, new_owner: str, *, team_ids: list[int] | None = None) -> None:
+        payload: dict = {"new_owner": new_owner}
+        if team_ids:
+            payload["team_ids"] = team_ids
+        self._client.post(f"{self._repos_path()}/transfer", json=payload)
+
+    # --- Repo Star ---
+
+    def star_repository(self) -> None:
+        self._client.put(f"/user/starred/{self._owner}/{self._repo}", json={})
+
+    def unstar_repository(self) -> None:
+        self._client.delete(f"/user/starred/{self._owner}/{self._repo}")
+
+    # --- Wiki Revisions ---
+
+    def list_wiki_revisions(self, page_name: str) -> list[WikiRevision]:
+        resp = self._client.get(f"{self._repos_path()}/wiki/revisions/{quote(page_name, safe='')}")
+        data = resp.json()
+        revisions = data if isinstance(data, list) else data.get("page_revisions") or []
+        return [
+            WikiRevision(
+                sha=r.get("commit_sha") or r.get("sha") or "",
+                author=(r.get("commiter") or r.get("committer") or {}).get("name") or "",
+                message=r.get("message") or "",
+                created_at=r.get("commit_date") or r.get("created") or "",
+            )
+            for r in revisions
+        ]

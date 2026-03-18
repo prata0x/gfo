@@ -279,6 +279,69 @@ class ReleaseAsset:
     created_at: str
 
 
+@dataclass(frozen=True, slots=True)
+class Reaction:
+    id: int | str
+    content: str  # "+1", "-1", "laugh", "heart", etc.
+    user: str
+    created_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class TimelineEvent:
+    id: int | str
+    event: str  # "labeled", "assigned", "closed", etc.
+    actor: str
+    created_at: str
+    detail: str
+
+
+@dataclass(frozen=True, slots=True)
+class Commit:
+    sha: str
+    message: str
+    author: str
+    url: str
+    created_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class Package:
+    name: str
+    type: str  # "npm", "maven", "container", "pypi", etc.
+    version: str
+    owner: str
+    url: str
+    created_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class TimeEntry:
+    id: int | str
+    user: str
+    duration: int  # seconds
+    created_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class PushMirror:
+    id: int | str
+    remote_name: str
+    remote_address: str
+    interval: str
+    created_at: str
+    last_update: str | None = None
+    last_error: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class WikiRevision:
+    sha: str
+    author: str
+    message: str
+    created_at: str
+
+
 class GitHubLikeAdapter(ABC):
     """GitHub API 互換サービス（GitHub/Gitea 系）向け共通変換ヘルパー。
 
@@ -1147,3 +1210,105 @@ class GitServiceAdapter(ABC):
 
     def delete_wiki_page(self, page_id: int | str) -> None:
         raise NotSupportedError(self.service_name, "wiki delete")
+
+    def list_wiki_revisions(self, page_name: str) -> list[WikiRevision]:
+        raise NotSupportedError(self.service_name, "wiki revisions")
+
+    # --- Issue Reaction ---
+    def list_issue_reactions(self, number: int) -> list[Reaction]:
+        raise NotSupportedError(self.service_name, "issue reaction list")
+
+    def add_issue_reaction(self, number: int, reaction: str) -> Reaction:
+        raise NotSupportedError(self.service_name, "issue reaction add")
+
+    def remove_issue_reaction(self, number: int, reaction: str) -> None:
+        raise NotSupportedError(self.service_name, "issue reaction remove")
+
+    # --- Issue Dependency ---
+    def list_issue_dependencies(self, number: int) -> list[Issue]:
+        raise NotSupportedError(self.service_name, "issue depends list")
+
+    def add_issue_dependency(self, number: int, depends_on: int) -> None:
+        raise NotSupportedError(self.service_name, "issue depends add")
+
+    def remove_issue_dependency(self, number: int, depends_on: int) -> None:
+        raise NotSupportedError(self.service_name, "issue depends remove")
+
+    # --- Issue Timeline ---
+    def get_issue_timeline(self, number: int, *, limit: int = 30) -> list[TimelineEvent]:
+        raise NotSupportedError(self.service_name, "issue timeline")
+
+    # --- Issue Pin ---
+    def pin_issue(self, number: int) -> None:
+        raise NotSupportedError(self.service_name, "issue pin")
+
+    def unpin_issue(self, number: int) -> None:
+        raise NotSupportedError(self.service_name, "issue unpin")
+
+    # --- Search PR / Commit ---
+    def search_pull_requests(
+        self, query: str, *, state: str | None = None, limit: int = 30
+    ) -> list[PullRequest]:
+        raise NotSupportedError(self.service_name, "search prs")
+
+    def search_commits(
+        self,
+        query: str,
+        *,
+        author: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        limit: int = 30,
+    ) -> list[Commit]:
+        raise NotSupportedError(self.service_name, "search commits")
+
+    # --- Package ---
+    def list_packages(self, *, package_type: str | None = None, limit: int = 30) -> list[Package]:
+        raise NotSupportedError(self.service_name, "package list")
+
+    def get_package(self, package_type: str, name: str, *, version: str | None = None) -> Package:
+        raise NotSupportedError(self.service_name, "package view")
+
+    def delete_package(self, package_type: str, name: str, version: str) -> None:
+        raise NotSupportedError(self.service_name, "package delete")
+
+    # --- Time Tracking ---
+    def list_time_entries(self, issue_number: int) -> list[TimeEntry]:
+        raise NotSupportedError(self.service_name, "issue time list")
+
+    def add_time_entry(self, issue_number: int, duration: int) -> TimeEntry:
+        raise NotSupportedError(self.service_name, "issue time add")
+
+    def delete_time_entry(self, issue_number: int, entry_id: int | str) -> None:
+        raise NotSupportedError(self.service_name, "issue time delete")
+
+    # --- Push Mirror ---
+    def list_push_mirrors(self) -> list[PushMirror]:
+        raise NotSupportedError(self.service_name, "repo mirror list")
+
+    def create_push_mirror(
+        self,
+        remote_address: str,
+        *,
+        interval: str = "8h",
+        sync_on_commit: bool = True,
+        auth_token: str | None = None,
+    ) -> PushMirror:
+        raise NotSupportedError(self.service_name, "repo mirror add")
+
+    def delete_push_mirror(self, mirror_name: str) -> None:
+        raise NotSupportedError(self.service_name, "repo mirror remove")
+
+    def sync_mirror(self) -> None:
+        raise NotSupportedError(self.service_name, "repo mirror sync")
+
+    # --- Repo Transfer ---
+    def transfer_repository(self, new_owner: str, *, team_ids: list[int] | None = None) -> None:
+        raise NotSupportedError(self.service_name, "repo transfer")
+
+    # --- Repo Star ---
+    def star_repository(self) -> None:
+        raise NotSupportedError(self.service_name, "repo star")
+
+    def unstar_repository(self) -> None:
+        raise NotSupportedError(self.service_name, "repo unstar")

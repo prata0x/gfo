@@ -12,7 +12,7 @@ from gfo.adapter.base import Issue
 from gfo.commands import issue as issue_cmd
 from gfo.config import ProjectConfig
 from gfo.exceptions import ConfigError, HttpError
-from tests.test_commands.conftest import make_args
+from tests.test_commands.conftest import make_args, patch_adapter
 
 
 def _make_config(service_type: str = "github") -> ProjectConfig:
@@ -411,3 +411,155 @@ class TestErrorPropagation:
         with _patch_all(self.config, self.adapter):
             with pytest.raises(HttpError):
                 issue_cmd.handle_close(args, fmt="table")
+
+
+# --- Phase 5: Reaction / Depends / Timeline / Pin / Time ---
+
+
+class TestHandleReaction:
+    def test_list_reactions(self, capsys):
+        from gfo.adapter.base import Reaction
+
+        with patch_adapter("gfo.commands.issue") as adapter:
+            adapter.list_issue_reactions.return_value = [
+                Reaction(
+                    id=1,
+                    content="+1",
+                    user="alice",
+                    created_at="2024-01-01T00:00:00Z",
+                )
+            ]
+            args = make_args(reaction_action="list", number=1)
+            issue_cmd.handle_reaction(args, fmt="table")
+        adapter.list_issue_reactions.assert_called_once_with(1)
+
+    def test_add_reaction(self):
+        from gfo.adapter.base import Reaction
+
+        with patch_adapter("gfo.commands.issue") as adapter:
+            adapter.add_issue_reaction.return_value = Reaction(
+                id=1,
+                content="+1",
+                user="alice",
+                created_at="2024-01-01T00:00:00Z",
+            )
+            args = make_args(reaction_action="add", number=1, reaction="+1")
+            issue_cmd.handle_reaction(args, fmt="table")
+        adapter.add_issue_reaction.assert_called_once_with(1, "+1")
+
+    def test_remove_reaction(self):
+        with patch_adapter("gfo.commands.issue") as adapter:
+            args = make_args(reaction_action="remove", number=1, reaction="+1")
+            issue_cmd.handle_reaction(args, fmt="table")
+        adapter.remove_issue_reaction.assert_called_once_with(1, "+1")
+
+    def test_no_action_raises(self):
+        with patch_adapter("gfo.commands.issue"):
+            args = make_args(reaction_action=None, number=1)
+            with pytest.raises(ConfigError):
+                issue_cmd.handle_reaction(args, fmt="table")
+
+
+class TestHandleDepends:
+    def test_list_dependencies(self, capsys):
+        with patch_adapter("gfo.commands.issue") as adapter:
+            adapter.list_issue_dependencies.return_value = [_make_issue()]
+            args = make_args(depends_action="list", number=1)
+            issue_cmd.handle_depends(args, fmt="table")
+        adapter.list_issue_dependencies.assert_called_once_with(1)
+
+    def test_add_dependency(self):
+        with patch_adapter("gfo.commands.issue") as adapter:
+            args = make_args(depends_action="add", number=1, depends_on=2)
+            issue_cmd.handle_depends(args, fmt="table")
+        adapter.add_issue_dependency.assert_called_once_with(1, 2)
+
+    def test_remove_dependency(self):
+        with patch_adapter("gfo.commands.issue") as adapter:
+            args = make_args(depends_action="remove", number=1, depends_on=2)
+            issue_cmd.handle_depends(args, fmt="table")
+        adapter.remove_issue_dependency.assert_called_once_with(1, 2)
+
+
+class TestHandleTimeline:
+    def test_get_timeline(self, capsys):
+        from gfo.adapter.base import TimelineEvent
+
+        with patch_adapter("gfo.commands.issue") as adapter:
+            adapter.get_issue_timeline.return_value = [
+                TimelineEvent(
+                    id=1,
+                    event="labeled",
+                    actor="alice",
+                    created_at="2024-01-01T00:00:00Z",
+                    detail="bug",
+                )
+            ]
+            args = make_args(number=1, limit=30)
+            issue_cmd.handle_timeline(args, fmt="table")
+        adapter.get_issue_timeline.assert_called_once_with(1, limit=30)
+
+
+class TestHandlePin:
+    def test_pin_issue(self, capsys):
+        with patch_adapter("gfo.commands.issue") as adapter:
+            args = make_args(number=1)
+            issue_cmd.handle_pin(args, fmt="table")
+        adapter.pin_issue.assert_called_once_with(1)
+
+    def test_unpin_issue(self, capsys):
+        with patch_adapter("gfo.commands.issue") as adapter:
+            args = make_args(number=1)
+            issue_cmd.handle_unpin(args, fmt="table")
+        adapter.unpin_issue.assert_called_once_with(1)
+
+
+class TestHandleTime:
+    def test_list_time_entries(self, capsys):
+        from gfo.adapter.base import TimeEntry
+
+        with patch_adapter("gfo.commands.issue") as adapter:
+            adapter.list_time_entries.return_value = [
+                TimeEntry(id=1, user="alice", duration=3600, created_at="2024-01-01T00:00:00Z")
+            ]
+            args = make_args(time_action="list", number=1)
+            issue_cmd.handle_time(args, fmt="table")
+        adapter.list_time_entries.assert_called_once_with(1)
+
+    def test_add_time_entry(self):
+        from gfo.adapter.base import TimeEntry
+
+        with patch_adapter("gfo.commands.issue") as adapter:
+            adapter.add_time_entry.return_value = TimeEntry(
+                id=1, user="alice", duration=5400, created_at="2024-01-01T00:00:00Z"
+            )
+            args = make_args(time_action="add", number=1, duration="1h30m")
+            issue_cmd.handle_time(args, fmt="table")
+        adapter.add_time_entry.assert_called_once_with(1, 5400)
+
+    def test_delete_time_entry(self, capsys):
+        with patch_adapter("gfo.commands.issue") as adapter:
+            args = make_args(time_action="delete", number=1, entry_id="42")
+            issue_cmd.handle_time(args, fmt="table")
+        adapter.delete_time_entry.assert_called_once_with(1, "42")
+
+
+class TestParseDuration:
+    def test_hours_and_minutes(self):
+        assert issue_cmd._parse_duration("1h30m") == 5400
+
+    def test_hours_only(self):
+        assert issue_cmd._parse_duration("2h") == 7200
+
+    def test_minutes_only(self):
+        assert issue_cmd._parse_duration("45m") == 2700
+
+    def test_seconds_only(self):
+        assert issue_cmd._parse_duration("120s") == 120
+
+    def test_plain_integer(self):
+        assert issue_cmd._parse_duration("3600") == 3600
+
+    def test_invalid_format_raises(self):
+        with pytest.raises(ConfigError):
+            issue_cmd._parse_duration("invalid")

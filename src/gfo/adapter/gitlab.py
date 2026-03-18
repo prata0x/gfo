@@ -13,6 +13,7 @@ from .base import (
     BranchProtection,
     CheckRun,
     Comment,
+    Commit,
     CommitStatus,
     CompareFile,
     CompareResult,
@@ -25,10 +26,13 @@ from .base import (
     Milestone,
     Notification,
     Organization,
+    Package,
     Pipeline,
     PullRequest,
     PullRequestCommit,
     PullRequestFile,
+    PushMirror,
+    Reaction,
     Release,
     ReleaseAsset,
     Repository,
@@ -37,6 +41,8 @@ from .base import (
     SshKey,
     Tag,
     TagProtection,
+    TimeEntry,
+    TimelineEvent,
     Variable,
     Webhook,
     WikiPage,
@@ -1758,3 +1764,329 @@ class GitLabAdapter(GitServiceAdapter):
 
     def delete_wiki_page(self, page_id: int | str) -> None:
         self._client.delete(f"{self._project_path()}/wikis/{quote(str(page_id), safe='')}")
+
+    # --- Issue Reactions (Award Emoji API) ---
+
+    _REACTION_TO_EMOJI = {
+        "+1": "thumbsup",
+        "-1": "thumbsdown",
+        "laugh": "laughing",
+        "heart": "heart",
+        "hooray": "tada",
+        "confused": "confused",
+        "rocket": "rocket",
+        "eyes": "eyes",
+    }
+    _EMOJI_TO_REACTION = {v: k for k, v in _REACTION_TO_EMOJI.items()}
+
+    def list_issue_reactions(self, number: int) -> list[Reaction]:
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/issues/{number}/award_emoji",
+            limit=0,
+        )
+        return [
+            Reaction(
+                id=r["id"],
+                content=self._EMOJI_TO_REACTION.get(r["name"], r["name"]),
+                user=r["user"]["username"],
+                created_at=r.get("created_at") or "",
+            )
+            for r in results
+        ]
+
+    def add_issue_reaction(self, number: int, reaction: str) -> Reaction:
+        emoji_name = self._REACTION_TO_EMOJI.get(reaction, reaction)
+        resp = self._client.post(
+            f"{self._project_path()}/issues/{number}/award_emoji",
+            json={"name": emoji_name},
+        )
+        r = resp.json()
+        return Reaction(
+            id=r["id"],
+            content=self._EMOJI_TO_REACTION.get(r["name"], r["name"]),
+            user=r["user"]["username"],
+            created_at=r.get("created_at") or "",
+        )
+
+    def remove_issue_reaction(self, number: int, reaction: str) -> None:
+        reactions = self.list_issue_reactions(number)
+        emoji_name = self._REACTION_TO_EMOJI.get(reaction, reaction)
+        for r in reactions:
+            if (
+                r.content == reaction
+                or self._REACTION_TO_EMOJI.get(r.content, r.content) == emoji_name
+            ):
+                self._client.delete(f"{self._project_path()}/issues/{number}/award_emoji/{r.id}")
+                return
+
+    # --- Issue Dependencies (Issue Links API) ---
+
+    def list_issue_dependencies(self, number: int) -> list[Issue]:
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/issues/{number}/links",
+            limit=0,
+        )
+        return [self._to_issue(r) for r in results]
+
+    def add_issue_dependency(self, number: int, depends_on: int) -> None:
+        # Get project id first
+        resp = self._client.get(self._project_path())
+        project_id = resp.json()["id"]
+        self._client.post(
+            f"{self._project_path()}/issues/{number}/links",
+            json={"target_project_id": project_id, "target_issue_iid": depends_on},
+        )
+
+    def remove_issue_dependency(self, number: int, depends_on: int) -> None:
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/issues/{number}/links",
+            limit=0,
+        )
+        for r in results:
+            if r.get("iid") == depends_on:
+                link_id = r.get("issue_link_id") or r.get("id")
+                self._client.delete(f"{self._project_path()}/issues/{number}/links/{link_id}")
+                return
+
+    # --- Issue Timeline ---
+
+    def get_issue_timeline(self, number: int, *, limit: int = 30) -> list[TimelineEvent]:
+        events: list[TimelineEvent] = []
+        # State events
+        state_events = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/issues/{number}/resource_state_events",
+            limit=limit,
+        )
+        for e in state_events:
+            events.append(
+                TimelineEvent(
+                    id=e["id"],
+                    event=e.get("state") or "",
+                    actor=(e.get("user") or {}).get("username") or "",
+                    created_at=e.get("created_at") or "",
+                    detail="",
+                )
+            )
+        # Label events
+        label_events = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/issues/{number}/resource_label_events",
+            limit=limit,
+        )
+        for e in label_events:
+            action = e.get("action") or "labeled"
+            label_name = (e.get("label") or {}).get("name") or ""
+            events.append(
+                TimelineEvent(
+                    id=e["id"],
+                    event=action,
+                    actor=(e.get("user") or {}).get("username") or "",
+                    created_at=e.get("created_at") or "",
+                    detail=label_name,
+                )
+            )
+        events.sort(key=lambda ev: ev.created_at)
+        return events[:limit]
+
+    # --- Search PRs ---
+
+    def search_pull_requests(
+        self, query: str, *, state: str | None = None, limit: int = 30
+    ) -> list[PullRequest]:
+        params: dict = {"search": query}
+        if state and state != "all":
+            state_map = {"open": "opened", "closed": "closed", "merged": "merged"}
+            params["state"] = state_map.get(state, state)
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/merge_requests",
+            params=params,
+            limit=limit,
+        )
+        return [self._to_pull_request(r) for r in results]
+
+    # --- Search Commits ---
+
+    def search_commits(
+        self,
+        query: str,
+        *,
+        author: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        limit: int = 30,
+    ) -> list[Commit]:
+        params: dict = {}
+        if query:
+            params["search"] = query
+        if author:
+            params["author"] = author
+        if since:
+            params["since"] = since
+        if until:
+            params["until"] = until
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/repository/commits",
+            params=params,
+            limit=limit,
+        )
+        return [
+            Commit(
+                sha=c.get("id") or "",
+                message=c.get("message") or "",
+                author=c.get("author_name") or "",
+                url=c.get("web_url") or "",
+                created_at=c.get("created_at") or "",
+            )
+            for c in results
+        ]
+
+    # --- Package ---
+
+    def list_packages(self, *, package_type: str | None = None, limit: int = 30) -> list[Package]:
+        params: dict = {}
+        if package_type:
+            params["package_type"] = package_type
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/packages",
+            params=params,
+            limit=limit,
+        )
+        return [
+            Package(
+                name=p.get("name") or "",
+                type=p.get("package_type") or "",
+                version=p.get("version") or "",
+                owner="",
+                url=p.get("_links", {}).get("web_path") or "",
+                created_at=p.get("created_at") or "",
+            )
+            for p in results
+        ]
+
+    def get_package(self, package_type: str, name: str, *, version: str | None = None) -> Package:
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/packages",
+            params={"package_name": name, "package_type": package_type},
+            limit=1,
+        )
+        if not results:
+            raise NotFoundError(f"Package '{name}' not found")
+        p = results[0]
+        return Package(
+            name=p.get("name") or "",
+            type=p.get("package_type") or "",
+            version=p.get("version") or "",
+            owner="",
+            url=p.get("_links", {}).get("web_path") or "",
+            created_at=p.get("created_at") or "",
+        )
+
+    def delete_package(self, package_type: str, name: str, version: str) -> None:
+        # Find the package first
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/packages",
+            params={"package_name": name, "package_type": package_type},
+            limit=0,
+        )
+        for p in results:
+            if p.get("version") == version:
+                self._client.delete(f"{self._project_path()}/packages/{p['id']}")
+                return
+        raise NotFoundError(f"Package '{name}' version '{version}' not found")
+
+    # --- Time Tracking ---
+
+    def list_time_entries(self, issue_number: int) -> list[TimeEntry]:
+        resp = self._client.get(f"{self._project_path()}/issues/{issue_number}/time_stats")
+        data = resp.json()
+        total = data.get("total_time_spent", 0)
+        if total > 0:
+            return [TimeEntry(id=0, user="", duration=total, created_at="")]
+        return []
+
+    def add_time_entry(self, issue_number: int, duration: int) -> TimeEntry:
+        # GitLab accepts human-readable format like "1h30m" or seconds
+        self._client.post(
+            f"{self._project_path()}/issues/{issue_number}/add_spent_time",
+            json={"duration": f"{duration}s"},
+        )
+        resp = self._client.get(f"{self._project_path()}/issues/{issue_number}/time_stats")
+        data = resp.json()
+        return TimeEntry(id=0, user="", duration=data.get("total_time_spent", 0), created_at="")
+
+    def delete_time_entry(self, issue_number: int, entry_id: int | str) -> None:
+        self._client.post(
+            f"{self._project_path()}/issues/{issue_number}/reset_spent_time",
+            json={},
+        )
+
+    # --- Push Mirror ---
+
+    def list_push_mirrors(self) -> list[PushMirror]:
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/remote_mirrors",
+            limit=0,
+        )
+        return [
+            PushMirror(
+                id=m["id"],
+                remote_name="",
+                remote_address=m.get("url") or "",
+                interval="",
+                created_at=m.get("created_at") or "",
+                last_update=m.get("last_successful_update_at"),
+                last_error=m.get("last_error"),
+            )
+            for m in results
+        ]
+
+    def create_push_mirror(
+        self,
+        remote_address: str,
+        *,
+        interval: str = "8h",
+        sync_on_commit: bool = True,
+        auth_token: str | None = None,
+    ) -> PushMirror:
+        payload: dict = {"url": remote_address, "enabled": True, "only_protected_branches": False}
+        resp = self._client.post(f"{self._project_path()}/remote_mirrors", json=payload)
+        m = resp.json()
+        return PushMirror(
+            id=m["id"],
+            remote_name="",
+            remote_address=m.get("url") or "",
+            interval="",
+            created_at=m.get("created_at") or "",
+            last_update=m.get("last_successful_update_at"),
+            last_error=m.get("last_error"),
+        )
+
+    def delete_push_mirror(self, mirror_name: str) -> None:
+        # mirror_name is the mirror ID
+        self._client.delete(f"{self._project_path()}/remote_mirrors/{mirror_name}")
+
+    def sync_mirror(self) -> None:
+        self._client.post(f"{self._project_path()}/mirror/pull", json={})
+
+    # --- Repo Transfer ---
+
+    def transfer_repository(self, new_owner: str, *, team_ids: list[int] | None = None) -> None:
+        self._client.put(f"{self._project_path()}/transfer", json={"namespace": new_owner})
+
+    # --- Repo Star ---
+
+    def star_repository(self) -> None:
+        self._client.post(f"{self._project_path()}/star", json={})
+
+    def unstar_repository(self) -> None:
+        self._client.post(f"{self._project_path()}/unstar", json={})

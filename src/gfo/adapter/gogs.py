@@ -11,16 +11,21 @@ from .base import (
     BranchProtection,
     CheckRun,
     Comment,
+    Commit,
     CommitStatus,
     CompareResult,
     GpgKey,
+    Issue,
     Label,
     Milestone,
     Notification,
+    Package,
     Pipeline,
     PullRequest,
     PullRequestCommit,
     PullRequestFile,
+    PushMirror,
+    Reaction,
     Release,
     ReleaseAsset,
     Repository,
@@ -28,9 +33,12 @@ from .base import (
     Secret,
     Tag,
     TagProtection,
+    TimeEntry,
+    TimelineEvent,
     Variable,
     Webhook,
     WikiPage,
+    WikiRevision,
 )
 from .gitea import GiteaAdapter
 from .registry import register
@@ -490,3 +498,109 @@ class GogsAdapter(GiteaAdapter):
 
     def delete_release_asset(self, *, tag: str, asset_id: int | str) -> None:
         raise NotSupportedError("Gogs", "release operations")
+
+    # --- Issue Reaction（Gogs 未対応）---
+
+    def list_issue_reactions(self, number: int) -> list[Reaction]:
+        raise NotSupportedError("Gogs", "issue reaction operations")
+
+    def add_issue_reaction(self, number: int, reaction: str) -> Reaction:
+        raise NotSupportedError("Gogs", "issue reaction operations")
+
+    def remove_issue_reaction(self, number: int, reaction: str) -> None:
+        raise NotSupportedError("Gogs", "issue reaction operations")
+
+    # --- Issue Dependency（Gogs 未対応）---
+
+    def list_issue_dependencies(self, number: int) -> list[Issue]:
+        raise NotSupportedError("Gogs", "issue dependency operations")
+
+    def add_issue_dependency(self, number: int, depends_on: int) -> None:
+        raise NotSupportedError("Gogs", "issue dependency operations")
+
+    def remove_issue_dependency(self, number: int, depends_on: int) -> None:
+        raise NotSupportedError("Gogs", "issue dependency operations")
+
+    # --- Issue Timeline（Gogs 未対応）---
+
+    def get_issue_timeline(self, number: int, *, limit: int = 30) -> list[TimelineEvent]:
+        raise NotSupportedError("Gogs", "issue timeline")
+
+    # --- Issue Pin（Gogs 未対応）---
+
+    def pin_issue(self, number: int) -> None:
+        raise NotSupportedError("Gogs", "issue pin")
+
+    def unpin_issue(self, number: int) -> None:
+        raise NotSupportedError("Gogs", "issue unpin")
+
+    # --- Search（Gogs 未対応）---
+
+    def search_pull_requests(
+        self, query: str, *, state: str | None = None, limit: int = 30
+    ) -> list[PullRequest]:
+        raise NotSupportedError("Gogs", "search prs")
+
+    def search_commits(
+        self,
+        query: str,
+        *,
+        author: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        limit: int = 30,
+    ) -> list[Commit]:
+        raise NotSupportedError("Gogs", "search commits")
+
+    # --- Package（Gogs 未対応）---
+
+    def list_packages(self, *, package_type: str | None = None, limit: int = 30) -> list[Package]:
+        raise NotSupportedError("Gogs", "package operations")
+
+    def get_package(self, package_type: str, name: str, *, version: str | None = None) -> Package:
+        raise NotSupportedError("Gogs", "package operations")
+
+    def delete_package(self, package_type: str, name: str, version: str) -> None:
+        raise NotSupportedError("Gogs", "package operations")
+
+    # --- Time Tracking（Gogs 未対応）---
+
+    def list_time_entries(self, issue_number: int) -> list[TimeEntry]:
+        raise NotSupportedError("Gogs", "time tracking operations")
+
+    def add_time_entry(self, issue_number: int, duration: int) -> TimeEntry:
+        raise NotSupportedError("Gogs", "time tracking operations")
+
+    def delete_time_entry(self, issue_number: int, entry_id: int | str) -> None:
+        raise NotSupportedError("Gogs", "time tracking operations")
+
+    # --- Push Mirror（Gogs 未対応）---
+
+    def list_push_mirrors(self) -> list[PushMirror]:
+        raise NotSupportedError("Gogs", "mirror operations")
+
+    def create_push_mirror(
+        self,
+        remote_address: str,
+        *,
+        interval: str = "8h",
+        sync_on_commit: bool = True,
+        auth_token: str | None = None,
+    ) -> PushMirror:
+        raise NotSupportedError("Gogs", "mirror operations")
+
+    def delete_push_mirror(self, mirror_name: str) -> None:
+        raise NotSupportedError("Gogs", "mirror operations")
+
+    def sync_mirror(self) -> None:
+        raise NotSupportedError("Gogs", "mirror operations")
+
+    # --- Repo Transfer（Gogs 未対応）---
+
+    def transfer_repository(self, new_owner: str, *, team_ids: list[int] | None = None) -> None:
+        raise NotSupportedError("Gogs", "repo transfer")
+
+    # --- Wiki Revisions（Gogs 未対応）---
+
+    def list_wiki_revisions(self, page_name: str) -> list[WikiRevision]:
+        raise NotSupportedError("Gogs", "wiki operations")

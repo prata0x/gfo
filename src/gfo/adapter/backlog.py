@@ -19,6 +19,7 @@ from .base import (
     Release,
     Repository,
     Tag,
+    TimeEntry,
     Webhook,
     WikiPage,
 )
@@ -768,3 +769,10 @@ class BacklogAdapter(GitServiceAdapter):
 
     def delete_wiki_page(self, page_id: int | str) -> None:
         self._client.delete(f"/wikis/{page_id}")
+
+    # --- Time Tracking ---
+
+    def add_time_entry(self, issue_number, duration):
+        hours = round(duration / 3600, 2)
+        self._client.patch(f"/issues/{issue_number}", json={"actualHours": hours})
+        return TimeEntry(id=0, user="", duration=duration, created_at="")

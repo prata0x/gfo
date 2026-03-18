@@ -511,7 +511,7 @@ def test_parser_org_repos():
 
 
 def test_dispatch_table_has_68_entries():
-    assert len(_DISPATCH) == 128  # 121 + phase4 ci (trigger/retry/logs) + other additions
+    assert len(_DISPATCH) == 145  # 128 + phase5 (17 new commands)
 
 
 def test_dispatch_table_all_keys():
@@ -613,6 +613,23 @@ def test_dispatch_table_all_keys():
         ("wiki", "create"),
         ("wiki", "update"),
         ("wiki", "delete"),
+        ("issue", "reaction"),
+        ("issue", "depends"),
+        ("issue", "timeline"),
+        ("issue", "pin"),
+        ("issue", "unpin"),
+        ("issue", "time"),
+        ("search", "prs"),
+        ("search", "commits"),
+        ("label", "clone"),
+        ("wiki", "revisions"),
+        ("repo", "mirror"),
+        ("repo", "transfer"),
+        ("repo", "star"),
+        ("repo", "unstar"),
+        ("package", "list"),
+        ("package", "view"),
+        ("package", "delete"),
         ("branch-protect", "list"),
         ("branch-protect", "view"),
         ("branch-protect", "set"),

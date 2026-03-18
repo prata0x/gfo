@@ -26,6 +26,7 @@ import gfo.commands.label
 import gfo.commands.milestone
 import gfo.commands.notification
 import gfo.commands.org
+import gfo.commands.package
 import gfo.commands.pr
 import gfo.commands.release
 import gfo.commands.repo
@@ -520,6 +521,116 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     wiki_delete = wiki_sub.add_parser("delete")
     wiki_delete.add_argument("id")
 
+    # -- New Phase 5 parsers --
+
+    # gfo issue reaction → サブサブコマンド
+    issue_reaction = issue_sub.add_parser("reaction")
+    issue_reaction_sub = issue_reaction.add_subparsers(dest="reaction_action")
+    issue_reaction_list = issue_reaction_sub.add_parser("list")
+    issue_reaction_list.add_argument("number", type=int)
+    issue_reaction_add = issue_reaction_sub.add_parser("add")
+    issue_reaction_add.add_argument("number", type=int)
+    issue_reaction_add.add_argument("reaction")
+    issue_reaction_remove = issue_reaction_sub.add_parser("remove")
+    issue_reaction_remove.add_argument("number", type=int)
+    issue_reaction_remove.add_argument("reaction")
+
+    # gfo issue depends → サブサブコマンド
+    issue_depends = issue_sub.add_parser("depends")
+    issue_depends_sub = issue_depends.add_subparsers(dest="depends_action")
+    issue_depends_list = issue_depends_sub.add_parser("list")
+    issue_depends_list.add_argument("number", type=int)
+    issue_depends_add = issue_depends_sub.add_parser("add")
+    issue_depends_add.add_argument("number", type=int)
+    issue_depends_add.add_argument("depends_on", type=int)
+    issue_depends_remove = issue_depends_sub.add_parser("remove")
+    issue_depends_remove.add_argument("number", type=int)
+    issue_depends_remove.add_argument("depends_on", type=int)
+
+    # gfo issue timeline
+    issue_timeline = issue_sub.add_parser("timeline")
+    issue_timeline.add_argument("number", type=int)
+    issue_timeline.add_argument("--limit", type=_positive_int, default=30)
+
+    # gfo issue pin / unpin
+    issue_pin = issue_sub.add_parser("pin")
+    issue_pin.add_argument("number", type=int)
+    issue_unpin = issue_sub.add_parser("unpin")
+    issue_unpin.add_argument("number", type=int)
+
+    # gfo issue time → サブサブコマンド
+    issue_time = issue_sub.add_parser("time")
+    issue_time_sub = issue_time.add_subparsers(dest="time_action")
+    issue_time_list = issue_time_sub.add_parser("list")
+    issue_time_list.add_argument("number", type=int)
+    issue_time_add = issue_time_sub.add_parser("add")
+    issue_time_add.add_argument("number", type=int)
+    issue_time_add.add_argument("duration")
+    issue_time_delete = issue_time_sub.add_parser("delete")
+    issue_time_delete.add_argument("number", type=int)
+    issue_time_delete.add_argument("entry_id")
+
+    # gfo search prs
+    search_prs = search_sub.add_parser("prs")
+    search_prs.add_argument("query")
+    search_prs.add_argument("--state", choices=["open", "closed", "merged", "all"])
+    search_prs.add_argument("--limit", type=_positive_int, default=30)
+
+    # gfo search commits
+    search_commits = search_sub.add_parser("commits")
+    search_commits.add_argument("query")
+    search_commits.add_argument("--author")
+    search_commits.add_argument("--since")
+    search_commits.add_argument("--until")
+    search_commits.add_argument("--limit", type=_positive_int, default=30)
+
+    # gfo label clone
+    label_clone = label_sub.add_parser("clone")
+    label_clone.add_argument("--from", dest="source", required=True)
+    label_clone.add_argument("--overwrite", action="store_true")
+
+    # gfo wiki revisions
+    wiki_revisions = wiki_sub.add_parser("revisions")
+    wiki_revisions.add_argument("page_name")
+
+    # gfo repo mirror → サブサブコマンド
+    repo_mirror = repo_sub.add_parser("mirror")
+    repo_mirror_sub = repo_mirror.add_subparsers(dest="mirror_action")
+    repo_mirror_sub.add_parser("list")
+    repo_mirror_add = repo_mirror_sub.add_parser("add")
+    repo_mirror_add.add_argument("remote_address")
+    repo_mirror_add.add_argument("--interval", default="8h")
+    repo_mirror_add.add_argument("--auth-token", dest="auth_token")
+    repo_mirror_remove = repo_mirror_sub.add_parser("remove")
+    repo_mirror_remove.add_argument("mirror_name")
+    repo_mirror_sub.add_parser("sync")
+
+    # gfo repo transfer
+    repo_transfer = repo_sub.add_parser("transfer")
+    repo_transfer.add_argument("new_owner")
+    repo_transfer.add_argument("--team-id", dest="team_id", type=int)
+    repo_transfer.add_argument("--yes", "-y", action="store_true")
+
+    # gfo repo star / unstar
+    repo_sub.add_parser("star")
+    repo_sub.add_parser("unstar")
+
+    # gfo package → サブサブコマンド
+    package_parser = subparser_map["package"] = subparsers.add_parser("package")
+    package_sub = package_parser.add_subparsers(dest="subcommand")
+    package_list = package_sub.add_parser("list")
+    package_list.add_argument("--type", dest="type")
+    package_list.add_argument("--limit", type=_positive_int, default=30)
+    package_view = package_sub.add_parser("view")
+    package_view.add_argument("package_type")
+    package_view.add_argument("name")
+    package_view.add_argument("--version")
+    package_delete = package_sub.add_parser("delete")
+    package_delete.add_argument("package_type")
+    package_delete.add_argument("name")
+    package_delete.add_argument("version")
+    package_delete.add_argument("--yes", "-y", action="store_true")
+
     # gfo branch-protect → サブサブコマンド
     bp_parser = subparser_map["branch-protect"] = subparsers.add_parser(
         "branch-protect", help=_("Manage branch protection rules")
@@ -775,6 +886,23 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("wiki", "create"): gfo.commands.wiki.handle_create,
     ("wiki", "update"): gfo.commands.wiki.handle_update,
     ("wiki", "delete"): gfo.commands.wiki.handle_delete,
+    ("issue", "reaction"): gfo.commands.issue.handle_reaction,
+    ("issue", "depends"): gfo.commands.issue.handle_depends,
+    ("issue", "timeline"): gfo.commands.issue.handle_timeline,
+    ("issue", "pin"): gfo.commands.issue.handle_pin,
+    ("issue", "unpin"): gfo.commands.issue.handle_unpin,
+    ("issue", "time"): gfo.commands.issue.handle_time,
+    ("search", "prs"): gfo.commands.search.handle_prs,
+    ("search", "commits"): gfo.commands.search.handle_commits,
+    ("label", "clone"): gfo.commands.label.handle_clone,
+    ("wiki", "revisions"): gfo.commands.wiki.handle_revisions,
+    ("repo", "mirror"): gfo.commands.repo.handle_mirror,
+    ("repo", "transfer"): gfo.commands.repo.handle_transfer,
+    ("repo", "star"): gfo.commands.repo.handle_star,
+    ("repo", "unstar"): gfo.commands.repo.handle_unstar,
+    ("package", "list"): gfo.commands.package.handle_list,
+    ("package", "view"): gfo.commands.package.handle_view,
+    ("package", "delete"): gfo.commands.package.handle_delete,
     ("branch-protect", "list"): gfo.commands.branch_protect.handle_list,
     ("branch-protect", "view"): gfo.commands.branch_protect.handle_view,
     ("branch-protect", "set"): gfo.commands.branch_protect.handle_set,

@@ -1326,3 +1326,15 @@ class BitbucketAdapter(GitServiceAdapter):
             limit=limit,
         )
         return [self._to_issue(r) for r in results]
+
+    def search_pull_requests(self, query, *, state=None, limit=30):
+        params = {}
+        if query:
+            params["q"] = f'title ~ "{query}"'
+        if state and state != "all":
+            state_map = {"open": "OPEN", "closed": "DECLINED", "merged": "MERGED"}
+            params["state"] = state_map.get(state, state.upper())
+        results = paginate_response_body(
+            self._client, f"{self._repos_path()}/pullrequests", params=params, limit=limit
+        )
+        return [self._to_pull_request(r) for r in results]
