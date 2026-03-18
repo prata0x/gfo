@@ -694,13 +694,13 @@ class TestParseRepoArg:
         assert name == "my-repo"
 
 
-class TestHandleUpdate:
+class TestHandleEdit:
     def test_calls_update_repository(self, sample_config, sample_repo, capsys):
         adapter = MagicMock()
         adapter.update_repository.return_value = sample_repo
         args = make_args(description="new desc", private=True, default_branch="develop")
         with patch("gfo.commands.repo.get_adapter", return_value=adapter):
-            repo_cmd.handle_update(args, fmt="table")
+            repo_cmd.handle_edit(args, fmt="table")
 
         adapter.update_repository.assert_called_once_with(
             description="new desc",
@@ -713,7 +713,7 @@ class TestHandleUpdate:
         adapter.update_repository.return_value = sample_repo
         args = make_args(description=None, private=None, default_branch=None)
         with patch("gfo.commands.repo.get_adapter", return_value=adapter):
-            repo_cmd.handle_update(args, fmt="json")
+            repo_cmd.handle_edit(args, fmt="json")
 
         out = capsys.readouterr().out
         data = json.loads(out)
@@ -724,7 +724,7 @@ class TestHandleUpdate:
         adapter.update_repository.return_value = sample_repo
         args = make_args(description=None, private=None, default_branch=None)
         with patch("gfo.commands.repo.get_adapter", return_value=adapter):
-            repo_cmd.handle_update(args, fmt="table")
+            repo_cmd.handle_edit(args, fmt="table")
 
         adapter.update_repository.assert_called_once_with(
             description=None,

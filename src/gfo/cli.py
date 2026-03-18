@@ -261,19 +261,17 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_delete = repo_sub.add_parser("delete", help=_("Delete repository"))
     repo_delete.add_argument("--yes", "-y", action="store_true", help=_("Skip confirmation prompt"))
 
-    # gfo repo update
-    repo_update = repo_sub.add_parser("update", help=_("Update repository settings"))
-    repo_update.add_argument("--description", help=_("Description"))
-    _repo_private_group = repo_update.add_mutually_exclusive_group()
+    # gfo repo edit
+    repo_edit = repo_sub.add_parser("edit", help=_("Edit repository settings"))
+    repo_edit.add_argument("--description", help=_("Description"))
+    _repo_private_group = repo_edit.add_mutually_exclusive_group()
     _repo_private_group.add_argument(
         "--private", dest="private", action="store_true", default=None, help=_("Set as private")
     )
     _repo_private_group.add_argument(
         "--public", dest="private", action="store_false", help=_("Set as public")
     )
-    repo_update.add_argument(
-        "--default-branch", dest="default_branch", help=_("Default branch name")
-    )
+    repo_edit.add_argument("--default-branch", dest="default_branch", help=_("Default branch name"))
 
     # gfo repo archive
     repo_archive = repo_sub.add_parser("archive", help=_("Archive repository"))
@@ -330,20 +328,18 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     release_view = release_sub.add_parser("view", help=_("View release details"))
     release_view.add_argument("tag", nargs="?", help=_("Tag name"))
     release_view.add_argument("--latest", action="store_true", help=_("View latest release"))
-    release_update = release_sub.add_parser("update", help=_("Update release"))
-    release_update.add_argument("tag", help=_("Tag name"))
-    release_update.add_argument("--title", help=_("Title"))
-    release_update.add_argument("--notes", help=_("Release notes"))
-    release_update.add_argument(
-        "--draft", action="store_true", default=None, help=_("Mark as draft")
-    )
-    release_update.add_argument(
+    release_edit = release_sub.add_parser("edit", help=_("Edit release"))
+    release_edit.add_argument("tag", help=_("Tag name"))
+    release_edit.add_argument("--title", help=_("Title"))
+    release_edit.add_argument("--notes", help=_("Release notes"))
+    release_edit.add_argument("--draft", action="store_true", default=None, help=_("Mark as draft"))
+    release_edit.add_argument(
         "--no-draft", dest="draft", action="store_false", help=_("Unmark as draft")
     )
-    release_update.add_argument(
+    release_edit.add_argument(
         "--prerelease", action="store_true", default=None, help=_("Mark as prerelease")
     )
-    release_update.add_argument(
+    release_edit.add_argument(
         "--no-prerelease", dest="prerelease", action="store_false", help=_("Unmark as prerelease")
     )
 
@@ -375,11 +371,11 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     label_create.add_argument("--description", help=_("Description"))
     label_delete = label_sub.add_parser("delete", help=_("Delete label"))
     label_delete.add_argument("name", help=_("Label name"))
-    label_update = label_sub.add_parser("update", help=_("Update label"))
-    label_update.add_argument("name", help=_("Label name"))
-    label_update.add_argument("--new-name", dest="new_name", help=_("New name"))
-    label_update.add_argument("--color", help=_("Color (hex)"))
-    label_update.add_argument("--description", help=_("Description"))
+    label_edit = label_sub.add_parser("edit", help=_("Edit label"))
+    label_edit.add_argument("name", help=_("Label name"))
+    label_edit.add_argument("--new-name", dest="new_name", help=_("New name"))
+    label_edit.add_argument("--color", help=_("Color (hex)"))
+    label_edit.add_argument("--description", help=_("Description"))
 
     # gfo milestone → サブサブコマンド
     milestone_parser = subparser_map["milestone"] = subparsers.add_parser(
@@ -395,12 +391,12 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     milestone_delete.add_argument("number", type=int, help=_("Milestone number"))
     milestone_view = milestone_sub.add_parser("view", help=_("View milestone details"))
     milestone_view.add_argument("number", type=int, help=_("Milestone number"))
-    milestone_update = milestone_sub.add_parser("update", help=_("Update milestone"))
-    milestone_update.add_argument("number", type=int, help=_("Milestone number"))
-    milestone_update.add_argument("--title", help=_("Title"))
-    milestone_update.add_argument("--description", help=_("Description"))
-    milestone_update.add_argument("--due", help=_("Due date"))
-    milestone_update.add_argument("--state", choices=["open", "closed"], help=_("State"))
+    milestone_edit = milestone_sub.add_parser("edit", help=_("Edit milestone"))
+    milestone_edit.add_argument("number", type=int, help=_("Milestone number"))
+    milestone_edit.add_argument("--title", help=_("Title"))
+    milestone_edit.add_argument("--description", help=_("Description"))
+    milestone_edit.add_argument("--due", help=_("Due date"))
+    milestone_edit.add_argument("--state", choices=["open", "closed"], help=_("State"))
     milestone_close = milestone_sub.add_parser("close", help=_("Close milestone"))
     milestone_close.add_argument("number", type=int, help=_("Milestone number"))
     milestone_reopen = milestone_sub.add_parser("reopen", help=_("Reopen milestone"))
@@ -425,10 +421,10 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     )
     comment_create.add_argument("number", type=int, help=_("Resource number"))
     comment_create.add_argument("--body", required=True, help=_("Body"))
-    comment_update = comment_sub.add_parser("update", help=_("Update comment"))
-    comment_update.add_argument("comment_id", type=int, help=_("Comment ID"))
-    comment_update.add_argument("--body", required=True, help=_("Body"))
-    comment_update.add_argument(
+    comment_edit = comment_sub.add_parser("edit", help=_("Edit comment"))
+    comment_edit.add_argument("comment_id", type=int, help=_("Comment ID"))
+    comment_edit.add_argument("--body", required=True, help=_("Body"))
+    comment_edit.add_argument(
         "--on",
         dest="on",
         choices=["pr", "issue"],
@@ -445,20 +441,20 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         help=_("Resource type (pr/issue)"),
     )
 
-    # gfo pr update（既存 pr に追加）
-    pr_update = pr_sub.add_parser("update", help=_("Update pull request"))
-    pr_update.add_argument("number", type=int, help=_("PR number"))
-    pr_update.add_argument("--title", help=_("Title"))
-    pr_update.add_argument("--body", help=_("Body"))
-    pr_update.add_argument("--base", help=_("Base branch"))
+    # gfo pr edit（既存 pr に追加）
+    pr_edit = pr_sub.add_parser("edit", help=_("Edit pull request"))
+    pr_edit.add_argument("number", type=int, help=_("PR number"))
+    pr_edit.add_argument("--title", help=_("Title"))
+    pr_edit.add_argument("--body", help=_("Body"))
+    pr_edit.add_argument("--base", help=_("Base branch"))
 
-    # gfo issue update（既存 issue に追加）
-    issue_update = issue_sub.add_parser("update", help=_("Update issue"))
-    issue_update.add_argument("number", type=int, help=_("Issue number"))
-    issue_update.add_argument("--title", help=_("Title"))
-    issue_update.add_argument("--body", help=_("Body"))
-    issue_update.add_argument("--assignee", help=_("Assignee"))
-    issue_update.add_argument("--label", help=_("Label"))
+    # gfo issue edit（既存 issue に追加）
+    issue_edit = issue_sub.add_parser("edit", help=_("Edit issue"))
+    issue_edit.add_argument("number", type=int, help=_("Issue number"))
+    issue_edit.add_argument("--title", help=_("Title"))
+    issue_edit.add_argument("--body", help=_("Body"))
+    issue_edit.add_argument("--assignee", help=_("Assignee"))
+    issue_edit.add_argument("--label", help=_("Label"))
 
     # gfo repo fork（既存 repo に追加）
     repo_fork = repo_sub.add_parser("fork", help=_("Fork repository"))
@@ -664,10 +660,10 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     wiki_create = wiki_sub.add_parser("create", help=_("Create wiki page"))
     wiki_create.add_argument("--title", required=True, help=_("Title"))
     wiki_create.add_argument("--content", required=True, help=_("Content"))
-    wiki_update = wiki_sub.add_parser("update", help=_("Update wiki page"))
-    wiki_update.add_argument("id", help=_("Page ID"))
-    wiki_update.add_argument("--title", help=_("Title"))
-    wiki_update.add_argument("--content", help=_("Content"))
+    wiki_edit = wiki_sub.add_parser("edit", help=_("Edit wiki page"))
+    wiki_edit.add_argument("id", help=_("Page ID"))
+    wiki_edit.add_argument("--title", help=_("Title"))
+    wiki_edit.add_argument("--content", help=_("Content"))
     wiki_delete = wiki_sub.add_parser("delete", help=_("Delete wiki page"))
     wiki_delete.add_argument("id", help=_("Page ID"))
 
@@ -1043,7 +1039,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("pr", "merge"): gfo.commands.pr.handle_merge,
     ("pr", "close"): gfo.commands.pr.handle_close,
     ("pr", "checkout"): gfo.commands.pr.handle_checkout,
-    ("pr", "update"): gfo.commands.pr.handle_update,
+    ("pr", "edit"): gfo.commands.pr.handle_edit,
     ("pr", "reopen"): gfo.commands.pr.handle_reopen,
     ("pr", "diff"): gfo.commands.pr.handle_diff,
     ("pr", "checks"): gfo.commands.pr.handle_checks,
@@ -1057,7 +1053,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("issue", "view"): gfo.commands.issue.handle_view,
     ("issue", "close"): gfo.commands.issue.handle_close,
     ("issue", "delete"): gfo.commands.issue.handle_delete,
-    ("issue", "update"): gfo.commands.issue.handle_update,
+    ("issue", "edit"): gfo.commands.issue.handle_edit,
     ("issue", "reopen"): gfo.commands.issue.handle_reopen,
     ("issue-template", "list"): gfo.commands.issue_template.handle_list,
     ("repo", "list"): gfo.commands.repo.handle_list,
@@ -1066,7 +1062,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("repo", "view"): gfo.commands.repo.handle_view,
     ("repo", "delete"): gfo.commands.repo.handle_delete,
     ("repo", "fork"): gfo.commands.repo.handle_fork,
-    ("repo", "update"): gfo.commands.repo.handle_update,
+    ("repo", "edit"): gfo.commands.repo.handle_edit,
     ("repo", "archive"): gfo.commands.repo.handle_archive,
     ("repo", "languages"): gfo.commands.repo.handle_languages,
     ("repo", "topics"): gfo.commands.repo.handle_topics,
@@ -1076,22 +1072,22 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("release", "create"): gfo.commands.release.handle_create,
     ("release", "delete"): gfo.commands.release.handle_delete,
     ("release", "view"): gfo.commands.release.handle_view,
-    ("release", "update"): gfo.commands.release.handle_update,
+    ("release", "edit"): gfo.commands.release.handle_edit,
     ("release", "asset"): gfo.commands.release.handle_asset,
     ("label", "list"): gfo.commands.label.handle_list,
     ("label", "create"): gfo.commands.label.handle_create,
     ("label", "delete"): gfo.commands.label.handle_delete,
-    ("label", "update"): gfo.commands.label.handle_update,
+    ("label", "edit"): gfo.commands.label.handle_edit,
     ("milestone", "list"): gfo.commands.milestone.handle_list,
     ("milestone", "create"): gfo.commands.milestone.handle_create,
     ("milestone", "delete"): gfo.commands.milestone.handle_delete,
     ("milestone", "view"): gfo.commands.milestone.handle_view,
-    ("milestone", "update"): gfo.commands.milestone.handle_update,
+    ("milestone", "edit"): gfo.commands.milestone.handle_edit,
     ("milestone", "close"): gfo.commands.milestone.handle_close,
     ("milestone", "reopen"): gfo.commands.milestone.handle_reopen,
     ("comment", "list"): gfo.commands.comment.handle_list,
     ("comment", "create"): gfo.commands.comment.handle_create,
-    ("comment", "update"): gfo.commands.comment.handle_update,
+    ("comment", "edit"): gfo.commands.comment.handle_edit,
     ("comment", "delete"): gfo.commands.comment.handle_delete,
     ("review", "list"): gfo.commands.review.handle_list,
     ("review", "create"): gfo.commands.review.handle_create,
@@ -1129,7 +1125,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("wiki", "list"): gfo.commands.wiki.handle_list,
     ("wiki", "view"): gfo.commands.wiki.handle_view,
     ("wiki", "create"): gfo.commands.wiki.handle_create,
-    ("wiki", "update"): gfo.commands.wiki.handle_update,
+    ("wiki", "edit"): gfo.commands.wiki.handle_edit,
     ("wiki", "delete"): gfo.commands.wiki.handle_delete,
     ("issue", "reaction"): gfo.commands.issue.handle_reaction,
     ("issue", "depends"): gfo.commands.issue.handle_depends,

@@ -197,8 +197,8 @@ def handle_fork(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     output(repo, fmt=fmt, jq=jq)
 
 
-def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
-    """gfo repo update のハンドラ。"""
+def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo repo edit のハンドラ。"""
     adapter = get_adapter()
     repo = adapter.update_repository(
         description=getattr(args, "description", None),

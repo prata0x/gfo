@@ -196,15 +196,15 @@ Checks out the PR branch locally.
 gfo pr checkout 42
 ```
 
-### gfo pr update
+### gfo pr edit
 
 ```
-gfo pr update NUMBER [--title TITLE] [--body BODY] [--base BRANCH]
+gfo pr edit NUMBER [--title TITLE] [--body BODY] [--base BRANCH]
 ```
 
 ```bash
-gfo pr update 42 --title "Updated title"
-gfo pr update 42 --base develop
+gfo pr edit 42 --title "Updated title"
+gfo pr edit 42 --base develop
 ```
 
 ### gfo pr diff
@@ -401,16 +401,16 @@ gfo issue delete NUMBER
 gfo issue delete 10
 ```
 
-### gfo issue update
+### gfo issue edit
 
 > GitBucket not supported
 
 ```
-gfo issue update NUMBER [--title TITLE] [--body BODY] [--assignee USER] [--label LABEL]
+gfo issue edit NUMBER [--title TITLE] [--body BODY] [--assignee USER] [--label LABEL]
 ```
 
 ```bash
-gfo issue update 10 --title "New title" --assignee bob
+gfo issue edit 10 --title "New title" --assignee bob
 ```
 
 ### gfo issue reaction
@@ -641,14 +641,14 @@ gfo repo fork
 gfo repo fork --org myorg
 ```
 
-### gfo repo update
+### gfo repo edit
 
-Update repository settings.
+Edit repository settings.
 
 > **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
 
 ```
-gfo repo update [--description TEXT] [--private | --public] [--default-branch BRANCH]
+gfo repo edit [--description TEXT] [--private | --public] [--default-branch BRANCH]
 ```
 
 | Option | Description |
@@ -850,12 +850,12 @@ gfo release view v1.0.0
 gfo release view --latest
 ```
 
-### gfo release update
+### gfo release edit
 
 > GitBucket not supported
 
 ```
-gfo release update TAG [--title TITLE] [--notes NOTES] [--draft | --no-draft] [--prerelease | --no-prerelease]
+gfo release edit TAG [--title TITLE] [--notes NOTES] [--draft | --no-draft] [--prerelease | --no-prerelease]
 ```
 
 | Option | Description |
@@ -866,9 +866,9 @@ gfo release update TAG [--title TITLE] [--notes NOTES] [--draft | --no-draft] [-
 | `--prerelease` / `--no-prerelease` | Toggle prerelease status |
 
 ```bash
-gfo release update v1.0.0 --title "Version 1.0.0 GA"
-gfo release update v1.0.0 --notes "Updated release notes"
-gfo release update v1.0.0 --no-draft --no-prerelease
+gfo release edit v1.0.0 --title "Version 1.0.0 GA"
+gfo release edit v1.0.0 --notes "Updated release notes"
+gfo release edit v1.0.0 --no-draft --no-prerelease
 ```
 
 ### gfo release asset
@@ -921,10 +921,10 @@ gfo label delete NAME
 gfo label delete old-label
 ```
 
-### gfo label update
+### gfo label edit
 
 ```
-gfo label update NAME [--new-name NEW_NAME] [--color COLOR] [--description DESC]
+gfo label edit NAME [--new-name NEW_NAME] [--color COLOR] [--description DESC]
 ```
 
 | Option | Description |
@@ -934,9 +934,9 @@ gfo label update NAME [--new-name NEW_NAME] [--color COLOR] [--description DESC]
 | `--description` | Description |
 
 ```bash
-gfo label update bug --color 00ff00
-gfo label update old-name --new-name new-name
-gfo label update bug --description "Updated description"
+gfo label edit bug --color 00ff00
+gfo label edit old-name --new-name new-name
+gfo label edit bug --description "Updated description"
 ```
 
 ### gfo label clone
@@ -1007,10 +1007,10 @@ gfo milestone view NUMBER
 gfo milestone view 1
 ```
 
-### gfo milestone update
+### gfo milestone edit
 
 ```
-gfo milestone update NUMBER [--title TITLE] [--description DESC] [--due DATE] [--state STATE]
+gfo milestone edit NUMBER [--title TITLE] [--description DESC] [--due DATE] [--state STATE]
 ```
 
 | Option | Description |
@@ -1021,8 +1021,8 @@ gfo milestone update NUMBER [--title TITLE] [--description DESC] [--due DATE] [-
 | `--state` | State (`open` / `closed`) |
 
 ```bash
-gfo milestone update 1 --title "v2.0 Release"
-gfo milestone update 1 --due 2025-06-30 --state open
+gfo milestone edit 1 --title "v2.0 Release"
+gfo milestone edit 1 --due 2025-06-30 --state open
 ```
 
 ### gfo milestone close
@@ -1075,14 +1075,14 @@ gfo comment create pr 42 --body "LGTM!"
 gfo comment create issue 10 --body "I can reproduce this on v1.2.3"
 ```
 
-### gfo comment update
+### gfo comment edit
 
 ```
-gfo comment update COMMENT_ID --body BODY --on {pr,issue}
+gfo comment edit COMMENT_ID --body BODY --on {pr,issue}
 ```
 
 ```bash
-gfo comment update 12345 --body "Updated comment" --on pr
+gfo comment edit 12345 --body "Updated comment" --on pr
 ```
 
 ### gfo comment delete
@@ -1564,14 +1564,14 @@ gfo wiki create --title TITLE --content CONTENT
 gfo wiki create --title "Getting Started" --content "# Getting Started\n\nWelcome!"
 ```
 
-### gfo wiki update
+### gfo wiki edit
 
 ```
-gfo wiki update ID [--title TITLE] [--content CONTENT]
+gfo wiki edit ID [--title TITLE] [--content CONTENT]
 ```
 
 ```bash
-gfo wiki update 1 --title "New Title"
+gfo wiki edit 1 --title "New Title"
 ```
 
 ### gfo wiki delete

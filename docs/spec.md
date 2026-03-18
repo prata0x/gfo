@@ -311,7 +311,7 @@ gfo release create <tag> [--title T] [--notes N] [--draft] [--prerelease]
 | `--draft` | `false` | ドラフトリリースとして作成 |
 | `--prerelease` | `false` | プレリリースとしてマーク |
 
-**注記**: release / label / milestone は update を将来バージョンで対応予定。
+**注記**: release / label / milestone は edit を将来バージョンで対応予定。
 
 #### gfo release delete
 

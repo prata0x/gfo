@@ -91,19 +91,19 @@ class TestHandleCreate:
         assert data[0]["title"] == "Home"
 
 
-class TestHandleUpdate:
+class TestHandleEdit:
     def test_calls_update_wiki_page(self):
         with patch_adapter("gfo.commands.wiki") as adapter:
             adapter.update_wiki_page.return_value = SAMPLE_PAGE
             args = make_args(id="1", title="New Title", content=None)
-            wiki_cmd.handle_update(args, fmt="table")
+            wiki_cmd.handle_edit(args, fmt="table")
         adapter.update_wiki_page.assert_called_once_with("1", title="New Title", content=None)
 
     def test_json_output(self, capsys):
         with patch_adapter("gfo.commands.wiki") as adapter:
             adapter.update_wiki_page.return_value = SAMPLE_PAGE
             args = make_args(id="1", title="New Title", content=None)
-            wiki_cmd.handle_update(args, fmt="json")
+            wiki_cmd.handle_edit(args, fmt="json")
         out = capsys.readouterr().out
         data = json.loads(out)
         assert isinstance(data, list)

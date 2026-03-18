@@ -51,8 +51,8 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     print(_("Deleted label '{name}'.").format(name=name))
 
 
-def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
-    """gfo label update <name> のハンドラ。"""
+def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo label edit <name> のハンドラ。"""
     name = args.name.strip()
     if not name:
         raise ConfigError(_("name must not be empty."))

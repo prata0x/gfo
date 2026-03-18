@@ -234,7 +234,7 @@ class TestHandleView:
                 release_cmd.handle_view(args, fmt="table")
 
 
-class TestHandleUpdate:
+class TestHandleEdit:
     def setup_method(self):
         self.release = _make_release()
         self.adapter = _make_adapter(self.release)
@@ -244,7 +244,7 @@ class TestHandleUpdate:
             tag="v1.0.0", title="New Title", notes="New notes", draft=True, prerelease=False
         )
         with _patch_all(sample_config, self.adapter):
-            release_cmd.handle_update(args, fmt="table")
+            release_cmd.handle_edit(args, fmt="table")
 
         self.adapter.update_release.assert_called_once_with(
             tag="v1.0.0",
@@ -257,7 +257,7 @@ class TestHandleUpdate:
     def test_update_with_none_fields(self, sample_config):
         args = make_args(tag="v1.0.0", title=None, notes=None, draft=None, prerelease=None)
         with _patch_all(sample_config, self.adapter):
-            release_cmd.handle_update(args, fmt="table")
+            release_cmd.handle_edit(args, fmt="table")
 
         call_kwargs = self.adapter.update_release.call_args.kwargs
         assert call_kwargs["title"] is None
@@ -268,7 +268,7 @@ class TestHandleUpdate:
     def test_update_json_format(self, sample_config, capsys):
         args = make_args(tag="v1.0.0", title="Updated", notes=None, draft=None, prerelease=None)
         with _patch_all(sample_config, self.adapter):
-            release_cmd.handle_update(args, fmt="json")
+            release_cmd.handle_edit(args, fmt="json")
 
         out = capsys.readouterr().out
         data = json.loads(out)
@@ -279,7 +279,7 @@ class TestHandleUpdate:
         args = make_args(tag="", title=None, notes=None, draft=None, prerelease=None)
         with _patch_all(sample_config, self.adapter):
             with pytest.raises(ConfigError):
-                release_cmd.handle_update(args, fmt="table")
+                release_cmd.handle_edit(args, fmt="table")
 
 
 class TestHandleViewLatest:

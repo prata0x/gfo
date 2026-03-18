@@ -45,8 +45,8 @@ def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     output(milestone, fmt=fmt, jq=jq)
 
 
-def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
-    """gfo milestone update のハンドラ。"""
+def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo milestone edit のハンドラ。"""
     adapter = get_adapter()
     milestone = adapter.update_milestone(
         args.number,

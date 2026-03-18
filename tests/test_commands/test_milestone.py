@@ -256,7 +256,7 @@ class TestHandleView:
         assert "v1.0" in out
 
 
-class TestHandleUpdate:
+class TestHandleEdit:
     def setup_method(self):
         self.milestone = _make_milestone()
         self.adapter = _make_adapter(self.milestone)
@@ -266,7 +266,7 @@ class TestHandleUpdate:
             number=1, title="v2.0", description="Updated", due="2026-06-01", state="closed"
         )
         with _patch_all(sample_config, self.adapter):
-            milestone_cmd.handle_update(args, fmt="table")
+            milestone_cmd.handle_edit(args, fmt="table")
 
         self.adapter.update_milestone.assert_called_once_with(
             1, title="v2.0", description="Updated", due_date="2026-06-01", state="closed"
@@ -275,7 +275,7 @@ class TestHandleUpdate:
     def test_update_with_none_args(self, sample_config):
         args = make_args(number=1, title=None, description=None, due=None, state=None)
         with _patch_all(sample_config, self.adapter):
-            milestone_cmd.handle_update(args, fmt="table")
+            milestone_cmd.handle_edit(args, fmt="table")
 
         self.adapter.update_milestone.assert_called_once_with(
             1, title=None, description=None, due_date=None, state=None
@@ -284,7 +284,7 @@ class TestHandleUpdate:
     def test_update_json_format(self, sample_config, capsys):
         args = make_args(number=1, title="v2.0", description=None, due=None, state=None)
         with _patch_all(sample_config, self.adapter):
-            milestone_cmd.handle_update(args, fmt="json")
+            milestone_cmd.handle_edit(args, fmt="json")
 
         out = capsys.readouterr().out
         data = json.loads(out)

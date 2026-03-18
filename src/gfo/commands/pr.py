@@ -77,8 +77,8 @@ def handle_checkout(args: argparse.Namespace, *, fmt: str, jq: str | None = None
     gfo.git_util.git_checkout_branch(pr.source_branch)
 
 
-def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
-    """gfo pr update <number> のハンドラ。"""
+def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo pr edit <number> のハンドラ。"""
     adapter = get_adapter()
     pr = adapter.update_pull_request(
         args.number,

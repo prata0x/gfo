@@ -22,8 +22,8 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     output(comment, fmt=fmt, jq=jq)
 
 
-def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
-    """gfo comment update <comment-id> --body TEXT --on <pr|issue> のハンドラ。"""
+def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo comment edit <comment-id> --body TEXT --on <pr|issue> のハンドラ。"""
     adapter = get_adapter()
     comment = adapter.update_comment(args.on, args.comment_id, body=args.body)
     output(comment, fmt=fmt, jq=jq)

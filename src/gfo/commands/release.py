@@ -57,8 +57,8 @@ def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     output(release, fmt=fmt, jq=jq)
 
 
-def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
-    """gfo release update のハンドラ。"""
+def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo release edit のハンドラ。"""
     tag = (args.tag or "").strip()
     if not tag:
         raise ConfigError(_("tag must not be empty."))

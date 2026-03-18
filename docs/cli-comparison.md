@@ -132,7 +132,7 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 | list | Y | Y | Y | Y | Y |
 | create | Y | Y | Y | Y | Y |
 | view | Y | Y | Y | Y | Y |
-| edit / update | Y (`edit`) | Y (`update`) | Y (`edit`) | Y (`edit`) | Y (`update`) |
+| edit / update | Y (`edit`) | Y (`update`) | Y (`edit`) | Y (`edit`) | Y (`edit`) |
 | close | Y | Y | Y | Y | Y |
 | reopen | Y | Y | Y | Y | Y |
 | merge | Y | Y | Y | Y | Y |
@@ -185,7 +185,7 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 | list | Y | Y | Y | Y | Y |
 | create | Y | Y | Y | Y | Y |
 | view | Y | Y | Y | Y | Y |
-| edit / update | Y (`edit`) | Y (`update`) | Y (`edit`) | Y (`edit`) | Y (`update`) |
+| edit / update | Y (`edit`) | Y (`update`) | Y (`edit`) | Y (`edit`) | Y (`edit`) |
 | close | Y | Y | Y | Y | Y |
 | reopen | Y | Y | Y | Y | Y |
 | delete | Y | Y | — | — | Y |
@@ -221,7 +221,7 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 | list | Y | — | Y | Y | Y |
 | create | Y | Y | Y | Y | Y |
 | view | Y | Y | — | Y | Y |
-| edit / update | Y (`edit`) | — | — | — | Y (`update`) |
+| edit / update | Y (`edit`) | — | — | — | Y (`edit`) |
 | clone | Y | Y | Y | Y | Y |
 | fork | Y | Y | Y | Y | Y |
 | delete | Y | — | Y | Y | Y |
@@ -245,7 +245,7 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 | list | Y | Y | Y | Y | Y |
 | create | Y | Y | Y | Y | Y |
 | view | Y | — | — | — | Y |
-| edit / update | Y (`edit`) | — | Y (`edit`) | — | Y (`update`) |
+| edit / update | Y (`edit`) | — | Y (`edit`) | — | Y (`edit`) |
 | delete | Y | Y | Y | — | Y |
 | asset upload | Y (`upload`) | Y (`upload`) | — | — | Y (`asset upload`) |
 | asset download | Y (`download`) | Y (`download`) | — | — | Y (`asset download`) |
@@ -272,7 +272,7 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 |---|---|---|---|---|---|
 | list | Y | Y | Y | Y | Y |
 | create | Y | Y | Y | Y | Y |
-| edit / update | Y (`edit`) | — | Y (`edit`) | — | Y (`update`) |
+| edit / update | Y (`edit`) | — | Y (`edit`) | — | Y (`edit`) |
 | delete | Y | Y | Y | Y | Y |
 | clone | Y (`clone`) | — | — | — | Y (`clone`) |
 
@@ -285,7 +285,7 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 | list | — | Y | Y | — | Y |
 | create | — | Y | Y | — | Y |
 | view | — | — | — | — | Y |
-| update | — | — | — | — | Y |
+| edit | — | — | — | — | Y |
 | close | — | — | Y (`close`) | — | Y |
 | reopen | — | — | Y (`reopen`) | — | Y |
 | delete | — | Y | Y | — | Y |
@@ -337,7 +337,7 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 
 | コマンド | 説明 | サブコマンド |
 |---|---|---|
-| `comment` | PR / Issue のコメントを独立管理 | `list`, `create`, `update`, `delete` |
+| `comment` | PR / Issue のコメントを独立管理 | `list`, `create`, `edit`, `delete` |
 | `review` | PR レビューを独立管理 | `list`, `create`, `dismiss` |
 | `branch` | リモートブランチ管理 | `list`, `create`, `delete` |
 | `tag` | タグ管理 | `list`, `create`, `delete` |
@@ -347,7 +347,7 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 | `collaborator` | コラボレーター管理 | `list`, `add`, `remove` |
 | `branch-protect` | ブランチ保護ルール管理 | `list`, `view`, `set`, `remove` |
 | `tag-protect` | タグ保護ルール管理 | `list`, `create`, `delete` |
-| `wiki` | Wiki ページ管理 | `list`, `view`, `create`, `update`, `delete`, `revisions` |
+| `wiki` | Wiki ページ管理 | `list`, `view`, `create`, `edit`, `delete`, `revisions` |
 | `package` | パッケージ管理 | `list`, `view`, `delete` |
 | `batch` | 複数リポジトリへの一括操作 | `pr create` |
 | `schema` | コマンドの JSON Schema 出力 | `--list`, `[target...]` |

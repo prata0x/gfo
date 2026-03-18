@@ -319,13 +319,13 @@ cp tests/integration/.env.example tests/integration/.env
 | 操作 | GitHub | GitLab | Bitbucket | Azure DevOps | Gitea | Forgejo | Gogs | GitBucket | Backlog |
 |---|---|---|---|---|---|---|---|---|---|
 | repo view/list | o | o | o | o | o | o | o | o | o |
-| label (update 含む) | o | o | skip | skip | o | o | skip | o | skip |
-| milestone (view/update/close/reopen 含む) | o | o | skip | skip | o | o | skip | o | skip |
+| label (edit 含む) | o | o | skip | skip | o | o | skip | o | skip |
+| milestone (view/edit/close/reopen 含む) | o | o | skip | skip | o | o | skip | o | skip |
 | issue | o | o | o | o | o | o | o | o | o |
 | pr create/list/view | o | o | o | o | o | o | skip | o | o |
 | pr close/reopen | o | o | skip | skip | o | o | skip | o | skip |
 | pr merge | o | o | o | o | o | o | skip | o | skip |
-| release (view/update 含む) | o | o | skip | skip | o | o | o | o | skip |
+| release (view/edit 含む) | o | o | skip | skip | o | o | o | o | skip |
 | webhook test | o | o | skip | skip | o | o | skip | o | skip |
 | browse | o | o | o | o | o | o | o | o | o |
 | branch-protect | o | o | o | skip | o | o | skip | skip | skip |
@@ -343,7 +343,7 @@ cp tests/integration/.env.example tests/integration/.env
 | pr ready | skip | o | skip | o | o | o | skip | skip | skip |
 | pr merge --auto | skip | o | skip | o | o | o | skip | skip | skip |
 | review dismiss | o | skip | skip | o | o | o | skip | skip | skip |
-| repo update | o | o | o | o | o | o | skip | skip | skip |
+| repo edit | o | o | o | o | o | o | skip | skip | skip |
 | repo archive | o | o | skip | o | o | o | skip | skip | skip |
 | repo languages | o | o | skip | skip | o | o | skip | skip | skip |
 | repo topics | o | o | skip | skip | o | o | skip | skip | skip |

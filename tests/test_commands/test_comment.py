@@ -41,12 +41,12 @@ class TestHandleCreate:
         adapter.create_comment.assert_called_once_with("issue", 1, body="Hello")
 
 
-class TestHandleUpdate:
+class TestHandleEdit:
     def test_calls_update_comment(self):
         with patch_adapter("gfo.commands.comment") as adapter:
             adapter.update_comment.return_value = SAMPLE_COMMENT
             args = make_args(comment_id=42, body="Updated", on="pr")
-            comment_cmd.handle_update(args, fmt="table")
+            comment_cmd.handle_edit(args, fmt="table")
         adapter.update_comment.assert_called_once_with("pr", 42, body="Updated")
 
 

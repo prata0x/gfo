@@ -30,8 +30,8 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     output(page, fmt=fmt, jq=jq)
 
 
-def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
-    """gfo wiki update <id> のハンドラ。"""
+def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo wiki edit <id> のハンドラ。"""
     adapter = get_adapter()
     page = adapter.update_wiki_page(args.id, title=args.title, content=args.content)
     output(page, fmt=fmt, jq=jq)

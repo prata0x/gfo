@@ -96,8 +96,8 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     print(_("Deleted issue '{number}'.").format(number=args.number))
 
 
-def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
-    """gfo issue update <number> のハンドラ。"""
+def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo issue edit <number> のハンドラ。"""
     adapter = get_adapter()
     issue = adapter.update_issue(
         args.number,
