@@ -9,7 +9,6 @@ Available for all commands.
 | `--format {table,json,plain}` | Output format | `table` |
 | `--jq EXPRESSION` | Apply jq filter to JSON output (implicitly enables `--format json`) | — |
 | `--remote REMOTE` | Use specified git remote instead of origin | — |
-| `--host HOST` | Override host for service detection (mutually exclusive with `--remote`) | — |
 | `--version` | Show version and exit | — |
 
 ---

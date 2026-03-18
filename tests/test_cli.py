@@ -1093,44 +1093,20 @@ def test_pre_parse_format_jq():
     assert _pre_parse_format(["--jq", ".command"]) == "json"
 
 
-# ── --remote / --host グローバルオプションのテスト ──
+# ── --remote グローバルオプションのテスト ──
 
 
 def test_parser_remote_option():
     parser, _ = create_parser()
     args = parser.parse_args(["--remote", "github", "pr", "list"])
     assert args.global_remote == "github"
-    assert args.global_host is None
-
-
-def test_parser_host_option():
-    parser, _ = create_parser()
-    args = parser.parse_args(["--host", "github.com", "pr", "list"])
-    assert args.global_host == "github.com"
-    assert args.global_remote is None
-
-
-def test_parser_remote_host_mutually_exclusive():
-    """--remote と --host は同時に指定できない。"""
-    parser, _ = create_parser()
-    with pytest.raises(ConfigError):
-        parser.parse_args(["--remote", "github", "--host", "github.com", "pr", "list"])
 
 
 def test_parser_no_remote_host_defaults():
-    """--remote / --host 未指定時のデフォルトは None。"""
+    """--remote 未指定時のデフォルトは None。"""
     parser, _ = create_parser()
     args = parser.parse_args(["pr", "list"])
     assert args.global_remote is None
-    assert args.global_host is None
-
-
-def test_parser_init_host_not_conflicting_with_global_host():
-    """init の --host と グローバルの --host は dest が異なり衝突しない。"""
-    parser, _ = create_parser()
-    args = parser.parse_args(["--host", "github.com", "init", "--host", "gitlab.com"])
-    assert args.global_host == "github.com"
-    assert args.host == "gitlab.com"
 
 
 def test_main_sets_context_var_remote():
@@ -1149,23 +1125,6 @@ def test_main_sets_context_var_remote():
     assert captured_value == "upstream"
     # main() 終了後はリセットされている
     assert cli_remote.get() is None
-
-
-def test_main_sets_context_var_host():
-    """main() が --host で cli_host ContextVar を設定する。"""
-    from gfo._context import cli_host
-
-    captured_value = None
-
-    def capture_handler(args, *, fmt, jq=None):
-        nonlocal captured_value
-        captured_value = cli_host.get()
-
-    with patch.dict(_DISPATCH, {("pr", "list"): capture_handler}):
-        main(["--host", "github.com", "pr", "list"])
-
-    assert captured_value == "github.com"
-    assert cli_host.get() is None
 
 
 def test_main_resets_context_var_on_error():

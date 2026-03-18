@@ -9,7 +9,6 @@
 | `--format {table,json,plain}` | 出力形式 | `table` |
 | `--jq EXPRESSION` | JSON 出力に jq フィルタを適用（`--format json` を暗黙有効化） | — |
 | `--remote REMOTE` | origin 以外の git remote を使用 | — |
-| `--host HOST` | サービス検出のホストを上書き（`--remote` と排他） | — |
 | `--version` | バージョンを表示して終了 | — |
 
 ---

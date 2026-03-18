@@ -246,13 +246,12 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
 
 def detect_service(cwd: str | None = None) -> DetectResult:
     """完全な検出フローを実行する。"""
-    from gfo._context import cli_host, cli_remote
+    from gfo._context import cli_remote
 
     override_remote = cli_remote.get()
-    override_host = cli_host.get()
 
-    # --remote / --host 指定時は git config ショートカットをスキップ
-    if not override_remote and not override_host:
+    # --remote 指定時は git config ショートカットをスキップ
+    if not override_remote:
         # 1. git config ショートカット（saved_type / saved_host: git config に保存済みの値）
         saved_type = git_config_get("gfo.type", cwd=cwd)
         saved_host = git_config_get("gfo.host", cwd=cwd)
@@ -276,11 +275,6 @@ def detect_service(cwd: str | None = None) -> DetectResult:
     else:
         remote_url = get_remote_url(cwd=cwd)
     result = detect_from_url(remote_url)
-
-    # --host 指定時: パース結果の host を上書きし、service_type を再検出
-    if override_host:
-        known = _KNOWN_HOSTS.get(override_host.lower())
-        result = dataclasses.replace(result, host=override_host, service_type=known)
 
     # 3. config.toml hosts 参照
     if result.service_type is None:

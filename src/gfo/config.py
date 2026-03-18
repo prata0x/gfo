@@ -130,10 +130,10 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
     import gfo.detect
     import gfo.git_util
 
-    # --remote / --host 指定時は git config ショートカットをスキップ
-    from gfo._context import cli_host, cli_remote
+    # --remote 指定時は git config ショートカットをスキップ
+    from gfo._context import cli_remote
 
-    override_active = cli_remote.get() is not None or cli_host.get() is not None
+    override_active = cli_remote.get() is not None
 
     # 1-2. git config から service_type / host を取得（saved_type / saved_host: git config 保存値）
     saved_type = gfo.git_util.git_config_get("gfo.type", cwd=cwd)
@@ -141,7 +141,7 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
 
     # 3. git config で両方設定済みの場合は remote URL から owner/repo を検出
     #    いずれか未設定なら detect_service() で自動検出（else ブロック）
-    #    ただし --remote / --host 指定時は常に detect_service() を通す
+    #    ただし --remote 指定時は常に detect_service() を通す
     if saved_type and saved_host and not override_active:
         # remote URL が存在しない環境でも失敗しないよう任意解析にする
         try:
@@ -162,7 +162,7 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
     else:
         detect_result = gfo.detect.detect_service(cwd=cwd)
         if override_active:
-            # --remote / --host 指定時は detect_service() の結果を優先
+            # --remote 指定時は detect_service() の結果を優先
             saved_type = detect_result.service_type
             saved_host = detect_result.host
         else:

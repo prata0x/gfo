@@ -44,7 +44,7 @@ import gfo.commands.variable
 import gfo.commands.webhook
 import gfo.commands.wiki
 from gfo import __version__
-from gfo._context import cli_host, cli_remote
+from gfo._context import cli_remote
 from gfo.config import get_configured_output_format
 from gfo.exceptions import ConfigError, GfoError, NotSupportedError
 from gfo.i18n import _
@@ -86,20 +86,12 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     )
     parser.add_argument("--version", action="version", version=f"gfo {__version__}")
 
-    remote_group = parser.add_mutually_exclusive_group()
-    remote_group.add_argument(
+    parser.add_argument(
         "--remote",
         dest="global_remote",
         default=None,
         metavar="REMOTE",
         help=_("Use specified git remote instead of origin"),
-    )
-    remote_group.add_argument(
-        "--host",
-        dest="global_host",
-        default=None,
-        metavar="HOST",
-        help=_("Override host for service detection"),
     )
 
     subparsers = parser.add_subparsers(dest="command")
@@ -1039,9 +1031,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 1
 
-    # --remote / --host の ContextVar 設定
+    # --remote の ContextVar 設定
     remote_token = cli_remote.set(getattr(args, "global_remote", None))
-    host_token = cli_host.set(getattr(args, "global_host", None))
 
     try:
         jq_expr = args.jq
@@ -1075,4 +1066,3 @@ def main(argv: list[str] | None = None) -> int:
             return 1
     finally:
         cli_remote.reset(remote_token)
-        cli_host.reset(host_token)

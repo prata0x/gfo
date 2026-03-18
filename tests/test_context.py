@@ -2,15 +2,11 @@
 
 from __future__ import annotations
 
-from gfo._context import cli_host, cli_remote
+from gfo._context import cli_remote
 
 
 def test_cli_remote_default_is_none():
     assert cli_remote.get() is None
-
-
-def test_cli_host_default_is_none():
-    assert cli_host.get() is None
 
 
 def test_cli_remote_set_and_reset():
@@ -18,13 +14,6 @@ def test_cli_remote_set_and_reset():
     assert cli_remote.get() == "github"
     cli_remote.reset(token)
     assert cli_remote.get() is None
-
-
-def test_cli_host_set_and_reset():
-    token = cli_host.set("github.com")
-    assert cli_host.get() == "github.com"
-    cli_host.reset(token)
-    assert cli_host.get() is None
 
 
 def test_set_does_not_leak_between_calls():

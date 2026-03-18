@@ -50,11 +50,10 @@ paths:
 
 `auth.py`, `registry.py`, テストファイル, ドキュメントの4箇所に波及する。
 
-## `--remote` / `--host` グローバルオプション
+## `--remote` グローバルオプション
 
-- `cli.main()` で `contextvars.ContextVar`（`cli_remote`, `cli_host`）に値を設定
+- `cli.main()` で `contextvars.ContextVar`（`cli_remote`）に値を設定
 - `detect_service()` / `resolve_project_config()` で ContextVar を参照
-- いずれか指定時 → git config ショートカット（`gfo.type`/`gfo.host`）をスキップ
-- `--remote`: 指定リモートの URL で `get_remote_url(remote=...)` を呼ぶ
-- `--host`: origin URL パース後に host を上書きし、既知ホストテーブルで再検出
-- `dest` は `global_remote` / `global_host`（`init --host` との衝突回避）
+- 指定時 → git config ショートカット（`gfo.type`/`gfo.host`）をスキップ
+- 指定リモートの URL で `get_remote_url(remote=...)` を呼ぶ
+- `dest` は `global_remote`（`init --host` との衝突回避）

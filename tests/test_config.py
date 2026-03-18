@@ -751,7 +751,7 @@ def test_resolve_owner_repo_git_config_override():
     assert cfg.repo == "override-repo"
 
 
-# ── --remote / --host override 時の resolve_project_config ──
+# ── --remote override 時の resolve_project_config ──
 
 
 def test_resolve_remote_override_skips_git_config_shortcut():
@@ -783,37 +783,6 @@ def test_resolve_remote_override_skips_git_config_shortcut():
         assert cfg.host == "github.com"
     finally:
         cli_remote.reset(token)
-
-
-def test_resolve_host_override_skips_git_config_shortcut():
-    """--host 指定時は git config ショートカットをスキップして detect_service() を通す。"""
-    from gfo._context import cli_host
-    from gfo.detect import DetectResult
-
-    git_cfg = {
-        "gfo.type": "gitea",
-        "gfo.host": "gitea.local",
-        "gfo.api-url": None,
-        "gfo.organization": None,
-        "gfo.project-key": None,
-        "gfo.owner": None,
-        "gfo.repo": None,
-    }
-    detect_result = DetectResult(
-        service_type="github", host="github.com", owner="owner", repo="repo"
-    )
-    token = cli_host.set("github.com")
-    try:
-        with (
-            patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
-            patch("gfo.detect.detect_service", return_value=detect_result) as mock_detect,
-        ):
-            cfg = resolve_project_config()
-        mock_detect.assert_called_once()
-        assert cfg.service_type == "github"
-        assert cfg.host == "github.com"
-    finally:
-        cli_host.reset(token)
 
 
 def test_resolve_no_override_still_uses_git_config_shortcut():
