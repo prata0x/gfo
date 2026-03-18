@@ -794,6 +794,28 @@ class TestCreateRelease:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["tag_name"] == "v1.0.0"
 
+    def test_create_with_target(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/releases",
+            json=_release_data(),
+            status=201,
+        )
+        github_adapter.create_release(tag="v1.0.0", target="develop")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["target_commitish"] == "develop"
+
+    def test_create_without_target_omits_target_commitish(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/releases",
+            json=_release_data(),
+            status=201,
+        )
+        github_adapter.create_release(tag="v1.0.0")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "target_commitish" not in req_body
+
 
 class TestGetRelease:
     def test_get(self, mock_responses, github_adapter):

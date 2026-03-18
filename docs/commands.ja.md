@@ -884,7 +884,7 @@ gfo release list
 ### gfo release create
 
 ```
-gfo release create TAG [--title TITLE] [--notes NOTES] [--draft] [--prerelease]
+gfo release create TAG [--title TITLE] [--notes NOTES] [--draft] [--prerelease] [--target TARGET]
 ```
 
 ```bash

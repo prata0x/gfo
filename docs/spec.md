@@ -300,7 +300,7 @@ gfo release list [--limit N]
 #### gfo release create
 
 ```
-gfo release create <tag> [--title T] [--notes N] [--draft] [--prerelease]
+gfo release create <tag> [--title T] [--notes N] [--draft] [--prerelease] [--target TARGET]
 ```
 
 | 引数/オプション | デフォルト | 説明 |
@@ -310,6 +310,7 @@ gfo release create <tag> [--title T] [--notes N] [--draft] [--prerelease]
 | `--notes` | 空文字列 | リリースノート |
 | `--draft` | `false` | ドラフトリリースとして作成 |
 | `--prerelease` | `false` | プレリリースとしてマーク |
+| `--target` | — | ターゲットブランチまたはコミット SHA |
 
 **注記**: release / label / milestone は edit を将来バージョンで対応予定。
 

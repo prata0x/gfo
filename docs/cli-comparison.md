@@ -260,7 +260,7 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 | `--notes` | Y | Y (`--description`) | Y (`--note`) | Y | Y |
 | `--draft` | Y | — | Y | — | Y |
 | `--prerelease` | Y | — | Y | — | Y |
-| `--target` (ref) | Y | Y (`--ref`) | Y | — | — |
+| `--target` (ref) | Y | Y (`--ref`) | Y | — | Y |
 | ファイル添付 | Y (位置引数) | Y (`--assets-links`) | Y (`--asset`) | — | — (別途 `asset upload`) |
 
 ---

@@ -372,6 +372,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     release_create.add_argument("--notes", default="", help=_("Release notes"))
     release_create.add_argument("--draft", action="store_true", help=_("Create as draft"))
     release_create.add_argument("--prerelease", action="store_true", help=_("Mark as prerelease"))
+    release_create.add_argument("--target", help=_("Target branch or commit SHA"))
     release_delete = release_sub.add_parser("delete", help=_("Delete release"))
     release_delete.add_argument("tag", help=_("Tag name"))
     release_view = release_sub.add_parser("view", help=_("View release details"))

@@ -112,6 +112,7 @@ class TestHandleCreate:
             notes="Notes",
             draft=False,
             prerelease=False,
+            target=None,
         )
 
     def test_title_defaults_to_tag(self, sample_config):
@@ -155,6 +156,24 @@ class TestHandleCreate:
 
         call_kwargs = self.adapter.create_release.call_args.kwargs
         assert call_kwargs["title"] == "v1.0.0"
+
+    def test_target_passed_to_adapter(self, sample_config):
+        args = make_args(
+            tag="v1.0.0", title="Release", notes="", draft=False, prerelease=False, target="main"
+        )
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = self.adapter.create_release.call_args.kwargs
+        assert call_kwargs["target"] == "main"
+
+    def test_target_none_by_default(self, sample_config):
+        args = make_args(tag="v1.0.0", title="Release", notes="", draft=False, prerelease=False)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = self.adapter.create_release.call_args.kwargs
+        assert call_kwargs["target"] is None
 
     def test_empty_tag_raises_config_error_with_correct_message(self, sample_config):
         """空文字 tag では正しいエラーメッセージが表示される（R39-02）。"""

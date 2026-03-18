@@ -803,6 +803,23 @@ class TestCreateRelease:
         assert req_body["tag_name"] == "v1.0.0"
         assert req_body["ref"] == "main"
 
+    def test_create_with_target(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}",
+            json=_repo_data(),
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/releases",
+            json=_release_data(),
+            status=201,
+        )
+        gitlab_adapter.create_release(tag="v1.0.0", target="develop")
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["ref"] == "develop"
+
     def test_create_prerelease(self, mock_responses, gitlab_adapter):
         """prerelease=True のとき upcoming_release がペイロードに含まれる。"""
         mock_responses.add(

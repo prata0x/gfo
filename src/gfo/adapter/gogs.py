@@ -209,6 +209,7 @@ class GogsAdapter(GiteaAdapter):
         notes: str = "",
         draft: bool = False,
         prerelease: bool = False,
+        target: str | None = None,
     ) -> Release:
         raise NotSupportedError("Gogs", "release operations")
 

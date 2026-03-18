@@ -30,6 +30,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         notes=args.notes or "",
         draft=args.draft,
         prerelease=args.prerelease,
+        target=getattr(args, "target", None),
     )
     output(release, fmt=fmt, jq=jq)
 

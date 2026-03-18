@@ -479,6 +479,7 @@ class GitLabAdapter(GitServiceAdapter):
         notes: str = "",
         draft: bool = False,
         prerelease: bool = False,
+        target: str | None = None,
     ) -> Release:
         payload: dict = {
             "tag_name": tag,
@@ -489,7 +490,7 @@ class GitLabAdapter(GitServiceAdapter):
             payload["upcoming_release"] = True
         # GitLab はタグが存在しない場合 ref (ブランチ名等) が必要
         repo = self.get_repository()
-        payload["ref"] = repo.default_branch or "main"
+        payload["ref"] = target or repo.default_branch or "main"
         resp = self._client.post(f"{self._project_path()}/releases", json=payload)
         return self._to_release(resp.json())
 

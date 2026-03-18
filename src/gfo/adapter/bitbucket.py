@@ -359,6 +359,7 @@ class BitbucketAdapter(GitServiceAdapter):
         notes: str = "",
         draft: bool = False,
         prerelease: bool = False,
+        target: str | None = None,
     ) -> Release:
         raise NotSupportedError(self.service_name, "releases")
 

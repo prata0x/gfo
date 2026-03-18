@@ -597,6 +597,28 @@ class TestCreateRelease:
         assert isinstance(rel, Release)
         assert rel.tag == "v1.0.0"
 
+    def test_create_with_target(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/releases",
+            json=self._release_payload(),
+            status=201,
+        )
+        gitbucket_adapter.create_release(tag="v1.0.0", title="Release v1.0.0", target="develop")
+        req_body = json_mod.loads(mock_responses.calls[0].request.body)
+        assert req_body["target_commitish"] == "develop"
+
+    def test_create_without_target_omits_target_commitish(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/releases",
+            json=self._release_payload(),
+            status=201,
+        )
+        gitbucket_adapter.create_release(tag="v1.0.0", title="Release v1.0.0")
+        req_body = json_mod.loads(mock_responses.calls[0].request.body)
+        assert "target_commitish" not in req_body
+
     def test_create_double_encoded_json(self, mock_responses, gitbucket_adapter):
         """GitBucket がレスポンスを JSON 文字列として二重エンコードする場合。"""
         inner = json_mod.dumps(self._release_payload())

@@ -844,6 +844,7 @@ class GitServiceAdapter(ABC):
         notes: str = "",
         draft: bool = False,
         prerelease: bool = False,
+        target: str | None = None,
     ) -> Release: ...
 
     def delete_release(self, *, tag: str) -> None:
