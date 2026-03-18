@@ -92,6 +92,10 @@ class TestHandleCreate:
             base="main",
             head="feature/test",
             draft=False,
+            reviewers=None,
+            assignees=None,
+            labels=None,
+            milestone=None,
         )
 
     def test_infers_head_from_git(self, sample_config, mock_adapter, capsys):
@@ -146,6 +150,140 @@ class TestHandleCreate:
 
         call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
         assert call_kwargs["title"] == "My PR"
+
+    def test_passes_reviewers_to_adapter(self, sample_config, mock_adapter, capsys):
+        args = make_args(
+            head="feature/x",
+            base="main",
+            title="My PR",
+            body="",
+            draft=False,
+            reviewer=["alice", "bob"],
+            assignee=None,
+            label=None,
+            milestone=None,
+            fill=False,
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_create(args, fmt="table")
+        call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
+        assert call_kwargs["reviewers"] == ["alice", "bob"]
+
+    def test_passes_assignees_to_adapter(self, sample_config, mock_adapter, capsys):
+        args = make_args(
+            head="feature/x",
+            base="main",
+            title="My PR",
+            body="",
+            draft=False,
+            reviewer=None,
+            assignee=["alice"],
+            label=None,
+            milestone=None,
+            fill=False,
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_create(args, fmt="table")
+        call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
+        assert call_kwargs["assignees"] == ["alice"]
+
+    def test_passes_labels_to_adapter(self, sample_config, mock_adapter, capsys):
+        args = make_args(
+            head="feature/x",
+            base="main",
+            title="My PR",
+            body="",
+            draft=False,
+            reviewer=None,
+            assignee=None,
+            label=["bug", "urgent"],
+            milestone=None,
+            fill=False,
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_create(args, fmt="table")
+        call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
+        assert call_kwargs["labels"] == ["bug", "urgent"]
+
+    def test_passes_milestone_to_adapter(self, sample_config, mock_adapter, capsys):
+        args = make_args(
+            head="feature/x",
+            base="main",
+            title="My PR",
+            body="",
+            draft=False,
+            reviewer=None,
+            assignee=None,
+            label=None,
+            milestone="v1.0",
+            fill=False,
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_create(args, fmt="table")
+        call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
+        assert call_kwargs["milestone"] == "v1.0"
+
+    def test_fill_sets_body_from_commit(self, sample_config, mock_adapter, capsys):
+        args = make_args(
+            head="feature/x",
+            base="main",
+            title="My PR",
+            body="",
+            draft=False,
+            reviewer=None,
+            assignee=None,
+            label=None,
+            milestone=None,
+            fill=True,
+        )
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch(
+                "gfo.commands.pr.gfo.git_util.get_last_commit_body", return_value="Commit body text"
+            ),
+        ):
+            pr_cmd.handle_create(args, fmt="table")
+        call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
+        assert call_kwargs["body"] == "Commit body text"
+
+    def test_fill_does_not_override_explicit_body(self, sample_config, mock_adapter, capsys):
+        args = make_args(
+            head="feature/x",
+            base="main",
+            title="My PR",
+            body="explicit body",
+            draft=False,
+            reviewer=None,
+            assignee=None,
+            label=None,
+            milestone=None,
+            fill=True,
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_create(args, fmt="table")
+        call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
+        assert call_kwargs["body"] == "explicit body"
+
+    def test_none_options_not_passed_when_unset(self, sample_config, mock_adapter, capsys):
+        args = make_args(
+            head="feature/x",
+            base="main",
+            title="My PR",
+            body="",
+            draft=False,
+            reviewer=None,
+            assignee=None,
+            label=None,
+            milestone=None,
+            fill=False,
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_create(args, fmt="table")
+        call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
+        assert call_kwargs["reviewers"] is None
+        assert call_kwargs["assignees"] is None
+        assert call_kwargs["labels"] is None
+        assert call_kwargs["milestone"] is None
 
 
 class TestHandleCreateTitleValidation:

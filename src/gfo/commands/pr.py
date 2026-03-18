@@ -32,12 +32,20 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     title = (args.title or gfo.git_util.get_last_commit_subject() or "").strip()
     if not title:
         raise ConfigError(_("Could not determine PR title. Use --title option."))
+    if getattr(args, "fill", False):
+        body = args.body or gfo.git_util.get_last_commit_body() or ""
+    else:
+        body = args.body or ""
     pr = adapter.create_pull_request(
         title=title,
-        body=args.body or "",
+        body=body,
         base=base,
         head=head,
         draft=args.draft,
+        reviewers=getattr(args, "reviewer", None),
+        assignees=getattr(args, "assignee", None),
+        labels=getattr(args, "label", None),
+        milestone=getattr(args, "milestone", None),
     )
     output(pr, fmt=fmt, jq=jq)
 

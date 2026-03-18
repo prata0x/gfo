@@ -74,11 +74,40 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return prs
 
     def create_pull_request(
-        self, *, title: str, body: str = "", base: str, head: str, draft: bool = False
+        self,
+        *,
+        title: str,
+        body: str = "",
+        base: str,
+        head: str,
+        draft: bool = False,
+        reviewers: list[str] | None = None,
+        assignees: list[str] | None = None,
+        labels: list[str] | None = None,
+        milestone: str | None = None,
     ) -> PullRequest:
-        payload = {"title": title, "body": body, "base": base, "head": head, "draft": draft}
+        payload: dict = {"title": title, "body": body, "base": base, "head": head, "draft": draft}
         resp = self._client.post(f"{self._repos_path()}/pulls", json=payload)
-        return self._to_pull_request(resp.json())
+        pr = self._to_pull_request(resp.json())
+        patch_payload: dict = {}
+        if labels:
+            patch_payload["labels"] = labels
+        if assignees:
+            patch_payload["assignees"] = assignees
+        if milestone:
+            patch_payload["milestone"] = self._resolve_milestone_number(milestone)
+        if patch_payload:
+            self._client.patch(f"{self._repos_path()}/issues/{pr.number}", json=patch_payload)
+        if reviewers:
+            self.request_reviewers(pr.number, reviewers)
+        return pr
+
+    def _resolve_milestone_number(self, title: str) -> int:
+        """milestone タイトルから number を解決する。"""
+        for ms in self.list_milestones():
+            if ms.title == title:
+                return ms.number
+        raise GfoError(f"Milestone not found: {title}")
 
     def get_pull_request(self, number: int) -> PullRequest:
         resp = self._client.get(f"{self._repos_path()}/pulls/{number}")

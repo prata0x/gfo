@@ -78,22 +78,19 @@ gfo のコマンド/サブコマンド/オプション名を他ツール（gh, g
 
 ---
 
-## 5. `pr create` オプション追加
+## 5. `pr create` オプション追加 ✅
 
-**現状**: gfo の `pr create` は `--title`, `--body`, `--base`, `--head`, `--draft` のみ。
+~~**現状**: gfo の `pr create` は `--title`, `--body`, `--base`, `--head`, `--draft` のみ。~~
 
-| オプション | gh | glab | tea | fj | gfo (現在) |
+| オプション | gh | glab | tea | fj | gfo |
 |---|---|---|---|---|---|
-| `--reviewer` | Y | Y | — | — | — |
-| `--assignee` | Y | Y | — | — | — |
-| `--label` | Y | Y | Y | Y | — |
-| `--milestone` | Y | Y | Y | — | — |
-| `--fill` (自動入力) | Y | Y | — | — | — |
+| `--reviewer` | Y | Y | — | — | Y |
+| `--assignee` | Y | Y | — | — | Y |
+| `--label` | Y | Y | Y | Y | Y |
+| `--milestone` | Y | Y | Y | — | Y |
+| `--fill` (自動入力) | Y | Y | — | — | Y |
 
-**判定: 追加**
-
-- gh / glab が全てサポート。`--label` は 4 ツール全てが対応。
-- ユーザーの期待値が高い基本オプション群。
+**完了**: `--reviewer`, `--assignee`, `--label`, `--milestone`, `--fill` を追加済み。
 
 ---
 
@@ -154,6 +151,6 @@ gfo のコマンド/サブコマンド/オプション名を他ツール（gh, g
 | # | 変更内容 | 影響範囲 |
 |---|---|---|
 | 5 | `--web` / `-w` オプション追加 | pr view, issue view 等の各コマンド |
-| 6 | `pr create` に `--reviewer/--assignee/--label/--milestone/--fill` 追加 | pr create |
+| 6 | `pr create` に `--reviewer/--assignee/--label/--milestone/--fill` 追加 (完了済み) | pr create |
 | 7 | `release create --target` 追加 | release create |
 | 8 | `auth logout` 追加 | auth |

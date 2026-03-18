@@ -115,7 +115,7 @@ gfo pr list --state all --limit 50
 ### gfo pr create
 
 ```
-gfo pr create [--title TITLE] [--body BODY] [--base BRANCH] [--head BRANCH] [--draft]
+gfo pr create [--title TITLE] [--body BODY] [--base BRANCH] [--head BRANCH] [--draft] [--reviewer USER] [--assignee USER] [--label NAME] [--milestone NAME] [--fill]
 ```
 
 | Option | Description |
@@ -125,10 +125,16 @@ gfo pr create [--title TITLE] [--body BODY] [--base BRANCH] [--head BRANCH] [--d
 | `--base` | Target branch (default branch if omitted) |
 | `--head` | Source branch (current branch if omitted) |
 | `--draft` | Create as draft PR |
+| `--reviewer` | Reviewer username (repeatable) |
+| `--assignee` | Assignee username (repeatable) |
+| `--label` | Label name (repeatable) |
+| `--milestone` | Milestone name |
+| `--fill` | Use commit info for title and body |
 
 ```bash
 gfo pr create --title "Fix login bug" --base main --head feature/fix-login
 gfo pr create --title "WIP: new feature" --draft
+gfo pr create --fill --reviewer alice --label bug --milestone v1.0
 ```
 
 ### gfo pr view

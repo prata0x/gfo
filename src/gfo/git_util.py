@@ -80,6 +80,11 @@ def get_last_commit_subject(cwd: str | None = None) -> str:
     return run_git("log", "-1", "--format=%s", cwd=cwd)
 
 
+def get_last_commit_body(cwd: str | None = None) -> str:
+    """直近コミットの body（subject 以降）を取得する。"""
+    return run_git("log", "-1", "--format=%b", cwd=cwd)
+
+
 def _resolve_symbolic_head(remote: str, cwd: str | None) -> str | None:
     """リモートの symbolic-ref HEAD を解決する。失敗時は None。"""
     try:

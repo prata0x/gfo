@@ -379,6 +379,36 @@ class TestCreatePullRequest:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["isDraft"] is True
 
+    def test_create_with_reviewers(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(responses.POST, f"{GIT}/pullrequests", json=_pr_data(), status=201)
+        mock_responses.add(
+            responses.PUT, f"{GIT}/pullrequests/1/reviewers/alice", json={}, status=200
+        )
+        mock_responses.add(
+            responses.PUT, f"{GIT}/pullrequests/1/reviewers/bob", json={}, status=200
+        )
+        azure_devops_adapter.create_pull_request(
+            title="PR #1",
+            body="desc",
+            base="main",
+            head="feature",
+            reviewers=["alice", "bob"],
+        )
+        assert len(mock_responses.calls) == 3
+
+    def test_create_ignores_unsupported_options(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(responses.POST, f"{GIT}/pullrequests", json=_pr_data(), status=201)
+        azure_devops_adapter.create_pull_request(
+            title="PR #1",
+            body="desc",
+            base="main",
+            head="feature",
+            assignees=["alice"],
+            labels=["bug"],
+            milestone="v1.0",
+        )
+        assert len(mock_responses.calls) == 1
+
 
 class TestGetPullRequest:
     def test_get(self, mock_responses, azure_devops_adapter):

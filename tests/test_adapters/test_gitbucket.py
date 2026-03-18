@@ -224,6 +224,20 @@ class TestCreatePullRequest:
         req_body = json_mod.loads(mock_responses.calls[0].request.body)
         assert req_body["draft"] is True
 
+    def test_create_ignores_extra_options(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(responses.POST, f"{REPOS}/pulls", json=_pr_data(), status=201)
+        pr = gitbucket_adapter.create_pull_request(
+            title="PR #1",
+            body="desc",
+            base="main",
+            head="feature",
+            reviewers=["alice"],
+            assignees=["bob"],
+            labels=["bug"],
+            milestone="v1.0",
+        )
+        assert isinstance(pr, PullRequest)
+
 
 class TestGetPullRequest:
     def test_get(self, mock_responses, gitbucket_adapter):

@@ -27,7 +27,7 @@ from gfo.adapter.base import (
 )
 from gfo.adapter.github import GitHubAdapter
 from gfo.adapter.registry import get_adapter_class
-from gfo.exceptions import AuthenticationError, NotFoundError, ServerError
+from gfo.exceptions import AuthenticationError, GfoError, NotFoundError, ServerError
 
 BASE = "https://api.github.com"
 REPOS = f"{BASE}/repos/test-owner/test-repo"
@@ -445,6 +445,76 @@ class TestCreatePullRequest:
         )
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["draft"] is True
+
+    def test_create_with_reviewers(self, mock_responses, github_adapter):
+        mock_responses.add(responses.POST, f"{REPOS}/pulls", json=_pr_data(), status=201)
+        mock_responses.add(
+            responses.POST, f"{REPOS}/pulls/1/requested_reviewers", json={}, status=201
+        )
+        github_adapter.create_pull_request(
+            title="PR #1",
+            body="desc",
+            base="main",
+            head="feature",
+            reviewers=["alice", "bob"],
+        )
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["reviewers"] == ["alice", "bob"]
+
+    def test_create_with_labels_and_assignees(self, mock_responses, github_adapter):
+        mock_responses.add(responses.POST, f"{REPOS}/pulls", json=_pr_data(), status=201)
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json={}, status=200)
+        github_adapter.create_pull_request(
+            title="PR #1",
+            body="desc",
+            base="main",
+            head="feature",
+            labels=["bug", "urgent"],
+            assignees=["alice"],
+        )
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["labels"] == ["bug", "urgent"]
+        assert req_body["assignees"] == ["alice"]
+
+    def test_create_with_milestone(self, mock_responses, github_adapter):
+        mock_responses.add(responses.POST, f"{REPOS}/pulls", json=_pr_data(), status=201)
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/milestones",
+            json=[
+                {
+                    "number": 1,
+                    "id": 1,
+                    "title": "v1.0",
+                    "description": None,
+                    "state": "open",
+                    "due_on": None,
+                },
+            ],
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json={}, status=200)
+        github_adapter.create_pull_request(
+            title="PR #1",
+            body="desc",
+            base="main",
+            head="feature",
+            milestone="v1.0",
+        )
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert req_body["milestone"] == 1
+
+    def test_create_with_milestone_not_found(self, mock_responses, github_adapter):
+        mock_responses.add(responses.POST, f"{REPOS}/pulls", json=_pr_data(), status=201)
+        mock_responses.add(responses.GET, f"{REPOS}/milestones", json=[], status=200)
+        with pytest.raises(GfoError, match="Milestone not found"):
+            github_adapter.create_pull_request(
+                title="PR #1",
+                body="desc",
+                base="main",
+                head="feature",
+                milestone="nonexistent",
+            )
 
 
 class TestGetPullRequest:

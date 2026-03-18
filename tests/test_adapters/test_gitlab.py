@@ -29,7 +29,13 @@ from gfo.adapter.base import (
 )
 from gfo.adapter.gitlab import GitLabAdapter
 from gfo.adapter.registry import get_adapter_class
-from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError, ServerError
+from gfo.exceptions import (
+    AuthenticationError,
+    GfoError,
+    NotFoundError,
+    NotSupportedError,
+    ServerError,
+)
 
 BASE = "https://gitlab.com/api/v4"
 PROJECT = f"{BASE}/projects/{quote('test-owner/test-repo', safe='')}"
@@ -427,6 +433,69 @@ class TestCreatePullRequest:
         )
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["draft"] is True
+
+    def test_create_with_reviewers(self, mock_responses, gitlab_adapter):
+        mock_responses.add(responses.GET, f"{BASE}/users", json=[{"id": 10}], status=200)
+        mock_responses.add(responses.GET, f"{BASE}/users", json=[{"id": 20}], status=200)
+        mock_responses.add(responses.POST, f"{PROJECT}/merge_requests", json=_mr_data(), status=201)
+        gitlab_adapter.create_pull_request(
+            title="MR !1",
+            body="desc",
+            base="main",
+            head="feature",
+            reviewers=["alice", "bob"],
+        )
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert req_body["reviewer_ids"] == [10, 20]
+
+    def test_create_with_assignees(self, mock_responses, gitlab_adapter):
+        mock_responses.add(responses.GET, f"{BASE}/users", json=[{"id": 30}], status=200)
+        mock_responses.add(responses.POST, f"{PROJECT}/merge_requests", json=_mr_data(), status=201)
+        gitlab_adapter.create_pull_request(
+            title="MR !1",
+            body="desc",
+            base="main",
+            head="feature",
+            assignees=["charlie"],
+        )
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["assignee_ids"] == [30]
+
+    def test_create_with_labels(self, mock_responses, gitlab_adapter):
+        mock_responses.add(responses.POST, f"{PROJECT}/merge_requests", json=_mr_data(), status=201)
+        gitlab_adapter.create_pull_request(
+            title="MR !1",
+            body="desc",
+            base="main",
+            head="feature",
+            labels=["bug", "urgent"],
+        )
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["labels"] == "bug,urgent"
+
+    def test_create_with_milestone(self, mock_responses, gitlab_adapter):
+        mock_responses.add(responses.GET, f"{PROJECT}/milestones", json=[{"id": 5}], status=200)
+        mock_responses.add(responses.POST, f"{PROJECT}/merge_requests", json=_mr_data(), status=201)
+        gitlab_adapter.create_pull_request(
+            title="MR !1",
+            body="desc",
+            base="main",
+            head="feature",
+            milestone="v1.0",
+        )
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["milestone_id"] == 5
+
+    def test_create_with_milestone_not_found(self, mock_responses, gitlab_adapter):
+        mock_responses.add(responses.GET, f"{PROJECT}/milestones", json=[], status=200)
+        with pytest.raises(GfoError, match="Milestone not found"):
+            gitlab_adapter.create_pull_request(
+                title="MR !1",
+                body="desc",
+                base="main",
+                head="feature",
+                milestone="nonexistent",
+            )
 
 
 class TestGetPullRequest:

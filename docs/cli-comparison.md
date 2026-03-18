@@ -157,11 +157,11 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 | `--base` | Y | Y | Y | Y | Y |
 | `--head` | Y | Y | Y | Y | Y |
 | `--draft` | Y | Y | — | — | Y |
-| `--reviewer` | Y | Y | — | — | — |
-| `--assignee` | Y | Y | — | — | — |
-| `--label` | Y | Y | Y | Y | — |
-| `--milestone` | Y | Y | Y | — | — |
-| `--fill` (自動入力) | Y | Y | — | — | — |
+| `--reviewer` | Y | Y | — | — | Y |
+| `--assignee` | Y | Y | — | — | Y |
+| `--label` | Y | Y | Y | Y | Y |
+| `--milestone` | Y | Y | Y | — | Y |
+| `--fill` (自動入力) | Y | Y | — | — | Y |
 
 **merge**
 

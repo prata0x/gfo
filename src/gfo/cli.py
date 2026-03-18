@@ -146,6 +146,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_create.add_argument("--base", help=_("Base branch"))
     pr_create.add_argument("--head", help=_("Head branch"))
     pr_create.add_argument("--draft", action="store_true", help=_("Create as draft"))
+    pr_create.add_argument("--reviewer", action="append", help=_("Reviewer username (repeatable)"))
+    pr_create.add_argument("--assignee", action="append", help=_("Assignee username (repeatable)"))
+    pr_create.add_argument("--label", action="append", help=_("Label name (repeatable)"))
+    pr_create.add_argument("--milestone", help=_("Milestone name"))
+    pr_create.add_argument(
+        "--fill", action="store_true", help=_("Use commit info for title and body")
+    )
     pr_view = pr_sub.add_parser("view", help=_("View pull request details"))
     pr_view.add_argument("number", type=int, help=_("PR number"))
     pr_view.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))

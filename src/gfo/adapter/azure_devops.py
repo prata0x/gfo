@@ -167,7 +167,17 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         return [self._to_pull_request(r) for r in results]
 
     def create_pull_request(
-        self, *, title: str, body: str = "", base: str, head: str, draft: bool = False
+        self,
+        *,
+        title: str,
+        body: str = "",
+        base: str,
+        head: str,
+        draft: bool = False,
+        reviewers: list[str] | None = None,
+        assignees: list[str] | None = None,
+        labels: list[str] | None = None,
+        milestone: str | None = None,
     ) -> PullRequest:
         payload = {
             "title": title,
@@ -177,7 +187,10 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             "isDraft": draft,
         }
         resp = self._client.post(f"{self._git_path()}/pullrequests", json=payload)
-        return self._to_pull_request(resp.json())
+        pr = self._to_pull_request(resp.json())
+        if reviewers:
+            self.request_reviewers(pr.number, reviewers)
+        return pr
 
     def get_pull_request(self, number: int) -> PullRequest:
         resp = self._client.get(f"{self._git_path()}/pullrequests/{number}")

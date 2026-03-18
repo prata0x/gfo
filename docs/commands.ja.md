@@ -115,7 +115,7 @@ gfo pr list --state all --limit 50
 ### gfo pr create
 
 ```
-gfo pr create [--title TITLE] [--body BODY] [--base BRANCH] [--head BRANCH] [--draft]
+gfo pr create [--title TITLE] [--body BODY] [--base BRANCH] [--head BRANCH] [--draft] [--reviewer USER] [--assignee USER] [--label NAME] [--milestone NAME] [--fill]
 ```
 
 | オプション | 説明 |
@@ -125,10 +125,16 @@ gfo pr create [--title TITLE] [--body BODY] [--base BRANCH] [--head BRANCH] [--d
 | `--base` | マージ先ブランチ（省略時はデフォルトブランチ） |
 | `--head` | マージ元ブランチ（省略時は現在のブランチ） |
 | `--draft` | ドラフト PR として作成 |
+| `--reviewer` | レビュアーのユーザー名（繰り返し可） |
+| `--assignee` | 担当者のユーザー名（繰り返し可） |
+| `--label` | ラベル名（繰り返し可） |
+| `--milestone` | マイルストーン名 |
+| `--fill` | コミット情報をタイトルとボディに使用 |
 
 ```bash
 gfo pr create --title "Fix login bug" --base main --head feature/fix-login
 gfo pr create --title "WIP: new feature" --draft
+gfo pr create --fill --reviewer alice --label bug --milestone v1.0
 ```
 
 ### gfo pr view

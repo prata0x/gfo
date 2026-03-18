@@ -68,7 +68,17 @@ class GitBucketAdapter(GitHubAdapter):
     # --- PR ---
 
     def create_pull_request(
-        self, *, title: str, body: str = "", base: str, head: str, draft: bool = False
+        self,
+        *,
+        title: str,
+        body: str = "",
+        base: str,
+        head: str,
+        draft: bool = False,
+        reviewers: list[str] | None = None,
+        assignees: list[str] | None = None,
+        labels: list[str] | None = None,
+        milestone: str | None = None,
     ) -> PullRequest:
         payload = {"title": title, "body": body, "base": base, "head": head, "draft": draft}
         resp = self._client.post(f"{self._repos_path()}/pulls", json=payload)

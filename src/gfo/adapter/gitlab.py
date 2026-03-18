@@ -183,17 +183,43 @@ class GitLabAdapter(GitServiceAdapter):
         return [self._to_pull_request(r) for r in results]
 
     def create_pull_request(
-        self, *, title: str, body: str = "", base: str, head: str, draft: bool = False
+        self,
+        *,
+        title: str,
+        body: str = "",
+        base: str,
+        head: str,
+        draft: bool = False,
+        reviewers: list[str] | None = None,
+        assignees: list[str] | None = None,
+        labels: list[str] | None = None,
+        milestone: str | None = None,
     ) -> PullRequest:
-        payload = {
+        payload: dict = {
             "title": title,
             "description": body,
             "target_branch": base,
             "source_branch": head,
             "draft": draft,
         }
+        if reviewers:
+            payload["reviewer_ids"] = self._resolve_user_ids(reviewers)
+        if assignees:
+            payload["assignee_ids"] = self._resolve_user_ids(assignees)
+        if labels:
+            payload["labels"] = ",".join(labels)
+        if milestone:
+            payload["milestone_id"] = self._resolve_milestone_id_by_title(milestone)
         resp = self._client.post(f"{self._project_path()}/merge_requests", json=payload)
         return self._to_pull_request(resp.json())
+
+    def _resolve_milestone_id_by_title(self, title: str) -> int:
+        """milestone タイトルから GitLab 内部 ID を解決する。"""
+        resp = self._client.get(f"{self._project_path()}/milestones", params={"title": title})
+        milestones = resp.json()
+        if not milestones:
+            raise GfoError(f"Milestone not found: {title}")
+        return int(milestones[0]["id"])
 
     def get_pull_request(self, number: int) -> PullRequest:
         resp = self._client.get(f"{self._project_path()}/merge_requests/{number}")

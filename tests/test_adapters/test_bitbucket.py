@@ -268,6 +268,34 @@ class TestCreatePullRequest:
         assert req_body["source"]["branch"]["name"] == "feature"
         assert req_body["destination"]["branch"]["name"] == "main"
 
+    def test_create_with_reviewers(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(responses.POST, f"{REPOS}/pullrequests", json=_pr_data(), status=201)
+        bitbucket_adapter.create_pull_request(
+            title="PR #1",
+            body="desc",
+            base="main",
+            head="feature",
+            reviewers=["alice", "bob"],
+        )
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["reviewers"] == [{"username": "alice"}, {"username": "bob"}]
+
+    def test_create_ignores_unsupported_options(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(responses.POST, f"{REPOS}/pullrequests", json=_pr_data(), status=201)
+        bitbucket_adapter.create_pull_request(
+            title="PR #1",
+            body="desc",
+            base="main",
+            head="feature",
+            assignees=["alice"],
+            labels=["bug"],
+            milestone="v1.0",
+        )
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "assignees" not in req_body
+        assert "labels" not in req_body
+        assert "milestone" not in req_body
+
 
 class TestCreatePullRequestDescription:
     def test_create_with_description(self, mock_responses, bitbucket_adapter):

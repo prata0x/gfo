@@ -78,11 +78,50 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return prs
 
     def create_pull_request(
-        self, *, title: str, body: str = "", base: str, head: str, draft: bool = False
+        self,
+        *,
+        title: str,
+        body: str = "",
+        base: str,
+        head: str,
+        draft: bool = False,
+        reviewers: list[str] | None = None,
+        assignees: list[str] | None = None,
+        labels: list[str] | None = None,
+        milestone: str | None = None,
     ) -> PullRequest:
-        payload = {"title": title, "body": body, "base": base, "head": head, "draft": draft}
+        payload: dict = {"title": title, "body": body, "base": base, "head": head, "draft": draft}
+        if assignees:
+            payload["assignees"] = assignees
+        if labels:
+            payload["labels"] = self._resolve_label_ids(labels)
+        if milestone:
+            payload["milestone"] = self._resolve_milestone_id_by_title(milestone)
         resp = self._client.post(f"{self._repos_path()}/pulls", json=payload)
-        return self._to_pull_request(resp.json())
+        pr = self._to_pull_request(resp.json())
+        if reviewers:
+            self.request_reviewers(pr.number, reviewers)
+        return pr
+
+    def _resolve_label_ids(self, names: list[str]) -> list[int]:
+        """ラベル名のリストを ID のリストに変換する。"""
+        resp = self._client.get(f"{self._repos_path()}/labels", params={"limit": 0})
+        all_labels = resp.json()
+        name_to_id = {lb["name"]: lb["id"] for lb in all_labels}
+        ids = []
+        for name in names:
+            if name in name_to_id:
+                ids.append(name_to_id[name])
+            else:
+                raise GfoError(f"Label not found: {name}")
+        return ids
+
+    def _resolve_milestone_id_by_title(self, title: str) -> int:
+        """milestone タイトルから ID を解決する。"""
+        for ms in self.list_milestones():
+            if ms.title == title:
+                return ms.number
+        raise GfoError(f"Milestone not found: {title}")
 
     def get_pull_request(self, number: int) -> PullRequest:
         resp = self._client.get(f"{self._repos_path()}/pulls/{number}")
