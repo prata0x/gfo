@@ -275,13 +275,13 @@ class TestHandleSchema:
         with pytest.raises(ConfigError):
             handle_schema(args, fmt="json")
 
-    def test_list_commands_has_descriptions(self, capsys):
-        """--list で description が空でないコマンドがあること（M6 確認）。"""
+    def test_all_commands_have_descriptions(self, capsys):
+        """全コマンドの description が空でないこと。"""
         args = make_args(command="schema", subcommand=None, list_commands=True, target=[])
         handle_schema(args, fmt="json")
         out = json.loads(capsys.readouterr().out)
-        descriptions = [item["description"] for item in out if item["description"]]
-        assert len(descriptions) > 0
+        empty = [item["command"] for item in out if not item["description"]]
+        assert empty == [], f"Commands with empty description: {empty}"
 
 
 class TestParserNargsOptional:

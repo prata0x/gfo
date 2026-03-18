@@ -335,3 +335,554 @@ msgstr "すべての通知を既読にしました。"
 
 msgid "Marked notification '{id}' as read."
 msgstr "通知 '{id}' を既読にしました。"
+
+# cli.py — add_parser help texts
+
+msgid "Initialize project"
+msgstr "プロジェクトを初期化する"
+
+msgid "Manage authentication"
+msgstr "認証を管理する"
+
+msgid "Login to service"
+msgstr "サービスにログインする"
+
+msgid "Show authentication status"
+msgstr "認証状態を表示する"
+
+msgid "Manage pull requests"
+msgstr "プルリクエストを管理する"
+
+msgid "List pull requests"
+msgstr "プルリクエストの一覧"
+
+msgid "Create pull request"
+msgstr "プルリクエストを作成する"
+
+msgid "View pull request details"
+msgstr "プルリクエストの詳細"
+
+msgid "Merge pull request"
+msgstr "プルリクエストをマージする"
+
+msgid "Close pull request"
+msgstr "プルリクエストをクローズする"
+
+msgid "Checkout pull request branch"
+msgstr "プルリクエストのブランチをチェックアウトする"
+
+msgid "Reopen pull request"
+msgstr "プルリクエストをリオープンする"
+
+msgid "Show pull request diff"
+msgstr "プルリクエストの差分を表示する"
+
+msgid "List pull request checks"
+msgstr "プルリクエストのチェックの一覧"
+
+msgid "List pull request changed files"
+msgstr "プルリクエストの変更ファイルの一覧"
+
+msgid "List pull request commits"
+msgstr "プルリクエストのコミットの一覧"
+
+msgid "Manage pull request reviewers"
+msgstr "プルリクエストのレビュアーを管理する"
+
+msgid "List reviewers"
+msgstr "レビュアーの一覧"
+
+msgid "Add reviewers"
+msgstr "レビュアーを追加する"
+
+msgid "Remove reviewers"
+msgstr "レビュアーを削除する"
+
+msgid "Update pull request branch"
+msgstr "プルリクエストのブランチを更新する"
+
+msgid "Mark as ready for review"
+msgstr "レビュー可能としてマークする"
+
+msgid "Update pull request"
+msgstr "プルリクエストを更新する"
+
+msgid "Manage issues"
+msgstr "Issue を管理する"
+
+msgid "List issues"
+msgstr "Issue の一覧"
+
+msgid "Create issue"
+msgstr "Issue を作成する"
+
+msgid "View issue details"
+msgstr "Issue の詳細"
+
+msgid "Close issue"
+msgstr "Issue をクローズする"
+
+msgid "Delete issue"
+msgstr "Issue を削除する"
+
+msgid "Reopen issue"
+msgstr "Issue をリオープンする"
+
+msgid "Migrate issues between services"
+msgstr "サービス間で Issue を移行する"
+
+msgid "Update issue"
+msgstr "Issue を更新する"
+
+msgid "List issue templates"
+msgstr "Issue テンプレートの一覧"
+
+msgid "Manage repositories"
+msgstr "リポジトリを管理する"
+
+msgid "Create repository"
+msgstr "リポジトリを作成する"
+
+msgid "Clone repository"
+msgstr "リポジトリをクローンする"
+
+msgid "View repository details"
+msgstr "リポジトリの詳細"
+
+msgid "Delete repository"
+msgstr "リポジトリを削除する"
+
+msgid "Update repository settings"
+msgstr "リポジトリの設定を更新する"
+
+msgid "Archive repository"
+msgstr "リポジトリをアーカイブする"
+
+msgid "List repository languages"
+msgstr "リポジトリの言語の一覧"
+
+msgid "Manage repository topics"
+msgstr "リポジトリのトピックを管理する"
+
+msgid "List topics"
+msgstr "トピックの一覧"
+
+msgid "Add topic"
+msgstr "トピックを追加する"
+
+msgid "Remove topic"
+msgstr "トピックを削除する"
+
+msgid "Set topics"
+msgstr "トピックを設定する"
+
+msgid "Compare branches or commits"
+msgstr "ブランチやコミットを比較する"
+
+msgid "Migrate repository from URL"
+msgstr "URL からリポジトリを移行する"
+
+msgid "Fork repository"
+msgstr "リポジトリをフォークする"
+
+msgid "Manage push mirrors"
+msgstr "プッシュミラーを管理する"
+
+msgid "List push mirrors"
+msgstr "プッシュミラーの一覧"
+
+msgid "Add push mirror"
+msgstr "プッシュミラーを追加する"
+
+msgid "Remove push mirror"
+msgstr "プッシュミラーを削除する"
+
+msgid "Sync push mirrors"
+msgstr "プッシュミラーを同期する"
+
+msgid "Transfer repository ownership"
+msgstr "リポジトリの所有権を移転する"
+
+msgid "Star repository"
+msgstr "リポジトリにスターを付ける"
+
+msgid "Unstar repository"
+msgstr "リポジトリのスターを外す"
+
+msgid "Manage releases"
+msgstr "リリースを管理する"
+
+msgid "List releases"
+msgstr "リリースの一覧"
+
+msgid "Create release"
+msgstr "リリースを作成する"
+
+msgid "Delete release"
+msgstr "リリースを削除する"
+
+msgid "View release details"
+msgstr "リリースの詳細"
+
+msgid "Update release"
+msgstr "リリースを更新する"
+
+msgid "Manage release assets"
+msgstr "リリースアセットを管理する"
+
+msgid "List assets"
+msgstr "アセットの一覧"
+
+msgid "Upload asset"
+msgstr "アセットをアップロードする"
+
+msgid "Download asset"
+msgstr "アセットをダウンロードする"
+
+msgid "Delete asset"
+msgstr "アセットを削除する"
+
+msgid "Manage labels"
+msgstr "ラベルを管理する"
+
+msgid "List labels"
+msgstr "ラベルの一覧"
+
+msgid "Create label"
+msgstr "ラベルを作成する"
+
+msgid "Delete label"
+msgstr "ラベルを削除する"
+
+msgid "Update label"
+msgstr "ラベルを更新する"
+
+msgid "Clone labels from another repository"
+msgstr "他のリポジトリからラベルをクローンする"
+
+msgid "Manage milestones"
+msgstr "マイルストーンを管理する"
+
+msgid "List milestones"
+msgstr "マイルストーンの一覧"
+
+msgid "Create milestone"
+msgstr "マイルストーンを作成する"
+
+msgid "Delete milestone"
+msgstr "マイルストーンを削除する"
+
+msgid "View milestone details"
+msgstr "マイルストーンの詳細"
+
+msgid "Update milestone"
+msgstr "マイルストーンを更新する"
+
+msgid "Close milestone"
+msgstr "マイルストーンをクローズする"
+
+msgid "Reopen milestone"
+msgstr "マイルストーンをリオープンする"
+
+msgid "Manage comments"
+msgstr "コメントを管理する"
+
+msgid "List comments"
+msgstr "コメントの一覧"
+
+msgid "Create comment"
+msgstr "コメントを作成する"
+
+msgid "Update comment"
+msgstr "コメントを更新する"
+
+msgid "Delete comment"
+msgstr "コメントを削除する"
+
+msgid "Manage reviews"
+msgstr "レビューを管理する"
+
+msgid "List reviews"
+msgstr "レビューの一覧"
+
+msgid "Create review"
+msgstr "レビューを作成する"
+
+msgid "Dismiss review"
+msgstr "レビューを却下する"
+
+msgid "Manage branches"
+msgstr "ブランチを管理する"
+
+msgid "List branches"
+msgstr "ブランチの一覧"
+
+msgid "Create branch"
+msgstr "ブランチを作成する"
+
+msgid "Delete branch"
+msgstr "ブランチを削除する"
+
+msgid "Manage tags"
+msgstr "タグを管理する"
+
+msgid "List tags"
+msgstr "タグの一覧"
+
+msgid "Create tag"
+msgstr "タグを作成する"
+
+msgid "Delete tag"
+msgstr "タグを削除する"
+
+msgid "Manage commit statuses"
+msgstr "コミットステータスを管理する"
+
+msgid "List commit statuses"
+msgstr "コミットステータスの一覧"
+
+msgid "Create commit status"
+msgstr "コミットステータスを作成する"
+
+msgid "Manage repository files"
+msgstr "リポジトリのファイルを管理する"
+
+msgid "Get file content"
+msgstr "ファイルの内容を取得する"
+
+msgid "Create or update file"
+msgstr "ファイルを作成または更新する"
+
+msgid "Delete file"
+msgstr "ファイルを削除する"
+
+msgid "Manage webhooks"
+msgstr "Webhook を管理する"
+
+msgid "List webhooks"
+msgstr "Webhook の一覧"
+
+msgid "Create webhook"
+msgstr "Webhook を作成する"
+
+msgid "Delete webhook"
+msgstr "Webhook を削除する"
+
+msgid "Test webhook"
+msgstr "Webhook をテストする"
+
+msgid "Manage deploy keys"
+msgstr "デプロイキーを管理する"
+
+msgid "List deploy keys"
+msgstr "デプロイキーの一覧"
+
+msgid "Create deploy key"
+msgstr "デプロイキーを作成する"
+
+msgid "Delete deploy key"
+msgstr "デプロイキーを削除する"
+
+msgid "Manage collaborators"
+msgstr "コラボレーターを管理する"
+
+msgid "List collaborators"
+msgstr "コラボレーターの一覧"
+
+msgid "Add collaborator"
+msgstr "コラボレーターを追加する"
+
+msgid "Remove collaborator"
+msgstr "コラボレーターを削除する"
+
+msgid "Manage CI pipelines"
+msgstr "CI パイプラインを管理する"
+
+msgid "List pipelines"
+msgstr "パイプラインの一覧"
+
+msgid "View pipeline details"
+msgstr "パイプラインの詳細"
+
+msgid "Cancel pipeline"
+msgstr "パイプラインをキャンセルする"
+
+msgid "Trigger pipeline"
+msgstr "パイプラインをトリガーする"
+
+msgid "Retry pipeline"
+msgstr "パイプラインをリトライする"
+
+msgid "View pipeline logs"
+msgstr "パイプラインのログを表示する"
+
+msgid "User commands"
+msgstr "ユーザーコマンド"
+
+msgid "Show current user"
+msgstr "現在のユーザーを表示する"
+
+msgid "Search resources"
+msgstr "リソースを検索する"
+
+msgid "Search repositories"
+msgstr "リポジトリを検索する"
+
+msgid "Search issues"
+msgstr "Issue を検索する"
+
+msgid "Search pull requests"
+msgstr "プルリクエストを検索する"
+
+msgid "Search commits"
+msgstr "コミットを検索する"
+
+msgid "Manage wiki pages"
+msgstr "Wiki ページを管理する"
+
+msgid "List wiki pages"
+msgstr "Wiki ページの一覧"
+
+msgid "View wiki page"
+msgstr "Wiki ページの詳細"
+
+msgid "Create wiki page"
+msgstr "Wiki ページを作成する"
+
+msgid "Update wiki page"
+msgstr "Wiki ページを更新する"
+
+msgid "Delete wiki page"
+msgstr "Wiki ページを削除する"
+
+msgid "List page revisions"
+msgstr "ページの変更履歴の一覧"
+
+msgid "Manage issue reactions"
+msgstr "Issue のリアクションを管理する"
+
+msgid "List reactions"
+msgstr "リアクションの一覧"
+
+msgid "Add reaction"
+msgstr "リアクションを追加する"
+
+msgid "Remove reaction"
+msgstr "リアクションを削除する"
+
+msgid "Manage issue dependencies"
+msgstr "Issue の依存関係を管理する"
+
+msgid "List dependencies"
+msgstr "依存関係の一覧"
+
+msgid "Add dependency"
+msgstr "依存関係を追加する"
+
+msgid "Remove dependency"
+msgstr "依存関係を削除する"
+
+msgid "List issue timeline events"
+msgstr "Issue のタイムラインイベントの一覧"
+
+msgid "Pin issue"
+msgstr "Issue をピン留めする"
+
+msgid "Unpin issue"
+msgstr "Issue のピン留めを解除する"
+
+msgid "Manage time tracking"
+msgstr "作業時間を管理する"
+
+msgid "List time entries"
+msgstr "作業時間の一覧"
+
+msgid "Add time entry"
+msgstr "作業時間を追加する"
+
+msgid "Delete time entry"
+msgstr "作業時間を削除する"
+
+msgid "Manage packages"
+msgstr "パッケージを管理する"
+
+msgid "List packages"
+msgstr "パッケージの一覧"
+
+msgid "View package details"
+msgstr "パッケージの詳細"
+
+msgid "Delete package"
+msgstr "パッケージを削除する"
+
+msgid "List branch protection rules"
+msgstr "ブランチ保護ルールの一覧"
+
+msgid "View branch protection rule"
+msgstr "ブランチ保護ルールの詳細"
+
+msgid "Set branch protection rule"
+msgstr "ブランチ保護ルールを設定する"
+
+msgid "Remove branch protection rule"
+msgstr "ブランチ保護ルールを削除する"
+
+msgid "Manage tag protection rules"
+msgstr "タグ保護ルールを管理する"
+
+msgid "List tag protection rules"
+msgstr "タグ保護ルールの一覧"
+
+msgid "Create tag protection rule"
+msgstr "タグ保護ルールを作成する"
+
+msgid "Delete tag protection rule"
+msgstr "タグ保護ルールを削除する"
+
+msgid "List SSH keys"
+msgstr "SSH 鍵の一覧"
+
+msgid "Create SSH key"
+msgstr "SSH 鍵を作成する"
+
+msgid "Delete SSH key"
+msgstr "SSH 鍵を削除する"
+
+msgid "List GPG keys"
+msgstr "GPG 鍵の一覧"
+
+msgid "Create GPG key"
+msgstr "GPG 鍵を作成する"
+
+msgid "Delete GPG key"
+msgstr "GPG 鍵を削除する"
+
+msgid "List secrets"
+msgstr "シークレットの一覧"
+
+msgid "Set secret"
+msgstr "シークレットを設定する"
+
+msgid "Delete secret"
+msgstr "シークレットを削除する"
+
+msgid "List variables"
+msgstr "変数の一覧"
+
+msgid "Set variable"
+msgstr "変数を設定する"
+
+msgid "Get variable"
+msgstr "変数を取得する"
+
+msgid "Delete variable"
+msgstr "変数を削除する"
+
+msgid "Batch operations"
+msgstr "バッチ操作"
+
+msgid "Batch pull request operations"
+msgstr "プルリクエストのバッチ操作"
+
+msgid "Create pull requests in multiple repositories"
+msgstr "複数リポジトリにプルリクエストを作成する"
