@@ -1,35 +1,38 @@
-"""gfo comment サブコマンドのハンドラ。"""
+"""gfo pr comment / gfo issue comment サブコマンドのハンドラ。"""
 
 from __future__ import annotations
 
 import argparse
 
 from gfo.commands import get_adapter
+from gfo.i18n import _
 from gfo.output import output
 
 
-def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
-    """gfo comment list <pr|issue> <number> のハンドラ。"""
+def _dispatch(args: argparse.Namespace, resource: str, *, fmt: str, jq: str | None = None) -> None:
+    """comment サブコマンドの共通ディスパッチ。"""
     adapter = get_adapter()
-    comments = adapter.list_comments(args.resource, args.number, limit=args.limit)
-    output(comments, fmt=fmt, fields=["id", "author", "body", "created_at"], jq=jq)
+    action = getattr(args, "comment_action", None)
+    if action == "list":
+        comments = adapter.list_comments(resource, args.number, limit=args.limit)
+        output(comments, fmt=fmt, fields=["id", "author", "body", "created_at"], jq=jq)
+    elif action == "create":
+        comment = adapter.create_comment(resource, args.number, body=args.body)
+        output(comment, fmt=fmt, jq=jq)
+    elif action == "edit":
+        comment = adapter.update_comment(resource, args.comment_id, body=args.body)
+        output(comment, fmt=fmt, jq=jq)
+    elif action == "delete":
+        adapter.delete_comment(resource, args.comment_id)
+    else:
+        raise SystemExit(_("comment action required: list, create, edit, delete"))
 
 
-def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
-    """gfo comment create <pr|issue> <number> --body TEXT のハンドラ。"""
-    adapter = get_adapter()
-    comment = adapter.create_comment(args.resource, args.number, body=args.body)
-    output(comment, fmt=fmt, jq=jq)
+def handle_pr_comment(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo pr comment のハンドラ。"""
+    _dispatch(args, "pr", fmt=fmt, jq=jq)
 
 
-def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
-    """gfo comment edit <comment-id> --body TEXT --on <pr|issue> のハンドラ。"""
-    adapter = get_adapter()
-    comment = adapter.update_comment(args.on, args.comment_id, body=args.body)
-    output(comment, fmt=fmt, jq=jq)
-
-
-def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
-    """gfo comment delete <comment-id> --on <pr|issue> のハンドラ。"""
-    adapter = get_adapter()
-    adapter.delete_comment(args.on, args.comment_id)
+def handle_issue_comment(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo issue comment のハンドラ。"""
+    _dispatch(args, "issue", fmt=fmt, jq=jq)

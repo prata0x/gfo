@@ -54,7 +54,6 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 
 | コマンド | gh | glab | tea | fj | gfo |
 |---|---|---|---|---|---|
-| comment | — | — | — | — | Y |
 | review | — (pr 内) | — (mr 内) | — (pr 内) | — | Y |
 
 **ラベル・マイルストーン**
@@ -140,7 +139,7 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 | diff | Y | Y | — | Y | Y |
 | checks | Y | Y | — | — | Y |
 | review | Y | Y | Y (`approve`/`reject`) | — | — (別コマンド `review`) |
-| comment | Y | Y (`note`) | — | — | — (別コマンド `comment`) |
+| comment | Y | Y (`note`) | — | — | Y (list/create/edit/delete) |
 | ready | Y | — | — | — | Y |
 | files | — | — | — | — | Y |
 | commits | — | — | — | — | Y |
@@ -189,7 +188,7 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 | close | Y | Y | Y | Y | Y |
 | reopen | Y | Y | Y | Y | Y |
 | delete | Y | Y | — | — | Y |
-| comment | Y | Y (`note`) | — | — | — (別コマンド `comment`) |
+| comment | Y | Y (`note`) | — | — | Y (list/create/edit/delete) |
 | pin / unpin | Y | — | — | — | Y |
 | reaction | — | — | — | — | Y (list/add/remove) |
 | depends | — | — | — | — | Y (list/add/remove) |
@@ -337,7 +336,6 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 
 | コマンド | 説明 | サブコマンド |
 |---|---|---|
-| `comment` | PR / Issue のコメントを独立管理 | `list`, `create`, `edit`, `delete` |
 | `review` | PR レビューを独立管理 | `list`, `create`, `dismiss` |
 | `branch` | リモートブランチ管理 | `list`, `create`, `delete` |
 | `tag` | タグ管理 | `list`, `create`, `delete` |
@@ -386,6 +384,6 @@ gfo の 35 トップレベルコマンドを基準に、各ツールの対応状
 | **リポジトリ検出** | git remote から自動検出 | git remote / 設定ファイル | git remote 自動検出 + `--repo` で直接指定 |
 | **出力形式** | `--json` + `--jq` | `--output` (複数形式) | `--format` + `--jq` |
 | **拡張性** | Extensions (Go) | — | アダプターパターン（新サービス追加が容易） |
-| **コメント/レビュー** | PR コマンドに内包 | — | 独立コマンドとして分離 |
+| **コメント/レビュー** | PR コマンドに内包 | — | コメントは pr/issue サブコマンド、レビューは独立コマンド |
 | **一括操作** | — | — | `batch` コマンド |
 | **Schema 出力** | — | — | `schema` コマンド（MCP / AI 連携用） |

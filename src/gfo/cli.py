@@ -182,6 +182,23 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_ready = pr_sub.add_parser("ready", help=_("Mark as ready for review"))
     pr_ready.add_argument("number", type=int, help=_("PR number"))
 
+    # gfo pr comment → サブサブコマンド
+    pr_comment = pr_sub.add_parser("comment", help=_("Manage PR comments"))
+    pr_comment_sub = pr_comment.add_subparsers(dest="comment_action")
+    pr_comment_list = pr_comment_sub.add_parser("list", help=_("List comments"))
+    pr_comment_list.add_argument("number", type=int, help=_("PR number"))
+    pr_comment_list.add_argument(
+        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+    )
+    pr_comment_create = pr_comment_sub.add_parser("create", help=_("Create comment"))
+    pr_comment_create.add_argument("number", type=int, help=_("PR number"))
+    pr_comment_create.add_argument("--body", required=True, help=_("Body"))
+    pr_comment_edit = pr_comment_sub.add_parser("edit", help=_("Edit comment"))
+    pr_comment_edit.add_argument("comment_id", type=int, help=_("Comment ID"))
+    pr_comment_edit.add_argument("--body", required=True, help=_("Body"))
+    pr_comment_delete = pr_comment_sub.add_parser("delete", help=_("Delete comment"))
+    pr_comment_delete.add_argument("comment_id", type=int, help=_("Comment ID"))
+
     # gfo issue → サブサブコマンド
     issue_parser = subparser_map["issue"] = subparsers.add_parser("issue", help=_("Manage issues"))
     issue_sub = issue_parser.add_subparsers(dest="subcommand")
@@ -402,45 +419,6 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     milestone_reopen = milestone_sub.add_parser("reopen", help=_("Reopen milestone"))
     milestone_reopen.add_argument("number", type=int, help=_("Milestone number"))
 
-    # gfo comment → サブサブコマンド
-    comment_parser = subparser_map["comment"] = subparsers.add_parser(
-        "comment", help=_("Manage comments")
-    )
-    comment_sub = comment_parser.add_subparsers(dest="subcommand")
-    comment_list = comment_sub.add_parser("list", help=_("List comments"))
-    comment_list.add_argument(
-        "resource", choices=["pr", "issue"], help=_("Resource type (pr/issue)")
-    )
-    comment_list.add_argument("number", type=int, help=_("Resource number"))
-    comment_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
-    )
-    comment_create = comment_sub.add_parser("create", help=_("Create comment"))
-    comment_create.add_argument(
-        "resource", choices=["pr", "issue"], help=_("Resource type (pr/issue)")
-    )
-    comment_create.add_argument("number", type=int, help=_("Resource number"))
-    comment_create.add_argument("--body", required=True, help=_("Body"))
-    comment_edit = comment_sub.add_parser("edit", help=_("Edit comment"))
-    comment_edit.add_argument("comment_id", type=int, help=_("Comment ID"))
-    comment_edit.add_argument("--body", required=True, help=_("Body"))
-    comment_edit.add_argument(
-        "--on",
-        dest="on",
-        choices=["pr", "issue"],
-        required=True,
-        help=_("Resource type (pr/issue)"),
-    )
-    comment_delete = comment_sub.add_parser("delete", help=_("Delete comment"))
-    comment_delete.add_argument("comment_id", type=int, help=_("Comment ID"))
-    comment_delete.add_argument(
-        "--on",
-        dest="on",
-        choices=["pr", "issue"],
-        required=True,
-        help=_("Resource type (pr/issue)"),
-    )
-
     # gfo pr edit（既存 pr に追加）
     pr_edit = pr_sub.add_parser("edit", help=_("Edit pull request"))
     pr_edit.add_argument("number", type=int, help=_("PR number"))
@@ -455,6 +433,23 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_edit.add_argument("--body", help=_("Body"))
     issue_edit.add_argument("--assignee", help=_("Assignee"))
     issue_edit.add_argument("--label", help=_("Label"))
+
+    # gfo issue comment → サブサブコマンド
+    issue_comment = issue_sub.add_parser("comment", help=_("Manage issue comments"))
+    issue_comment_sub = issue_comment.add_subparsers(dest="comment_action")
+    issue_comment_list = issue_comment_sub.add_parser("list", help=_("List comments"))
+    issue_comment_list.add_argument("number", type=int, help=_("Issue number"))
+    issue_comment_list.add_argument(
+        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+    )
+    issue_comment_create = issue_comment_sub.add_parser("create", help=_("Create comment"))
+    issue_comment_create.add_argument("number", type=int, help=_("Issue number"))
+    issue_comment_create.add_argument("--body", required=True, help=_("Body"))
+    issue_comment_edit = issue_comment_sub.add_parser("edit", help=_("Edit comment"))
+    issue_comment_edit.add_argument("comment_id", type=int, help=_("Comment ID"))
+    issue_comment_edit.add_argument("--body", required=True, help=_("Body"))
+    issue_comment_delete = issue_comment_sub.add_parser("delete", help=_("Delete comment"))
+    issue_comment_delete.add_argument("comment_id", type=int, help=_("Comment ID"))
 
     # gfo repo fork（既存 repo に追加）
     repo_fork = repo_sub.add_parser("fork", help=_("Fork repository"))
@@ -1085,10 +1080,8 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("milestone", "edit"): gfo.commands.milestone.handle_edit,
     ("milestone", "close"): gfo.commands.milestone.handle_close,
     ("milestone", "reopen"): gfo.commands.milestone.handle_reopen,
-    ("comment", "list"): gfo.commands.comment.handle_list,
-    ("comment", "create"): gfo.commands.comment.handle_create,
-    ("comment", "edit"): gfo.commands.comment.handle_edit,
-    ("comment", "delete"): gfo.commands.comment.handle_delete,
+    ("pr", "comment"): gfo.commands.comment.handle_pr_comment,
+    ("issue", "comment"): gfo.commands.comment.handle_issue_comment,
     ("review", "list"): gfo.commands.review.handle_list,
     ("review", "create"): gfo.commands.review.handle_create,
     ("review", "dismiss"): gfo.commands.review.handle_dismiss,

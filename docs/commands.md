@@ -309,6 +309,26 @@ gfo pr ready NUMBER
 gfo pr ready 42
 ```
 
+### gfo pr comment
+
+Manage PR comments.
+
+> **Supported services**: All services (edit / delete: GitHub, Backlog, Gitea, Forgejo, GitBucket only)
+
+```
+gfo pr comment list NUMBER [--limit N]
+gfo pr comment create NUMBER --body BODY
+gfo pr comment edit COMMENT_ID --body BODY
+gfo pr comment delete COMMENT_ID
+```
+
+```bash
+gfo pr comment list 42
+gfo pr comment create 42 --body "LGTM!"
+gfo pr comment edit 12345 --body "Updated comment"
+gfo pr comment delete 12345
+```
+
 ---
 
 ## gfo issue
@@ -411,6 +431,26 @@ gfo issue edit NUMBER [--title TITLE] [--body BODY] [--assignee USER] [--label L
 
 ```bash
 gfo issue edit 10 --title "New title" --assignee bob
+```
+
+### gfo issue comment
+
+Manage issue comments.
+
+> **Supported services**: All services (edit / delete: GitHub, Backlog, Gitea, Forgejo, GitBucket only)
+
+```
+gfo issue comment list NUMBER [--limit N]
+gfo issue comment create NUMBER --body BODY
+gfo issue comment edit COMMENT_ID --body BODY
+gfo issue comment delete COMMENT_ID
+```
+
+```bash
+gfo issue comment list 10
+gfo issue comment create 10 --body "I can reproduce this on v1.2.3"
+gfo issue comment edit 12345 --body "Updated comment"
+gfo issue comment delete 12345
 ```
 
 ### gfo issue reaction
@@ -1043,56 +1083,6 @@ gfo milestone reopen NUMBER
 
 ```bash
 gfo milestone reopen 1
-```
-
----
-
-## gfo comment
-
-Operate PR or Issue comments.
-
-> **Supported services**: All services (comment update / delete: GitHub, Backlog, Gitea, Forgejo, GitBucket only)
-
-### gfo comment list
-
-```
-gfo comment list {pr,issue} NUMBER [--limit N]
-```
-
-```bash
-gfo comment list pr 42
-gfo comment list issue 10 --limit 50
-```
-
-### gfo comment create
-
-```
-gfo comment create {pr,issue} NUMBER --body BODY
-```
-
-```bash
-gfo comment create pr 42 --body "LGTM!"
-gfo comment create issue 10 --body "I can reproduce this on v1.2.3"
-```
-
-### gfo comment edit
-
-```
-gfo comment edit COMMENT_ID --body BODY --on {pr,issue}
-```
-
-```bash
-gfo comment edit 12345 --body "Updated comment" --on pr
-```
-
-### gfo comment delete
-
-```
-gfo comment delete COMMENT_ID --on {pr,issue}
-```
-
-```bash
-gfo comment delete 12345 --on issue
 ```
 
 ---
