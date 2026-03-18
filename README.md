@@ -82,11 +82,11 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 | `gfo init` | — | Initialize project configuration |
 | `gfo auth` | `login`, `status` | Save token / check auth status |
 | `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `update`, `diff`, `checks`, `files`, `commits`, `reviewers`, `update-branch`, `ready` | Pull request operations |
-| `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update` | Issue operations |
+| `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update`, `reaction`, `depends`, `timeline`, `pin`, `unpin`, `time` | Issue operations |
 | `gfo issue-template` | `list` | Issue template listing |
-| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `update`, `archive`, `languages`, `topics`, `compare`, `migrate` | Repository operations |
+| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `update`, `archive`, `languages`, `topics`, `compare`, `migrate`, `mirror`, `transfer`, `star`, `unstar` | Repository operations |
 | `gfo release` | `list`, `create`, `view`, `update`, `delete`, `asset` | Release management |
-| `gfo label` | `list`, `create`, `update`, `delete` | Label management |
+| `gfo label` | `list`, `create`, `update`, `delete`, `clone` | Label management |
 | `gfo milestone` | `list`, `create`, `view`, `update`, `close`, `reopen`, `delete` | Milestone management |
 | `gfo comment` | `list`, `create`, `update`, `delete` | PR / Issue comment operations |
 | `gfo review` | `list`, `create`, `dismiss` | PR review operations |
@@ -99,8 +99,8 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 | `gfo collaborator` | `list`, `add`, `remove` | Collaborator management |
 | `gfo ci` | `list`, `view`, `cancel`, `trigger`, `retry`, `logs` | CI/CD job operations |
 | `gfo user` | `whoami` | Display authenticated user info |
-| `gfo search` | `repos`, `issues` | Search repositories / issues |
-| `gfo wiki` | `list`, `view`, `create`, `update`, `delete` | Wiki operations |
+| `gfo search` | `repos`, `issues`, `prs`, `commits` | Search repositories / issues / PRs / commits |
+| `gfo wiki` | `list`, `view`, `create`, `update`, `delete`, `revisions` | Wiki operations |
 | `gfo browse` | — | Open repository in browser |
 | `gfo branch-protect` | `list`, `view`, `set`, `remove` | Branch protection rule management |
 | `gfo tag-protect` | `list`, `create`, `delete` | Tag protection rule management |
@@ -110,6 +110,7 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 | `gfo gpg-key` | `list`, `create`, `delete` | GPG key management |
 | `gfo secret` | `list`, `set`, `delete` | CI/CD secret management |
 | `gfo variable` | `list`, `set`, `get`, `delete` | CI/CD variable management |
+| `gfo package` | `list`, `view`, `delete` | Package management |
 | `gfo api` | `METHOD`, `PATH` | Send raw API request |
 | `gfo schema` | `--list`, `[command] [subcommand]` | Show command JSON Schema (for AI agents) |
 
@@ -196,6 +197,20 @@ api_url = "https://gitlab.example.com/api/v4"
 | Org Create/Delete | ○ | ○ | × | × | × | ○ | ○ | ○ | × |
 | Repo Migrate | ○ | ○ | × | ○ | × | ○ | ○ | × | × |
 | Issue Template | ○ | ○ | × | ○ | × | ○ | ○ | × | × |
+| Issue Reaction | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| Issue Dependencies | × | ○ | × | ○ | × | ○ | ○ | × | × |
+| Issue Timeline | ○ | ○ | × | ○ | × | ○ | ○ | × | × |
+| Issue Pin | ○ | × | × | × | × | ○ | ○ | × | × |
+| Search PRs | ○ | ○ | △ | ○ | × | ○ | ○ | × | × |
+| Search Commits | ○ | ○ | × | △ | × | △ | △ | × | × |
+| Label Clone | ○ | ○ | × | △ | × | ○ | ○ | × | △ |
+| Package | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| Time Tracking | × | ○ | × | △ | ○ | ○ | ○ | × | × |
+| Push Mirror | × | ○ | × | × | × | ○ | ○ | × | × |
+| Mirror Sync | × | ○ | × | × | × | ○ | ○ | × | × |
+| Repo Transfer | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| Repo Star | ○ | ○ | × | × | × | ○ | ○ | ○ | × |
+| Wiki Revisions | × | × | × | × | × | ○ | ○ | × | × |
 
 > ×: Not supported (returns `NotSupportedError`)
 >

@@ -347,6 +347,19 @@ cp tests/integration/.env.example tests/integration/.env
 | release latest | o | o | skip | skip | o | o | skip | o | skip |
 | release asset | o | o | skip | skip | o | o | skip | skip | skip |
 | raw api | o | o | o | o | o | o | o | o | o |
+| issue reaction | o | o | skip | skip | o | o | skip | skip | skip |
+| issue depends | skip | o | skip | o | o | o | skip | skip | skip |
+| issue timeline | o | o | skip | o | o | o | skip | skip | skip |
+| issue pin | o | skip | skip | skip | o | o | skip | skip | skip |
+| search prs | o | o | △ | o | o | o | skip | skip | skip |
+| search commits | o | o | skip | △ | △ | △ | skip | skip | skip |
+| label clone | o | o | skip | △ | o | o | skip | △ | skip |
+| package | o | o | skip | skip | o | o | skip | skip | skip |
+| issue time | skip | o | skip | △ | o | o | skip | skip | o |
+| repo mirror | skip | o | skip | skip | o | o | skip | skip | skip |
+| repo transfer | o | o | skip | skip | o | o | skip | skip | skip |
+| repo star | o | o | skip | skip | o | o | o | skip | skip |
+| wiki revisions | skip | skip | skip | skip | o | o | skip | skip | skip |
 
 > **凡例**: o = 完全カバー、△ = 部分カバー、skip = サービス非対応
 >

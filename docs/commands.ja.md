@@ -411,6 +411,107 @@ gfo issue update NUMBER [--title TITLE] [--body BODY] [--assignee USER] [--label
 gfo issue update 10 --title "New title" --assignee bob
 ```
 
+### gfo issue reaction
+
+Issue のリアクション（絵文字）を管理します。
+
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo issue reaction list NUMBER
+gfo issue reaction add NUMBER REACTION
+gfo issue reaction remove NUMBER REACTION
+```
+
+| 引数 | 説明 |
+|---|---|
+| `NUMBER` | Issue 番号 |
+| `REACTION` | リアクション名（例: `+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`） |
+
+```bash
+gfo issue reaction list 10
+gfo issue reaction add 10 +1
+gfo issue reaction remove 10 heart
+```
+
+### gfo issue depends
+
+Issue の依存関係を管理します。
+
+> **対応サービス**: GitLab, Azure DevOps, Gitea, Forgejo
+
+```
+gfo issue depends list NUMBER
+gfo issue depends add NUMBER DEPENDENCY
+gfo issue depends remove NUMBER DEPENDENCY
+```
+
+| 引数 | 説明 |
+|---|---|
+| `NUMBER` | Issue 番号 |
+| `DEPENDENCY` | 依存先の Issue 番号 |
+
+```bash
+gfo issue depends list 10
+gfo issue depends add 10 5
+gfo issue depends remove 10 5
+```
+
+### gfo issue timeline
+
+Issue のタイムライン（イベント履歴）を表示します。
+
+> **対応サービス**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
+
+```
+gfo issue timeline NUMBER [--limit N]
+```
+
+```bash
+gfo issue timeline 10
+gfo issue timeline 10 --limit 50
+```
+
+### gfo issue pin / unpin
+
+Issue をピン留め / ピン留め解除します。
+
+> **対応サービス**: GitHub, Gitea, Forgejo
+
+```
+gfo issue pin NUMBER
+gfo issue unpin NUMBER
+```
+
+```bash
+gfo issue pin 10
+gfo issue unpin 10
+```
+
+### gfo issue time
+
+Issue のタイムトラッキング（作業時間記録）を管理します。
+
+> **対応サービス**: GitLab, Azure DevOps, Backlog, Gitea, Forgejo
+
+```
+gfo issue time list NUMBER
+gfo issue time add NUMBER DURATION
+gfo issue time delete NUMBER ENTRY_ID
+```
+
+| 引数 | 説明 |
+|---|---|
+| `NUMBER` | Issue 番号 |
+| `DURATION` | 作業時間（例: `1h30m`, `2h`, `45m`） |
+| `ENTRY_ID` | 削除するタイムエントリの ID |
+
+```bash
+gfo issue time list 10
+gfo issue time add 10 1h30m
+gfo issue time delete 10 42
+```
+
 ---
 
 ## gfo repo
@@ -562,6 +663,93 @@ gfo repo compare <base>...<head>
 gfo repo compare <base>..<head>
 ```
 
+### gfo repo migrate
+
+外部リポジトリをインポート（移行）します。
+
+> **対応サービス**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
+
+```
+gfo repo migrate CLONE_URL --name NAME [--private] [--description DESC] [--mirror] [--auth-token TOKEN]
+```
+
+| オプション | 必須 | 説明 |
+|---|---|---|
+| `CLONE_URL` | **必須** | インポート元リポジトリの clone URL |
+| `--name` | **必須** | 作成するリポジトリ名 |
+| `--private` | — | 非公開リポジトリとして作成 |
+| `--description` | — | リポジトリの説明 |
+| `--mirror` | — | ミラーリポジトリとして作成 |
+| `--auth-token` | — | プライベートリポジトリの認証トークン |
+
+```bash
+gfo repo migrate https://github.com/other/repo.git --name my-repo
+gfo repo migrate https://github.com/other/private-repo.git --name imported --private --auth-token ghp_xxxx
+```
+
+### gfo repo mirror
+
+プッシュミラーを管理します。
+
+> **対応サービス**: GitLab, Gitea, Forgejo
+
+```
+gfo repo mirror list
+gfo repo mirror add URL [--interval INTERVAL]
+gfo repo mirror remove MIRROR_ID
+gfo repo mirror sync [MIRROR_ID]
+```
+
+| オプション | 説明 |
+|---|---|
+| `URL` | ミラー先リポジトリの URL |
+| `--interval` | 同期間隔（例: `8h0m0s`） |
+| `MIRROR_ID` | ミラーの ID |
+
+```bash
+gfo repo mirror list
+gfo repo mirror add https://github.com/user/mirror.git
+gfo repo mirror remove 1
+gfo repo mirror sync        # 全ミラーを同期
+gfo repo mirror sync 1      # 特定ミラーを同期
+```
+
+### gfo repo transfer
+
+リポジトリを別のオーナー（ユーザーまたは組織）に移譲します。
+
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo repo transfer NEW_OWNER [--yes]
+```
+
+| オプション | 説明 |
+|---|---|
+| `NEW_OWNER` | 移譲先のユーザー名または組織名 |
+| `--yes`, `-y` | 確認プロンプトをスキップ |
+
+```bash
+gfo repo transfer new-owner
+gfo repo transfer my-org --yes
+```
+
+### gfo repo star / unstar
+
+リポジトリにスターを付ける / スターを外します。
+
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo, Gogs
+
+```
+gfo repo star
+gfo repo unstar
+```
+
+```bash
+gfo repo star
+gfo repo unstar
+```
+
 ---
 
 ## gfo release
@@ -707,6 +895,28 @@ gfo label update NAME [--new-name NEW_NAME] [--color COLOR] [--description DESC]
 gfo label update bug --color 00ff00
 gfo label update old-name --new-name new-name
 gfo label update bug --description "Updated description"
+```
+
+### gfo label clone
+
+別のリポジトリからラベルをコピーします。
+
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo, GitBucket（Azure DevOps は部分対応）
+
+```
+gfo label clone SOURCE_REPO [--host HOST] [--overwrite]
+```
+
+| オプション | 説明 |
+|---|---|
+| `SOURCE_REPO` | コピー元リポジトリ（`owner/name` 形式） |
+| `--host` | コピー元のホスト名（省略時は現在のホスト） |
+| `--overwrite` | 既存のラベルを上書き |
+
+```bash
+gfo label clone alice/my-project
+gfo label clone alice/my-project --overwrite
+gfo label clone alice/other-repo --host github.com
 ```
 
 ---
@@ -1228,11 +1438,13 @@ gfo user whoami
 
 ## gfo search
 
-リポジトリや Issue を検索します。
+リポジトリ、Issue、PR、コミットを検索します。
 
-> **対応サービス**: GitHub, GitLab
+> **対応サービス**: GitHub, GitLab, Bitbucket（部分対応）, Azure DevOps（部分対応）, Gitea, Forgejo
 
 ### gfo search repos
+
+> **対応サービス**: GitHub, GitLab
 
 ```
 gfo search repos QUERY [--limit N]
@@ -1244,12 +1456,42 @@ gfo search repos "cli tool" --limit 20
 
 ### gfo search issues
 
+> **対応サービス**: GitHub, GitLab
+
 ```
 gfo search issues QUERY [--limit N]
 ```
 
 ```bash
 gfo search issues "login bug" --limit 10
+```
+
+### gfo search prs
+
+PR を検索します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket（部分対応）, Azure DevOps, Gitea, Forgejo
+
+```
+gfo search prs QUERY [--limit N]
+```
+
+```bash
+gfo search prs "fix bug" --limit 20
+```
+
+### gfo search commits
+
+コミットを検索します。
+
+> **対応サービス**: GitHub, GitLab, Azure DevOps（部分対応）, Gitea（部分対応）, Forgejo（部分対応）
+
+```
+gfo search commits QUERY [--limit N]
+```
+
+```bash
+gfo search commits "refactor auth" --limit 20
 ```
 
 ---
@@ -1300,6 +1542,21 @@ gfo wiki delete ID
 
 ```bash
 gfo wiki delete 1
+```
+
+### gfo wiki revisions
+
+Wiki ページの変更履歴を表示します。
+
+> **対応サービス**: Gitea, Forgejo
+
+```
+gfo wiki revisions ID [--limit N]
+```
+
+```bash
+gfo wiki revisions 1
+gfo wiki revisions "Getting-Started" --limit 10
 ```
 
 ---
@@ -1811,6 +2068,65 @@ gfo tag-protect delete 1
 
 ---
 
+## gfo package
+
+パッケージレジストリのパッケージを管理します。
+
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
+
+### gfo package list
+
+```
+gfo package list [--type TYPE] [--limit N]
+```
+
+| オプション | 説明 |
+|---|---|
+| `--type` | パッケージタイプでフィルタ（例: `npm`, `maven`, `docker`, `pypi`, `nuget`, `rubygems`） |
+| `--limit` | 取得件数の上限 |
+
+```bash
+gfo package list
+gfo package list --type npm --limit 10
+```
+
+### gfo package view
+
+```
+gfo package view NAME [--type TYPE] [--version VERSION]
+```
+
+| オプション | 説明 |
+|---|---|
+| `NAME` | パッケージ名 |
+| `--type` | パッケージタイプ |
+| `--version` | 特定バージョンの詳細を表示 |
+
+```bash
+gfo package view my-package --type npm
+gfo package view my-package --type npm --version 1.0.0
+```
+
+### gfo package delete
+
+```
+gfo package delete NAME [--type TYPE] [--version VERSION] [--yes]
+```
+
+| オプション | 説明 |
+|---|---|
+| `NAME` | パッケージ名 |
+| `--type` | パッケージタイプ |
+| `--version` | 削除するバージョン（省略時はパッケージ全体を削除） |
+| `--yes`, `-y` | 確認プロンプトをスキップ |
+
+```bash
+gfo package delete my-package --type npm --version 1.0.0
+gfo package delete my-package --type npm --yes
+```
+
+---
+
 ## gfo org create / delete
 
 組織の作成・削除を行います。
@@ -1846,33 +2162,6 @@ gfo org delete NAME [--yes]
 ```bash
 gfo org delete old-org
 gfo org delete old-org --yes
-```
-
----
-
-## gfo repo migrate
-
-外部リポジトリをインポート（移行）します。
-
-> **対応サービス**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
-
-```
-gfo repo migrate CLONE_URL --name NAME [--private] [--description DESC] [--mirror] [--auth-token TOKEN]
-```
-
-| オプション | 必須 | 説明 |
-|---|---|---|
-| `CLONE_URL` | **必須** | インポート元リポジトリの clone URL |
-| `--name` | **必須** | 作成するリポジトリ名 |
-| `--private` | — | 非公開リポジトリとして作成 |
-| `--description` | — | リポジトリの説明 |
-| `--mirror` | — | ミラーリポジトリとして作成 |
-| `--auth-token` | — | プライベートリポジトリの認証トークン |
-
-```bash
-gfo repo migrate https://github.com/other/repo.git --name my-repo
-gfo repo migrate https://github.com/other/private-repo.git --name imported --private --auth-token ghp_xxxx
-gfo repo migrate https://gitlab.com/team/project.git --name mirror-repo --mirror
 ```
 
 ---

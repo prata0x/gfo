@@ -411,6 +411,107 @@ gfo issue update NUMBER [--title TITLE] [--body BODY] [--assignee USER] [--label
 gfo issue update 10 --title "New title" --assignee bob
 ```
 
+### gfo issue reaction
+
+Manage reactions (emojis) on issues.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo issue reaction list NUMBER
+gfo issue reaction add NUMBER REACTION
+gfo issue reaction remove NUMBER REACTION
+```
+
+| Argument | Description |
+|---|---|
+| `NUMBER` | Issue number |
+| `REACTION` | Reaction name (e.g., `+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`) |
+
+```bash
+gfo issue reaction list 10
+gfo issue reaction add 10 +1
+gfo issue reaction remove 10 heart
+```
+
+### gfo issue depends
+
+Manage issue dependencies.
+
+> **Supported services**: GitLab, Azure DevOps, Gitea, Forgejo
+
+```
+gfo issue depends list NUMBER
+gfo issue depends add NUMBER DEPENDENCY
+gfo issue depends remove NUMBER DEPENDENCY
+```
+
+| Argument | Description |
+|---|---|
+| `NUMBER` | Issue number |
+| `DEPENDENCY` | Dependency issue number |
+
+```bash
+gfo issue depends list 10
+gfo issue depends add 10 5
+gfo issue depends remove 10 5
+```
+
+### gfo issue timeline
+
+Show issue timeline (event history).
+
+> **Supported services**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
+
+```
+gfo issue timeline NUMBER [--limit N]
+```
+
+```bash
+gfo issue timeline 10
+gfo issue timeline 10 --limit 50
+```
+
+### gfo issue pin / unpin
+
+Pin or unpin an issue.
+
+> **Supported services**: GitHub, Gitea, Forgejo
+
+```
+gfo issue pin NUMBER
+gfo issue unpin NUMBER
+```
+
+```bash
+gfo issue pin 10
+gfo issue unpin 10
+```
+
+### gfo issue time
+
+Manage issue time tracking (work time entries).
+
+> **Supported services**: GitLab, Azure DevOps, Backlog, Gitea, Forgejo
+
+```
+gfo issue time list NUMBER
+gfo issue time add NUMBER DURATION
+gfo issue time delete NUMBER ENTRY_ID
+```
+
+| Argument | Description |
+|---|---|
+| `NUMBER` | Issue number |
+| `DURATION` | Work duration (e.g., `1h30m`, `2h`, `45m`) |
+| `ENTRY_ID` | ID of the time entry to delete |
+
+```bash
+gfo issue time list 10
+gfo issue time add 10 1h30m
+gfo issue time delete 10 42
+```
+
 ---
 
 ## gfo repo
@@ -562,6 +663,93 @@ gfo repo compare <base>...<head>
 gfo repo compare <base>..<head>
 ```
 
+### gfo repo migrate
+
+Import (migrate) an external repository.
+
+> **Supported services**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
+
+```
+gfo repo migrate CLONE_URL --name NAME [--private] [--description DESC] [--mirror] [--auth-token TOKEN]
+```
+
+| Option | Required | Description |
+|---|---|---|
+| `CLONE_URL` | **Required** | Clone URL of the source repository |
+| `--name` | **Required** | Name of the repository to create |
+| `--private` | — | Create as a private repository |
+| `--description` | — | Repository description |
+| `--mirror` | — | Create as a mirror repository |
+| `--auth-token` | — | Authentication token for private repositories |
+
+```bash
+gfo repo migrate https://github.com/other/repo.git --name my-repo
+gfo repo migrate https://github.com/other/private-repo.git --name imported --private --auth-token ghp_xxxx
+```
+
+### gfo repo mirror
+
+Manage push mirrors.
+
+> **Supported services**: GitLab, Gitea, Forgejo
+
+```
+gfo repo mirror list
+gfo repo mirror add URL [--interval INTERVAL]
+gfo repo mirror remove MIRROR_ID
+gfo repo mirror sync [MIRROR_ID]
+```
+
+| Option | Description |
+|---|---|
+| `URL` | Mirror destination repository URL |
+| `--interval` | Sync interval (e.g., `8h0m0s`) |
+| `MIRROR_ID` | Mirror ID |
+
+```bash
+gfo repo mirror list
+gfo repo mirror add https://github.com/user/mirror.git
+gfo repo mirror remove 1
+gfo repo mirror sync        # Sync all mirrors
+gfo repo mirror sync 1      # Sync specific mirror
+```
+
+### gfo repo transfer
+
+Transfer a repository to another owner (user or organization).
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo repo transfer NEW_OWNER [--yes]
+```
+
+| Option | Description |
+|---|---|
+| `NEW_OWNER` | Destination user or organization name |
+| `--yes`, `-y` | Skip confirmation prompt |
+
+```bash
+gfo repo transfer new-owner
+gfo repo transfer my-org --yes
+```
+
+### gfo repo star / unstar
+
+Star or unstar a repository.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo, Gogs
+
+```
+gfo repo star
+gfo repo unstar
+```
+
+```bash
+gfo repo star
+gfo repo unstar
+```
+
 ---
 
 ## gfo release
@@ -707,6 +895,28 @@ gfo label update NAME [--new-name NEW_NAME] [--color COLOR] [--description DESC]
 gfo label update bug --color 00ff00
 gfo label update old-name --new-name new-name
 gfo label update bug --description "Updated description"
+```
+
+### gfo label clone
+
+Copy labels from another repository.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo, GitBucket (Azure DevOps: partial support)
+
+```
+gfo label clone SOURCE_REPO [--host HOST] [--overwrite]
+```
+
+| Option | Description |
+|---|---|
+| `SOURCE_REPO` | Source repository (`owner/name` format) |
+| `--host` | Source hostname (defaults to current host) |
+| `--overwrite` | Overwrite existing labels |
+
+```bash
+gfo label clone alice/my-project
+gfo label clone alice/my-project --overwrite
+gfo label clone alice/other-repo --host github.com
 ```
 
 ---
@@ -1228,11 +1438,13 @@ gfo user whoami
 
 ## gfo search
 
-Search repositories and issues.
+Search repositories, issues, PRs, and commits.
 
-> **Supported services**: GitHub, GitLab
+> **Supported services**: GitHub, GitLab, Bitbucket (partial), Azure DevOps (partial), Gitea, Forgejo
 
 ### gfo search repos
+
+> **Supported services**: GitHub, GitLab
 
 ```
 gfo search repos QUERY [--limit N]
@@ -1244,12 +1456,42 @@ gfo search repos "cli tool" --limit 20
 
 ### gfo search issues
 
+> **Supported services**: GitHub, GitLab
+
 ```
 gfo search issues QUERY [--limit N]
 ```
 
 ```bash
 gfo search issues "login bug" --limit 10
+```
+
+### gfo search prs
+
+Search pull requests.
+
+> **Supported services**: GitHub, GitLab, Bitbucket (partial), Azure DevOps, Gitea, Forgejo
+
+```
+gfo search prs QUERY [--limit N]
+```
+
+```bash
+gfo search prs "fix bug" --limit 20
+```
+
+### gfo search commits
+
+Search commits.
+
+> **Supported services**: GitHub, GitLab, Azure DevOps (partial), Gitea (partial), Forgejo (partial)
+
+```
+gfo search commits QUERY [--limit N]
+```
+
+```bash
+gfo search commits "refactor auth" --limit 20
 ```
 
 ---
@@ -1300,6 +1542,21 @@ gfo wiki delete ID
 
 ```bash
 gfo wiki delete 1
+```
+
+### gfo wiki revisions
+
+Show revision history of a wiki page.
+
+> **Supported services**: Gitea, Forgejo
+
+```
+gfo wiki revisions ID [--limit N]
+```
+
+```bash
+gfo wiki revisions 1
+gfo wiki revisions "Getting-Started" --limit 10
 ```
 
 ---
@@ -1811,6 +2068,65 @@ gfo tag-protect delete 1
 
 ---
 
+## gfo package
+
+Manage packages in the package registry.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
+
+### gfo package list
+
+```
+gfo package list [--type TYPE] [--limit N]
+```
+
+| Option | Description |
+|---|---|
+| `--type` | Filter by package type (e.g., `npm`, `maven`, `docker`, `pypi`, `nuget`, `rubygems`) |
+| `--limit` | Maximum number of results |
+
+```bash
+gfo package list
+gfo package list --type npm --limit 10
+```
+
+### gfo package view
+
+```
+gfo package view NAME [--type TYPE] [--version VERSION]
+```
+
+| Option | Description |
+|---|---|
+| `NAME` | Package name |
+| `--type` | Package type |
+| `--version` | Show details for a specific version |
+
+```bash
+gfo package view my-package --type npm
+gfo package view my-package --type npm --version 1.0.0
+```
+
+### gfo package delete
+
+```
+gfo package delete NAME [--type TYPE] [--version VERSION] [--yes]
+```
+
+| Option | Description |
+|---|---|
+| `NAME` | Package name |
+| `--type` | Package type |
+| `--version` | Version to delete (deletes entire package if omitted) |
+| `--yes`, `-y` | Skip confirmation prompt |
+
+```bash
+gfo package delete my-package --type npm --version 1.0.0
+gfo package delete my-package --type npm --yes
+```
+
+---
+
 ## gfo org create / delete
 
 Create or delete organizations.
@@ -1846,33 +2162,6 @@ gfo org delete NAME [--yes]
 ```bash
 gfo org delete old-org
 gfo org delete old-org --yes
-```
-
----
-
-## gfo repo migrate
-
-Import (migrate) an external repository.
-
-> **Supported services**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
-
-```
-gfo repo migrate CLONE_URL --name NAME [--private] [--description DESC] [--mirror] [--auth-token TOKEN]
-```
-
-| Option | Required | Description |
-|---|---|---|
-| `CLONE_URL` | **Required** | Clone URL of the source repository |
-| `--name` | **Required** | Name of the repository to create |
-| `--private` | — | Create as a private repository |
-| `--description` | — | Repository description |
-| `--mirror` | — | Create as a mirror repository |
-| `--auth-token` | — | Authentication token for private repositories |
-
-```bash
-gfo repo migrate https://github.com/other/repo.git --name my-repo
-gfo repo migrate https://github.com/other/private-repo.git --name imported --private --auth-token ghp_xxxx
-gfo repo migrate https://gitlab.com/team/project.git --name mirror-repo --mirror
 ```
 
 ---

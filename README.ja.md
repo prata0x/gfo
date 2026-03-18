@@ -82,11 +82,11 @@ gfo auth status
 | `gfo init` | — | プロジェクト設定の初期化 |
 | `gfo auth` | `login`, `status` | トークン保存・認証状態確認 |
 | `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `update`, `diff`, `checks`, `files`, `commits`, `reviewers`, `update-branch`, `ready` | プルリクエスト操作 |
-| `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update` | Issue 操作 |
+| `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update`, `reaction`, `depends`, `timeline`, `pin`, `unpin`, `time` | Issue 操作 |
 | `gfo issue-template` | `list` | Issue テンプレート一覧 |
-| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `update`, `archive`, `languages`, `topics`, `compare`, `migrate` | リポジトリ操作 |
+| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `update`, `archive`, `languages`, `topics`, `compare`, `migrate`, `mirror`, `transfer`, `star`, `unstar` | リポジトリ操作 |
 | `gfo release` | `list`, `create`, `view`, `update`, `delete`, `asset` | リリース管理 |
-| `gfo label` | `list`, `create`, `update`, `delete` | ラベル管理 |
+| `gfo label` | `list`, `create`, `update`, `delete`, `clone` | ラベル管理 |
 | `gfo milestone` | `list`, `create`, `view`, `update`, `close`, `reopen`, `delete` | マイルストーン管理 |
 | `gfo comment` | `list`, `create`, `update`, `delete` | PR / Issue コメント操作 |
 | `gfo review` | `list`, `create`, `dismiss` | PR レビュー操作 |
@@ -99,8 +99,8 @@ gfo auth status
 | `gfo collaborator` | `list`, `add`, `remove` | コラボレーター管理 |
 | `gfo ci` | `list`, `view`, `cancel`, `trigger`, `retry`, `logs` | CI/CD ジョブ操作 |
 | `gfo user` | `whoami` | 認証ユーザー情報表示 |
-| `gfo search` | `repos`, `issues` | リポジトリ・Issue 検索 |
-| `gfo wiki` | `list`, `view`, `create`, `update`, `delete` | Wiki 操作 |
+| `gfo search` | `repos`, `issues`, `prs`, `commits` | リポジトリ・Issue・PR・コミット検索 |
+| `gfo wiki` | `list`, `view`, `create`, `update`, `delete`, `revisions` | Wiki 操作 |
 | `gfo browse` | — | リポジトリをブラウザで開く |
 | `gfo branch-protect` | `list`, `view`, `set`, `remove` | ブランチ保護ルール管理 |
 | `gfo tag-protect` | `list`, `create`, `delete` | タグ保護ルール管理 |
@@ -110,6 +110,7 @@ gfo auth status
 | `gfo gpg-key` | `list`, `create`, `delete` | GPG 鍵管理 |
 | `gfo secret` | `list`, `set`, `delete` | CI/CD シークレット管理 |
 | `gfo variable` | `list`, `set`, `get`, `delete` | CI/CD 変数管理 |
+| `gfo package` | `list`, `view`, `delete` | パッケージ管理 |
 | `gfo api` | `METHOD`, `PATH` | 任意の API エンドポイント呼び出し |
 | `gfo schema` | `--list`, `[command] [subcommand]` | コマンドの JSON Schema を表示（AI エージェント向け） |
 
@@ -196,6 +197,20 @@ api_url = "https://gitlab.example.com/api/v4"
 | Org Create/Delete | ○ | ○ | × | × | × | ○ | ○ | ○ | × |
 | Repo Migrate | ○ | ○ | × | ○ | × | ○ | ○ | × | × |
 | Issue Template | ○ | ○ | × | ○ | × | ○ | ○ | × | × |
+| Issue Reaction | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| Issue Dependencies | × | ○ | × | ○ | × | ○ | ○ | × | × |
+| Issue Timeline | ○ | ○ | × | ○ | × | ○ | ○ | × | × |
+| Issue Pin | ○ | × | × | × | × | ○ | ○ | × | × |
+| Search PRs | ○ | ○ | △ | ○ | × | ○ | ○ | × | × |
+| Search Commits | ○ | ○ | × | △ | × | △ | △ | × | × |
+| Label Clone | ○ | ○ | × | △ | × | ○ | ○ | × | △ |
+| Package | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| Time Tracking | × | ○ | × | △ | ○ | ○ | ○ | × | × |
+| Push Mirror | × | ○ | × | × | × | ○ | ○ | × | × |
+| Mirror Sync | × | ○ | × | × | × | ○ | ○ | × | × |
+| Repo Transfer | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| Repo Star | ○ | ○ | × | × | × | ○ | ○ | ○ | × |
+| Wiki Revisions | × | × | × | × | × | ○ | ○ | × | × |
 
 > ×: 非対応（`NotSupportedError` を返します）
 >

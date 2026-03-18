@@ -69,10 +69,10 @@
 | PR merge | ○ | ○ | ○ | ○ | ○ 実装済み |
 | **Issue CRUD** | ○ | ○ | ○ | ○ | ○ 実装済み |
 | Issue reopen | ○ | ○ | ○ | × | ○ 実装済み |
-| Issue reactions | ○ | ○ | × | × | **未実装** |
-| Issue pin/unpin | ○ | × | × | × | **未実装** |
-| Issue dependencies | × | △ | × | × | **未実装** |
-| Issue timeline | ○ | △ | × | × | **未実装** |
+| Issue reactions | ○ | ○ | × | × | ○ 実装済み |
+| Issue pin/unpin | ○ | × | × | × | ○ 実装済み |
+| Issue dependencies | × | △ | × | × | ○ 実装済み |
+| Issue timeline | ○ | △ | × | × | ○ 実装済み |
 | Issue comment | ○ | ○ | ○ | ○ | ○ 実装済み |
 | **Issue templates** | × | ○ | × | × | ○ 実装済み |
 | **Repo CRUD** | ○ | ○ | ○ | ○ | ○ 実装済み |
@@ -82,7 +82,7 @@
 | Repo topics | ○ | △ | × | × | ○ 実装済み |
 | Repo compare | ○ | ○ | × | × | ○ 実装済み |
 | Repo languages | ○ | ○ | × | × | ○ 実装済み |
-| Repo transfer | ○ | ○ | × | × | **未実装** |
+| Repo transfer | ○ | ○ | × | × | ○ 実装済み |
 | Repo fork | ○ | ○ | ○ | ○ | ○ 実装済み |
 | **Release CRUD** | ○ | ○ | ○ | × | ○ 実装済み |
 | Release view | ○ | ○ | × | × | ○ 実装済み |
@@ -90,7 +90,7 @@
 | Release edit/update | ○ | × | ○ | × | ○ 実装済み |
 | Release assets | ○ | ○ | ○ | × | ○ 実装済み |
 | **Label CRUD** | ○ | ○ | ○ | △ | ○ 実装済み |
-| Label clone | ○ | × | × | × | **未実装** |
+| Label clone | ○ | × | × | × | ○ 実装済み |
 | **Milestone CRUD** | × | ○ | ○ | × | ○ 実装済み |
 | Milestone close/reopen | × | × | ○ | × | ○ 実装済み |
 | **CI/Actions** | ○ | ○ | ○ | ○ | ○ 実装済み |
@@ -107,19 +107,19 @@
 | **Organization** | ○ | × | ○ | ○ | ○ 実装済み |
 | **Branch protect** | × | × | ○ | × | ○ 実装済み |
 | **Wiki** | × | × | × | ○ | ○ 実装済み |
-| Wiki revisions | × | × | × | × | **未実装** |
+| Wiki revisions | × | × | × | × | ○ 実装済み |
 | **Browse** | ○ | × | ○ | ○ | ○ 実装済み |
-| **Search** | ○ | ○ | ○ | ○ | △ repos/issues のみ |
-| **Package management** | ○ | ○ | × | × | **未実装** |
-| **Push mirrors** | × | ○ | × | × | **未実装** |
-| **Time tracking** | × | ○ | ○ | × | **未実装** |
+| **Search** | ○ | ○ | ○ | ○ | ○ 実装済み（repos/issues/prs/commits） |
+| **Package management** | ○ | ○ | × | × | ○ 実装済み |
+| **Push mirrors** | × | ○ | × | × | ○ 実装済み |
+| **Time tracking** | × | ○ | ○ | × | ○ 実装済み |
 | **Raw API call** | ○ | ○ | ○ | × | ○ 実装済み |
 | **User whoami** | × | × | ○ | ○ | ○ 実装済み |
 | **Collaborator** | × | × | × | × | ○ 実装済み |
 | **Deploy Key** | ○ | ○ | × | × | ○ 実装済み |
 | **Commit Status** | × | × | × | × | ○ 実装済み |
 | **File API** | × | × | × | × | ○ 実装済み |
-| **Star/Unstar** | × | × | × | ○ | **未実装** |
+| **Star/Unstar** | × | × | × | ○ | ○ 実装済み |
 
 ---
 
