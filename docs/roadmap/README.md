@@ -74,10 +74,11 @@
 | Issue dependencies | × | △ | × | × | **未実装** |
 | Issue timeline | ○ | △ | × | × | **未実装** |
 | Issue comment | ○ | ○ | ○ | ○ | ○ 実装済み |
+| **Issue templates** | × | ○ | × | × | ○ 実装済み |
 | **Repo CRUD** | ○ | ○ | ○ | ○ | ○ 実装済み |
 | Repo update/edit | ○ | ○ | ○ | × | ○ 実装済み |
 | Repo archive | ○ | ○ | × | × | ○ 実装済み |
-| Repo migrate | × | ○ | ○ | ○ | **未実装** |
+| Repo migrate | × | ○ | ○ | ○ | ○ 実装済み |
 | Repo topics | ○ | △ | × | × | ○ 実装済み |
 | Repo compare | ○ | ○ | × | × | ○ 実装済み |
 | Repo languages | ○ | ○ | × | × | ○ 実装済み |
@@ -92,18 +93,18 @@
 | Label clone | ○ | × | × | × | **未実装** |
 | **Milestone CRUD** | × | ○ | ○ | × | ○ 実装済み |
 | Milestone close/reopen | × | × | ○ | × | ○ 実装済み |
-| **CI/Actions** | ○ | ○ | ○ | ○ | △ list/view/cancel のみ |
-| CI trigger | ○ | ○ | × | ○ | **未実装** |
-| CI retry | ○ | ○ | × | × | **未実装** |
-| CI logs | ○ | ○ | × | × | **未実装** |
+| **CI/Actions** | ○ | ○ | ○ | ○ | ○ 実装済み |
+| CI trigger | ○ | ○ | × | ○ | ○ 実装済み |
+| CI retry | ○ | ○ | × | × | ○ 実装済み |
+| CI logs | ○ | ○ | × | × | ○ 実装済み |
 | **Secret/Variable** | ○ | ○ | ○ | ○ | ○ 実装済み |
 | **SSH Key** | ○ | ○ | × | ○ | ○ 実装済み |
-| **GPG Key** | ○ | ○ | × | ○ | **未実装** |
+| **GPG Key** | ○ | ○ | × | ○ | ○ 実装済み |
 | **Webhook** | × | × | ○ | × | ○ 実装済み |
 | Webhook test | ○ | ○ | × | × | ○ 実装済み |
-| **Tag protections** | △ | ○ | × | × | **未実装** |
+| **Tag protections** | △ | ○ | × | × | ○ 実装済み |
 | **Notification** | ○ | × | ○ | × | ○ 実装済み |
-| **Organization** | ○ | × | ○ | ○ | △ create/delete なし |
+| **Organization** | ○ | × | ○ | ○ | ○ 実装済み |
 | **Branch protect** | × | × | ○ | × | ○ 実装済み |
 | **Wiki** | × | × | × | ○ | ○ 実装済み |
 | Wiki revisions | × | × | × | × | **未実装** |

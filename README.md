@@ -83,7 +83,8 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 | `gfo auth` | `login`, `status` | Save token / check auth status |
 | `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `update`, `diff`, `checks`, `files`, `commits`, `reviewers`, `update-branch`, `ready` | Pull request operations |
 | `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update` | Issue operations |
-| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `update`, `archive`, `languages`, `topics`, `compare` | Repository operations |
+| `gfo issue-template` | `list` | Issue template listing |
+| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `update`, `archive`, `languages`, `topics`, `compare`, `migrate` | Repository operations |
 | `gfo release` | `list`, `create`, `view`, `update`, `delete`, `asset` | Release management |
 | `gfo label` | `list`, `create`, `update`, `delete` | Label management |
 | `gfo milestone` | `list`, `create`, `view`, `update`, `close`, `reopen`, `delete` | Milestone management |
@@ -96,15 +97,17 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 | `gfo webhook` | `list`, `create`, `delete`, `test` | Webhook management |
 | `gfo deploy-key` | `list`, `create`, `delete` | Deploy key management |
 | `gfo collaborator` | `list`, `add`, `remove` | Collaborator management |
-| `gfo ci` | `list`, `view`, `cancel` | CI/CD job operations |
+| `gfo ci` | `list`, `view`, `cancel`, `trigger`, `retry`, `logs` | CI/CD job operations |
 | `gfo user` | `whoami` | Display authenticated user info |
 | `gfo search` | `repos`, `issues` | Search repositories / issues |
 | `gfo wiki` | `list`, `view`, `create`, `update`, `delete` | Wiki operations |
 | `gfo browse` | — | Open repository in browser |
 | `gfo branch-protect` | `list`, `view`, `set`, `remove` | Branch protection rule management |
+| `gfo tag-protect` | `list`, `create`, `delete` | Tag protection rule management |
 | `gfo notification` | `list`, `read` | Notification management |
-| `gfo org` | `list`, `view`, `members`, `repos` | Organization management |
+| `gfo org` | `list`, `view`, `members`, `repos`, `create`, `delete` | Organization management |
 | `gfo ssh-key` | `list`, `create`, `delete` | SSH key management |
+| `gfo gpg-key` | `list`, `create`, `delete` | GPG key management |
 | `gfo secret` | `list`, `set`, `delete` | CI/CD secret management |
 | `gfo variable` | `list`, `set`, `get`, `delete` | CI/CD variable management |
 | `gfo api` | `METHOD`, `PATH` | Send raw API request |
@@ -176,7 +179,7 @@ api_url = "https://gitlab.example.com/api/v4"
 | Review | ○ | ○ | × | × | × | × | × | × | × |
 | Review Dismiss | ○ | × | × | ○ | × | ○ | ○ | × | × |
 | Wiki | × | ○ | × | × | × | ○ | ○ | × | × |
-| CI/CD | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| CI/CD | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
 | Search | ○ | ○ | × | × | × | × | × | × | × |
 | Browse | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | Branch Protect | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
@@ -185,13 +188,21 @@ api_url = "https://gitlab.example.com/api/v4"
 | SSH Key | ○ | ○ | ○ | × | × | ○ | ○ | ○ | × |
 | Secret | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
 | Variable | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
+| GPG Key | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
+| CI Trigger | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
+| CI Retry | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
+| CI Logs | ○ | ○ | ○ | ○ | × | × | × | × | × |
+| Tag Protect | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| Org Create/Delete | ○ | ○ | × | × | × | ○ | ○ | ○ | × |
+| Repo Migrate | ○ | ○ | × | ○ | × | ○ | ○ | × | × |
+| Issue Template | ○ | ○ | × | ○ | × | ○ | ○ | × | × |
 
 > ×: Not supported (returns `NotSupportedError`)
 >
 > **Footnotes**:
 > - PR Reviewers (Bitbucket): `list` only (`add` / `remove` not supported).
 > - Branch Protect (Bitbucket): Only force-push and deletion control; review requirements, status checks, and admin enforcement are not supported.
-> - Org (Azure DevOps): `list`, `view`, `repos` only; `members` is not supported (use Teams for member management).
+> - Org (Azure DevOps): `list`, `view`, `repos` only; `members`, `create`, `delete` are not supported.
 
 ## Development
 

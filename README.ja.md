@@ -83,7 +83,8 @@ gfo auth status
 | `gfo auth` | `login`, `status` | トークン保存・認証状態確認 |
 | `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `update`, `diff`, `checks`, `files`, `commits`, `reviewers`, `update-branch`, `ready` | プルリクエスト操作 |
 | `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update` | Issue 操作 |
-| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `update`, `archive`, `languages`, `topics`, `compare` | リポジトリ操作 |
+| `gfo issue-template` | `list` | Issue テンプレート一覧 |
+| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `update`, `archive`, `languages`, `topics`, `compare`, `migrate` | リポジトリ操作 |
 | `gfo release` | `list`, `create`, `view`, `update`, `delete`, `asset` | リリース管理 |
 | `gfo label` | `list`, `create`, `update`, `delete` | ラベル管理 |
 | `gfo milestone` | `list`, `create`, `view`, `update`, `close`, `reopen`, `delete` | マイルストーン管理 |
@@ -96,15 +97,17 @@ gfo auth status
 | `gfo webhook` | `list`, `create`, `delete`, `test` | Webhook 管理 |
 | `gfo deploy-key` | `list`, `create`, `delete` | デプロイキー管理 |
 | `gfo collaborator` | `list`, `add`, `remove` | コラボレーター管理 |
-| `gfo ci` | `list`, `view`, `cancel` | CI/CD ジョブ操作 |
+| `gfo ci` | `list`, `view`, `cancel`, `trigger`, `retry`, `logs` | CI/CD ジョブ操作 |
 | `gfo user` | `whoami` | 認証ユーザー情報表示 |
 | `gfo search` | `repos`, `issues` | リポジトリ・Issue 検索 |
 | `gfo wiki` | `list`, `view`, `create`, `update`, `delete` | Wiki 操作 |
 | `gfo browse` | — | リポジトリをブラウザで開く |
 | `gfo branch-protect` | `list`, `view`, `set`, `remove` | ブランチ保護ルール管理 |
+| `gfo tag-protect` | `list`, `create`, `delete` | タグ保護ルール管理 |
 | `gfo notification` | `list`, `read` | 通知管理 |
-| `gfo org` | `list`, `view`, `members`, `repos` | 組織管理 |
+| `gfo org` | `list`, `view`, `members`, `repos`, `create`, `delete` | 組織管理 |
 | `gfo ssh-key` | `list`, `create`, `delete` | SSH 鍵管理 |
+| `gfo gpg-key` | `list`, `create`, `delete` | GPG 鍵管理 |
 | `gfo secret` | `list`, `set`, `delete` | CI/CD シークレット管理 |
 | `gfo variable` | `list`, `set`, `get`, `delete` | CI/CD 変数管理 |
 | `gfo api` | `METHOD`, `PATH` | 任意の API エンドポイント呼び出し |
@@ -176,7 +179,7 @@ api_url = "https://gitlab.example.com/api/v4"
 | Review | ○ | ○ | × | × | × | × | × | × | × |
 | Review Dismiss | ○ | × | × | ○ | × | ○ | ○ | × | × |
 | Wiki | × | ○ | × | × | × | ○ | ○ | × | × |
-| CI/CD | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| CI/CD | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
 | Search | ○ | ○ | × | × | × | × | × | × | × |
 | Browse | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | Branch Protect | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
@@ -185,13 +188,21 @@ api_url = "https://gitlab.example.com/api/v4"
 | SSH Key | ○ | ○ | ○ | × | × | ○ | ○ | ○ | × |
 | Secret | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
 | Variable | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
+| GPG Key | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
+| CI Trigger | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
+| CI Retry | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
+| CI Logs | ○ | ○ | ○ | ○ | × | × | × | × | × |
+| Tag Protect | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| Org Create/Delete | ○ | ○ | × | × | × | ○ | ○ | ○ | × |
+| Repo Migrate | ○ | ○ | × | ○ | × | ○ | ○ | × | × |
+| Issue Template | ○ | ○ | × | ○ | × | ○ | ○ | × | × |
 
 > ×: 非対応（`NotSupportedError` を返します）
 >
 > **補足**:
 > - PR Reviewers（Bitbucket）: `list` のみ対応（`add` / `remove` は非対応）。
 > - Branch Protect（Bitbucket）: 強制プッシュと削除の制御のみ対応。レビュー要件・ステータスチェック・管理者への適用は非対応。
-> - Org（Azure DevOps）: `list`, `view`, `repos` のみ対応。`members` は非対応（メンバー管理には Teams を使用）。
+> - Org（Azure DevOps）: `list`, `view`, `repos` のみ対応。`members`, `create`, `delete` は非対応。
 
 ## 開発
 

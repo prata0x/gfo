@@ -1675,3 +1675,221 @@ gfo api GET /repos/owner/repo
 # Create an issue
 gfo api POST /repos/owner/repo/issues --data '{"title": "Bug report"}'
 ```
+
+---
+
+## gfo gpg-key
+
+Manage GPG public keys for the user account.
+
+> **Supported services**: GitHub, GitLab, Bitbucket, Gitea, Forgejo
+
+### gfo gpg-key list
+
+```
+gfo gpg-key list [--limit N]
+```
+
+### gfo gpg-key create
+
+```
+gfo gpg-key create --key ARMORED_PUBLIC_KEY
+```
+
+```bash
+gfo gpg-key create --key "-----BEGIN PGP PUBLIC KEY BLOCK-----..."
+```
+
+### gfo gpg-key delete
+
+```
+gfo gpg-key delete ID
+```
+
+```bash
+gfo gpg-key delete 12345
+```
+
+---
+
+## gfo ci trigger
+
+Manually trigger a pipeline / workflow.
+
+> **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
+>
+> **Note**: `--workflow` is required for GitHub / Gitea.
+
+```
+gfo ci trigger --ref REF [--workflow WORKFLOW] [--input KEY=VALUE ...]
+```
+
+| Option | Required | Description |
+|---|---|---|
+| `--ref` | **Required** | Target branch or tag |
+| `--workflow`, `-w` | Required for GitHub/Gitea | Workflow name or filename |
+| `--input`, `-i` | — | Input parameters (`KEY=VALUE` format, can be specified multiple times) |
+
+```bash
+gfo ci trigger --ref main --workflow ci.yml
+gfo ci trigger --ref develop --workflow build.yml --input env=staging --input debug=true
+gfo ci trigger --ref main  # GitLab / Bitbucket / Azure DevOps
+```
+
+## gfo ci retry
+
+Re-run a failed pipeline.
+
+> **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
+
+```
+gfo ci retry ID
+```
+
+```bash
+gfo ci retry 12345678
+```
+
+## gfo ci logs
+
+Get pipeline logs.
+
+> **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps
+
+```
+gfo ci logs ID [--job JOB_ID]
+```
+
+| Option | Description |
+|---|---|
+| `--job`, `-j` | Get logs for a specific job only (all jobs combined if omitted) |
+
+```bash
+gfo ci logs 12345678
+gfo ci logs 12345678 --job 42
+```
+
+---
+
+## gfo tag-protect
+
+Manage tag protection rules.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
+
+### gfo tag-protect list
+
+```
+gfo tag-protect list [--limit N]
+```
+
+### gfo tag-protect create
+
+```
+gfo tag-protect create PATTERN [--access-level LEVEL]
+```
+
+| Option | Description |
+|---|---|
+| `PATTERN` | Tag pattern to protect (e.g., `v*`) |
+| `--access-level` | Creation access level (for GitLab / Gitea) |
+
+```bash
+gfo tag-protect create "v*"
+gfo tag-protect create "release-*" --access-level maintainer
+```
+
+### gfo tag-protect delete
+
+```
+gfo tag-protect delete ID
+```
+
+```bash
+gfo tag-protect delete 1
+```
+
+---
+
+## gfo org create / delete
+
+Create or delete organizations.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo, Gogs (Bitbucket / Azure DevOps not supported via API)
+
+### gfo org create
+
+```
+gfo org create NAME [--display-name NAME] [--description DESC]
+```
+
+| Option | Description |
+|---|---|
+| `--display-name` | Display name |
+| `--description` | Description |
+
+```bash
+gfo org create my-new-org
+gfo org create my-org --display-name "My Organization" --description "Team org"
+```
+
+### gfo org delete
+
+```
+gfo org delete NAME [--yes]
+```
+
+| Option | Description |
+|---|---|
+| `--yes`, `-y` | Skip confirmation prompt |
+
+```bash
+gfo org delete old-org
+gfo org delete old-org --yes
+```
+
+---
+
+## gfo repo migrate
+
+Import (migrate) an external repository.
+
+> **Supported services**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
+
+```
+gfo repo migrate CLONE_URL --name NAME [--private] [--description DESC] [--mirror] [--auth-token TOKEN]
+```
+
+| Option | Required | Description |
+|---|---|---|
+| `CLONE_URL` | **Required** | Clone URL of the source repository |
+| `--name` | **Required** | Name of the repository to create |
+| `--private` | — | Create as a private repository |
+| `--description` | — | Repository description |
+| `--mirror` | — | Create as a mirror repository |
+| `--auth-token` | — | Authentication token for private repositories |
+
+```bash
+gfo repo migrate https://github.com/other/repo.git --name my-repo
+gfo repo migrate https://github.com/other/private-repo.git --name imported --private --auth-token ghp_xxxx
+gfo repo migrate https://gitlab.com/team/project.git --name mirror-repo --mirror
+```
+
+---
+
+## gfo issue-template
+
+List issue templates.
+
+> **Supported services**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
+
+### gfo issue-template list
+
+```
+gfo issue-template list
+```
+
+```bash
+gfo issue-template list
+gfo issue-template list --format json
+```
