@@ -1,6 +1,6 @@
 [project]
 name = "gfo"
-version = "0.2.2"
+dynamic = ["version"]
 description = "Git Forge Operator – a unified CLI for GitHub, GitLab, and more"
 license = "0BSD"
 requires-python = ">=3.11"
@@ -31,6 +31,9 @@ dev = ["pytest", "responses", "pytest-cov", "ruff", "bandit", "mypy", "types-req
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/gfo/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gfo"]

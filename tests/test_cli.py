@@ -64,7 +64,7 @@ def test_parser_version(capsys):
         parser.parse_args(["--version"])
     assert exc.value.code == 0
     captured = capsys.readouterr()
-    assert "gfo 0.1.0" in captured.out
+    assert "gfo 0.2.2" in captured.out
 
 
 def test_parser_init_defaults():
@@ -687,7 +687,7 @@ def test_main_version(capsys):
         main(["--version"])
     assert exc.value.code == 0
     captured = capsys.readouterr()
-    assert "gfo 0.1.0" in captured.out
+    assert "gfo 0.2.2" in captured.out
 
 
 def test_main_subcommand_only_returns_1(capsys):
