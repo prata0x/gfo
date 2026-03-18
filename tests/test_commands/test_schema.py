@@ -283,6 +283,21 @@ class TestHandleSchema:
         empty = [item["command"] for item in out if not item["description"]]
         assert empty == [], f"Commands with empty description: {empty}"
 
+    def test_all_arguments_have_descriptions(self, capsys):
+        """全コマンドの全パラメータに description があること。"""
+        args = make_args(command="schema", subcommand=None, list_commands=False, target=[])
+        handle_schema(args, fmt="json")
+        out = json.loads(capsys.readouterr().out)
+        missing = []
+        for cmd in out:
+            if "input" not in cmd:
+                continue
+            props = cmd["input"].get("properties", {})
+            for prop_name, prop_val in props.items():
+                if "description" not in prop_val:
+                    missing.append(f"{cmd['command']}.{prop_name}")
+        assert missing == [], f"Arguments without description: {missing}"
+
 
 class TestParserNargsOptional:
     """nargs='?' の位置引数が required に含まれないこと（H4）。"""

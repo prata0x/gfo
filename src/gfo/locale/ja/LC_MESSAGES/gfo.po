@@ -886,3 +886,452 @@ msgstr "プルリクエストのバッチ操作"
 
 msgid "Create pull requests in multiple repositories"
 msgstr "複数リポジトリにプルリクエストを作成する"
+
+# cli.py — add_argument help texts
+
+msgid "API base URL"
+msgstr "API ベース URL"
+
+msgid "API path"
+msgstr "API パス"
+
+msgid "Access level"
+msgstr "アクセスレベル"
+
+msgid "Allow branch deletion"
+msgstr "ブランチ削除を許可する"
+
+msgid "Allow force push"
+msgstr "強制プッシュを許可する"
+
+msgid "Allow write access"
+msgstr "書き込み権限を許可する"
+
+msgid "Approve"
+msgstr "承認する"
+
+msgid "Asset ID"
+msgstr "アセット ID"
+
+msgid "Asset name"
+msgstr "アセット名"
+
+msgid "Assignee"
+msgstr "担当者"
+
+msgid "Authentication token"
+msgstr "認証トークン"
+
+msgid "Authentication token for source"
+msgstr "移行元の認証トークン"
+
+msgid "Base branch"
+msgstr "ベースブランチ"
+
+msgid "Body"
+msgstr "本文"
+
+msgid "Branch name"
+msgstr "ブランチ名"
+
+msgid "Clone URL of source repository"
+msgstr "移行元リポジトリのクローン URL"
+
+msgid "Color (hex)"
+msgstr "色 (16進数)"
+
+msgid "Comma-separated issue numbers"
+msgstr "カンマ区切りの Issue 番号"
+
+msgid "Comment ID"
+msgstr "コメント ID"
+
+msgid "Comment only"
+msgstr "コメントのみ"
+
+msgid "Commit message"
+msgstr "コミットメッセージ"
+
+msgid "Commit ref"
+msgstr "コミット参照"
+
+msgid "Comparison spec (base...head)"
+msgstr "比較指定 (base...head)"
+
+msgid "Content"
+msgstr "コンテンツ"
+
+msgid "Context name"
+msgstr "コンテキスト名"
+
+msgid "Create as draft"
+msgstr "下書きとして作成する"
+
+msgid "Create as mirror"
+msgstr "ミラーとして作成する"
+
+msgid "Create as private"
+msgstr "プライベートとして作成する"
+
+msgid "Create organization"
+msgstr "組織を作成する"
+
+msgid "Default branch name"
+msgstr "デフォルトブランチ名"
+
+msgid "Delete organization"
+msgstr "組織を削除する"
+
+msgid "Dependency issue number"
+msgstr "依存先 Issue 番号"
+
+msgid "Deploy key ID"
+msgstr "デプロイキー ID"
+
+msgid "Description"
+msgstr "説明"
+
+msgid "Destination (host/owner/repo)"
+msgstr "移行先 (host/owner/repo)"
+
+msgid "Disallow branch deletion"
+msgstr "ブランチ削除を禁止する"
+
+msgid "Disallow force push"
+msgstr "強制プッシュを禁止する"
+
+msgid "Display name"
+msgstr "表示名"
+
+msgid "Don't enforce rules for admins"
+msgstr "管理者へのルール適用を解除する"
+
+msgid "Download directory"
+msgstr "ダウンロードディレクトリ"
+
+msgid "Download pattern"
+msgstr "ダウンロードパターン"
+
+msgid "Dry run"
+msgstr "ドライラン"
+
+msgid "Due date"
+msgstr "期限日"
+
+msgid "Duration (e.g. 1h30m)"
+msgstr "作業時間 (例: 1h30m)"
+
+msgid "Enable auto-merge"
+msgstr "自動マージを有効にする"
+
+msgid "End date"
+msgstr "終了日"
+
+msgid "Enforce rules for admins"
+msgstr "管理者にもルールを適用する"
+
+msgid "Environment variable name"
+msgstr "環境変数名"
+
+msgid "Event type"
+msgstr "イベント種別"
+
+msgid "File path"
+msgstr "ファイルパス"
+
+msgid "Filter by assignee"
+msgstr "担当者でフィルタする"
+
+msgid "Filter by author"
+msgstr "作成者でフィルタする"
+
+msgid "Filter by label"
+msgstr "ラベルでフィルタする"
+
+msgid "Filter by state"
+msgstr "状態でフィルタする"
+
+msgid "GPG key ID"
+msgstr "GPG 鍵 ID"
+
+msgid "GPG public key"
+msgstr "GPG 公開鍵"
+
+msgid "Git ref"
+msgstr "Git 参照"
+
+msgid "HTTP method"
+msgstr "HTTP メソッド"
+
+msgid "Head branch"
+msgstr "ヘッドブランチ"
+
+msgid "Host URL"
+msgstr "ホスト URL"
+
+msgid "Input parameter (key=value)"
+msgstr "入力パラメータ (key=value)"
+
+msgid "Issue number to migrate"
+msgstr "移行する Issue 番号"
+
+msgid "Issue type"
+msgstr "Issue 種別"
+
+msgid "Job name or ID"
+msgstr "ジョブ名または ID"
+
+msgid "Label"
+msgstr "ラベル"
+
+msgid "Label name"
+msgstr "ラベル名"
+
+msgid "Manage GPG keys"
+msgstr "GPG 鍵を管理する"
+
+msgid "Manage issue templates"
+msgstr "Issue テンプレートを管理する"
+
+msgid "Mark as draft"
+msgstr "下書きとしてマークする"
+
+msgid "Mark as prerelease"
+msgstr "プレリリースとしてマークする"
+
+msgid "Mask variable in logs"
+msgstr "ログ内で変数をマスクする"
+
+msgid "Maximum number of results"
+msgstr "最大取得件数"
+
+msgid "Merge method"
+msgstr "マージ方法"
+
+msgid "Message"
+msgstr "メッセージ"
+
+msgid "Migrate all issues"
+msgstr "すべての Issue を移行する"
+
+msgid "Milestone number"
+msgstr "マイルストーン番号"
+
+msgid "Milestone title"
+msgstr "マイルストーンタイトル"
+
+msgid "Mirror name"
+msgstr "ミラー名"
+
+msgid "New name"
+msgstr "新しい名前"
+
+msgid "New owner"
+msgstr "新しいオーナー"
+
+msgid "Organization to fork into"
+msgstr "フォーク先の組織"
+
+msgid "Overwrite existing labels"
+msgstr "既存ラベルを上書きする"
+
+msgid "Package name"
+msgstr "パッケージ名"
+
+msgid "Package type"
+msgstr "パッケージ種別"
+
+msgid "Page ID"
+msgstr "ページ ID"
+
+msgid "Page name"
+msgstr "ページ名"
+
+msgid "Permission level"
+msgstr "権限レベル"
+
+msgid "Pipeline ID"
+msgstr "パイプライン ID"
+
+msgid "Priority"
+msgstr "優先度"
+
+msgid "Project key"
+msgstr "プロジェクトキー"
+
+msgid "Project name (Azure DevOps)"
+msgstr "プロジェクト名 (Azure DevOps)"
+
+msgid "Public key"
+msgstr "公開鍵"
+
+msgid "Reaction type"
+msgstr "リアクション種別"
+
+msgid "Release notes"
+msgstr "リリースノート"
+
+msgid "Remote address"
+msgstr "リモートアドレス"
+
+msgid "Repository (owner/name)"
+msgstr "リポジトリ (owner/name)"
+
+msgid "Repository name"
+msgstr "リポジトリ名"
+
+msgid "Repository owner"
+msgstr "リポジトリオーナー"
+
+msgid "Request body (JSON)"
+msgstr "リクエストボディ (JSON)"
+
+msgid "Request changes"
+msgstr "変更を要求する"
+
+msgid "Request header"
+msgstr "リクエストヘッダー"
+
+msgid "Required review count"
+msgstr "必要レビュー数"
+
+msgid "Required status checks"
+msgstr "必須ステータスチェック"
+
+msgid "Resource number"
+msgstr "リソース番号"
+
+msgid "Resource type (pr/issue)"
+msgstr "リソース種別 (pr/issue)"
+
+msgid "Review ID"
+msgstr "レビュー ID"
+
+msgid "Rule ID"
+msgstr "ルール ID"
+
+msgid "Run in non-interactive mode"
+msgstr "非対話モードで実行する"
+
+msgid "SSH key ID"
+msgstr "SSH 鍵 ID"
+
+msgid "Search query"
+msgstr "検索クエリ"
+
+msgid "Secret name"
+msgstr "シークレット名"
+
+msgid "Secret value"
+msgstr "シークレットの値"
+
+msgid "Send raw API request"
+msgstr "未加工の API リクエストを送信する"
+
+msgid "Service type"
+msgstr "サービス種別"
+
+msgid "Set as private"
+msgstr "プライベートに設定する"
+
+msgid "Set as public"
+msgstr "パブリックに設定する"
+
+msgid "Show command JSON Schema"
+msgstr "コマンドの JSON Schema を表示する"
+
+msgid "Show unread only"
+msgstr "未読のみ表示する"
+
+msgid "Source (host/owner/repo)"
+msgstr "移行元 (host/owner/repo)"
+
+msgid "Source ref"
+msgstr "作成元の参照"
+
+msgid "Source repository (owner/name)"
+msgstr "コピー元リポジトリ (owner/name)"
+
+msgid "Start date"
+msgstr "開始日"
+
+msgid "State"
+msgstr "状態"
+
+msgid "Status state"
+msgstr "ステータス状態"
+
+msgid "Sync interval"
+msgstr "同期間隔"
+
+msgid "Tag message"
+msgstr "タグメッセージ"
+
+msgid "Tag name"
+msgstr "タグ名"
+
+msgid "Tag pattern"
+msgstr "タグパターン"
+
+msgid "Target URL"
+msgstr "ターゲット URL"
+
+msgid "Target branch"
+msgstr "ターゲットブランチ"
+
+msgid "Target repositories (comma-separated)"
+msgstr "対象リポジトリ (カンマ区切り)"
+
+msgid "Team ID"
+msgstr "チーム ID"
+
+msgid "Time entry ID"
+msgstr "作業時間エントリ ID"
+
+msgid "Title"
+msgstr "タイトル"
+
+msgid "Topic name"
+msgstr "トピック名"
+
+msgid "Topic names"
+msgstr "トピック名"
+
+msgid "Unmark as draft"
+msgstr "下書きを解除する"
+
+msgid "Unmark as prerelease"
+msgstr "プレリリースを解除する"
+
+msgid "Use specified git remote instead of origin"
+msgstr "指定した git リモートを origin の代わりに使用する"
+
+msgid "Username"
+msgstr "ユーザー名"
+
+msgid "Usernames"
+msgstr "ユーザー名"
+
+msgid "Value"
+msgstr "値"
+
+msgid "Variable name"
+msgstr "変数名"
+
+msgid "Version"
+msgstr "バージョン"
+
+msgid "View latest release"
+msgstr "最新リリースを表示する"
+
+msgid "Webhook ID"
+msgstr "Webhook ID"
+
+msgid "Webhook URL"
+msgstr "Webhook URL"
+
+msgid "Webhook secret"
+msgstr "Webhook シークレット"
+
+msgid "Workflow name or file"
+msgstr "ワークフロー名またはファイル"
