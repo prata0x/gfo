@@ -17,6 +17,7 @@ from .base import (
     CompareResult,
     DeployKey,
     GitServiceAdapter,
+    GpgKey,
     Issue,
     Label,
     Milestone,
@@ -942,6 +943,51 @@ class BitbucketAdapter(GitServiceAdapter):
             json={},
         )
 
+    def trigger_pipeline(
+        self, ref: str, *, workflow: str | None = None, inputs: dict | None = None
+    ) -> Pipeline:
+        payload: dict = {
+            "target": {
+                "type": "pipeline_ref_target",
+                "ref_type": "branch",
+                "ref_name": ref,
+            }
+        }
+        if inputs:
+            payload["variables"] = [{"key": k, "value": v} for k, v in inputs.items()]
+        resp = self._client.post(
+            f"{self._repos_path()}/pipelines/",
+            json=payload,
+        )
+        return self._to_pipeline(resp.json())
+
+    def retry_pipeline(self, pipeline_id: int | str) -> Pipeline:
+        # 元のパイプラインを取得して同じ target で再作成
+        original = self._client.get(f"{self._repos_path()}/pipelines/{pipeline_id}").json()
+        target = original.get("target", {})
+        ref_name = target.get("ref_name") or target.get("source", "")
+        return self.trigger_pipeline(ref_name)
+
+    def get_pipeline_logs(self, pipeline_id: int | str, *, job_id: int | str | None = None) -> str:
+        if job_id is not None:
+            resp = self._client.get(
+                f"{self._repos_path()}/pipelines/{pipeline_id}/steps/{job_id}/log",
+            )
+            return str(resp.text)
+        steps_resp = self._client.get(f"{self._repos_path()}/pipelines/{pipeline_id}/steps/")
+        steps = steps_resp.json().get("values", [])
+        logs = []
+        for step in steps:
+            step_uuid = step.get("uuid", "")
+            try:
+                resp = self._client.get(
+                    f"{self._repos_path()}/pipelines/{pipeline_id}/steps/{step_uuid}/log",
+                )
+                logs.append(f"=== {step.get('name', step_uuid)} ===\n{resp.text}")
+            except Exception:
+                logs.append(f"=== {step.get('name', step_uuid)} ===\n(log unavailable)")
+        return "\n".join(logs)
+
     # --- User ---
 
     def get_current_user(self) -> dict:
@@ -1218,6 +1264,36 @@ class BitbucketAdapter(GitServiceAdapter):
             )
         except (KeyError, TypeError, AttributeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    # --- GPG Key ---
+
+    def list_gpg_keys(self, *, limit: int = 30) -> list[GpgKey]:
+        results = paginate_response_body(
+            self._client,
+            f"/users/{quote(self._owner, safe='')}/gpg-keys",
+            limit=limit,
+        )
+        return [self._to_gpg_key(r) for r in results]
+
+    def create_gpg_key(self, *, armored_key: str) -> GpgKey:
+        resp = self._client.post(
+            f"/users/{quote(self._owner, safe='')}/gpg-keys",
+            json={"key": armored_key},
+        )
+        return self._to_gpg_key(resp.json())
+
+    def delete_gpg_key(self, *, key_id: int | str) -> None:
+        self._client.delete(f"/users/{quote(self._owner, safe='')}/gpg-keys/{key_id}")
+
+    @staticmethod
+    def _to_gpg_key(data: dict) -> GpgKey:
+        return GpgKey(
+            id=data.get("fingerprint") or data.get("id") or "",
+            primary_key_id=data.get("fingerprint") or "",
+            public_key=data.get("key") or "",
+            emails=tuple(),
+            created_at=data.get("created_on") or "",
+        )
 
     # --- Browse ---
 

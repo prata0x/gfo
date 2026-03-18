@@ -284,3 +284,17 @@ def handle_compare(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
     base, head = _parse_compare_spec(args.spec)
     result = adapter.compare(base, head)
     output(result, fmt=fmt, jq=jq)
+
+
+def handle_migrate(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo repo migrate のハンドラ。"""
+    adapter = get_adapter()
+    repo = adapter.migrate_repository(
+        args.clone_url,
+        args.name,
+        private=getattr(args, "private", False),
+        description=getattr(args, "description", "") or "",
+        mirror=getattr(args, "mirror", False),
+        auth_token=getattr(args, "auth_token", None),
+    )
+    output(repo, fmt=fmt, jq=jq)

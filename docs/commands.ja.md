@@ -641,6 +641,19 @@ gfo release update v1.0.0 --notes "Updated release notes"
 gfo release update v1.0.0 --no-draft --no-prerelease
 ```
 
+### gfo release asset
+
+リリースアセットを管理します。
+
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo release asset list --tag TAG
+gfo release asset upload --tag TAG <file> [--name NAME]
+gfo release asset download --tag TAG [--asset-id ID | --pattern GLOB] [--dir DIR]
+gfo release asset delete --tag TAG <asset_id>
+```
+
 ---
 
 ## gfo label
@@ -1632,4 +1645,251 @@ gfo schema pr list --jq '.output'
     }
   }
 }
+```
+
+---
+
+## gfo api
+
+設定済みサービスに対して直接 API リクエストを送信します。
+
+> **対応サービス**: 全サービス
+
+```
+gfo api <METHOD> <PATH> [--data JSON] [--header HEADER]
+```
+
+| オプション | 説明 |
+|---|---|
+| `METHOD` | HTTP メソッド（GET, POST, PUT, PATCH, DELETE） |
+| `PATH` | API パス（例: `/repos/owner/repo`） |
+| `--data`, `-d` | リクエストボディ（JSON 文字列） |
+| `--header`, `-H` | HTTP ヘッダー（複数指定可、形式: `Key: Value`） |
+
+**例:**
+
+```bash
+# リポジトリ情報を取得
+gfo api GET /repos/owner/repo
+
+# Issue を作成
+gfo api POST /repos/owner/repo/issues --data '{"title": "Bug report"}'
+```
+
+---
+
+## gfo gpg-key
+
+ユーザーアカウントの GPG 公開鍵を管理します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Gitea, Forgejo
+
+### gfo gpg-key list
+
+```
+gfo gpg-key list [--limit N]
+```
+
+### gfo gpg-key create
+
+```
+gfo gpg-key create --key ARMORED_PUBLIC_KEY
+```
+
+```bash
+gfo gpg-key create --key "-----BEGIN PGP PUBLIC KEY BLOCK-----..."
+```
+
+### gfo gpg-key delete
+
+```
+gfo gpg-key delete ID
+```
+
+```bash
+gfo gpg-key delete 12345
+```
+
+---
+
+## gfo ci trigger
+
+パイプライン / ワークフローを手動でトリガーします。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
+>
+> **注意**: GitHub / Gitea は `--workflow` が必須です。
+
+```
+gfo ci trigger --ref REF [--workflow WORKFLOW] [--input KEY=VALUE ...]
+```
+
+| オプション | 必須 | 説明 |
+|---|---|---|
+| `--ref` | **必須** | 対象ブランチまたはタグ |
+| `--workflow`, `-w` | GitHub/Gitea で必須 | ワークフロー名またはファイル名 |
+| `--input`, `-i` | — | 入力パラメータ（`KEY=VALUE` 形式、複数指定可） |
+
+```bash
+gfo ci trigger --ref main --workflow ci.yml
+gfo ci trigger --ref develop --workflow build.yml --input env=staging --input debug=true
+gfo ci trigger --ref main  # GitLab / Bitbucket / Azure DevOps
+```
+
+## gfo ci retry
+
+失敗したパイプラインを再実行します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
+
+```
+gfo ci retry ID
+```
+
+```bash
+gfo ci retry 12345678
+```
+
+## gfo ci logs
+
+パイプラインのログを取得します。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps
+
+```
+gfo ci logs ID [--job JOB_ID]
+```
+
+| オプション | 説明 |
+|---|---|
+| `--job`, `-j` | 特定のジョブのログのみ取得（省略時は全ジョブのログを結合） |
+
+```bash
+gfo ci logs 12345678
+gfo ci logs 12345678 --job 42
+```
+
+---
+
+## gfo tag-protect
+
+タグ保護ルールを管理します。
+
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
+
+### gfo tag-protect list
+
+```
+gfo tag-protect list [--limit N]
+```
+
+### gfo tag-protect create
+
+```
+gfo tag-protect create PATTERN [--access-level LEVEL]
+```
+
+| オプション | 説明 |
+|---|---|
+| `PATTERN` | 保護対象のタグパターン（例: `v*`） |
+| `--access-level` | 作成アクセスレベル（GitLab / Gitea 向け） |
+
+```bash
+gfo tag-protect create "v*"
+gfo tag-protect create "release-*" --access-level maintainer
+```
+
+### gfo tag-protect delete
+
+```
+gfo tag-protect delete ID
+```
+
+```bash
+gfo tag-protect delete 1
+```
+
+---
+
+## gfo org create / delete
+
+組織の作成・削除を行います。
+
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo, Gogs（Bitbucket / Azure DevOps は API 不可）
+
+### gfo org create
+
+```
+gfo org create NAME [--display-name NAME] [--description DESC]
+```
+
+| オプション | 説明 |
+|---|---|
+| `--display-name` | 表示名 |
+| `--description` | 説明 |
+
+```bash
+gfo org create my-new-org
+gfo org create my-org --display-name "My Organization" --description "Team org"
+```
+
+### gfo org delete
+
+```
+gfo org delete NAME [--yes]
+```
+
+| オプション | 説明 |
+|---|---|
+| `--yes`, `-y` | 確認プロンプトをスキップ |
+
+```bash
+gfo org delete old-org
+gfo org delete old-org --yes
+```
+
+---
+
+## gfo repo migrate
+
+外部リポジトリをインポート（移行）します。
+
+> **対応サービス**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
+
+```
+gfo repo migrate CLONE_URL --name NAME [--private] [--description DESC] [--mirror] [--auth-token TOKEN]
+```
+
+| オプション | 必須 | 説明 |
+|---|---|---|
+| `CLONE_URL` | **必須** | インポート元リポジトリの clone URL |
+| `--name` | **必須** | 作成するリポジトリ名 |
+| `--private` | — | 非公開リポジトリとして作成 |
+| `--description` | — | リポジトリの説明 |
+| `--mirror` | — | ミラーリポジトリとして作成 |
+| `--auth-token` | — | プライベートリポジトリの認証トークン |
+
+```bash
+gfo repo migrate https://github.com/other/repo.git --name my-repo
+gfo repo migrate https://github.com/other/private-repo.git --name imported --private --auth-token ghp_xxxx
+gfo repo migrate https://gitlab.com/team/project.git --name mirror-repo --mirror
+```
+
+---
+
+## gfo issue-template
+
+Issue テンプレートの一覧を取得します。
+
+> **対応サービス**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
+
+### gfo issue-template list
+
+```
+gfo issue-template list
+```
+
+```bash
+gfo issue-template list
+gfo issue-template list --format json
 ```

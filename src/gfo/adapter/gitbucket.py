@@ -19,6 +19,7 @@ from .base import (
     CheckRun,
     CompareResult,
     DeployKey,
+    GpgKey,
     Issue,
     Notification,
     Organization,
@@ -32,6 +33,7 @@ from .base import (
     Secret,
     SshKey,
     Tag,
+    TagProtection,
     Variable,
     WikiPage,
 )
@@ -332,6 +334,38 @@ class GitBucketAdapter(GitHubAdapter):
     def list_org_repos(self, name: str, *, limit: int = 30) -> list[Repository]:
         raise NotSupportedError("GitBucket", "org operations")
 
+    def create_organization(
+        self, name: str, *, display_name: str | None = None, description: str | None = None
+    ) -> Organization:
+        raise NotSupportedError("GitBucket", "org operations")
+
+    def delete_organization(self, name: str) -> None:
+        raise NotSupportedError("GitBucket", "org operations")
+
+    # --- GPG Key（GitBucket 未実装）---
+
+    def list_gpg_keys(self, *, limit: int = 30) -> list[GpgKey]:
+        raise NotSupportedError("GitBucket", "gpg-key operations")
+
+    def create_gpg_key(self, *, armored_key: str) -> GpgKey:
+        raise NotSupportedError("GitBucket", "gpg-key operations")
+
+    def delete_gpg_key(self, *, key_id: int | str) -> None:
+        raise NotSupportedError("GitBucket", "gpg-key operations")
+
+    # --- TagProtection（GitBucket 未実装）---
+
+    def list_tag_protections(self, *, limit: int = 30) -> list[TagProtection]:
+        raise NotSupportedError("GitBucket", "tag-protect operations")
+
+    def create_tag_protection(
+        self, pattern: str, *, create_access_level: str | None = None
+    ) -> TagProtection:
+        raise NotSupportedError("GitBucket", "tag-protect operations")
+
+    def delete_tag_protection(self, protection_id: int | str) -> None:
+        raise NotSupportedError("GitBucket", "tag-protect operations")
+
     # --- SSH Key（GitBucket 未実装）---
 
     def list_ssh_keys(self, *, limit: int = 30) -> list[SshKey]:
@@ -376,6 +410,18 @@ class GitBucketAdapter(GitHubAdapter):
 
     def compare(self, base: str, head: str) -> CompareResult:
         raise NotSupportedError("GitBucket", "repo compare")
+
+    def migrate_repository(
+        self,
+        clone_url: str,
+        name: str,
+        *,
+        private: bool = False,
+        description: str = "",
+        mirror: bool = False,
+        auth_token: str | None = None,
+    ) -> Repository:
+        raise NotSupportedError("GitBucket", "repo migrate")
 
     # --- Release（GitBucket の Release API 制限）---
 

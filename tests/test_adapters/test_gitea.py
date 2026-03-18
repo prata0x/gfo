@@ -1930,6 +1930,80 @@ class TestCancelPipeline:
         assert mock_responses.calls[0].request.method == "POST"
 
 
+class TestTriggerPipeline:
+    def test_trigger_with_workflow(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/actions/workflows/ci.yml/dispatches",
+            status=204,
+        )
+        pipeline = gitea_adapter.trigger_pipeline("main", workflow="ci.yml")
+        assert pipeline.status == "pending"
+        assert pipeline.ref == "main"
+
+    def test_trigger_with_inputs(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/actions/workflows/ci.yml/dispatches",
+            status=204,
+        )
+        pipeline = gitea_adapter.trigger_pipeline(
+            "main", workflow="ci.yml", inputs={"key": "value"}
+        )
+        req = mock_responses.calls[0].request
+        body = json.loads(req.body)
+        assert body["inputs"] == {"key": "value"}
+        assert pipeline.status == "pending"
+
+    def test_trigger_without_workflow_raises(self, gitea_adapter):
+        from gfo.exceptions import GfoError
+
+        with pytest.raises(GfoError, match="--workflow"):
+            gitea_adapter.trigger_pipeline("main")
+
+    def test_trigger_404(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/actions/workflows/ci.yml/dispatches",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.trigger_pipeline("main", workflow="ci.yml")
+
+
+class TestRetryPipeline:
+    def test_retry(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/actions/runs/300/rerun",
+            status=201,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/runs/300",
+            json={
+                "id": 300,
+                "status": "success",
+                "head_branch": "main",
+                "html_url": "",
+                "created_at": "2025-01-01T00:00:00Z",
+            },
+            status=200,
+        )
+        pipeline = gitea_adapter.retry_pipeline(300)
+        assert isinstance(pipeline, Pipeline)
+        assert pipeline.id == 300
+
+    def test_retry_404(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/actions/runs/999/rerun",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.retry_pipeline(999)
+
+
 # --- User / Search 系 ---
 
 
@@ -2355,3 +2429,99 @@ class TestReleaseAssetsGitea:
         )
         responses.add(responses.DELETE, f"{REPOS}/releases/42/assets/1", status=204)
         gitea_adapter.delete_release_asset(tag="v1.0.0", asset_id=1)
+
+
+class TestListIssueTemplatesGitea:
+    @responses.activate
+    def test_list_templates(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/issue_templates",
+            json=[
+                {
+                    "name": "Bug Report",
+                    "title": "[Bug]: ",
+                    "content": "## Description\n...",
+                    "about": "Report a bug",
+                    "labels": ["bug"],
+                },
+                {
+                    "name": "Feature Request",
+                    "title": "[Feature]: ",
+                    "body": "## Feature\n...",
+                    "about": "Request a feature",
+                    "labels": ["enhancement"],
+                },
+            ],
+            status=200,
+        )
+        templates = gitea_adapter.list_issue_templates()
+        assert len(templates) == 2
+        assert templates[0].name == "Bug Report"
+        assert templates[0].title == "[Bug]: "
+        assert templates[0].body == "## Description\n..."
+        assert templates[0].about == "Report a bug"
+        assert templates[0].labels == ("bug",)
+        # 2番目: content がないので body フォールバック
+        assert templates[1].body == "## Feature\n..."
+
+    @responses.activate
+    def test_empty_list(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/issue_templates",
+            json=[],
+            status=200,
+        )
+        templates = gitea_adapter.list_issue_templates()
+        assert templates == []
+
+    @responses.activate
+    def test_not_found(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/issue_templates",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        templates = gitea_adapter.list_issue_templates()
+        assert templates == []
+
+
+class TestMigrateRepository:
+    @responses.activate
+    def test_migrate(self, gitea_adapter):
+        responses.add(
+            responses.POST,
+            f"{BASE}/repos/migrate",
+            json=_repo_data(name="migrated", full_name="test-owner/migrated"),
+            status=201,
+        )
+        repo = gitea_adapter.migrate_repository("https://github.com/old/repo.git", "migrated")
+        assert repo.name == "migrated"
+
+    @responses.activate
+    def test_migrate_with_options(self, gitea_adapter):
+        responses.add(
+            responses.POST,
+            f"{BASE}/repos/migrate",
+            json=_repo_data(name="migrated", full_name="test-owner/migrated"),
+            status=201,
+        )
+        repo = gitea_adapter.migrate_repository(
+            "https://github.com/old/repo.git",
+            "migrated",
+            private=True,
+            mirror=True,
+            description="desc",
+            auth_token="tok",
+        )
+        assert repo.name == "migrated"
+        import json as json_mod
+
+        body = json_mod.loads(responses.calls[0].request.body)
+        assert body["private"] is True
+        assert body["mirror"] is True
+        assert body["description"] == "desc"
+        assert body["auth_token"] == "tok"
+        assert body["repo_owner"] == "test-owner"

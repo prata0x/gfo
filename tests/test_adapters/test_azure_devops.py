@@ -1439,6 +1439,122 @@ class TestCancelPipeline:
         assert mock_responses.calls[0].request.method == "PATCH"
 
 
+class TestTriggerPipeline:
+    def test_trigger(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/build/builds",
+            json=_pipeline_data_az(run_id=400),
+            status=200,
+        )
+        pipeline = azure_devops_adapter.trigger_pipeline("main")
+        assert isinstance(pipeline, Pipeline)
+        req = mock_responses.calls[0].request
+        body = json.loads(req.body)
+        assert body["sourceBranch"] == "refs/heads/main"
+
+    def test_trigger_with_workflow(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/build/builds",
+            json=_pipeline_data_az(run_id=400),
+            status=200,
+        )
+        azure_devops_adapter.trigger_pipeline("main", workflow="5")
+        req = mock_responses.calls[0].request
+        body = json.loads(req.body)
+        assert body["definition"] == {"id": 5}
+
+    def test_trigger_with_refs_prefix(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/build/builds",
+            json=_pipeline_data_az(run_id=400),
+            status=200,
+        )
+        azure_devops_adapter.trigger_pipeline("refs/heads/feature")
+        req = mock_responses.calls[0].request
+        body = json.loads(req.body)
+        assert body["sourceBranch"] == "refs/heads/feature"
+
+    def test_trigger_403(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/build/builds",
+            status=403,
+        )
+        with pytest.raises(AuthenticationError):
+            azure_devops_adapter.trigger_pipeline("main")
+
+
+class TestRetryPipeline:
+    def test_retry(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/build/builds/300",
+            json=_pipeline_data_az(run_id=300),
+            status=200,
+        )
+        pipeline = azure_devops_adapter.retry_pipeline(300)
+        assert isinstance(pipeline, Pipeline)
+        assert pipeline.id == 300
+
+    def test_retry_404(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/build/builds/999",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            azure_devops_adapter.retry_pipeline(999)
+
+
+class TestGetPipelineLogs:
+    def test_logs_with_job_id(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/build/builds/300/logs/5",
+            body="job log output",
+            status=200,
+        )
+        logs = azure_devops_adapter.get_pipeline_logs(300, job_id=5)
+        assert "job log output" in logs
+
+    def test_logs_all(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/build/builds/300/logs",
+            json={"value": [{"id": 1}, {"id": 2}], "count": 2},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/build/builds/300/logs/1",
+            body="log 1",
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/build/builds/300/logs/2",
+            body="log 2",
+            status=200,
+        )
+        logs = azure_devops_adapter.get_pipeline_logs(300)
+        assert "=== Log 1 ===" in logs
+        assert "log 1" in logs
+        assert "=== Log 2 ===" in logs
+        assert "log 2" in logs
+
+    def test_logs_404(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/build/builds/300/logs/999",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            azure_devops_adapter.get_pipeline_logs(300, job_id=999)
+
+
 # --- User / Search 系 ---
 
 
@@ -1797,3 +1913,90 @@ class TestMarkPullRequestReadyAzure:
 
         body = _json.loads(mock_responses.calls[0].request.body)
         assert body["isDraft"] is False
+
+
+class TestListIssueTemplatesAzure:
+    def test_list_templates(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitemtypes",
+            json={
+                "value": [
+                    {"name": "Bug", "description": "A bug work item"},
+                    {"name": "Task", "description": "A task work item"},
+                ],
+            },
+            status=200,
+        )
+        templates = azure_devops_adapter.list_issue_templates()
+        assert len(templates) == 2
+        assert templates[0].name == "Bug"
+        assert templates[0].about == "A bug work item"
+        assert templates[0].body == "A bug work item"
+        assert templates[0].labels == ()
+
+    def test_empty_list(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitemtypes",
+            json={"value": []},
+            status=200,
+        )
+        templates = azure_devops_adapter.list_issue_templates()
+        assert templates == []
+
+    def test_not_found(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitemtypes",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        templates = azure_devops_adapter.list_issue_templates()
+        assert templates == []
+
+
+class TestMigrateRepository:
+    @responses.activate
+    def test_migrate(self, azure_devops_adapter):
+        responses.add(
+            responses.POST,
+            f"{BASE}/git/repositories",
+            json=_repo_data(name="migrated"),
+            status=201,
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE}/git/repositories/migrated/importRequests",
+            json={"importRequestId": 1},
+            status=201,
+        )
+        repo = azure_devops_adapter.migrate_repository(
+            "https://github.com/old/repo.git", "migrated"
+        )
+        assert repo.name == "migrated"
+
+    @responses.activate
+    def test_migrate_with_auth_token(self, azure_devops_adapter):
+        responses.add(
+            responses.POST,
+            f"{BASE}/git/repositories",
+            json=_repo_data(name="migrated"),
+            status=201,
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE}/git/repositories/migrated/importRequests",
+            json={"importRequestId": 1},
+            status=201,
+        )
+        repo = azure_devops_adapter.migrate_repository(
+            "https://github.com/old/repo.git",
+            "migrated",
+            auth_token="pat-token",
+        )
+        assert repo.name == "migrated"
+        import json as json_mod
+
+        body = json_mod.loads(responses.calls[1].request.body)
+        assert body["parameters"]["gitSource"]["password"] == "pat-token"

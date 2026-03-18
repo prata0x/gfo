@@ -13,6 +13,7 @@ from .base import (
     Comment,
     CommitStatus,
     CompareResult,
+    GpgKey,
     Label,
     Milestone,
     Notification,
@@ -26,6 +27,7 @@ from .base import (
     Review,
     Secret,
     Tag,
+    TagProtection,
     Variable,
     Webhook,
     WikiPage,
@@ -347,6 +349,30 @@ class GogsAdapter(GiteaAdapter):
     def delete_variable(self, name: str) -> None:
         raise NotSupportedError("Gogs", "variable operations")
 
+    # --- GPG Key（Gogs 0.13 未対応）---
+
+    def list_gpg_keys(self, *, limit: int = 30) -> list[GpgKey]:
+        raise NotSupportedError("Gogs", "gpg-key operations")
+
+    def create_gpg_key(self, *, armored_key: str) -> GpgKey:
+        raise NotSupportedError("Gogs", "gpg-key operations")
+
+    def delete_gpg_key(self, *, key_id: int | str) -> None:
+        raise NotSupportedError("Gogs", "gpg-key operations")
+
+    # --- TagProtection（Gogs 0.13 未対応）---
+
+    def list_tag_protections(self, *, limit: int = 30) -> list[TagProtection]:
+        raise NotSupportedError("Gogs", "tag-protect operations")
+
+    def create_tag_protection(
+        self, pattern: str, *, create_access_level: str | None = None
+    ) -> TagProtection:
+        raise NotSupportedError("Gogs", "tag-protect operations")
+
+    def delete_tag_protection(self, protection_id: int | str) -> None:
+        raise NotSupportedError("Gogs", "tag-protect operations")
+
     # --- BranchProtection（Gogs 0.13 未対応）---
 
     def list_branch_protections(self, *, limit: int = 30) -> list[BranchProtection]:
@@ -433,6 +459,18 @@ class GogsAdapter(GiteaAdapter):
 
     def compare(self, base: str, head: str) -> CompareResult:
         raise NotSupportedError("Gogs", "repo compare")
+
+    def migrate_repository(
+        self,
+        clone_url: str,
+        name: str,
+        *,
+        private: bool = False,
+        description: str = "",
+        mirror: bool = False,
+        auth_token: str | None = None,
+    ) -> Repository:
+        raise NotSupportedError("Gogs", "repo migrate")
 
     # --- Release assets（Gogs 0.13: Release 非対応のため）---
 

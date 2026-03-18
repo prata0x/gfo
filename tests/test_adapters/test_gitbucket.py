@@ -595,3 +595,9 @@ class TestCreateRelease:
         )
         rel = gitbucket_adapter.create_release(tag="v1.0.0", title="Release v1.0.0")
         assert rel.tag == "v1.0.0"
+
+
+class TestMigrateRepository:
+    def test_not_supported(self, gitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.migrate_repository("https://github.com/a/b.git", "c")

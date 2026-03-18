@@ -296,3 +296,7 @@ class TestDeleteInheritance:
         )
         gogs_adapter.delete_repository()
         assert mock_responses.calls[0].request.method == "DELETE"
+
+    def test_migrate_repository_not_supported(self, gogs_adapter):
+        with pytest.raises(NotSupportedError):
+            gogs_adapter.migrate_repository("https://github.com/a/b.git", "c")

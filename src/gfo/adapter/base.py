@@ -36,6 +36,15 @@ class Issue:
 
 
 @dataclass(frozen=True, slots=True)
+class IssueTemplate:
+    name: str
+    title: str
+    body: str
+    about: str
+    labels: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class Repository:
     name: str
     full_name: str  # "owner/repo"
@@ -161,6 +170,15 @@ class SshKey:
 
 
 @dataclass(frozen=True, slots=True)
+class GpgKey:
+    id: int | str
+    primary_key_id: str
+    public_key: str
+    emails: tuple[str, ...]
+    created_at: str
+
+
+@dataclass(frozen=True, slots=True)
 class Organization:
     name: str  # ログイン名 / グループパス / ワークスペーススラッグ
     display_name: str  # 表示名（フルネーム）
@@ -187,6 +205,13 @@ class BranchProtection:
     enforce_admins: bool
     allow_force_push: bool
     allow_deletions: bool
+
+
+@dataclass(frozen=True, slots=True)
+class TagProtection:
+    id: int | str
+    pattern: str
+    create_access_level: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -637,6 +662,9 @@ class GitServiceAdapter(ABC):
     def delete_issue(self, number: int) -> None:
         raise NotSupportedError(self.service_name, "issue delete")
 
+    def list_issue_templates(self) -> list[IssueTemplate]:
+        raise NotSupportedError(self.service_name, "issue-template list")
+
     # --- Repository ---
     @abstractmethod
     def list_repositories(
@@ -689,6 +717,18 @@ class GitServiceAdapter(ABC):
 
     def compare(self, base: str, head: str) -> CompareResult:
         raise NotSupportedError(self.service_name, "repo compare")
+
+    def migrate_repository(
+        self,
+        clone_url: str,
+        name: str,
+        *,
+        private: bool = False,
+        description: str = "",
+        mirror: bool = False,
+        auth_token: str | None = None,
+    ) -> Repository:
+        raise NotSupportedError(self.service_name, "repo migrate")
 
     # --- Release ---
     @abstractmethod
@@ -940,6 +980,17 @@ class GitServiceAdapter(ABC):
     def cancel_pipeline(self, pipeline_id: int | str) -> None:
         raise NotSupportedError(self.service_name, "ci cancel")
 
+    def trigger_pipeline(
+        self, ref: str, *, workflow: str | None = None, inputs: dict | None = None
+    ) -> Pipeline:
+        raise NotSupportedError(self.service_name, "ci trigger")
+
+    def retry_pipeline(self, pipeline_id: int | str) -> Pipeline:
+        raise NotSupportedError(self.service_name, "ci retry")
+
+    def get_pipeline_logs(self, pipeline_id: int | str, *, job_id: int | str | None = None) -> str:
+        raise NotSupportedError(self.service_name, "ci logs")
+
     # --- User ---
     def get_current_user(self) -> dict:
         raise NotSupportedError(self.service_name, "user whoami")
@@ -996,6 +1047,18 @@ class GitServiceAdapter(ABC):
     def remove_branch_protection(self, branch: str) -> None:
         raise NotSupportedError(self.service_name, "branch-protect remove")
 
+    # --- TagProtection ---
+    def list_tag_protections(self, *, limit: int = 30) -> list[TagProtection]:
+        raise NotSupportedError(self.service_name, "tag-protect list")
+
+    def create_tag_protection(
+        self, pattern: str, *, create_access_level: str | None = None
+    ) -> TagProtection:
+        raise NotSupportedError(self.service_name, "tag-protect create")
+
+    def delete_tag_protection(self, protection_id: int | str) -> None:
+        raise NotSupportedError(self.service_name, "tag-protect delete")
+
     # --- Notification ---
     def list_notifications(
         self, *, unread_only: bool = False, limit: int = 30
@@ -1022,6 +1085,14 @@ class GitServiceAdapter(ABC):
     def list_org_repos(self, name: str, *, limit: int = 30) -> list[Repository]:
         raise NotSupportedError(self.service_name, "org repos")
 
+    def create_organization(
+        self, name: str, *, display_name: str | None = None, description: str | None = None
+    ) -> Organization:
+        raise NotSupportedError(self.service_name, "org create")
+
+    def delete_organization(self, name: str) -> None:
+        raise NotSupportedError(self.service_name, "org delete")
+
     # --- SSH Key ---
     def list_ssh_keys(self, *, limit: int = 30) -> list[SshKey]:
         raise NotSupportedError(self.service_name, "ssh-key list")
@@ -1031,6 +1102,16 @@ class GitServiceAdapter(ABC):
 
     def delete_ssh_key(self, *, key_id: int | str) -> None:
         raise NotSupportedError(self.service_name, "ssh-key delete")
+
+    # --- GPG Key ---
+    def list_gpg_keys(self, *, limit: int = 30) -> list[GpgKey]:
+        raise NotSupportedError(self.service_name, "gpg-key list")
+
+    def create_gpg_key(self, *, armored_key: str) -> GpgKey:
+        raise NotSupportedError(self.service_name, "gpg-key create")
+
+    def delete_gpg_key(self, *, key_id: int | str) -> None:
+        raise NotSupportedError(self.service_name, "gpg-key delete")
 
     # --- Browse ---
     def get_web_url(self, resource: str = "repo", number: int | None = None) -> str:

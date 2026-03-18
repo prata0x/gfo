@@ -1876,6 +1876,120 @@ class TestCancelPipeline:
         assert mock_responses.calls[0].request.method == "POST"
 
 
+class TestTriggerPipeline:
+    def test_trigger_with_workflow(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/actions/workflows/ci.yml/dispatches",
+            status=204,
+        )
+        pipeline = github_adapter.trigger_pipeline("main", workflow="ci.yml")
+        assert pipeline.status == "pending"
+        assert pipeline.ref == "main"
+
+    def test_trigger_with_inputs(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/actions/workflows/ci.yml/dispatches",
+            status=204,
+        )
+        pipeline = github_adapter.trigger_pipeline(
+            "main", workflow="ci.yml", inputs={"key": "value"}
+        )
+        req = mock_responses.calls[0].request
+        body = json.loads(req.body)
+        assert body["inputs"] == {"key": "value"}
+        assert pipeline.status == "pending"
+
+    def test_trigger_without_workflow_raises(self, github_adapter):
+        from gfo.exceptions import GfoError
+
+        with pytest.raises(GfoError, match="--workflow"):
+            github_adapter.trigger_pipeline("main")
+
+    def test_trigger_404(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/actions/workflows/ci.yml/dispatches",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            github_adapter.trigger_pipeline("main", workflow="ci.yml")
+
+
+class TestRetryPipeline:
+    def test_retry(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/actions/runs/300/rerun",
+            status=201,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/runs/300",
+            json=_pipeline_data(run_id=300),
+            status=200,
+        )
+        pipeline = github_adapter.retry_pipeline(300)
+        assert isinstance(pipeline, Pipeline)
+        assert pipeline.id == 300
+
+    def test_retry_404(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/actions/runs/999/rerun",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            github_adapter.retry_pipeline(999)
+
+
+class TestGetPipelineLogs:
+    def test_logs_with_job_id(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/jobs/42/logs",
+            body="log line 1\nlog line 2",
+            status=200,
+        )
+        logs = github_adapter.get_pipeline_logs(300, job_id=42)
+        assert "log line 1" in logs
+
+    def test_logs_all_jobs(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/runs/300/jobs",
+            json={"jobs": [{"id": 1, "name": "build"}, {"id": 2, "name": "test"}]},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/jobs/1/logs",
+            body="build log",
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/jobs/2/logs",
+            body="test log",
+            status=200,
+        )
+        logs = github_adapter.get_pipeline_logs(300)
+        assert "=== build ===" in logs
+        assert "build log" in logs
+        assert "=== test ===" in logs
+        assert "test log" in logs
+
+    def test_logs_404(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/jobs/999/logs",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            github_adapter.get_pipeline_logs(300, job_id=999)
+
+
 # --- User / Search 系 ---
 
 
@@ -2223,3 +2337,155 @@ class TestReleaseAssets:
     def test_delete_release_asset(self, github_adapter):
         responses.add(responses.DELETE, f"{REPOS}/releases/assets/1", status=204)
         github_adapter.delete_release_asset(tag="v1.0.0", asset_id=1)
+
+
+class TestListIssueTemplates:
+    @responses.activate
+    def test_list_templates(self, github_adapter):
+        import base64
+
+        template_content = "---\nname: Bug Report\nabout: Report a bug\ntitle: '[Bug]: '\nlabels: [bug, urgent]\n---\n## Description\n..."
+        encoded = base64.b64encode(template_content.encode()).decode()
+        responses.add(
+            responses.GET,
+            f"{REPOS}/contents/.github/ISSUE_TEMPLATE",
+            json=[
+                {
+                    "name": "bug_report.md",
+                    "url": f"{REPOS}/contents/.github/ISSUE_TEMPLATE/bug_report.md",
+                },
+            ],
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            f"{REPOS}/contents/.github/ISSUE_TEMPLATE/bug_report.md",
+            json={"content": encoded},
+            status=200,
+        )
+        templates = github_adapter.list_issue_templates()
+        assert len(templates) == 1
+        assert templates[0].name == "Bug Report"
+        assert templates[0].about == "Report a bug"
+        assert templates[0].labels == ("bug", "urgent")
+        assert templates[0].title == "[Bug]: "
+
+    @responses.activate
+    def test_empty_directory(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/contents/.github/ISSUE_TEMPLATE",
+            json=[],
+            status=200,
+        )
+        templates = github_adapter.list_issue_templates()
+        assert templates == []
+
+    @responses.activate
+    def test_not_found(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/contents/.github/ISSUE_TEMPLATE",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        templates = github_adapter.list_issue_templates()
+        assert templates == []
+
+    @responses.activate
+    def test_skips_non_template_files(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/contents/.github/ISSUE_TEMPLATE",
+            json=[
+                {
+                    "name": "config.json",
+                    "url": f"{REPOS}/contents/.github/ISSUE_TEMPLATE/config.json",
+                },
+            ],
+            status=200,
+        )
+        templates = github_adapter.list_issue_templates()
+        assert templates == []
+
+
+class TestParseIssueTemplate:
+    def test_basic_frontmatter(self):
+        content = "---\nname: Bug Report\nabout: Report a bug\ntitle: '[Bug]: '\nlabels: [bug, urgent]\n---\n## Description\n..."
+        result = GitHubAdapter._parse_issue_template(content)
+        assert result.name == "Bug Report"
+        assert result.about == "Report a bug"
+        assert result.labels == ("bug", "urgent")
+        assert result.title == "[Bug]: "
+        assert result.body == "## Description\n..."
+
+    def test_no_frontmatter(self):
+        content = "## Just a markdown file"
+        result = GitHubAdapter._parse_issue_template(content)
+        assert result.name == "Untitled"
+        assert result.body == "## Just a markdown file"
+        assert result.labels == ()
+
+    def test_list_style_labels(self):
+        content = "---\nname: Feature\nlabels:\n  - enhancement\n  - feature\n---\nBody"
+        result = GitHubAdapter._parse_issue_template(content)
+        assert result.name == "Feature"
+        assert result.labels == ("enhancement", "feature")
+
+    def test_empty_frontmatter(self):
+        content = "---\n---\nBody content"
+        result = GitHubAdapter._parse_issue_template(content)
+        assert result.name == "Untitled"
+        assert result.body == "Body content"
+
+    def test_quoted_values(self):
+        content = "---\nname: \"Bug Report\"\nabout: 'Report bugs'\n---\nBody"
+        result = GitHubAdapter._parse_issue_template(content)
+        assert result.name == "Bug Report"
+        assert result.about == "Report bugs"
+
+
+class TestMigrateRepository:
+    @responses.activate
+    def test_migrate(self, github_adapter):
+        responses.add(
+            responses.POST,
+            "https://api.github.com/user/repos",
+            json=_repo_data(name="migrated"),
+            status=201,
+        )
+        responses.add(
+            responses.PUT,
+            "https://api.github.com/repos/test-owner/migrated/import",
+            json={"status": "importing"},
+            status=201,
+        )
+        repo = github_adapter.migrate_repository("https://other.com/old/repo.git", "migrated")
+        assert repo.name == "migrated"
+
+    @responses.activate
+    def test_migrate_with_auth_token(self, github_adapter):
+        responses.add(
+            responses.POST,
+            "https://api.github.com/user/repos",
+            json=_repo_data(name="migrated"),
+            status=201,
+        )
+        responses.add(
+            responses.PUT,
+            "https://api.github.com/repos/test-owner/migrated/import",
+            json={"status": "importing"},
+            status=201,
+        )
+        repo = github_adapter.migrate_repository(
+            "https://other.com/old/repo.git",
+            "migrated",
+            auth_token="secret-token",
+        )
+        assert repo.name == "migrated"
+        # auth_token が含まれることを確認
+        import json as json_mod
+
+        body = json_mod.loads(responses.calls[1].request.body)
+        assert body["vcs_username"] == "x-access-token"
+        assert body["vcs_password"] == "secret-token"

@@ -511,9 +511,7 @@ def test_parser_org_repos():
 
 
 def test_dispatch_table_has_68_entries():
-    assert (
-        len(_DISPATCH) == 115
-    )  # 108 + phase3 (repo update/archive/languages/topics/compare, release asset, api)
+    assert len(_DISPATCH) == 128  # 121 + phase4 ci (trigger/retry/logs) + other additions
 
 
 def test_dispatch_table_all_keys():
@@ -543,6 +541,7 @@ def test_dispatch_table_all_keys():
         ("issue", "delete"),
         ("issue", "update"),
         ("issue", "reopen"),
+        ("issue-template", "list"),
         ("repo", "list"),
         ("repo", "create"),
         ("repo", "clone"),
@@ -554,6 +553,7 @@ def test_dispatch_table_all_keys():
         ("repo", "languages"),
         ("repo", "topics"),
         ("repo", "compare"),
+        ("repo", "migrate"),
         ("release", "list"),
         ("release", "create"),
         ("release", "delete"),
@@ -602,6 +602,9 @@ def test_dispatch_table_all_keys():
         ("ci", "list"),
         ("ci", "view"),
         ("ci", "cancel"),
+        ("ci", "trigger"),
+        ("ci", "retry"),
+        ("ci", "logs"),
         ("user", "whoami"),
         ("search", "repos"),
         ("search", "issues"),
@@ -620,6 +623,8 @@ def test_dispatch_table_all_keys():
         ("org", "view"),
         ("org", "members"),
         ("org", "repos"),
+        ("org", "create"),
+        ("org", "delete"),
         ("secret", "list"),
         ("secret", "set"),
         ("secret", "delete"),
@@ -630,6 +635,12 @@ def test_dispatch_table_all_keys():
         ("ssh-key", "list"),
         ("ssh-key", "create"),
         ("ssh-key", "delete"),
+        ("gpg-key", "list"),
+        ("gpg-key", "create"),
+        ("gpg-key", "delete"),
+        ("tag-protect", "list"),
+        ("tag-protect", "create"),
+        ("tag-protect", "delete"),
         ("browse", None),
         ("api", None),
         ("schema", None),

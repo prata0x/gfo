@@ -18,7 +18,9 @@ from .base import (
     DeployKey,
     GitHubLikeAdapter,
     GitServiceAdapter,
+    GpgKey,
     Issue,
+    IssueTemplate,
     Label,
     Milestone,
     Notification,
@@ -33,6 +35,7 @@ from .base import (
     Secret,
     SshKey,
     Tag,
+    TagProtection,
     Variable,
     Webhook,
 )
@@ -153,6 +156,71 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             json={"state": "open"},
         )
 
+    def list_issue_templates(self) -> list[IssueTemplate]:
+        try:
+            resp = self._client.get(f"{self._repos_path()}/contents/.github/ISSUE_TEMPLATE")
+        except Exception:
+            return []
+        files = resp.json()
+        if not isinstance(files, list):
+            return []
+        templates: list[IssueTemplate] = []
+        for f in files:
+            if not f.get("name", "").endswith((".md", ".yml", ".yaml")):
+                continue
+            try:
+                # f["url"] は GitHub API のフル URL なのでベース URL を除去して相対パスにする
+                file_url = f["url"]
+                if file_url.startswith(self._client.base_url):
+                    file_url = file_url[len(self._client.base_url) :]
+                file_resp = self._client.get(file_url)
+                content = base64.b64decode(file_resp.json().get("content", "")).decode(
+                    "utf-8", errors="replace"
+                )
+                template = self._parse_issue_template(content)
+                templates.append(template)
+            except Exception:  # nosec B112 — テンプレートファイル個別の取得失敗はスキップ
+                continue
+        return templates
+
+    @staticmethod
+    def _parse_issue_template(content: str) -> IssueTemplate:
+        """GitHub Issue Template の frontmatter を簡易パースする。"""
+        import re  # noqa: PLC0415
+
+        name = title = about = ""
+        labels: list[str] = []
+        body = content
+        if content.startswith("---"):
+            parts = content.split("---", 2)
+            if len(parts) >= 3:
+                front = parts[1]
+                body = parts[2].strip()
+                m = re.search(r"^name:\s*(.+)$", front, re.MULTILINE)
+                if m:
+                    name = m.group(1).strip().strip("\"'")
+                m = re.search(r"^title:\s*(.+)$", front, re.MULTILINE)
+                if m:
+                    title = m.group(1).strip().strip("\"'")
+                m = re.search(r"^about:\s*(.+)$", front, re.MULTILINE)
+                if m:
+                    about = m.group(1).strip().strip("\"'")
+                m = re.search(r"^labels:\s*\[(.+)\]", front, re.MULTILINE)
+                if m:
+                    labels = [lb.strip().strip("\"'") for lb in m.group(1).split(",")]
+                elif re.search(r"^labels:", front, re.MULTILINE):
+                    for lm in re.finditer(
+                        r"^\s*-\s*(.+)$", front[front.index("labels:") :], re.MULTILINE
+                    ):
+                        labels.append(lm.group(1).strip().strip("\"'"))
+        return IssueTemplate(
+            name=name or "Untitled",
+            title=title,
+            body=body,
+            about=about,
+            labels=tuple(labels),
+        )
+
     # --- Repository ---
 
     def list_repositories(self, *, owner: str | None = None, limit: int = 30) -> list[Repository]:
@@ -237,6 +305,29 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             behind_by=data.get("behind_by", 0),
             files=files,
         )
+
+    def migrate_repository(
+        self,
+        clone_url: str,
+        name: str,
+        *,
+        private: bool = False,
+        description: str = "",
+        mirror: bool = False,
+        auth_token: str | None = None,
+    ) -> Repository:
+        # リポジトリ作成
+        repo = self.create_repository(name=name, private=private, description=description)
+        # Source Import API
+        payload: dict = {"vcs": "git", "vcs_url": clone_url}
+        if auth_token:
+            payload["vcs_username"] = "x-access-token"
+            payload["vcs_password"] = auth_token
+        self._client.put(
+            f"/repos/{quote(self._owner, safe='')}/{quote(name, safe='')}/import",
+            json=payload,
+        )
+        return repo
 
     # --- Release ---
 
@@ -885,6 +976,48 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def cancel_pipeline(self, pipeline_id: int | str) -> None:
         self._client.post(f"{self._repos_path()}/actions/runs/{pipeline_id}/cancel", json={})
 
+    def trigger_pipeline(
+        self, ref: str, *, workflow: str | None = None, inputs: dict | None = None
+    ) -> Pipeline:
+        from gfo.exceptions import GfoError
+
+        if not workflow:
+            raise GfoError("GitHub requires --workflow to trigger a pipeline.")
+        payload: dict = {"ref": ref}
+        if inputs:
+            payload["inputs"] = inputs
+        self._client.post(
+            f"{self._repos_path()}/actions/workflows/{quote(workflow, safe='')}/dispatches",
+            json=payload,
+        )
+        return Pipeline(id=0, status="pending", ref=ref, url="", created_at="")
+
+    def retry_pipeline(self, pipeline_id: int | str) -> Pipeline:
+        self._client.post(f"{self._repos_path()}/actions/runs/{pipeline_id}/rerun", json={})
+        return self.get_pipeline(pipeline_id)
+
+    def get_pipeline_logs(self, pipeline_id: int | str, *, job_id: int | str | None = None) -> str:
+        if job_id is not None:
+            resp = self._client.get(
+                f"{self._repos_path()}/actions/jobs/{job_id}/logs",
+                headers={"Accept": "application/vnd.github.v3+json"},
+            )
+            return str(resp.text)
+        # 全ジョブのログを結合
+        jobs_resp = self._client.get(f"{self._repos_path()}/actions/runs/{pipeline_id}/jobs")
+        jobs = jobs_resp.json().get("jobs", [])
+        logs = []
+        for job in jobs:
+            try:
+                resp = self._client.get(
+                    f"{self._repos_path()}/actions/jobs/{job['id']}/logs",
+                    headers={"Accept": "application/vnd.github.v3+json"},
+                )
+                logs.append(f"=== {job.get('name', job['id'])} ===\n{resp.text}")
+            except Exception:
+                logs.append(f"=== {job.get('name', job['id'])} ===\n(log unavailable)")
+        return "\n".join(logs)
+
     @staticmethod
     def _to_pipeline(data: dict) -> Pipeline:
         from gfo.exceptions import GfoError
@@ -1227,6 +1360,26 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
+    def create_organization(
+        self, name: str, *, display_name: str | None = None, description: str | None = None
+    ) -> Organization:
+        payload: dict = {"login": name}
+        if display_name:
+            payload["profile_name"] = display_name
+        if description:
+            payload["description"] = description
+        resp = self._client.post("/user/orgs", json=payload)
+        data = resp.json()
+        return Organization(
+            name=data["login"],
+            display_name=data.get("name") or data.get("login") or "",
+            description=data.get("description"),
+            url=data.get("html_url") or data.get("url") or "",
+        )
+
+    def delete_organization(self, name: str) -> None:
+        self._client.delete(f"/orgs/{quote(name, safe='')}")
+
     # --- SSH Key ---
 
     def list_ssh_keys(self, *, limit: int = 30) -> list[SshKey]:
@@ -1253,6 +1406,52 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             from gfo.exceptions import GfoError
 
             raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    # --- GPG Key ---
+
+    def list_gpg_keys(self, *, limit: int = 30) -> list[GpgKey]:
+        results = paginate_link_header(self._client, "/user/gpg_keys", limit=limit)
+        return [self._to_gpg_key(r) for r in results]
+
+    def create_gpg_key(self, *, armored_key: str) -> GpgKey:
+        resp = self._client.post("/user/gpg_keys", json={"armored_public_key": armored_key})
+        return self._to_gpg_key(resp.json())
+
+    def delete_gpg_key(self, *, key_id: int | str) -> None:
+        self._client.delete(f"/user/gpg_keys/{key_id}")
+
+    @staticmethod
+    def _to_gpg_key(data: dict) -> GpgKey:
+        return GpgKey(
+            id=data["id"],
+            primary_key_id=data.get("primary_key_id") or "",
+            public_key=data.get("public_key") or data.get("raw_key") or "",
+            emails=tuple(e.get("email", "") for e in (data.get("emails") or [])),
+            created_at=data.get("created_at") or "",
+        )
+
+    # --- Tag Protection ---
+
+    def list_tag_protections(self, *, limit: int = 30) -> list[TagProtection]:
+        resp = self._client.get(f"{self._repos_path()}/tags/protection")
+        return [
+            TagProtection(
+                id=r["id"],
+                pattern=r["pattern"],
+                create_access_level="",
+            )
+            for r in resp.json()
+        ]
+
+    def create_tag_protection(
+        self, pattern: str, *, create_access_level: str | None = None
+    ) -> TagProtection:
+        resp = self._client.post(f"{self._repos_path()}/tags/protection", json={"pattern": pattern})
+        data = resp.json()
+        return TagProtection(id=data["id"], pattern=data["pattern"], create_access_level="")
+
+    def delete_tag_protection(self, protection_id: int | str) -> None:
+        self._client.delete(f"{self._repos_path()}/tags/protection/{protection_id}")
 
     # --- Browse ---
 

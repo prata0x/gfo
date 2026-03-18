@@ -19,7 +19,9 @@ from .base import (
     DeployKey,
     GitHubLikeAdapter,
     GitServiceAdapter,
+    GpgKey,
     Issue,
+    IssueTemplate,
     Label,
     Milestone,
     Notification,
@@ -34,6 +36,7 @@ from .base import (
     Secret,
     SshKey,
     Tag,
+    TagProtection,
     Variable,
     Webhook,
     WikiPage,
@@ -157,6 +160,24 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def delete_issue(self, number: int) -> None:
         self._client.delete(f"{self._repos_path()}/issues/{number}")
 
+    def list_issue_templates(self) -> list[IssueTemplate]:
+        try:
+            resp = self._client.get(f"{self._repos_path()}/issue_templates")
+        except Exception:
+            return []
+        templates: list[IssueTemplate] = []
+        for t in resp.json() or []:
+            templates.append(
+                IssueTemplate(
+                    name=t.get("name") or "",
+                    title=t.get("title") or "",
+                    body=t.get("content") or t.get("body") or "",
+                    about=t.get("about") or "",
+                    labels=tuple(t.get("labels") or []),
+                )
+            )
+        return templates
+
     # --- Repository ---
 
     def list_repositories(self, *, owner: str | None = None, limit: int = 30) -> list[Repository]:
@@ -241,6 +262,31 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             behind_by=0,
             files=files,
         )
+
+    def migrate_repository(
+        self,
+        clone_url: str,
+        name: str,
+        *,
+        private: bool = False,
+        description: str = "",
+        mirror: bool = False,
+        auth_token: str | None = None,
+    ) -> Repository:
+        payload: dict = {
+            "clone_addr": clone_url,
+            "repo_name": name,
+            "repo_owner": self._owner,
+            "private": private,
+            "mirror": mirror,
+            "service": "git",
+        }
+        if description:
+            payload["description"] = description
+        if auth_token:
+            payload["auth_token"] = auth_token
+        resp = self._client.post("/repos/migrate", json=payload)
+        return self._to_repository(resp.json())
 
     # --- Release ---
 
@@ -864,6 +910,26 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def cancel_pipeline(self, pipeline_id: int | str) -> None:
         self._client.post(f"{self._repos_path()}/actions/runs/{pipeline_id}/cancel", json={})
 
+    def trigger_pipeline(
+        self, ref: str, *, workflow: str | None = None, inputs: dict | None = None
+    ) -> Pipeline:
+        from gfo.exceptions import GfoError
+
+        if not workflow:
+            raise GfoError("Gitea requires --workflow to trigger a pipeline.")
+        payload: dict = {"ref": ref}
+        if inputs:
+            payload["inputs"] = inputs
+        self._client.post(
+            f"{self._repos_path()}/actions/workflows/{quote(workflow, safe='')}/dispatches",
+            json=payload,
+        )
+        return Pipeline(id=0, status="pending", ref=ref, url="", created_at="")
+
+    def retry_pipeline(self, pipeline_id: int | str) -> Pipeline:
+        self._client.post(f"{self._repos_path()}/actions/runs/{pipeline_id}/rerun", json={})
+        return self.get_pipeline(pipeline_id)
+
     @staticmethod
     def _to_pipeline_data(data: dict) -> Pipeline:
         from gfo.exceptions import GfoError
@@ -1113,6 +1179,20 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         except (KeyError, TypeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
+    def create_organization(
+        self, name: str, *, display_name: str | None = None, description: str | None = None
+    ) -> Organization:
+        payload: dict = {"username": name}
+        if display_name:
+            payload["full_name"] = display_name
+        if description:
+            payload["description"] = description
+        resp = self._client.post("/orgs", json=payload)
+        return self._to_organization(resp.json())
+
+    def delete_organization(self, name: str) -> None:
+        self._client.delete(f"/orgs/{quote(name, safe='')}")
+
     # --- SSH Key ---
 
     def list_ssh_keys(self, *, limit: int = 30) -> list[SshKey]:
@@ -1141,6 +1221,61 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             )
         except (KeyError, TypeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
+
+    # --- GPG Key ---
+
+    def list_gpg_keys(self, *, limit: int = 30) -> list[GpgKey]:
+        results = paginate_link_header(
+            self._client, "/user/gpg_keys", limit=limit, per_page_key="limit"
+        )
+        return [self._to_gpg_key(r) for r in results]
+
+    def create_gpg_key(self, *, armored_key: str) -> GpgKey:
+        resp = self._client.post("/user/gpg_keys", json={"armored_public_key": armored_key})
+        return self._to_gpg_key(resp.json())
+
+    def delete_gpg_key(self, *, key_id: int | str) -> None:
+        self._client.delete(f"/user/gpg_keys/{key_id}")
+
+    @staticmethod
+    def _to_gpg_key(data: dict) -> GpgKey:
+        return GpgKey(
+            id=data["id"],
+            primary_key_id=data.get("primary_key_id") or "",
+            public_key=data.get("public_key") or data.get("raw_key") or "",
+            emails=tuple(e.get("email", "") for e in (data.get("emails") or [])),
+            created_at=data.get("created_at") or "",
+        )
+
+    # --- Tag Protection ---
+
+    def list_tag_protections(self, *, limit: int = 30) -> list[TagProtection]:
+        resp = self._client.get(f"/repos/{self._owner}/{self._repo}/tag_protections")
+        return [
+            TagProtection(
+                id=r["id"],
+                pattern=r.get("name_pattern") or "",
+                create_access_level=r.get("whitelist_teams") or "",
+            )
+            for r in (resp.json() or [])
+        ]
+
+    def create_tag_protection(
+        self, pattern: str, *, create_access_level: str | None = None
+    ) -> TagProtection:
+        payload: dict = {"name_pattern": pattern}
+        if create_access_level is not None:
+            payload["whitelist_teams"] = create_access_level
+        resp = self._client.post(f"/repos/{self._owner}/{self._repo}/tag_protections", json=payload)
+        data = resp.json()
+        return TagProtection(
+            id=data["id"],
+            pattern=data.get("name_pattern") or "",
+            create_access_level=data.get("whitelist_teams") or "",
+        )
+
+    def delete_tag_protection(self, protection_id: int | str) -> None:
+        self._client.delete(f"/repos/{self._owner}/{self._repo}/tag_protections/{protection_id}")
 
     # --- Browse ---
 

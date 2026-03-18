@@ -1389,6 +1389,115 @@ class TestCancelPipeline:
         assert mock_responses.calls[0].request.method == "POST"
 
 
+class TestTriggerPipeline:
+    def test_trigger(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pipelines/",
+            json=_pipeline_data(),
+            status=201,
+        )
+        pipeline = bitbucket_adapter.trigger_pipeline("main")
+        assert isinstance(pipeline, Pipeline)
+        req = mock_responses.calls[0].request
+        body = json.loads(req.body)
+        assert body["target"]["ref_name"] == "main"
+
+    def test_trigger_with_inputs(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pipelines/",
+            json=_pipeline_data(),
+            status=201,
+        )
+        bitbucket_adapter.trigger_pipeline("main", inputs={"KEY": "val"})
+        req = mock_responses.calls[0].request
+        body = json.loads(req.body)
+        assert body["variables"] == [{"key": "KEY", "value": "val"}]
+
+    def test_trigger_404(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pipelines/",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            bitbucket_adapter.trigger_pipeline("main")
+
+
+class TestRetryPipeline:
+    def test_retry(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pipelines/300",
+            json=_pipeline_data(pipeline_id=300),
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pipelines/",
+            json=_pipeline_data(),
+            status=201,
+        )
+        pipeline = bitbucket_adapter.retry_pipeline(300)
+        assert isinstance(pipeline, Pipeline)
+
+    def test_retry_404(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pipelines/999",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            bitbucket_adapter.retry_pipeline(999)
+
+
+class TestGetPipelineLogs:
+    def test_logs_with_job_id(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pipelines/300/steps/step-1/log",
+            body="step log output",
+            status=200,
+        )
+        logs = bitbucket_adapter.get_pipeline_logs(300, job_id="step-1")
+        assert "step log output" in logs
+
+    def test_logs_all_steps(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pipelines/300/steps/",
+            json={"values": [{"uuid": "s1", "name": "build"}, {"uuid": "s2", "name": "test"}]},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pipelines/300/steps/s1/log",
+            body="build log",
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pipelines/300/steps/s2/log",
+            body="test log",
+            status=200,
+        )
+        logs = bitbucket_adapter.get_pipeline_logs(300)
+        assert "=== build ===" in logs
+        assert "build log" in logs
+        assert "=== test ===" in logs
+        assert "test log" in logs
+
+    def test_logs_404(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pipelines/300/steps/bad/log",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            bitbucket_adapter.get_pipeline_logs(300, job_id="bad")
+
+
 # --- User / Search 系 ---
 
 

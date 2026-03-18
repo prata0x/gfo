@@ -537,6 +537,177 @@ class TestAzureDevOpsOrg:
             azure_devops_adapter.list_org_members("MyProject")
 
 
+# --- GitHub create/delete ---
+
+
+class TestGitHubOrgCreateDelete:
+    @responses.activate
+    def test_create(self, github_adapter):
+        responses.add(
+            responses.POST,
+            "https://api.github.com/user/orgs",
+            json=_github_org_data(),
+            status=201,
+        )
+        org = github_adapter.create_organization(
+            "my-org", display_name="My Organization", description="An org"
+        )
+        assert org.name == "my-org"
+        assert org.display_name == "My Organization"
+
+    @responses.activate
+    def test_create_minimal(self, github_adapter):
+        responses.add(
+            responses.POST,
+            "https://api.github.com/user/orgs",
+            json=_github_org_data(),
+            status=201,
+        )
+        org = github_adapter.create_organization("my-org")
+        assert org.name == "my-org"
+
+    @responses.activate
+    def test_create_403(self, github_adapter):
+        responses.add(responses.POST, "https://api.github.com/user/orgs", status=403)
+        with pytest.raises(AuthenticationError):
+            github_adapter.create_organization("my-org")
+
+    @responses.activate
+    def test_delete(self, github_adapter):
+        responses.add(responses.DELETE, "https://api.github.com/orgs/my-org", status=204)
+        github_adapter.delete_organization("my-org")
+
+    @responses.activate
+    def test_delete_404(self, github_adapter):
+        responses.add(responses.DELETE, "https://api.github.com/orgs/missing", status=404)
+        with pytest.raises(NotFoundError):
+            github_adapter.delete_organization("missing")
+
+
+# --- GitLab create/delete ---
+
+
+class TestGitLabOrgCreateDelete:
+    @responses.activate
+    def test_create(self, gitlab_adapter):
+        responses.add(
+            responses.POST,
+            "https://gitlab.com/api/v4/groups",
+            json=_gitlab_group_data(),
+            status=201,
+        )
+        org = gitlab_adapter.create_organization(
+            "my-group", display_name="My Group", description="A group"
+        )
+        assert org.name == "my-group"
+
+    @responses.activate
+    def test_create_minimal(self, gitlab_adapter):
+        responses.add(
+            responses.POST,
+            "https://gitlab.com/api/v4/groups",
+            json=_gitlab_group_data(),
+            status=201,
+        )
+        org = gitlab_adapter.create_organization("my-group")
+        assert org.name == "my-group"
+
+    @responses.activate
+    def test_delete(self, gitlab_adapter):
+        responses.add(responses.DELETE, "https://gitlab.com/api/v4/groups/my-group", status=202)
+        gitlab_adapter.delete_organization("my-group")
+
+    @responses.activate
+    def test_delete_404(self, gitlab_adapter):
+        responses.add(responses.DELETE, "https://gitlab.com/api/v4/groups/missing", status=404)
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.delete_organization("missing")
+
+
+# --- Gitea create/delete ---
+
+
+class TestGiteaOrgCreateDelete:
+    @responses.activate
+    def test_create(self, gitea_adapter):
+        responses.add(
+            responses.POST,
+            "https://gitea.example.com/api/v1/orgs",
+            json=_gitea_org_data(),
+            status=201,
+        )
+        org = gitea_adapter.create_organization(
+            "my-org", display_name="My Organization", description="An org"
+        )
+        assert org.name == "my-org"
+
+    @responses.activate
+    def test_create_minimal(self, gitea_adapter):
+        responses.add(
+            responses.POST,
+            "https://gitea.example.com/api/v1/orgs",
+            json=_gitea_org_data(),
+            status=201,
+        )
+        org = gitea_adapter.create_organization("my-org")
+        assert org.name == "my-org"
+
+    @responses.activate
+    def test_delete(self, gitea_adapter):
+        responses.add(responses.DELETE, "https://gitea.example.com/api/v1/orgs/my-org", status=204)
+        gitea_adapter.delete_organization("my-org")
+
+    @responses.activate
+    def test_delete_404(self, gitea_adapter):
+        responses.add(responses.DELETE, "https://gitea.example.com/api/v1/orgs/missing", status=404)
+        with pytest.raises(NotFoundError):
+            gitea_adapter.delete_organization("missing")
+
+
+# --- Forgejo create/delete (inherited from Gitea) ---
+
+
+class TestForgejoOrgCreateDelete:
+    @responses.activate
+    def test_create(self, forgejo_adapter):
+        responses.add(
+            responses.POST,
+            "https://forgejo.example.com/api/v1/orgs",
+            json=_gitea_org_data(),
+            status=201,
+        )
+        org = forgejo_adapter.create_organization("my-org")
+        assert org.name == "my-org"
+
+    @responses.activate
+    def test_delete(self, forgejo_adapter):
+        responses.add(
+            responses.DELETE, "https://forgejo.example.com/api/v1/orgs/my-org", status=204
+        )
+        forgejo_adapter.delete_organization("my-org")
+
+
+# --- Gogs create/delete (inherited from Gitea) ---
+
+
+class TestGogsOrgCreateDelete:
+    @responses.activate
+    def test_create(self, gogs_adapter):
+        responses.add(
+            responses.POST,
+            "https://gogs.example.com/api/v1/orgs",
+            json=_gitea_org_data(),
+            status=201,
+        )
+        org = gogs_adapter.create_organization("my-org")
+        assert org.name == "my-org"
+
+    @responses.activate
+    def test_delete(self, gogs_adapter):
+        responses.add(responses.DELETE, "https://gogs.example.com/api/v1/orgs/my-org", status=204)
+        gogs_adapter.delete_organization("my-org")
+
+
 # --- NotSupported ---
 
 
@@ -557,6 +728,14 @@ class TestOrgNotSupported:
         with pytest.raises(NotSupportedError):
             gitbucket_adapter.list_org_repos("x")
 
+    def test_gitbucket_create(self, gitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.create_organization("x")
+
+    def test_gitbucket_delete(self, gitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.delete_organization("x")
+
     def test_backlog_list(self, backlog_adapter):
         with pytest.raises(NotSupportedError):
             backlog_adapter.list_organizations()
@@ -572,3 +751,27 @@ class TestOrgNotSupported:
     def test_backlog_repos(self, backlog_adapter):
         with pytest.raises(NotSupportedError):
             backlog_adapter.list_org_repos("x")
+
+    def test_backlog_create(self, backlog_adapter):
+        with pytest.raises(NotSupportedError):
+            backlog_adapter.create_organization("x")
+
+    def test_backlog_delete(self, backlog_adapter):
+        with pytest.raises(NotSupportedError):
+            backlog_adapter.delete_organization("x")
+
+    def test_bitbucket_create(self, bitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.create_organization("x")
+
+    def test_bitbucket_delete(self, bitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.delete_organization("x")
+
+    def test_azure_devops_create(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.create_organization("x")
+
+    def test_azure_devops_delete(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.delete_organization("x")

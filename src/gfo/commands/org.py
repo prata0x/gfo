@@ -43,3 +43,32 @@ def handle_repos(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     adapter = get_adapter()
     repos = adapter.list_org_repos(args.name, limit=args.limit)
     output(repos, fmt=fmt, fields=["name", "full_name", "private", "url"], jq=jq)
+
+
+def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo org create のハンドラ。"""
+    adapter = get_adapter()
+    org = adapter.create_organization(
+        args.name,
+        display_name=getattr(args, "display_name", None),
+        description=getattr(args, "description", None),
+    )
+    output(org, fmt=fmt, jq=jq)
+
+
+def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo org delete のハンドラ。"""
+    from gfo.i18n import _
+
+    adapter = get_adapter()
+    if not getattr(args, "yes", False):
+        confirm = input(
+            _(
+                "Are you sure you want to delete organization '{name}'? This action cannot be undone. [y/N]: "
+            ).format(name=args.name)
+        )
+        if confirm.lower() not in ("y", "yes"):
+            print(_("Aborted."))
+            return
+    adapter.delete_organization(args.name)
+    print(_("Deleted organization '{name}'.").format(name=args.name))

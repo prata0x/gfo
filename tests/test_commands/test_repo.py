@@ -880,3 +880,65 @@ class TestHandleCompare:
         out = capsys.readouterr().out
         data = json.loads(out)
         assert data[0]["total_commits"] == 3
+
+
+class TestHandleMigrate:
+    def test_calls_migrate_repository(self, sample_config, sample_repo, capsys):
+        adapter = MagicMock()
+        adapter.migrate_repository.return_value = sample_repo
+        args = make_args(
+            clone_url="https://github.com/old-owner/old-repo.git",
+            name="new-repo",
+            private=False,
+            description="",
+            mirror=False,
+            auth_token=None,
+        )
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_migrate(args, fmt="table")
+
+        adapter.migrate_repository.assert_called_once_with(
+            "https://github.com/old-owner/old-repo.git",
+            "new-repo",
+            private=False,
+            description="",
+            mirror=False,
+            auth_token=None,
+        )
+        out = capsys.readouterr().out
+        assert "test-repo" in out
+
+    def test_json_format(self, sample_config, sample_repo, capsys):
+        adapter = MagicMock()
+        adapter.migrate_repository.return_value = sample_repo
+        args = make_args(
+            clone_url="https://github.com/old/repo.git",
+            name="new-repo",
+            private=True,
+            description="migrated",
+            mirror=True,
+            auth_token="tok",
+        )
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_migrate(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data[0]["name"] == "test-repo"
+
+    def test_error_propagation(self, sample_config):
+        from gfo.exceptions import HttpError
+
+        adapter = MagicMock()
+        adapter.migrate_repository.side_effect = HttpError(500, "Server error")
+        args = make_args(
+            clone_url="https://github.com/old/repo.git",
+            name="new-repo",
+            private=False,
+            description="",
+            mirror=False,
+            auth_token=None,
+        )
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            with pytest.raises(HttpError):
+                repo_cmd.handle_migrate(args, fmt="table")

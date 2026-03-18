@@ -20,6 +20,7 @@ from .base import (
     DeployKey,
     GitServiceAdapter,
     Issue,
+    IssueTemplate,
     Label,
     Milestone,
     Organization,
@@ -458,6 +459,24 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     def delete_issue(self, number: int) -> None:
         self._client.delete(f"{self._wit_path()}/workitems/{number}")
 
+    def list_issue_templates(self) -> list[IssueTemplate]:
+        try:
+            resp = self._client.get("/wit/workitemtypes")
+        except Exception:
+            return []
+        templates: list[IssueTemplate] = []
+        for t in resp.json().get("value", []):
+            templates.append(
+                IssueTemplate(
+                    name=t.get("name") or "",
+                    title="",
+                    body=t.get("description") or "",
+                    about=t.get("description") or "",
+                    labels=tuple(),
+                )
+            )
+        return templates
+
     # --- Repository ---
 
     def list_repositories(self, *, owner: str | None = None, limit: int = 30) -> list[Repository]:
@@ -533,6 +552,29 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             behind_by=data.get("behindCount", 0),
             files=files,
         )
+
+    def migrate_repository(
+        self,
+        clone_url: str,
+        name: str,
+        *,
+        private: bool = False,
+        description: str = "",
+        mirror: bool = False,
+        auth_token: str | None = None,
+    ) -> Repository:
+        # まずリポジトリを作成
+        repo = self.create_repository(name=name, private=private, description=description)
+        # Import Request
+        payload: dict = {"parameters": {"gitSource": {"url": clone_url}}}
+        if auth_token:
+            payload["parameters"]["gitSource"]["username"] = ""
+            payload["parameters"]["gitSource"]["password"] = auth_token
+        self._client.post(
+            f"/git/repositories/{quote(name, safe='')}/importRequests",
+            json=payload,
+        )
+        return repo
 
     # --- NotSupported ---
 
@@ -1139,6 +1181,40 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             data=_json.dumps([{"op": "replace", "path": "/status", "value": "cancelling"}]),
             headers={"Content-Type": "application/json-patch+json"},
         )
+
+    def trigger_pipeline(
+        self, ref: str, *, workflow: str | None = None, inputs: dict | None = None
+    ) -> Pipeline:
+        payload: dict = {
+            "sourceBranch": ref if ref.startswith("refs/") else f"refs/heads/{ref}",
+        }
+        if workflow:
+            payload["definition"] = {"id": int(workflow)}
+        resp = self._client.post("/build/builds", json=payload)
+        return self._to_pipeline(resp.json())
+
+    def retry_pipeline(self, pipeline_id: int | str) -> Pipeline:
+        resp = self._client.patch(
+            f"/build/builds/{pipeline_id}",
+            json={"retry": True},
+        )
+        return self._to_pipeline(resp.json())
+
+    def get_pipeline_logs(self, pipeline_id: int | str, *, job_id: int | str | None = None) -> str:
+        if job_id is not None:
+            resp = self._client.get(f"/build/builds/{pipeline_id}/logs/{job_id}")
+            return str(resp.text)
+        logs_resp = self._client.get(f"/build/builds/{pipeline_id}/logs")
+        log_entries = logs_resp.json().get("value", [])
+        logs = []
+        for entry in log_entries:
+            log_id = entry.get("id", "")
+            try:
+                resp = self._client.get(f"/build/builds/{pipeline_id}/logs/{log_id}")
+                logs.append(f"=== Log {log_id} ===\n{resp.text}")
+            except Exception:
+                logs.append(f"=== Log {log_id} ===\n(log unavailable)")
+        return "\n".join(logs)
 
     # --- User ---
 

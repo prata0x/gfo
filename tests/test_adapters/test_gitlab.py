@@ -1898,6 +1898,110 @@ class TestCancelPipeline:
         assert mock_responses.calls[0].request.method == "POST"
 
 
+class TestTriggerPipeline:
+    def test_trigger(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/pipeline",
+            json=_pipeline_data(pipeline_id=400),
+            status=201,
+        )
+        pipeline = gitlab_adapter.trigger_pipeline("main")
+        assert isinstance(pipeline, Pipeline)
+        req = mock_responses.calls[0].request
+        body = json.loads(req.body)
+        assert body["ref"] == "main"
+
+    def test_trigger_with_inputs(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/pipeline",
+            json=_pipeline_data(pipeline_id=400),
+            status=201,
+        )
+        gitlab_adapter.trigger_pipeline("main", inputs={"KEY": "val"})
+        req = mock_responses.calls[0].request
+        body = json.loads(req.body)
+        assert body["variables"] == [{"key": "KEY", "value": "val"}]
+
+    def test_trigger_404(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/pipeline",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.trigger_pipeline("main")
+
+
+class TestRetryPipeline:
+    def test_retry(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/pipelines/300/retry",
+            json=_pipeline_data(pipeline_id=300),
+            status=200,
+        )
+        pipeline = gitlab_adapter.retry_pipeline(300)
+        assert isinstance(pipeline, Pipeline)
+        assert pipeline.id == 300
+
+    def test_retry_404(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/pipelines/999/retry",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.retry_pipeline(999)
+
+
+class TestGetPipelineLogs:
+    def test_logs_with_job_id(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/jobs/42/trace",
+            body="job log output",
+            status=200,
+        )
+        logs = gitlab_adapter.get_pipeline_logs(300, job_id=42)
+        assert "job log output" in logs
+
+    def test_logs_all_jobs(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/pipelines/300/jobs",
+            json=[{"id": 1, "name": "build"}, {"id": 2, "name": "test"}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/jobs/1/trace",
+            body="build log",
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/jobs/2/trace",
+            body="test log",
+            status=200,
+        )
+        logs = gitlab_adapter.get_pipeline_logs(300)
+        assert "=== build ===" in logs
+        assert "build log" in logs
+        assert "=== test ===" in logs
+        assert "test log" in logs
+
+    def test_logs_404(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/jobs/999/trace",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.get_pipeline_logs(300, job_id=999)
+
+
 # --- User / Search 系 ---
 
 
@@ -2494,3 +2598,104 @@ class TestReleaseAssetsGitLab:
     def test_delete_release_asset(self, gitlab_adapter):
         responses.add(responses.DELETE, f"{PROJECT}/releases/v1.0.0/assets/links/1", status=204)
         gitlab_adapter.delete_release_asset(tag="v1.0.0", asset_id=1)
+
+
+class TestListIssueTemplatesGitLab:
+    @responses.activate
+    def test_list_templates(self, gitlab_adapter):
+        responses.add(
+            responses.GET,
+            f"{PROJECT}/templates/issues",
+            json=[
+                {"name": "Bug Report", "content": "## Bug\n...", "description": "Report a bug"},
+                {
+                    "name": "Feature",
+                    "content": "## Feature\n...",
+                    "description": "Request a feature",
+                },
+            ],
+            status=200,
+        )
+        templates = gitlab_adapter.list_issue_templates()
+        assert len(templates) == 2
+        assert templates[0].name == "Bug Report"
+        assert templates[0].body == "## Bug\n..."
+        assert templates[0].about == "Report a bug"
+        assert templates[0].labels == ()
+
+    @responses.activate
+    def test_empty_list(self, gitlab_adapter):
+        responses.add(
+            responses.GET,
+            f"{PROJECT}/templates/issues",
+            json=[],
+            status=200,
+        )
+        templates = gitlab_adapter.list_issue_templates()
+        assert templates == []
+
+    @responses.activate
+    def test_not_found(self, gitlab_adapter):
+        responses.add(
+            responses.GET,
+            f"{PROJECT}/templates/issues",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        templates = gitlab_adapter.list_issue_templates()
+        assert templates == []
+
+
+class TestMigrateRepository:
+    @responses.activate
+    def test_migrate(self, gitlab_adapter):
+        responses.add(
+            responses.POST,
+            f"{BASE}/projects",
+            json=_repo_data(name="migrated", path_with_namespace="test-owner/migrated"),
+            status=201,
+        )
+        repo = gitlab_adapter.migrate_repository("https://github.com/old/repo.git", "migrated")
+        assert repo.name == "migrated"
+
+    @responses.activate
+    def test_migrate_private_with_mirror(self, gitlab_adapter):
+        responses.add(
+            responses.POST,
+            f"{BASE}/projects",
+            json=_repo_data(name="migrated", path_with_namespace="test-owner/migrated"),
+            status=201,
+        )
+        repo = gitlab_adapter.migrate_repository(
+            "https://github.com/old/repo.git",
+            "migrated",
+            private=True,
+            mirror=True,
+            description="migrated repo",
+        )
+        assert repo.name == "migrated"
+        import json as json_mod
+
+        body = json_mod.loads(responses.calls[0].request.body)
+        assert body["visibility"] == "private"
+        assert body["mirror"] is True
+        assert body["description"] == "migrated repo"
+
+    @responses.activate
+    def test_migrate_with_auth_token(self, gitlab_adapter):
+        responses.add(
+            responses.POST,
+            f"{BASE}/projects",
+            json=_repo_data(name="migrated", path_with_namespace="test-owner/migrated"),
+            status=201,
+        )
+        repo = gitlab_adapter.migrate_repository(
+            "https://github.com/old/repo.git",
+            "migrated",
+            auth_token="tok",
+        )
+        assert repo.name == "migrated"
+        import json as json_mod
+
+        body = json_mod.loads(responses.calls[0].request.body)
+        assert "oauth2:tok@" in body["import_url"]

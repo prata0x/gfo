@@ -18,8 +18,10 @@ import gfo.commands.collaborator
 import gfo.commands.comment
 import gfo.commands.deploy_key
 import gfo.commands.file
+import gfo.commands.gpg_key
 import gfo.commands.init
 import gfo.commands.issue
+import gfo.commands.issue_template
 import gfo.commands.label
 import gfo.commands.milestone
 import gfo.commands.notification
@@ -34,6 +36,7 @@ import gfo.commands.secret
 import gfo.commands.ssh_key
 import gfo.commands.status
 import gfo.commands.tag
+import gfo.commands.tag_protect
 import gfo.commands.user
 import gfo.commands.variable
 import gfo.commands.webhook
@@ -170,6 +173,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_reopen = issue_sub.add_parser("reopen")
     issue_reopen.add_argument("number", type=int)
 
+    # gfo issue-template → サブサブコマンド
+    it_parser = subparser_map["issue-template"] = subparsers.add_parser(
+        "issue-template", help=_("Manage issue templates")
+    )
+    it_sub = it_parser.add_subparsers(dest="subcommand")
+    it_sub.add_parser("list")
+
     # gfo repo → サブサブコマンド
     repo_parser = subparser_map["repo"] = subparsers.add_parser("repo")
     repo_sub = repo_parser.add_subparsers(dest="subcommand")
@@ -221,6 +231,15 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     # gfo repo compare
     repo_compare = repo_sub.add_parser("compare")
     repo_compare.add_argument("spec")
+
+    # gfo repo migrate
+    repo_migrate = repo_sub.add_parser("migrate")
+    repo_migrate.add_argument("clone_url")
+    repo_migrate.add_argument("--name", required=True)
+    repo_migrate.add_argument("--private", action="store_true")
+    repo_migrate.add_argument("--description", default="")
+    repo_migrate.add_argument("--mirror", action="store_true")
+    repo_migrate.add_argument("--auth-token", dest="auth_token")
 
     # gfo release → サブサブコマンド
     release_parser = subparser_map["release"] = subparsers.add_parser("release")
@@ -459,6 +478,15 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     ci_view.add_argument("id")
     ci_cancel = ci_sub.add_parser("cancel")
     ci_cancel.add_argument("id")
+    ci_trigger = ci_sub.add_parser("trigger")
+    ci_trigger.add_argument("--ref", required=True)
+    ci_trigger.add_argument("--workflow", "-w")
+    ci_trigger.add_argument("--input", "-i", action="append")
+    ci_retry = ci_sub.add_parser("retry")
+    ci_retry.add_argument("id")
+    ci_logs = ci_sub.add_parser("logs")
+    ci_logs.add_argument("id")
+    ci_logs.add_argument("--job", "-j")
 
     # gfo user → サブサブコマンド
     user_parser = subparser_map["user"] = subparsers.add_parser("user")
@@ -514,6 +542,19 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     bp_remove = bp_sub.add_parser("remove")
     bp_remove.add_argument("branch")
 
+    # gfo tag-protect → サブサブコマンド
+    tp_parser = subparser_map["tag-protect"] = subparsers.add_parser(
+        "tag-protect", help=_("Manage tag protection rules")
+    )
+    tp_sub = tp_parser.add_subparsers(dest="subcommand")
+    tp_list = tp_sub.add_parser("list")
+    tp_list.add_argument("--limit", type=_positive_int, default=30)
+    tp_create = tp_sub.add_parser("create")
+    tp_create.add_argument("pattern")
+    tp_create.add_argument("--access-level", dest="access_level")
+    tp_delete = tp_sub.add_parser("delete")
+    tp_delete.add_argument("id")
+
     # gfo notification → サブサブコマンド
     notif_parser = subparser_map["notification"] = subparsers.add_parser(
         "notification", help=_("Manage notifications")
@@ -541,6 +582,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     org_repos = org_sub.add_parser("repos", help=_("List repositories"))
     org_repos.add_argument("name", help=_("Organization name"))
     org_repos.add_argument("--limit", type=_positive_int, default=30)
+    org_create = org_sub.add_parser("create", help=_("Create organization"))
+    org_create.add_argument("name", help=_("Organization name"))
+    org_create.add_argument("--display-name", dest="display_name")
+    org_create.add_argument("--description")
+    org_delete = org_sub.add_parser("delete", help=_("Delete organization"))
+    org_delete.add_argument("name", help=_("Organization name"))
+    org_delete.add_argument("--yes", "-y", action="store_true", help=_("Skip confirmation prompt"))
 
     # gfo ssh-key → サブサブコマンド
     ssh_key_parser = subparser_map["ssh-key"] = subparsers.add_parser(
@@ -554,6 +602,18 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     ssh_key_create.add_argument("--key", required=True)
     ssh_key_delete = ssh_key_sub.add_parser("delete")
     ssh_key_delete.add_argument("id")
+
+    # gfo gpg-key → サブサブコマンド
+    gpg_key_parser = subparser_map["gpg-key"] = subparsers.add_parser(
+        "gpg-key", help=_("Manage GPG keys")
+    )
+    gpg_key_sub = gpg_key_parser.add_subparsers(dest="subcommand")
+    gpg_key_list = gpg_key_sub.add_parser("list")
+    gpg_key_list.add_argument("--limit", type=_positive_int, default=30)
+    gpg_key_create = gpg_key_sub.add_parser("create")
+    gpg_key_create.add_argument("--key", required=True)
+    gpg_key_delete = gpg_key_sub.add_parser("delete")
+    gpg_key_delete.add_argument("id")
 
     # gfo secret → サブサブコマンド
     secret_parser = subparser_map["secret"] = subparsers.add_parser(
@@ -643,6 +703,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("issue", "delete"): gfo.commands.issue.handle_delete,
     ("issue", "update"): gfo.commands.issue.handle_update,
     ("issue", "reopen"): gfo.commands.issue.handle_reopen,
+    ("issue-template", "list"): gfo.commands.issue_template.handle_list,
     ("repo", "list"): gfo.commands.repo.handle_list,
     ("repo", "create"): gfo.commands.repo.handle_create,
     ("repo", "clone"): gfo.commands.repo.handle_clone,
@@ -654,6 +715,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("repo", "languages"): gfo.commands.repo.handle_languages,
     ("repo", "topics"): gfo.commands.repo.handle_topics,
     ("repo", "compare"): gfo.commands.repo.handle_compare,
+    ("repo", "migrate"): gfo.commands.repo.handle_migrate,
     ("release", "list"): gfo.commands.release.handle_list,
     ("release", "create"): gfo.commands.release.handle_create,
     ("release", "delete"): gfo.commands.release.handle_delete,
@@ -702,6 +764,9 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("ci", "list"): gfo.commands.ci.handle_list,
     ("ci", "view"): gfo.commands.ci.handle_view,
     ("ci", "cancel"): gfo.commands.ci.handle_cancel,
+    ("ci", "trigger"): gfo.commands.ci.handle_trigger,
+    ("ci", "retry"): gfo.commands.ci.handle_retry,
+    ("ci", "logs"): gfo.commands.ci.handle_logs,
     ("user", "whoami"): gfo.commands.user.handle_whoami,
     ("search", "repos"): gfo.commands.search.handle_repos,
     ("search", "issues"): gfo.commands.search.handle_issues,
@@ -714,12 +779,17 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("branch-protect", "view"): gfo.commands.branch_protect.handle_view,
     ("branch-protect", "set"): gfo.commands.branch_protect.handle_set,
     ("branch-protect", "remove"): gfo.commands.branch_protect.handle_remove,
+    ("tag-protect", "list"): gfo.commands.tag_protect.handle_list,
+    ("tag-protect", "create"): gfo.commands.tag_protect.handle_create,
+    ("tag-protect", "delete"): gfo.commands.tag_protect.handle_delete,
     ("notification", "list"): gfo.commands.notification.handle_list,
     ("notification", "read"): gfo.commands.notification.handle_read,
     ("org", "list"): gfo.commands.org.handle_list,
     ("org", "view"): gfo.commands.org.handle_view,
     ("org", "members"): gfo.commands.org.handle_members,
     ("org", "repos"): gfo.commands.org.handle_repos,
+    ("org", "create"): gfo.commands.org.handle_create,
+    ("org", "delete"): gfo.commands.org.handle_delete,
     ("secret", "list"): gfo.commands.secret.handle_list,
     ("secret", "set"): gfo.commands.secret.handle_set,
     ("secret", "delete"): gfo.commands.secret.handle_delete,
@@ -730,6 +800,9 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("ssh-key", "list"): gfo.commands.ssh_key.handle_list,
     ("ssh-key", "create"): gfo.commands.ssh_key.handle_create,
     ("ssh-key", "delete"): gfo.commands.ssh_key.handle_delete,
+    ("gpg-key", "list"): gfo.commands.gpg_key.handle_list,
+    ("gpg-key", "create"): gfo.commands.gpg_key.handle_create,
+    ("gpg-key", "delete"): gfo.commands.gpg_key.handle_delete,
     ("browse", None): gfo.commands.browse.handle_browse,
     ("api", None): gfo.commands.api.handle_api,
     ("schema", None): gfo.commands.schema.handle_schema,

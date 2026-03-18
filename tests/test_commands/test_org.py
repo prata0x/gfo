@@ -144,3 +144,74 @@ class TestHandleRepos:
         parsed = json.loads(out)
         assert isinstance(parsed, list)
         assert parsed[0]["name"] == "repo1"
+
+
+class TestHandleCreate:
+    def test_calls_create_organization(self, capsys):
+        with patch_adapter("gfo.commands.org") as adapter:
+            adapter.create_organization.return_value = SAMPLE_ORG
+            args = make_args(name="my-org", display_name=None, description=None)
+            org_cmd.handle_create(args, fmt="table")
+        adapter.create_organization.assert_called_once_with(
+            "my-org", display_name=None, description=None
+        )
+        out = capsys.readouterr().out
+        assert "my-org" in out
+
+    def test_with_display_name_and_description(self, capsys):
+        with patch_adapter("gfo.commands.org") as adapter:
+            adapter.create_organization.return_value = SAMPLE_ORG
+            args = make_args(name="my-org", display_name="My Org", description="desc")
+            org_cmd.handle_create(args, fmt="table")
+        adapter.create_organization.assert_called_once_with(
+            "my-org", display_name="My Org", description="desc"
+        )
+
+    def test_json_format(self, capsys):
+        with patch_adapter("gfo.commands.org") as adapter:
+            adapter.create_organization.return_value = SAMPLE_ORG
+            args = make_args(name="my-org", display_name=None, description=None)
+            org_cmd.handle_create(args, fmt="json")
+        out = capsys.readouterr().out
+        parsed = json.loads(out)
+        assert parsed[0]["name"] == "my-org"
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.org") as adapter:
+            adapter.create_organization.side_effect = HttpError(422, "Validation error")
+            args = make_args(name="bad", display_name=None, description=None)
+            with pytest.raises(HttpError):
+                org_cmd.handle_create(args, fmt="table")
+
+
+class TestHandleDelete:
+    def test_calls_delete_organization_with_yes(self, capsys):
+        with patch_adapter("gfo.commands.org") as adapter:
+            args = make_args(name="my-org", yes=True)
+            org_cmd.handle_delete(args, fmt="table")
+        adapter.delete_organization.assert_called_once_with("my-org")
+        out = capsys.readouterr().out
+        assert "my-org" in out
+
+    def test_confirmation_prompt_accepted(self, capsys):
+        with patch_adapter("gfo.commands.org") as adapter:
+            args = make_args(name="my-org", yes=False)
+            with patch("builtins.input", return_value="y"):
+                org_cmd.handle_delete(args, fmt="table")
+        adapter.delete_organization.assert_called_once_with("my-org")
+
+    def test_confirmation_prompt_rejected(self, capsys):
+        with patch_adapter("gfo.commands.org") as adapter:
+            args = make_args(name="my-org", yes=False)
+            with patch("builtins.input", return_value="n"):
+                org_cmd.handle_delete(args, fmt="table")
+        adapter.delete_organization.assert_not_called()
+        out = capsys.readouterr().out
+        assert "Aborted" in out
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.org") as adapter:
+            adapter.delete_organization.side_effect = HttpError(403, "Forbidden")
+            args = make_args(name="my-org", yes=True)
+            with pytest.raises(HttpError):
+                org_cmd.handle_delete(args, fmt="table")

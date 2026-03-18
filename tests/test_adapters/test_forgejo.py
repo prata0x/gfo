@@ -450,3 +450,43 @@ class TestDeleteInheritance:
         )
         forgejo_adapter.delete_repository()
         assert mock_responses.calls[0].request.method == "DELETE"
+
+    def test_list_issue_templates(self, mock_responses, forgejo_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issue_templates",
+            json=[
+                {
+                    "name": "Bug Report",
+                    "title": "[Bug]: ",
+                    "content": "## Description\n...",
+                    "about": "Report a bug",
+                    "labels": ["bug"],
+                },
+            ],
+            status=200,
+        )
+        templates = forgejo_adapter.list_issue_templates()
+        assert len(templates) == 1
+        assert templates[0].name == "Bug Report"
+        assert templates[0].labels == ("bug",)
+
+    def test_list_issue_templates_empty(self, mock_responses, forgejo_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issue_templates",
+            json=[],
+            status=200,
+        )
+        templates = forgejo_adapter.list_issue_templates()
+        assert templates == []
+
+    def test_list_issue_templates_not_found(self, mock_responses, forgejo_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issue_templates",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        templates = forgejo_adapter.list_issue_templates()
+        assert templates == []
