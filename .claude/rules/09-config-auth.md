@@ -49,3 +49,12 @@ paths:
 ## 認証方式変更時の影響範囲
 
 `auth.py`, `registry.py`, テストファイル, ドキュメントの4箇所に波及する。
+
+## `--remote` / `--host` グローバルオプション
+
+- `cli.main()` で `contextvars.ContextVar`（`cli_remote`, `cli_host`）に値を設定
+- `detect_service()` / `resolve_project_config()` で ContextVar を参照
+- いずれか指定時 → git config ショートカット（`gfo.type`/`gfo.host`）をスキップ
+- `--remote`: 指定リモートの URL で `get_remote_url(remote=...)` を呼ぶ
+- `--host`: origin URL パース後に host を上書きし、既知ホストテーブルで再検出
+- `dest` は `global_remote` / `global_host`（`init --host` との衝突回避）

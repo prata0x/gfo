@@ -39,12 +39,14 @@
 ### 2.1 グローバルオプション
 
 ```
-gfo [--format table|json|plain] [--version] <command> <subcommand> [args]
+gfo [--format table|json|plain] [--remote REMOTE | --host HOST] [--version] <command> <subcommand> [args]
 ```
 
 | オプション | 値 | デフォルト | 説明 |
 |-----------|---|-----------|------|
 | `--format` | `table` \| `json` \| `plain` | `table` | 出力フォーマット。`config.toml` の `defaults.output` で変更可 |
+| `--remote` | `REMOTE` | — | origin 以外の git remote を使用。指定リモートの URL で検出を行う |
+| `--host` | `HOST` | — | サービス検出のホストを上書き。`--remote` と排他 |
 | `--version` | — | — | バージョン情報を表示して終了。`__init__.py` の `__version__` を参照 |
 | `--help` | — | — | ヘルプメッセージを表示して終了。argparse のデフォルト動作に委ねる。各サブコマンドも `--help` に対応（argparse 自動生成） |
 
