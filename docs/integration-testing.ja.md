@@ -360,6 +360,8 @@ cp tests/integration/.env.example tests/integration/.env
 | repo transfer | o | o | skip | skip | o | o | skip | skip | skip |
 | repo star | o | o | skip | skip | o | o | o | skip | skip |
 | wiki revisions | skip | skip | skip | skip | o | o | skip | skip | skip |
+| issue migrate | skip | skip | skip | skip | o | o | skip | skip | skip |
+| batch pr create | skip | skip | skip | skip | o | o | skip | skip | skip |
 
 > **凡例**: o = 完全カバー、△ = 部分カバー、skip = サービス非対応
 >

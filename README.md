@@ -82,7 +82,7 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 | `gfo init` | — | Initialize project configuration |
 | `gfo auth` | `login`, `status` | Save token / check auth status |
 | `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `update`, `diff`, `checks`, `files`, `commits`, `reviewers`, `update-branch`, `ready` | Pull request operations |
-| `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update`, `reaction`, `depends`, `timeline`, `pin`, `unpin`, `time` | Issue operations |
+| `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update`, `reaction`, `depends`, `timeline`, `pin`, `unpin`, `time`, `migrate` | Issue operations |
 | `gfo issue-template` | `list` | Issue template listing |
 | `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `update`, `archive`, `languages`, `topics`, `compare`, `migrate`, `mirror`, `transfer`, `star`, `unstar` | Repository operations |
 | `gfo release` | `list`, `create`, `view`, `update`, `delete`, `asset` | Release management |
@@ -113,6 +113,7 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 | `gfo package` | `list`, `view`, `delete` | Package management |
 | `gfo api` | `METHOD`, `PATH` | Send raw API request |
 | `gfo schema` | `--list`, `[command] [subcommand]` | Show command JSON Schema (for AI agents) |
+| `gfo batch` | `pr create` | Batch operations across multiple repositories |
 
 See [docs/commands.md](docs/commands.md) for detailed options and examples for each command.
 
@@ -211,6 +212,8 @@ api_url = "https://gitlab.example.com/api/v4"
 | Repo Transfer | ○ | ○ | × | × | × | ○ | ○ | × | × |
 | Repo Star | ○ | ○ | × | × | × | ○ | ○ | ○ | × |
 | Wiki Revisions | × | × | × | × | × | ○ | ○ | × | × |
+| Issue Migrate | ○ | ○ | △ | △ | △ | ○ | ○ | × | × |
+| Batch PR Create | ○ | ○ | ○ | ○ | △ | ○ | ○ | × | ○ |
 
 > ×: Not supported (returns `NotSupportedError`)
 >

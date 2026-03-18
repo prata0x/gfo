@@ -512,6 +512,47 @@ gfo issue time add 10 1h30m
 gfo issue time delete 10 42
 ```
 
+### gfo issue migrate
+
+異なるサービス間で Issue を移行します。ラベルの自動同期、コメントの移行にも対応。gfo のキラー機能。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket（部分）, Azure DevOps（部分）, Backlog（部分）, Gitea, Forgejo
+
+```
+gfo issue migrate --from SERVICE_SPEC --to SERVICE_SPEC {--number N | --numbers N,N,... | --all}
+```
+
+| オプション | 説明 |
+|---|---|
+| `--from` | 移行元リポジトリ（`service:owner/repo` 形式） |
+| `--to` | 移行先リポジトリ（`service:host:owner/repo` 形式） |
+| `--number N` | 移行する Issue 番号（単一） |
+| `--numbers N,N,...` | 移行する Issue 番号（カンマ区切り） |
+| `--all` | 全 Issue を移行 |
+
+#### サービス指定文字列（SERVICE_SPEC）
+
+`service:owner/repo` または `service:host:owner/repo` 形式でリポジトリを指定。
+
+| 形式 | 例 |
+|---|---|
+| SaaS（デフォルトホスト） | `github:owner/repo`, `gitlab:owner/repo` |
+| セルフホスト（host 必須） | `gitea:gitea.example.com:owner/repo` |
+| SaaS カスタムホスト | `github:gh.example.com:owner/repo` |
+| Azure DevOps | `azure-devops:org/project/repo` |
+| Backlog | `backlog:team.backlog.com:PROJECT/repo` |
+
+```bash
+# GitHub → Gitea に Issue #42 を移行
+gfo issue migrate --from github:owner/repo --to gitea:gitea.example.com:owner/repo --number 42
+
+# 複数 Issue を移行
+gfo issue migrate --from github:owner/repo --to gitlab:owner/repo --numbers 1,2,3
+
+# 全 Issue を移行
+gfo issue migrate --from github:owner/repo --to gitea:gitea.example.com:owner/repo --all
+```
+
 ---
 
 ## gfo repo
@@ -2181,4 +2222,44 @@ gfo issue-template list
 ```bash
 gfo issue-template list
 gfo issue-template list --format json
+```
+
+---
+
+## gfo batch
+
+複数リポジトリに対して一括操作を実行します。
+
+### gfo batch pr create
+
+複数リポジトリに対して一括で PR を作成します。サービスをまたいだバッチ操作にも対応。
+
+> **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Backlog（部分）, Gitea, Forgejo, GitBucket
+
+```
+gfo batch pr create --repos SPECS --title TITLE --head BRANCH [options]
+```
+
+| オプション | 説明 | デフォルト |
+|---|---|---|
+| `--repos` | 対象リポジトリ（カンマ区切り、`service:owner/repo` 形式） | （必須） |
+| `--title` | PR タイトル | （必須） |
+| `--body` | PR 本文 | `""` |
+| `--head` | ソースブランチ | （必須） |
+| `--base` | ターゲットブランチ | `main` |
+| `--draft` | ドラフト PR として作成 | — |
+| `--dry-run` | PR を作成せず検証のみ実行 | — |
+
+リポジトリ指定は `gfo issue migrate` の SERVICE_SPEC と同じ形式。
+
+```bash
+# GitHub + Gitea の複数リポジトリに PR 作成
+gfo batch pr create \
+  --repos github:owner/repo1,gitea:gitea.example.com:owner/repo2 \
+  --title "Update dependencies" \
+  --body "Bumped all deps" \
+  --head update-deps
+
+# ドライランで事前確認
+gfo batch pr create --repos github:owner/repo1,github:owner/repo2 --title "Fix" --head hotfix --dry-run
 ```

@@ -335,3 +335,20 @@ gfo auth login --host gitbucket.example.com:8080
 ```
 
 Specify the host name including the port number.
+
+---
+
+## Authentication for Cross-Service Commands
+
+Commands that operate on multiple services simultaneously, such as `gfo issue migrate` and `gfo batch pr create`, specify repositories using the `service:owner/repo` format.
+
+Tokens for each service are resolved using the same priority order as regular commands (credentials.toml → environment variables → GFO_TOKEN).
+
+```bash
+# Example: Migrating issues from GitHub to Gitea
+# Both GitHub and Gitea tokens are required
+gfo auth login --host github.com --token ghp_xxxx
+gfo auth login --host gitea.example.com --token your-gitea-token
+
+gfo issue migrate --from github:owner/repo --to gitea:gitea.example.com:owner/repo --number 42
+```

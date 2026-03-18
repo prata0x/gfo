@@ -82,7 +82,7 @@ gfo auth status
 | `gfo init` | — | プロジェクト設定の初期化 |
 | `gfo auth` | `login`, `status` | トークン保存・認証状態確認 |
 | `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `update`, `diff`, `checks`, `files`, `commits`, `reviewers`, `update-branch`, `ready` | プルリクエスト操作 |
-| `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update`, `reaction`, `depends`, `timeline`, `pin`, `unpin`, `time` | Issue 操作 |
+| `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update`, `reaction`, `depends`, `timeline`, `pin`, `unpin`, `time`, `migrate` | Issue 操作 |
 | `gfo issue-template` | `list` | Issue テンプレート一覧 |
 | `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `update`, `archive`, `languages`, `topics`, `compare`, `migrate`, `mirror`, `transfer`, `star`, `unstar` | リポジトリ操作 |
 | `gfo release` | `list`, `create`, `view`, `update`, `delete`, `asset` | リリース管理 |
@@ -113,6 +113,7 @@ gfo auth status
 | `gfo package` | `list`, `view`, `delete` | パッケージ管理 |
 | `gfo api` | `METHOD`, `PATH` | 任意の API エンドポイント呼び出し |
 | `gfo schema` | `--list`, `[command] [subcommand]` | コマンドの JSON Schema を表示（AI エージェント向け） |
+| `gfo batch` | `pr create` | 複数リポジトリへの一括操作 |
 
 各コマンドの詳細なオプション・使用例は [docs/commands.ja.md](docs/commands.ja.md) を参照してください。
 
@@ -211,6 +212,8 @@ api_url = "https://gitlab.example.com/api/v4"
 | Repo Transfer | ○ | ○ | × | × | × | ○ | ○ | × | × |
 | Repo Star | ○ | ○ | × | × | × | ○ | ○ | ○ | × |
 | Wiki Revisions | × | × | × | × | × | ○ | ○ | × | × |
+| Issue Migrate | ○ | ○ | △ | △ | △ | ○ | ○ | × | × |
+| Batch PR Create | ○ | ○ | ○ | ○ | △ | ○ | ○ | × | ○ |
 
 > ×: 非対応（`NotSupportedError` を返します）
 >

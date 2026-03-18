@@ -335,3 +335,20 @@ gfo auth login --host gitbucket.example.com:8080
 ```
 
 ポート番号込みのホスト名を指定してください。
+
+---
+
+## クロスサービスコマンドでの認証
+
+`gfo issue migrate` や `gfo batch pr create` など、複数のサービスを同時に操作するコマンドでは、`service:owner/repo` 形式でリポジトリを指定します。
+
+各サービスのトークンは、通常のコマンドと同じ優先順位（credentials.toml → 環境変数 → GFO_TOKEN）で解決されます。
+
+```bash
+# 例: GitHub から Gitea への Issue 移行
+# GitHub のトークンと Gitea のトークンの両方が必要
+gfo auth login --host github.com --token ghp_xxxx
+gfo auth login --host gitea.example.com --token your-gitea-token
+
+gfo issue migrate --from github:owner/repo --to gitea:gitea.example.com:owner/repo --number 42
+```

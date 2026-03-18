@@ -512,6 +512,47 @@ gfo issue time add 10 1h30m
 gfo issue time delete 10 42
 ```
 
+### gfo issue migrate
+
+Migrate issues between different services. Supports automatic label synchronization and comment migration. gfo's killer feature.
+
+> **Supported services**: GitHub, GitLab, Bitbucket (partial), Azure DevOps (partial), Backlog (partial), Gitea, Forgejo
+
+```
+gfo issue migrate --from SERVICE_SPEC --to SERVICE_SPEC {--number N | --numbers N,N,... | --all}
+```
+
+| Option | Description |
+|---|---|
+| `--from` | Source repository (`service:owner/repo` format) |
+| `--to` | Destination repository (`service:host:owner/repo` format) |
+| `--number N` | Issue number to migrate (single) |
+| `--numbers N,N,...` | Issue numbers to migrate (comma-separated) |
+| `--all` | Migrate all issues |
+
+#### Service Specification (SERVICE_SPEC)
+
+Specify repositories using `service:owner/repo` or `service:host:owner/repo` format.
+
+| Format | Example |
+|---|---|
+| SaaS (default host) | `github:owner/repo`, `gitlab:owner/repo` |
+| Self-hosted (host required) | `gitea:gitea.example.com:owner/repo` |
+| SaaS custom host | `github:gh.example.com:owner/repo` |
+| Azure DevOps | `azure-devops:org/project/repo` |
+| Backlog | `backlog:team.backlog.com:PROJECT/repo` |
+
+```bash
+# Migrate Issue #42 from GitHub to Gitea
+gfo issue migrate --from github:owner/repo --to gitea:gitea.example.com:owner/repo --number 42
+
+# Migrate multiple issues
+gfo issue migrate --from github:owner/repo --to gitlab:owner/repo --numbers 1,2,3
+
+# Migrate all issues
+gfo issue migrate --from github:owner/repo --to gitea:gitea.example.com:owner/repo --all
+```
+
 ---
 
 ## gfo repo
@@ -2181,4 +2222,44 @@ gfo issue-template list
 ```bash
 gfo issue-template list
 gfo issue-template list --format json
+```
+
+---
+
+## gfo batch
+
+Execute batch operations across multiple repositories.
+
+### gfo batch pr create
+
+Create pull requests across multiple repositories in a single command. Supports batch operations across different services.
+
+> **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Backlog (partial), Gitea, Forgejo, GitBucket
+
+```
+gfo batch pr create --repos SPECS --title TITLE --head BRANCH [options]
+```
+
+| Option | Description | Default |
+|---|---|---|
+| `--repos` | Target repositories (comma-separated, `service:owner/repo` format) | (required) |
+| `--title` | PR title | (required) |
+| `--body` | PR body | `""` |
+| `--head` | Source branch | (required) |
+| `--base` | Target branch | `main` |
+| `--draft` | Create as draft PR | — |
+| `--dry-run` | Validate only, do not create PRs | — |
+
+Repository specification uses the same SERVICE_SPEC format as `gfo issue migrate`.
+
+```bash
+# Create PRs across GitHub + Gitea repositories
+gfo batch pr create \
+  --repos github:owner/repo1,gitea:gitea.example.com:owner/repo2 \
+  --title "Update dependencies" \
+  --body "Bumped all deps" \
+  --head update-deps
+
+# Dry run for validation
+gfo batch pr create --repos github:owner/repo1,github:owner/repo2 --title "Fix" --head hotfix --dry-run
 ```
