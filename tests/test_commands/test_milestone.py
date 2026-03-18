@@ -315,3 +315,53 @@ class TestHandleReopen:
             milestone_cmd.handle_reopen(args, fmt="table")
 
         self.adapter.update_milestone.assert_called_once_with(3, state="open")
+
+
+class TestHandleListWeb:
+    def setup_method(self):
+        self.milestone = _make_milestone()
+        self.adapter = _make_adapter(self.milestone)
+
+    def test_opens_browser(self, sample_config):
+        args = make_args(web=True)
+        with (
+            _patch_all(sample_config, self.adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            milestone_cmd.handle_list(args, fmt="table")
+        self.adapter.get_web_url.assert_called_once_with("milestone")
+        mock_open.assert_called_once_with(self.adapter.get_web_url.return_value)
+
+    def test_does_not_call_api(self, sample_config):
+        args = make_args(web=True)
+        with (
+            _patch_all(sample_config, self.adapter),
+            patch("webbrowser.open"),
+        ):
+            milestone_cmd.handle_list(args, fmt="table")
+        self.adapter.list_milestones.assert_not_called()
+
+
+class TestHandleViewWeb:
+    def setup_method(self):
+        self.milestone = _make_milestone()
+        self.adapter = _make_adapter(self.milestone)
+
+    def test_opens_browser(self, sample_config):
+        args = make_args(number=3, web=True)
+        with (
+            _patch_all(sample_config, self.adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            milestone_cmd.handle_view(args, fmt="table")
+        self.adapter.get_web_url.assert_called_once_with("milestone", 3)
+        mock_open.assert_called_once_with(self.adapter.get_web_url.return_value)
+
+    def test_does_not_call_api(self, sample_config):
+        args = make_args(number=3, web=True)
+        with (
+            _patch_all(sample_config, self.adapter),
+            patch("webbrowser.open"),
+        ):
+            milestone_cmd.handle_view(args, fmt="table")
+        self.adapter.get_milestone.assert_not_called()

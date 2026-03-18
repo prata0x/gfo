@@ -1309,12 +1309,16 @@ class BitbucketAdapter(GitServiceAdapter):
 
     # --- Browse ---
 
-    def get_web_url(self, resource: str = "repo", number: int | None = None) -> str:
+    def get_web_url(self, resource: str = "repo", number: int | str | None = None) -> str:
         base = f"https://bitbucket.org/{self._owner}/{self._repo}"
         if resource == "pr":
-            return f"{base}/pull-requests/{number}"
+            return f"{base}/pull-requests" if number is None else f"{base}/pull-requests/{number}"
         if resource == "issue":
-            return f"{base}/issues/{number}"
+            return f"{base}/issues" if number is None else f"{base}/issues/{number}"
+        if resource == "release":
+            raise NotSupportedError(self.service_name, "browse release")
+        if resource == "milestone":
+            raise NotSupportedError(self.service_name, "browse milestone")
         if resource == "settings":
             return f"{base}/admin"
         return base

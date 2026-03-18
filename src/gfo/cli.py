@@ -139,6 +139,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_list.add_argument(
         "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
     )
+    pr_list.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     pr_create = pr_sub.add_parser("create", help=_("Create pull request"))
     pr_create.add_argument("--title", help=_("Title"))
     pr_create.add_argument("--body", default="", help=_("Body"))
@@ -147,6 +148,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_create.add_argument("--draft", action="store_true", help=_("Create as draft"))
     pr_view = pr_sub.add_parser("view", help=_("View pull request details"))
     pr_view.add_argument("number", type=int, help=_("PR number"))
+    pr_view.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     pr_merge = pr_sub.add_parser("merge", help=_("Merge pull request"))
     pr_merge.add_argument("number", type=int, help=_("PR number"))
     _merge_method = pr_merge.add_mutually_exclusive_group()
@@ -231,6 +233,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_list.add_argument(
         "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
     )
+    issue_list.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     issue_create = issue_sub.add_parser("create", help=_("Create issue"))
     issue_create.add_argument("--title", required=True, help=_("Title"))
     issue_create.add_argument("--body", default="", help=_("Body"))
@@ -240,6 +243,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_create.add_argument("--priority", type=int, help=_("Priority"))
     issue_view = issue_sub.add_parser("view", help=_("View issue details"))
     issue_view.add_argument("number", type=int, help=_("Issue number"))
+    issue_view.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     issue_close = issue_sub.add_parser("close", help=_("Close issue"))
     issue_close.add_argument("number", type=int, help=_("Issue number"))
     issue_delete = issue_sub.add_parser("delete", help=_("Delete issue"))
@@ -295,6 +299,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_view.add_argument(
         "repo", nargs="?", help=_("Repository (owner/name)")
     )  # ハンドラは args.repo を参照
+    repo_view.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     repo_delete = repo_sub.add_parser("delete", help=_("Delete repository"))
     repo_delete.add_argument("--yes", "-y", action="store_true", help=_("Skip confirmation prompt"))
 
@@ -365,6 +370,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     release_view = release_sub.add_parser("view", help=_("View release details"))
     release_view.add_argument("tag", nargs="?", help=_("Tag name"))
     release_view.add_argument("--latest", action="store_true", help=_("View latest release"))
+    release_view.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     release_edit = release_sub.add_parser("edit", help=_("Edit release"))
     release_edit.add_argument("tag", help=_("Tag name"))
     release_edit.add_argument("--title", help=_("Title"))
@@ -419,7 +425,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "milestone", help=_("Manage milestones")
     )
     milestone_sub = milestone_parser.add_subparsers(dest="subcommand")
-    milestone_sub.add_parser("list", help=_("List milestones"))
+    milestone_list = milestone_sub.add_parser("list", help=_("List milestones"))
+    milestone_list.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     milestone_create = milestone_sub.add_parser("create", help=_("Create milestone"))
     milestone_create.add_argument("title", help=_("Milestone title"))
     milestone_create.add_argument("--description", help=_("Description"))
@@ -428,6 +435,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     milestone_delete.add_argument("number", type=int, help=_("Milestone number"))
     milestone_view = milestone_sub.add_parser("view", help=_("View milestone details"))
     milestone_view.add_argument("number", type=int, help=_("Milestone number"))
+    milestone_view.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     milestone_edit = milestone_sub.add_parser("edit", help=_("Edit milestone"))
     milestone_edit.add_argument("number", type=int, help=_("Milestone number"))
     milestone_edit.add_argument("--title", help=_("Title"))

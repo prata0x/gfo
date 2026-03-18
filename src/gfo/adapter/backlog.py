@@ -696,16 +696,20 @@ class BacklogAdapter(GitServiceAdapter):
 
     # --- Browse ---
 
-    def get_web_url(self, resource: str = "repo", number: int | None = None) -> str:
+    def get_web_url(self, resource: str = "repo", number: int | str | None = None) -> str:
         hostname = urllib.parse.urlparse(self._client.base_url).hostname
         base = f"https://{hostname}/git/{self._project_key}/{self._repo}"
         if resource == "pr":
-            return f"{base}/pullRequests/{number}"
+            return f"{base}/pullRequests" if number is None else f"{base}/pullRequests/{number}"
         if resource == "issue":
             raise NotSupportedError(
                 self.service_name,
                 "browse issue (Backlog uses string-format issue keys like PROJ-123)",
             )
+        if resource == "release":
+            raise NotSupportedError(self.service_name, "browse release")
+        if resource == "milestone":
+            raise NotSupportedError(self.service_name, "browse milestone")
         if resource == "settings":
             raise NotSupportedError(self.service_name, "browse settings")
         return base

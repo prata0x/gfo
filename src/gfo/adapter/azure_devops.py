@@ -1346,12 +1346,21 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     # --- Browse ---
 
-    def get_web_url(self, resource: str = "repo", number: int | None = None) -> str:
+    def get_web_url(self, resource: str = "repo", number: int | str | None = None) -> str:
         base = f"https://dev.azure.com/{self._org}/{self._project}/_git/{self._repo}"
         if resource == "pr":
-            return f"{base}/pullrequest/{number}"
+            return f"{base}/pullrequests" if number is None else f"{base}/pullrequest/{number}"
         if resource == "issue":
-            return f"https://dev.azure.com/{self._org}/{self._project}/_workitems?id={number}"
+            proj_base = f"https://dev.azure.com/{self._org}/{self._project}"
+            return (
+                f"{proj_base}/_workitems"
+                if number is None
+                else f"{proj_base}/_workitems?id={number}"
+            )
+        if resource == "release":
+            raise NotSupportedError(self.service_name, "browse release")
+        if resource == "milestone":
+            raise NotSupportedError(self.service_name, "browse milestone")
         if resource == "settings":
             return f"https://dev.azure.com/{self._org}/{self._project}/_settings/repositories"
         return base

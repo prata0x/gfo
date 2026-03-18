@@ -13,6 +13,12 @@ from gfo.output import output
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr list のハンドラ。"""
+    if getattr(args, "web", False):
+        import webbrowser
+
+        adapter = get_adapter()
+        webbrowser.open(adapter.get_web_url("pr"))
+        return
     adapter = get_adapter()
     prs = adapter.list_pull_requests(state=args.state, limit=args.limit)
     output(prs, fmt=fmt, fields=["number", "title", "state", "author"], jq=jq)
@@ -38,6 +44,12 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr view <number> のハンドラ。"""
+    if getattr(args, "web", False):
+        import webbrowser
+
+        adapter = get_adapter()
+        webbrowser.open(adapter.get_web_url("pr", args.number))
+        return
     adapter = get_adapter()
     pr = adapter.get_pull_request(args.number)
     output(pr, fmt=fmt, jq=jq)

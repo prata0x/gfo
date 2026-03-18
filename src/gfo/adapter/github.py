@@ -1462,12 +1462,16 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- Browse ---
 
-    def get_web_url(self, resource: str = "repo", number: int | None = None) -> str:
+    def get_web_url(self, resource: str = "repo", number: int | str | None = None) -> str:
         base = f"https://github.com/{self._owner}/{self._repo}"
         if resource == "pr":
-            return f"{base}/pull/{number}"
+            return f"{base}/pulls" if number is None else f"{base}/pull/{number}"
         if resource == "issue":
-            return f"{base}/issues/{number}"
+            return f"{base}/issues" if number is None else f"{base}/issues/{number}"
+        if resource == "release":
+            return f"{base}/releases" if number is None else f"{base}/releases/tag/{number}"
+        if resource == "milestone":
+            return f"{base}/milestones" if number is None else f"{base}/milestone/{number}"
         if resource == "settings":
             return f"{base}/settings"
         return base

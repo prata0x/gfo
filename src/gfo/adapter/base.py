@@ -1205,12 +1205,13 @@ class GitServiceAdapter(ABC):
         raise NotSupportedError(self.service_name, "gpg-key delete")
 
     # --- Browse ---
-    def get_web_url(self, resource: str = "repo", number: int | None = None) -> str:
+    def get_web_url(self, resource: str = "repo", number: int | str | None = None) -> str:
         """Web ブラウザで開くための URL を返す。
 
         Args:
-            resource: "repo" | "pr" | "issue" | "settings"
-            number: PR / Issue 番号（resource が "pr" / "issue" の場合に必須）
+            resource: "repo" | "pr" | "issue" | "release" | "milestone" | "settings"
+            number: PR / Issue / Milestone 番号、または Release タグ名。
+                    None の場合はリスト URL を返す。
 
         Returns:
             完全な URL 文字列

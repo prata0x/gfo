@@ -412,3 +412,48 @@ class TestHandleAsset:
         with _patch_all(sample_config, self.adapter):
             with pytest.raises(ConfigError):
                 release_cmd.handle_asset(args, fmt="table")
+
+
+class TestHandleViewWeb:
+    def setup_method(self):
+        self.release = _make_release()
+        self.adapter = _make_adapter(self.release)
+
+    def test_opens_browser_with_tag(self, sample_config):
+        args = make_args(tag="v1.0.0", latest=False, web=True)
+        with (
+            _patch_all(sample_config, self.adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            release_cmd.handle_view(args, fmt="table")
+        self.adapter.get_web_url.assert_called_once_with("release", "v1.0.0")
+        mock_open.assert_called_once_with(self.adapter.get_web_url.return_value)
+
+    def test_opens_browser_with_latest(self, sample_config):
+        args = make_args(tag=None, latest=True, web=True)
+        with (
+            _patch_all(sample_config, self.adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            release_cmd.handle_view(args, fmt="table")
+        self.adapter.get_latest_release.assert_called_once()
+        self.adapter.get_web_url.assert_called_once_with("release", "v1.0.0")
+        mock_open.assert_called_once_with(self.adapter.get_web_url.return_value)
+
+    def test_does_not_call_get_release(self, sample_config):
+        args = make_args(tag="v1.0.0", latest=False, web=True)
+        with (
+            _patch_all(sample_config, self.adapter),
+            patch("webbrowser.open"),
+        ):
+            release_cmd.handle_view(args, fmt="table")
+        self.adapter.get_release.assert_not_called()
+
+    def test_empty_tag_no_latest_raises(self, sample_config):
+        args = make_args(tag=None, latest=False, web=True)
+        with (
+            _patch_all(sample_config, self.adapter),
+            patch("webbrowser.open"),
+        ):
+            with pytest.raises(ConfigError, match="tag must not be empty"):
+                release_cmd.handle_view(args, fmt="table")

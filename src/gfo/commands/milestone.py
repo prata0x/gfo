@@ -12,6 +12,12 @@ from gfo.output import output
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo milestone list のハンドラ。"""
+    if getattr(args, "web", False):
+        import webbrowser
+
+        adapter = get_adapter()
+        webbrowser.open(adapter.get_web_url("milestone"))
+        return
     adapter = get_adapter()
     milestones = adapter.list_milestones()
     output(milestones, fmt=fmt, fields=["number", "title", "state", "due_date"], jq=jq)
@@ -40,6 +46,12 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo milestone view のハンドラ。"""
+    if getattr(args, "web", False):
+        import webbrowser
+
+        adapter = get_adapter()
+        webbrowser.open(adapter.get_web_url("milestone", args.number))
+        return
     adapter = get_adapter()
     milestone = adapter.get_milestone(args.number)
     output(milestone, fmt=fmt, jq=jq)

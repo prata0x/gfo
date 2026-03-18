@@ -46,6 +46,19 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo release view のハンドラ。"""
+    if getattr(args, "web", False):
+        import webbrowser
+
+        adapter = get_adapter()
+        if getattr(args, "latest", False):
+            release = adapter.get_latest_release()
+            webbrowser.open(adapter.get_web_url("release", release.tag))
+        else:
+            tag = (getattr(args, "tag", None) or "").strip()
+            if not tag:
+                raise ConfigError(_("tag must not be empty. Specify a tag or use --latest."))
+            webbrowser.open(adapter.get_web_url("release", tag))
+        return
     adapter = get_adapter()
     if getattr(args, "latest", False):
         release = adapter.get_latest_release()

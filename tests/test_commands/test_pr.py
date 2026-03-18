@@ -452,3 +452,45 @@ def test_pr_list_config_error(capsys):
 
     assert result == 6
     assert "not configured" in capsys.readouterr().err
+
+
+class TestHandleListWeb:
+    def test_opens_browser(self, sample_config, mock_adapter):
+        args = make_args(state="open", limit=30, web=True)
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            pr_cmd.handle_list(args, fmt="table")
+        mock_adapter.get_web_url.assert_called_once_with("pr")
+        mock_open.assert_called_once_with(mock_adapter.get_web_url.return_value)
+
+    def test_does_not_call_api(self, sample_config, mock_adapter):
+        args = make_args(state="open", limit=30, web=True)
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("webbrowser.open"),
+        ):
+            pr_cmd.handle_list(args, fmt="table")
+        mock_adapter.list_pull_requests.assert_not_called()
+
+
+class TestHandleViewWeb:
+    def test_opens_browser(self, sample_config, mock_adapter):
+        args = make_args(number=42, web=True)
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            pr_cmd.handle_view(args, fmt="table")
+        mock_adapter.get_web_url.assert_called_once_with("pr", 42)
+        mock_open.assert_called_once_with(mock_adapter.get_web_url.return_value)
+
+    def test_does_not_call_api(self, sample_config, mock_adapter):
+        args = make_args(number=42, web=True)
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("webbrowser.open"),
+        ):
+            pr_cmd.handle_view(args, fmt="table")
+        mock_adapter.get_pull_request.assert_not_called()

@@ -27,6 +27,12 @@ class MigrateResult:
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue list のハンドラ。"""
+    if getattr(args, "web", False):
+        import webbrowser
+
+        adapter = get_adapter()
+        webbrowser.open(adapter.get_web_url("issue"))
+        return
     adapter = get_adapter()
     issues = adapter.list_issues(
         state=args.state,
@@ -70,6 +76,12 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue view <number> のハンドラ。"""
+    if getattr(args, "web", False):
+        import webbrowser
+
+        adapter = get_adapter()
+        webbrowser.open(adapter.get_web_url("issue", args.number))
+        return
     adapter = get_adapter()
     issue = adapter.get_issue(args.number)
     output(issue, fmt=fmt, jq=jq)

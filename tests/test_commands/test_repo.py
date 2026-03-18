@@ -998,3 +998,24 @@ class TestHandleTransfer:
             args = make_args(new_owner="new-owner", team_id=None, yes=True)
             repo_cmd.handle_transfer(args, fmt="table")
         mock_adapter.transfer_repository.assert_called_once_with("new-owner", team_ids=None)
+
+
+class TestHandleViewWeb:
+    def test_opens_browser(self, sample_config, mock_adapter):
+        args = make_args(repo=None, web=True)
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            repo_cmd.handle_view(args, fmt="table")
+        mock_adapter.get_web_url.assert_called_once_with("repo")
+        mock_open.assert_called_once_with(mock_adapter.get_web_url.return_value)
+
+    def test_does_not_call_api(self, sample_config, mock_adapter):
+        args = make_args(repo=None, web=True)
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("webbrowser.open"),
+        ):
+            repo_cmd.handle_view(args, fmt="table")
+        mock_adapter.get_repository.assert_not_called()

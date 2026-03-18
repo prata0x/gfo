@@ -198,12 +198,16 @@ class GitBucketAdapter(GitHubAdapter):
 
     # --- Browse ---
 
-    def get_web_url(self, resource: str = "repo", number: int | None = None) -> str:
+    def get_web_url(self, resource: str = "repo", number: int | str | None = None) -> str:
         base = f"{self._web_base_url()}/{self._owner}/{self._repo}"
         if resource == "pr":
-            return f"{base}/pulls/{number}"
+            return f"{base}/pulls" if number is None else f"{base}/pulls/{number}"
         if resource == "issue":
-            return f"{base}/issues/{number}"
+            return f"{base}/issues" if number is None else f"{base}/issues/{number}"
+        if resource == "release":
+            return f"{base}/releases" if number is None else f"{base}/releases/tag/{number}"
+        if resource == "milestone":
+            raise NotSupportedError("GitBucket", "browse milestone")
         if resource == "settings":
             return f"{base}/settings"
         return base

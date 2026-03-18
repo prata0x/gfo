@@ -650,3 +650,55 @@ class TestMigrateOneIssue:
 
         issue_cmd._migrate_one_issue(src, dst, 1, set(), "github:owner/repo")
         src.list_comments.assert_called_once_with("issue", 1, limit=0)
+
+
+class TestHandleListWeb:
+    def setup_method(self):
+        self.config = _make_config()
+        self.issue = _make_issue()
+        self.adapter = _make_adapter(self.issue)
+
+    def test_opens_browser(self):
+        args = make_args(state="open", assignee=None, label=None, limit=30, web=True)
+        with (
+            _patch_all(self.config, self.adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            issue_cmd.handle_list(args, fmt="table")
+        self.adapter.get_web_url.assert_called_once_with("issue")
+        mock_open.assert_called_once_with(self.adapter.get_web_url.return_value)
+
+    def test_does_not_call_api(self):
+        args = make_args(state="open", assignee=None, label=None, limit=30, web=True)
+        with (
+            _patch_all(self.config, self.adapter),
+            patch("webbrowser.open"),
+        ):
+            issue_cmd.handle_list(args, fmt="table")
+        self.adapter.list_issues.assert_not_called()
+
+
+class TestHandleViewWeb:
+    def setup_method(self):
+        self.config = _make_config()
+        self.issue = _make_issue()
+        self.adapter = _make_adapter(self.issue)
+
+    def test_opens_browser(self):
+        args = make_args(number=7, web=True)
+        with (
+            _patch_all(self.config, self.adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            issue_cmd.handle_view(args, fmt="table")
+        self.adapter.get_web_url.assert_called_once_with("issue", 7)
+        mock_open.assert_called_once_with(self.adapter.get_web_url.return_value)
+
+    def test_does_not_call_api(self):
+        args = make_args(number=7, web=True)
+        with (
+            _patch_all(self.config, self.adapter),
+            patch("webbrowser.open"),
+        ):
+            issue_cmd.handle_view(args, fmt="table")
+        self.adapter.get_issue.assert_not_called()
