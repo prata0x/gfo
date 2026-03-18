@@ -522,6 +522,102 @@ class TestProbeUnknownHostRequestException:
         assert probe_unknown_host("git.example.com") is None
 
 
+class TestDetectServiceRemoteOverride:
+    """--remote 指定時の detect_service() 動作。"""
+
+    @patch("gfo.detect.get_remote_url", return_value="https://github.com/owner/repo.git")
+    @patch("gfo.detect.git_config_get", return_value=None)
+    def test_remote_override_uses_specified_remote(self, mock_config, mock_remote):
+        """--remote 指定時に指定リモートの URL を使う。"""
+        from gfo._context import cli_remote
+
+        token = cli_remote.set("upstream")
+        try:
+            r = detect_service()
+            mock_remote.assert_called_once_with(remote="upstream", cwd=None)
+            assert r.service_type == "github"
+        finally:
+            cli_remote.reset(token)
+
+    @patch("gfo.detect.get_remote_url", return_value="https://github.com/owner/repo.git")
+    @patch("gfo.detect.git_config_get")
+    def test_remote_override_skips_git_config_shortcut(self, mock_config, mock_remote):
+        """--remote 指定時は git config ショートカット（gfo.type/gfo.host）をスキップする。"""
+        from gfo._context import cli_remote
+
+        def config_side(key, cwd=None):
+            return {"gfo.type": "gitea", "gfo.host": "git.example.com"}.get(key)
+
+        mock_config.side_effect = config_side
+
+        token = cli_remote.set("upstream")
+        try:
+            r = detect_service()
+            # git config の値ではなく URL から検出した値を使用
+            assert r.service_type == "github"
+            assert r.host == "github.com"
+        finally:
+            cli_remote.reset(token)
+
+
+class TestDetectServiceHostOverride:
+    """--host 指定時の detect_service() 動作。"""
+
+    @patch("gfo.detect.get_remote_url", return_value="https://gitea.local/owner/repo.git")
+    @patch("gfo.detect.git_config_get", return_value=None)
+    def test_host_override_replaces_detected_host(self, mock_config, mock_remote):
+        """--host 指定時に host を上書きし、既知ホストテーブルから再検出する。"""
+        from gfo._context import cli_host
+
+        token = cli_host.set("github.com")
+        try:
+            r = detect_service()
+            assert r.host == "github.com"
+            assert r.service_type == "github"
+            # owner/repo は元の URL から取得
+            assert r.owner == "owner"
+            assert r.repo == "repo"
+        finally:
+            cli_host.reset(token)
+
+    @patch("gfo.detect.probe_unknown_host", return_value="forgejo")
+    @patch("gfo.detect.get_remote_url", return_value="https://github.com/owner/repo.git")
+    @patch("gfo.detect.git_config_get", return_value=None)
+    def test_host_override_triggers_probe_for_unknown_host(
+        self, mock_config, mock_remote, mock_probe
+    ):
+        """--host で未知ホストを指定した場合、プローブが実行される。"""
+        from gfo._context import cli_host
+
+        token = cli_host.set("forgejo.example.com")
+        try:
+            r = detect_service()
+            assert r.host == "forgejo.example.com"
+            assert r.service_type == "forgejo"
+            mock_probe.assert_called_once_with("forgejo.example.com", scheme="https")
+        finally:
+            cli_host.reset(token)
+
+    @patch("gfo.detect.get_remote_url", return_value="https://gitea.local/owner/repo.git")
+    @patch("gfo.detect.git_config_get")
+    def test_host_override_skips_git_config_shortcut(self, mock_config, mock_remote):
+        """--host 指定時は git config ショートカット（gfo.type/gfo.host）をスキップする。"""
+        from gfo._context import cli_host
+
+        def config_side(key, cwd=None):
+            return {"gfo.type": "gitea", "gfo.host": "gitea.local"}.get(key)
+
+        mock_config.side_effect = config_side
+
+        token = cli_host.set("github.com")
+        try:
+            r = detect_service()
+            assert r.service_type == "github"
+            assert r.host == "github.com"
+        finally:
+            cli_host.reset(token)
+
+
 class TestDetectServiceHostsConfig:
     """detect_service で hosts config に一致するサービスが上書きされる。"""
 

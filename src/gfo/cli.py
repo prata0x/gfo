@@ -44,6 +44,7 @@ import gfo.commands.variable
 import gfo.commands.webhook
 import gfo.commands.wiki
 from gfo import __version__
+from gfo._context import cli_host, cli_remote
 from gfo.config import get_configured_output_format
 from gfo.exceptions import ConfigError, GfoError, NotSupportedError
 from gfo.i18n import _
@@ -84,6 +85,22 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         help=_("Apply jq expression to JSON output (implicitly enables --format json)"),
     )
     parser.add_argument("--version", action="version", version=f"gfo {__version__}")
+
+    remote_group = parser.add_mutually_exclusive_group()
+    remote_group.add_argument(
+        "--remote",
+        dest="global_remote",
+        default=None,
+        metavar="REMOTE",
+        help=_("Use specified git remote instead of origin"),
+    )
+    remote_group.add_argument(
+        "--host",
+        dest="global_host",
+        default=None,
+        metavar="HOST",
+        help=_("Override host for service detection"),
+    )
 
     subparsers = parser.add_subparsers(dest="command")
     subparser_map: dict[str, argparse.ArgumentParser] = {}
@@ -1022,32 +1039,40 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 1
 
-    jq_expr = args.jq
-    if jq_expr is not None and not jq_expr:
-        print(_("Error: --jq expression must not be empty."), file=sys.stderr)
-        return 1
-    resolved_fmt = _resolve_format(args.format, jq_expr)
-
-    key = (args.command, getattr(args, "subcommand", None))
-
-    if key not in _DISPATCH:
-        # サブコマンド未指定の場合、該当コマンドの help を表示
-        subparser_map[args.command].print_help()
-        return 1
-
-    handler = _DISPATCH[key]
+    # --remote / --host の ContextVar 設定
+    remote_token = cli_remote.set(getattr(args, "global_remote", None))
+    host_token = cli_host.set(getattr(args, "global_host", None))
 
     try:
-        handler(args, fmt=resolved_fmt, jq=jq_expr)
-        return 0
-    except GfoError as err:
-        if resolved_fmt == "json":
-            print(format_error_json(err), file=sys.stderr)
-        else:
-            print(str(err), file=sys.stderr)
-            if isinstance(err, NotSupportedError) and err.web_url:
-                print(err.web_url)
-        return err.exit_code
-    except Exception as err:  # pragma: no cover
-        print(_("Unexpected error: {err}").format(err=err), file=sys.stderr)
-        return 1
+        jq_expr = args.jq
+        if jq_expr is not None and not jq_expr:
+            print(_("Error: --jq expression must not be empty."), file=sys.stderr)
+            return 1
+        resolved_fmt = _resolve_format(args.format, jq_expr)
+
+        key = (args.command, getattr(args, "subcommand", None))
+
+        if key not in _DISPATCH:
+            # サブコマンド未指定の場合、該当コマンドの help を表示
+            subparser_map[args.command].print_help()
+            return 1
+
+        handler = _DISPATCH[key]
+
+        try:
+            handler(args, fmt=resolved_fmt, jq=jq_expr)
+            return 0
+        except GfoError as err:
+            if resolved_fmt == "json":
+                print(format_error_json(err), file=sys.stderr)
+            else:
+                print(str(err), file=sys.stderr)
+                if isinstance(err, NotSupportedError) and err.web_url:
+                    print(err.web_url)
+            return err.exit_code
+        except Exception as err:  # pragma: no cover
+            print(_("Unexpected error: {err}").format(err=err), file=sys.stderr)
+            return 1
+    finally:
+        cli_remote.reset(remote_token)
+        cli_host.reset(host_token)
