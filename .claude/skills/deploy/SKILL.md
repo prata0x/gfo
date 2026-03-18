@@ -1,20 +1,20 @@
 ---
 name: deploy
-description: pyproject.toml のバージョンでビルド・Git タグ・PyPI 公開を行うデプロイスキル。「デプロイ」「PyPI に公開」「リリース」と言われたときに使う。
+description: src/gfo/__init__.py のバージョンでビルド・Git タグ・PyPI 公開を行うデプロイスキル。「デプロイ」「PyPI に公開」「リリース」と言われたときに使う。
 disable-model-invocation: true
 allowed-tools: Bash, Read
 ---
 
 ## Context
 
-- 現在のバージョン: !`python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])"`
+- 現在のバージョン: !`python -c "from gfo import __version__; print(__version__)"`
 - 現在のブランチ: !`git branch --show-current`
 - 既存タグ一覧: !`git tag --sort=-v:refname | head -5`
 - ワーキングツリー状態: !`git status --short`
 
 ## Your task
 
-pyproject.toml に記載されたバージョンを使い、以下の手順でデプロイを実行する。
+src/gfo/__init__.py に記載されたバージョンを使い、以下の手順でデプロイを実行する。
 
 ### 前提チェック
 
