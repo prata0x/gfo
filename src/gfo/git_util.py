@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import subprocess  # nosec B404
+import warnings
 
 from gfo.exceptions import GitCommandError
 
@@ -42,9 +43,31 @@ def run_git(*args: str, cwd: str | None = None) -> str:
     return result.stdout.strip()
 
 
-def get_remote_url(remote: str = "origin", cwd: str | None = None) -> str:
-    """リモート URL を取得する。"""
-    return run_git("remote", "get-url", remote, cwd=cwd)
+def list_remotes(cwd: str | None = None) -> list[str]:
+    """git remote の一覧を返す。リモートが存在しない/git リポジトリ外の場合は空リスト。"""
+    try:
+        output = run_git("remote", cwd=cwd)
+    except GitCommandError:
+        return []
+    return [line for line in output.splitlines() if line]
+
+
+def get_remote_url(remote: str | None = None, cwd: str | None = None) -> str:
+    """リモート URL を取得する。remote 未指定時は origin → 最初のリモートの順で解決。"""
+    if remote is not None:
+        return run_git("remote", "get-url", remote, cwd=cwd)
+    try:
+        return run_git("remote", "get-url", "origin", cwd=cwd)
+    except GitCommandError:
+        remotes = list_remotes(cwd=cwd)
+        fallback = next((r for r in remotes if r != "origin"), None)
+        if fallback is not None:
+            warnings.warn(
+                f"Remote 'origin' not found; using '{fallback}' instead.",
+                stacklevel=2,
+            )
+            return run_git("remote", "get-url", fallback, cwd=cwd)
+        raise
 
 
 def get_current_branch(cwd: str | None = None) -> str:
@@ -57,16 +80,30 @@ def get_last_commit_subject(cwd: str | None = None) -> str:
     return run_git("log", "-1", "--format=%s", cwd=cwd)
 
 
-def get_default_branch(remote: str = "origin", cwd: str | None = None) -> str:
-    """デフォルトブランチ名を取得する。失敗時は "main" を返す。"""
+def _resolve_symbolic_head(remote: str, cwd: str | None) -> str | None:
+    """リモートの symbolic-ref HEAD を解決する。失敗時は None。"""
     try:
         ref = run_git("symbolic-ref", f"refs/remotes/{remote}/HEAD", cwd=cwd)
     except GitCommandError:
-        return "main"
+        return None
     prefix = f"refs/remotes/{remote}/"
-    if ref.startswith(prefix):
-        return ref[len(prefix) :]
-    return ref
+    return ref[len(prefix) :] if ref.startswith(prefix) else ref
+
+
+def get_default_branch(remote: str | None = None, cwd: str | None = None) -> str:
+    """デフォルトブランチ名を取得する。失敗時は "main" を返す。"""
+    if remote is None:
+        result = _resolve_symbolic_head("origin", cwd)
+        if result is not None:
+            return result
+        remotes = list_remotes(cwd=cwd)
+        fallback = next((r for r in remotes if r != "origin"), None)
+        if fallback is not None:
+            result = _resolve_symbolic_head(fallback, cwd)
+            if result is not None:
+                return result
+        return "main"
+    return _resolve_symbolic_head(remote, cwd) or "main"
 
 
 def git_config_get(key: str, cwd: str | None = None) -> str | None:

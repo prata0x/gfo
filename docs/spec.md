@@ -45,7 +45,7 @@ gfo [--format table|json|plain] [--remote REMOTE] [--version] <command> <subcomm
 | オプション | 値 | デフォルト | 説明 |
 |-----------|---|-----------|------|
 | `--format` | `table` \| `json` \| `plain` | `table` | 出力フォーマット。`config.toml` の `defaults.output` で変更可 |
-| `--remote` | `REMOTE` | — | origin 以外の git remote を使用。指定リモートの URL で検出を行う |
+| `--remote` | `REMOTE` | — | origin 以外の git remote を使用。指定リモートの URL で検出を行う。未指定時は `origin` を使用し、`origin` が存在しない場合は最初に見つかったリモートにフォールバックする |
 | `--version` | — | — | バージョン情報を表示して終了。`__init__.py` の `__version__` を参照 |
 | `--help` | — | — | ヘルプメッセージを表示して終了。argparse のデフォルト動作に委ねる。各サブコマンドも `--help` に対応（argparse 自動生成） |
 

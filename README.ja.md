@@ -123,7 +123,7 @@ gfo auth status
 |---|---|---|
 | `--format {table,json,plain}` | 出力形式 | `table` |
 | `--jq EXPRESSION` | JSON 出力に jq フィルタを適用（`--format json` を暗黙有効化） | — |
-| `--remote REMOTE` | origin 以外の git remote を使用 | — |
+| `--remote REMOTE` | origin 以外の git remote を使用（未指定時は `origin`、`origin` が存在しない場合は最初に見つかったリモートにフォールバック） | — |
 | `--version` | バージョン表示 | — |
 
 ## 設定

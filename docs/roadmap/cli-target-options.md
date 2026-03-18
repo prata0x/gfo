@@ -103,27 +103,27 @@
 
 ### 4.1 `--host` 廃止（破壊的変更）
 
-- [ ] `cli.py`: `--host` (`dest="global_host"`) オプションの削除
-- [ ] `_context.py`: `cli_host` ContextVar の削除
-- [ ] `detect.py`: `detect_service()` 内の `cli_host` 参照ロジックの削除
-- [ ] `cli.py:main()`: `cli_host` 設定ロジックの削除
-- [ ] テスト: `--host` 関連テストの削除・更新
+- [x] `cli.py`: `--host` (`dest="global_host"`) オプションの削除
+- [x] `_context.py`: `cli_host` ContextVar の削除
+- [x] `detect.py`: `detect_service()` 内の `cli_host` 参照ロジックの削除
+- [x] `cli.py:main()`: `cli_host` 設定ロジックの削除
+- [x] テスト: `--host` 関連テストの削除・更新
 
 ### 4.2 リモート解決のフォールバック実装
 
-- [ ] `git_util.py`: `get_remote_url()` に origin が見つからない場合のフォールバック追加（最初のリモートを使用）
-- [ ] `git_util.py`: `get_default_branch()` も同様にフォールバック対応
-- [ ] テスト: origin 不在時のフォールバック動作テスト追加
+- [x] `git_util.py`: `get_remote_url()` に origin が見つからない場合のフォールバック追加（最初のリモートを使用）
+- [x] `git_util.py`: `get_default_branch()` も同様にフォールバック対応
+- [x] テスト: origin 不在時のフォールバック動作テスト追加
 
 ### 4.3 ドキュメント更新
 
-- [ ] `docs/commands.md` / `docs/commands.ja.md`: `--host` オプションの記載削除
-- [ ] `docs/spec.md`: `--host` 関連の記載更新
-- [ ] `README.md` / `README.ja.md`: `--host` 記載があれば削除
+- [x] `docs/commands.md` / `docs/commands.ja.md`: `--remote` のフォールバック動作を追記
+- [x] `docs/spec.md`: `--remote` のフォールバック動作を追記
+- [x] `README.md` / `README.ja.md`: `--remote` のフォールバック動作を追記
 
 ### 4.4 ルールファイル更新
 
-- [ ] `.claude/rules/09-config-auth.md`: `--remote` / `--host` セクションから `--host` 関連を削除し、フォールバック動作を記載
+- [x] `.claude/rules/09-config-auth.md`: リモート解決のフォールバック動作を記載
 
 ---
 

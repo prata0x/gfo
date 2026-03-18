@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+import warnings
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -66,6 +67,23 @@ class TestRunGit:
             git_util.run_git("status")
 
 
+class TestListRemotes:
+    @patch("gfo.git_util.subprocess.run")
+    def test_success(self, mock_run):
+        mock_run.return_value = _mock_result(stdout="origin\nupstream\n")
+        assert git_util.list_remotes() == ["origin", "upstream"]
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_no_remotes(self, mock_run):
+        mock_run.return_value = _mock_result(stdout="")
+        assert git_util.list_remotes() == []
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_git_error_returns_empty(self, mock_run):
+        mock_run.return_value = _mock_result(stderr="fatal: not a git repository", returncode=128)
+        assert git_util.list_remotes() == []
+
+
 class TestGetRemoteUrl:
     @patch("gfo.git_util.subprocess.run")
     def test_success(self, mock_run):
@@ -77,6 +95,56 @@ class TestGetRemoteUrl:
         mock_run.return_value = _mock_result(stderr="fatal: not found", returncode=2)
         with pytest.raises(GitCommandError):
             git_util.get_remote_url("upstream")
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_fallback_to_first_remote(self, mock_run):
+        """origin 失敗時、最初の非 origin リモートにフォールバックする。"""
+        mock_run.side_effect = [
+            # get_remote_url: git remote get-url origin → 失敗
+            _mock_result(stderr="fatal: No such remote 'origin'", returncode=2),
+            # list_remotes: git remote → upstream
+            _mock_result(stdout="upstream\n"),
+            # get_remote_url: git remote get-url upstream → 成功
+            _mock_result(stdout="https://github.com/user/repo.git\n"),
+        ]
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            assert git_util.get_remote_url() == "https://github.com/user/repo.git"
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_fallback_emits_warning(self, mock_run):
+        """フォールバック時に警告が発生する。"""
+        mock_run.side_effect = [
+            _mock_result(stderr="fatal: No such remote 'origin'", returncode=2),
+            _mock_result(stdout="upstream\n"),
+            _mock_result(stdout="https://github.com/user/repo.git\n"),
+        ]
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            git_util.get_remote_url()
+            assert len(w) == 1
+            assert "origin" in str(w[0].message)
+            assert "upstream" in str(w[0].message)
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_no_remotes_raises(self, mock_run):
+        """origin 失敗 + リモートなし → GitCommandError。"""
+        mock_run.side_effect = [
+            _mock_result(stderr="fatal: No such remote 'origin'", returncode=2),
+            _mock_result(stdout=""),
+        ]
+        with pytest.raises(GitCommandError):
+            git_util.get_remote_url()
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_explicit_remote_no_fallback(self, mock_run):
+        """明示指定時はフォールバックしない。"""
+        mock_run.return_value = _mock_result(
+            stderr="fatal: No such remote 'upstream'", returncode=2
+        )
+        with pytest.raises(GitCommandError):
+            git_util.get_remote_url("upstream")
+        assert mock_run.call_count == 1
 
 
 class TestGetCurrentBranch:
@@ -117,6 +185,39 @@ class TestGetDefaultBranch:
         """prefix なしの ref はそのまま返される。"""
         mock_run.return_value = _mock_result(stdout="main\n")
         assert git_util.get_default_branch() == "main"
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_fallback_to_first_remote(self, mock_run):
+        """origin 失敗時、最初の非 origin リモートの HEAD にフォールバックする。"""
+        mock_run.side_effect = [
+            # _resolve_symbolic_head("origin"): 失敗
+            _mock_result(stderr="fatal: ref not found", returncode=1),
+            # list_remotes: git remote → upstream
+            _mock_result(stdout="upstream\n"),
+            # _resolve_symbolic_head("upstream"): 成功
+            _mock_result(stdout="refs/remotes/upstream/develop\n"),
+        ]
+        assert git_util.get_default_branch() == "develop"
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_fallback_all_fail_returns_main(self, mock_run):
+        """origin も fallback も失敗 → "main"。"""
+        mock_run.side_effect = [
+            # _resolve_symbolic_head("origin"): 失敗
+            _mock_result(stderr="fatal: ref not found", returncode=1),
+            # list_remotes: git remote → upstream
+            _mock_result(stdout="upstream\n"),
+            # _resolve_symbolic_head("upstream"): 失敗
+            _mock_result(stderr="fatal: ref not found", returncode=1),
+        ]
+        assert git_util.get_default_branch() == "main"
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_explicit_remote_no_fallback(self, mock_run):
+        """明示指定時はフォールバックしない。"""
+        mock_run.return_value = _mock_result(stderr="fatal: ref not found", returncode=1)
+        assert git_util.get_default_branch("upstream") == "main"
+        assert mock_run.call_count == 1
 
 
 class TestGitConfigGet:

@@ -57,3 +57,9 @@ paths:
 - 指定時 → git config ショートカット（`gfo.type`/`gfo.host`）をスキップ
 - 指定リモートの URL で `get_remote_url(remote=...)` を呼ぶ
 - `dest` は `global_remote`（`init --host` との衝突回避）
+
+## リモート解決のフォールバック
+
+- `get_remote_url()` / `get_default_branch()` のデフォルトリモート解決順: origin → 最初の非 origin リモート
+- フォールバック時は `warnings.warn()` で通知（`get_remote_url` のみ）
+- 明示的に `remote=` を渡した場合はフォールバックしない
