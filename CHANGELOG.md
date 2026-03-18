@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-03-18
+
+### Added
+
+- `--repo` global option (specify target repository by URL or `HOST/OWNER/REPO`)
+- `--remote` / `--host` global options and remote resolution fallback (origin → first available remote)
+- Phase 1–6 multi-service feature expansion (50+ subcommands: PR operations, release/repo management, CI/security/org, issue/search/niche, batch/migrate)
+- All `add_parser()` / `add_argument()` calls now include `help=_()` for schema output
+
+### Fixed
+
+- Schema output descriptions now always use English regardless of locale
+- Eliminate dual version management (unified to hatchling dynamic version)
+
+### Other
+
+- Remove completed roadmap documents
+
 ## [0.2.2] - 2026-03-17
 
 ### Added
