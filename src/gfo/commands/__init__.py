@@ -22,7 +22,7 @@ def get_adapter_with_config() -> tuple[GitServiceAdapter, ProjectConfig]:
     return create_adapter(config), config
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ServiceSpec:
     """サービス指定文字列をパースした結果を保持するデータクラス。"""
 
@@ -145,14 +145,14 @@ def parse_service_spec(spec: str) -> ServiceSpec:
         )
     else:
         segments = owner_repo_part.split("/")
-        if len(segments) != 2 or not segments[0] or not segments[1]:
+        if len(segments) < 2 or not all(segments):
             raise ConfigError(
                 _(
                     "Invalid service spec format: {spec}. Expected 'service:owner/repo' or 'service:host:owner/repo'."
                 ).format(spec=spec)
             )
-        owner = segments[0]
-        repo = segments[1]
+        owner = "/".join(segments[:-1])
+        repo = segments[-1]
         return ServiceSpec(
             service_type=service_type,
             host=host,

@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import json
+
+import pytest
+
 from gfo.adapter.base import Commit, Issue, PullRequest, Repository
 from gfo.commands import search as search_cmd
+from gfo.exceptions import HttpError
 from tests.test_commands.conftest import make_args, patch_adapter
 
 SAMPLE_REPO = Repository(
@@ -37,6 +42,23 @@ class TestHandleRepos:
             search_cmd.handle_repos(args, fmt="table")
         adapter.search_repositories.assert_called_once_with("test", limit=10)
 
+    def test_json_output(self, capsys):
+        with patch_adapter("gfo.commands.search") as adapter:
+            adapter.search_repositories.return_value = [SAMPLE_REPO]
+            args = make_args(query="test", limit=10)
+            search_cmd.handle_repos(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert isinstance(data, list)
+        assert data[0]["full_name"] == "owner/test-repo"
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.search") as adapter:
+            adapter.search_repositories.side_effect = HttpError(500, "Server error")
+            args = make_args(query="test", limit=10)
+            with pytest.raises(HttpError):
+                search_cmd.handle_repos(args, fmt="table")
+
 
 class TestHandleIssues:
     def test_calls_search_issues(self, capsys):
@@ -45,6 +67,23 @@ class TestHandleIssues:
             args = make_args(query="bug", limit=20)
             search_cmd.handle_issues(args, fmt="table")
         adapter.search_issues.assert_called_once_with("bug", limit=20)
+
+    def test_json_output(self, capsys):
+        with patch_adapter("gfo.commands.search") as adapter:
+            adapter.search_issues.return_value = [SAMPLE_ISSUE]
+            args = make_args(query="bug", limit=20)
+            search_cmd.handle_issues(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert isinstance(data, list)
+        assert data[0]["title"] == "Found Issue"
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.search") as adapter:
+            adapter.search_issues.side_effect = HttpError(500, "Server error")
+            args = make_args(query="bug", limit=20)
+            with pytest.raises(HttpError):
+                search_cmd.handle_issues(args, fmt="table")
 
 
 # --- Phase 5: search prs / search commits ---
@@ -79,6 +118,23 @@ class TestHandlePrs:
             search_cmd.handle_prs(args, fmt="table")
         adapter.search_pull_requests.assert_called_once_with("bug", state=None, limit=30)
 
+    def test_json_output(self, capsys):
+        with patch_adapter("gfo.commands.search") as adapter:
+            adapter.search_pull_requests.return_value = [SAMPLE_PR]
+            args = make_args(query="bug", state=None, limit=30)
+            search_cmd.handle_prs(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert isinstance(data, list)
+        assert data[0]["title"] == "Found PR"
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.search") as adapter:
+            adapter.search_pull_requests.side_effect = HttpError(500, "Server error")
+            args = make_args(query="bug", state=None, limit=30)
+            with pytest.raises(HttpError):
+                search_cmd.handle_prs(args, fmt="table")
+
 
 class TestHandleCommits:
     def test_calls_search_commits(self, capsys):
@@ -89,3 +145,20 @@ class TestHandleCommits:
         adapter.search_commits.assert_called_once_with(
             "fix", author=None, since=None, until=None, limit=30
         )
+
+    def test_json_output(self, capsys):
+        with patch_adapter("gfo.commands.search") as adapter:
+            adapter.search_commits.return_value = [SAMPLE_COMMIT]
+            args = make_args(query="fix", author=None, since=None, until=None, limit=30)
+            search_cmd.handle_commits(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert isinstance(data, list)
+        assert data[0]["sha"] == "abc123"
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.search") as adapter:
+            adapter.search_commits.side_effect = HttpError(500, "Server error")
+            args = make_args(query="fix", author=None, since=None, until=None, limit=30)
+            with pytest.raises(HttpError):
+                search_cmd.handle_commits(args, fmt="table")

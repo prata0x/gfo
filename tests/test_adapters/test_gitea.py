@@ -2525,3 +2525,38 @@ class TestMigrateRepository:
         assert body["description"] == "desc"
         assert body["auth_token"] == "tok"
         assert body["repo_owner"] == "test-owner"
+
+
+# ── C-01: download_release_asset パストラバーサル防止 ──
+
+
+class TestDownloadReleaseAssetPathTraversal:
+    @responses.activate
+    def test_traversal_name_sanitized(self, gitea_adapter, tmp_path):
+        """アセット名に ../ を含む場合に basename でサニタイズされることを検証する。"""
+        responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json={"id": 1, "tag_name": "v1.0.0"},
+        )
+        responses.add(
+            responses.GET,
+            f"{REPOS}/releases/1/assets/1",
+            json={
+                "name": "../malicious.bin",
+                "id": 1,
+                "browser_download_url": f"{REPOS}/releases/1/assets/1",
+            },
+        )
+        responses.add(
+            responses.GET,
+            f"{REPOS}/releases/1/assets/1",
+            body=b"content",
+        )
+        result = gitea_adapter.download_release_asset(
+            tag="v1.0.0", asset_id=1, output_dir=str(tmp_path)
+        )
+        import os
+
+        assert os.path.basename(result) == "malicious.bin"
+        assert os.path.dirname(os.path.realpath(result)) == os.path.realpath(str(tmp_path))

@@ -6,6 +6,7 @@ import argparse
 
 from gfo.commands import get_adapter
 from gfo.exceptions import ConfigError
+from gfo.i18n import _
 from gfo.output import output
 
 
@@ -37,7 +38,9 @@ def handle_trigger(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
         inputs_dict = {}
         for item in args.input:
             if "=" not in item:
-                raise ConfigError(f"Invalid input format: '{item}'. Expected KEY=VALUE.")
+                raise ConfigError(
+                    _("Invalid input format: '{item}'. Expected KEY=VALUE.").format(item=item)
+                )
             k, v = item.split("=", 1)
             inputs_dict[k] = v
     pipeline = adapter.trigger_pipeline(

@@ -2654,3 +2654,95 @@ class TestIssueTimeline:
         result = github_adapter.get_issue_timeline(1)
         assert len(result) == 1
         assert result[0].event == "labeled"
+
+
+# ── C-01: download_release_asset パストラバーサル防止 ──
+
+
+class TestDownloadReleaseAssetPathTraversal:
+    @responses.activate
+    def test_traversal_name_sanitized(self, github_adapter, tmp_path):
+        """アセット名に ../ を含む場合に basename でサニタイズされることを検証する。"""
+        responses.add(
+            responses.GET,
+            f"{REPOS}/releases/assets/1",
+            json={"name": "../malicious.bin", "id": 1},
+        )
+        responses.add(
+            responses.GET,
+            f"{REPOS}/releases/assets/1",
+            body=b"content",
+            headers={"Content-Type": "application/octet-stream"},
+        )
+        result = github_adapter.download_release_asset(
+            tag="v1.0.0", asset_id=1, output_dir=str(tmp_path)
+        )
+        import os
+
+        # ディレクトリ成分が除去され、output_dir 内に保存される
+        assert os.path.basename(result) == "malicious.bin"
+        assert os.path.dirname(os.path.realpath(result)) == os.path.realpath(str(tmp_path))
+
+    @responses.activate
+    def test_safe_name_accepted(self, github_adapter, tmp_path):
+        """正常なアセット名はパストラバーサルチェックを通過する。"""
+        responses.add(
+            responses.GET,
+            f"{REPOS}/releases/assets/1",
+            json={"name": "app.zip", "id": 1},
+        )
+        responses.add(
+            responses.GET,
+            f"{REPOS}/releases/assets/1",
+            body=b"content",
+            headers={"Content-Type": "application/octet-stream"},
+        )
+        result = github_adapter.download_release_asset(
+            tag="v1.0.0", asset_id=1, output_dir=str(tmp_path)
+        )
+        assert "app.zip" in result
+
+
+# ── C-04: upload_release_asset が upload_url を使用する ──
+
+
+class TestUploadReleaseAssetUrl:
+    @responses.activate
+    def test_upload_uses_upload_url_from_release(self, github_adapter, tmp_path):
+        """upload_release_asset が release の upload_url を使用することを検証する。"""
+        test_file = tmp_path / "asset.zip"
+        test_file.write_bytes(b"zip content")
+        upload_url = "https://uploads.github.com/repos/test-owner/test-repo/releases/1/assets"
+        responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json={
+                "id": 1,
+                "tag_name": "v1.0.0",
+                "name": "v1.0.0",
+                "body": "",
+                "draft": False,
+                "prerelease": False,
+                "created_at": "2024-01-01T00:00:00Z",
+                "author": {"login": "user"},
+                "upload_url": upload_url + "{?name,label}",
+            },
+        )
+        responses.add(
+            responses.POST,
+            upload_url,
+            json={
+                "id": 1,
+                "name": "asset.zip",
+                "size": 11,
+                "browser_download_url": "https://example.com/asset.zip",
+                "created_at": "2024-01-01T00:00:00Z",
+            },
+            status=201,
+        )
+        result = github_adapter.upload_release_asset(
+            tag="v1.0.0", file_path=str(test_file), name="asset.zip"
+        )
+        assert result.name == "asset.zip"
+        # アップロード先が uploads.github.com であることを検証
+        assert "uploads.github.com" in responses.calls[1].request.url

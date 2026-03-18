@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from gfo.adapter.base import Review
 from gfo.commands import review as review_cmd
-from gfo.exceptions import ConfigError
+from gfo.exceptions import ConfigError, HttpError
 from tests.test_commands.conftest import make_args, patch_adapter
 
 SAMPLE_REVIEW = Review(
@@ -35,6 +37,23 @@ class TestHandleList:
         out = capsys.readouterr().out
         assert "approved" in out
 
+    def test_json_output(self, capsys):
+        with patch_adapter("gfo.commands.review") as adapter:
+            adapter.list_reviews.return_value = [SAMPLE_REVIEW]
+            args = make_args(number=1)
+            review_cmd.handle_list(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert isinstance(data, list)
+        assert data[0]["state"] == "approved"
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.review") as adapter:
+            adapter.list_reviews.side_effect = HttpError(500, "Server error")
+            args = make_args(number=1)
+            with pytest.raises(HttpError):
+                review_cmd.handle_list(args, fmt="table")
+
 
 class TestHandleCreate:
     def test_approve(self):
@@ -59,6 +78,23 @@ class TestHandleCreate:
             with pytest.raises(ConfigError):
                 review_cmd.handle_create(args, fmt="table")
 
+    def test_json_output(self, capsys):
+        with patch_adapter("gfo.commands.review") as adapter:
+            adapter.create_review.return_value = SAMPLE_REVIEW
+            args = make_args(number=1, approve=True, request_changes=False, comment=False, body="")
+            review_cmd.handle_create(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert isinstance(data, list)
+        assert data[0]["state"] == "approved"
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.review") as adapter:
+            adapter.create_review.side_effect = HttpError(403, "Forbidden")
+            args = make_args(number=1, approve=True, request_changes=False, comment=False, body="")
+            with pytest.raises(HttpError):
+                review_cmd.handle_create(args, fmt="table")
+
 
 class TestHandleDismiss:
     def test_calls_dismiss_review(self):
@@ -72,3 +108,10 @@ class TestHandleDismiss:
             args = make_args(number=1, review_id=10, message=None)
             review_cmd.handle_dismiss(args, fmt="table")
         adapter.dismiss_review.assert_called_once_with(1, 10, message="")
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.review") as adapter:
+            adapter.dismiss_review.side_effect = HttpError(404, "Not found")
+            args = make_args(number=1, review_id=42, message="outdated")
+            with pytest.raises(HttpError):
+                review_cmd.handle_dismiss(args, fmt="table")

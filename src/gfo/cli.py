@@ -721,7 +721,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     ssh_key_create.add_argument("--title", required=True)
     ssh_key_create.add_argument("--key", required=True)
     ssh_key_delete = ssh_key_sub.add_parser("delete")
-    ssh_key_delete.add_argument("id")
+    ssh_key_delete.add_argument("id", type=int)
 
     # gfo gpg-key → サブサブコマンド
     gpg_key_parser = subparser_map["gpg-key"] = subparsers.add_parser(
@@ -733,7 +733,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     gpg_key_create = gpg_key_sub.add_parser("create")
     gpg_key_create.add_argument("--key", required=True)
     gpg_key_delete = gpg_key_sub.add_parser("delete")
-    gpg_key_delete.add_argument("id")
+    gpg_key_delete.add_argument("id", type=int)
 
     # gfo secret → サブサブコマンド
     secret_parser = subparser_map["secret"] = subparsers.add_parser(

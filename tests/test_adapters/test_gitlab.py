@@ -2699,3 +2699,57 @@ class TestMigrateRepository:
 
         body = json_mod.loads(responses.calls[0].request.body)
         assert "oauth2:tok@" in body["import_url"]
+
+
+# ── C-01: download_release_asset パストラバーサル防止 ──
+
+
+class TestDownloadReleaseAssetPathTraversal:
+    @responses.activate
+    def test_traversal_name_sanitized(self, gitlab_adapter, tmp_path):
+        """アセット名に ../ を含む場合に basename でサニタイズされることを検証する。"""
+        responses.add(
+            responses.GET,
+            f"{PROJECT}/releases/v1.0.0/assets/links/1",
+            json={
+                "name": "../malicious.bin",
+                "id": 1,
+                "direct_asset_url": "https://example.com/file",
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://example.com/file",
+            body=b"content",
+        )
+        result = gitlab_adapter.download_release_asset(
+            tag="v1.0.0", asset_id=1, output_dir=str(tmp_path)
+        )
+        import os
+
+        assert os.path.basename(result) == "malicious.bin"
+        assert os.path.dirname(os.path.realpath(result)) == os.path.realpath(str(tmp_path))
+
+
+# ── C-03: migrate_repository トークンマスク ──
+
+
+class TestMigrateRepositoryTokenMask:
+    @responses.activate
+    def test_token_masked_on_error(self, gitlab_adapter):
+        """migrate_repository のエラーメッセージからトークンがマスクされることを検証する。"""
+        from gfo.exceptions import GfoError
+
+        responses.add(
+            responses.POST,
+            f"{BASE}/projects",
+            json={"message": "import failed"},
+            status=500,
+        )
+        with pytest.raises(GfoError) as exc_info:
+            gitlab_adapter.migrate_repository(
+                "https://github.com/old/repo.git",
+                "migrated",
+                auth_token="super-secret-token",
+            )
+        assert "super-secret-token" not in str(exc_info.value)

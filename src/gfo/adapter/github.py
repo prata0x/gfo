@@ -5,6 +5,9 @@ from __future__ import annotations
 import base64
 from urllib.parse import quote
 
+import requests
+
+from gfo.exceptions import GfoError
 from gfo.http import paginate_link_header
 
 from .base import (
@@ -162,7 +165,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def list_issue_templates(self) -> list[IssueTemplate]:
         try:
             resp = self._client.get(f"{self._repos_path()}/contents/.github/ISSUE_TEMPLATE")
-        except Exception:
+        except (GfoError, requests.RequestException, KeyError, ValueError):
             return []
         files = resp.json()
         if not isinstance(files, list):
@@ -182,7 +185,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 )
                 template = self._parse_issue_template(content)
                 templates.append(template)
-            except Exception:  # nosec B112 — テンプレートファイル個別の取得失敗はスキップ
+            except (GfoError, requests.RequestException, KeyError, ValueError):
                 continue
         return templates
 
@@ -250,8 +253,14 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def delete_repository(self) -> None:
         self._client.delete(self._repos_path())
 
-    def update_repository(self, *, description=None, private=None, default_branch=None):
-        payload = {}
+    def update_repository(
+        self,
+        *,
+        description: str | None = None,
+        private: bool | None = None,
+        default_branch: str | None = None,
+    ) -> Repository:
+        payload: dict = {}
         if description is not None:
             payload["description"] = description
         if private is not None:
@@ -261,34 +270,22 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.patch(self._repos_path(), json=payload)
         return self._to_repository(resp.json())
 
-    def archive_repository(self):
+    def archive_repository(self) -> None:
         self._client.patch(self._repos_path(), json={"archived": True})
 
-    def get_languages(self):
+    def get_languages(self) -> dict[str, int | float]:
         resp = self._client.get(f"{self._repos_path()}/languages")
         return dict(resp.json())
 
-    def list_topics(self):
+    def list_topics(self) -> list[str]:
         resp = self._client.get(f"{self._repos_path()}/topics")
         return list(resp.json().get("names", []))
 
-    def set_topics(self, topics):
+    def set_topics(self, topics: list[str]) -> list[str]:
         resp = self._client.put(f"{self._repos_path()}/topics", json={"names": topics})
         return list(resp.json().get("names", []))
 
-    def add_topic(self, topic):
-        current = self.list_topics()
-        if topic not in current:
-            current.append(topic)
-        return self.set_topics(current)
-
-    def remove_topic(self, topic):
-        current = self.list_topics()
-        if topic in current:
-            current.remove(topic)
-        return self.set_topics(current)
-
-    def compare(self, base, head):
+    def compare(self, base: str, head: str) -> CompareResult:
         resp = self._client.get(
             f"{self._repos_path()}/compare/{quote(base, safe='')}...{quote(head, safe='')}"
         )
@@ -403,18 +400,25 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return [self._to_release_asset(a) for a in assets]
 
     def upload_release_asset(self, *, tag, file_path, name=None):
+        import re
+
         resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
-        release_id = resp.json()["id"]
-        upload_path = f"/repos/{quote(self._owner, safe='')}/{quote(self._repo, safe='')}/releases/{release_id}/assets"
-        resp = self._client.upload_file(upload_path, file_path, name=name)
+        release_data = resp.json()
+        upload_url = release_data.get("upload_url", "")
+        upload_url = re.sub(r"\{[^}]*\}", "", upload_url)
+        resp = self._client.upload_file_absolute(upload_url, file_path, name=name)
         return self._to_release_asset(resp.json())
 
     def download_release_asset(self, *, tag, asset_id, output_dir):
         import os
 
+        from gfo.exceptions import GfoError
+
         meta_resp = self._client.get(f"{self._repos_path()}/releases/assets/{asset_id}")
-        asset_name = meta_resp.json().get("name", f"asset-{asset_id}")
+        asset_name = os.path.basename(meta_resp.json().get("name", f"asset-{asset_id}"))
         output_path = os.path.join(output_dir, asset_name)
+        if not os.path.realpath(output_path).startswith(os.path.realpath(output_dir)):
+            raise GfoError(f"Invalid asset name: {asset_name}")
         url = f"{self._client.base_url}{self._repos_path()}/releases/assets/{asset_id}"
         self._client.download_file(url, output_path, headers={"Accept": "application/octet-stream"})
         return output_path
@@ -1017,7 +1021,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                     headers={"Accept": "application/vnd.github.v3+json"},
                 )
                 logs.append(f"=== {job.get('name', job['id'])} ===\n{resp.text}")
-            except Exception:
+            except (GfoError, requests.RequestException):
                 logs.append(f"=== {job.get('name', job['id'])} ===\n(log unavailable)")
         return "\n".join(logs)
 

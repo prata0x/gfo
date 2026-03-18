@@ -378,3 +378,30 @@ class TestServiceSpecFrozen:
         spec = ServiceSpec(service_type="github", host="github.com", owner="owner", repo="repo")
         with pytest.raises(AttributeError):
             spec.host = "other.com"  # type: ignore[misc]
+
+
+# ── W-05: GitLab サブグループ対応 ──
+
+
+class TestGitLabSubgroup:
+    def test_subgroup_two_levels(self):
+        result = parse_service_spec("gitlab:group/subgroup/repo")
+        assert result == ServiceSpec(
+            service_type="gitlab", host="gitlab.com", owner="group/subgroup", repo="repo"
+        )
+
+    def test_subgroup_three_levels(self):
+        result = parse_service_spec("gitlab:group/sub1/sub2/repo")
+        assert result == ServiceSpec(
+            service_type="gitlab", host="gitlab.com", owner="group/sub1/sub2", repo="repo"
+        )
+
+    def test_subgroup_with_custom_host(self):
+        result = parse_service_spec("gitlab:git.example.com:group/subgroup/repo")
+        assert result == ServiceSpec(
+            service_type="gitlab", host="git.example.com", owner="group/subgroup", repo="repo"
+        )
+
+    def test_single_segment_still_fails(self):
+        with pytest.raises(ConfigError):
+            parse_service_spec("gitlab:onlyone")

@@ -738,7 +738,7 @@ Manage push mirrors.
 gfo repo mirror list
 gfo repo mirror add URL [--interval INTERVAL]
 gfo repo mirror remove MIRROR_ID
-gfo repo mirror sync [MIRROR_ID]
+gfo repo mirror sync
 ```
 
 | Option | Description |
@@ -752,7 +752,6 @@ gfo repo mirror list
 gfo repo mirror add https://github.com/user/mirror.git
 gfo repo mirror remove 1
 gfo repo mirror sync        # Sync all mirrors
-gfo repo mirror sync 1      # Sync specific mirror
 ```
 
 ### gfo repo transfer
@@ -945,19 +944,17 @@ Copy labels from another repository.
 > **Supported services**: GitHub, GitLab, Gitea, Forgejo, GitBucket (Azure DevOps: partial support)
 
 ```
-gfo label clone SOURCE_REPO [--host HOST] [--overwrite]
+gfo label clone --from SOURCE [--overwrite]
 ```
 
 | Option | Description |
 |---|---|
-| `SOURCE_REPO` | Source repository (`owner/name` format) |
-| `--host` | Source hostname (defaults to current host) |
+| `--from SOURCE` | Source repository (`owner/name` format) |
 | `--overwrite` | Overwrite existing labels |
 
 ```bash
-gfo label clone alice/my-project
-gfo label clone alice/my-project --overwrite
-gfo label clone alice/other-repo --host github.com
+gfo label clone --from alice/my-project
+gfo label clone --from alice/my-project --overwrite
 ```
 
 ---
@@ -1102,7 +1099,7 @@ gfo comment delete 12345 --on issue
 
 Operate PR reviews.
 
-> **Supported services**: GitHub, GitLab
+> **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
 
 ### gfo review list
 
@@ -2134,36 +2131,36 @@ gfo package list --type npm --limit 10
 ### gfo package view
 
 ```
-gfo package view NAME [--type TYPE] [--version VERSION]
+gfo package view PACKAGE_TYPE NAME [--version VERSION]
 ```
 
 | Option | Description |
 |---|---|
+| `PACKAGE_TYPE` | Package type (e.g., `npm`, `maven`, `docker`) |
 | `NAME` | Package name |
-| `--type` | Package type |
 | `--version` | Show details for a specific version |
 
 ```bash
-gfo package view my-package --type npm
-gfo package view my-package --type npm --version 1.0.0
+gfo package view npm my-package
+gfo package view npm my-package --version 1.0.0
 ```
 
 ### gfo package delete
 
 ```
-gfo package delete NAME [--type TYPE] [--version VERSION] [--yes]
+gfo package delete PACKAGE_TYPE NAME VERSION [--yes]
 ```
 
 | Option | Description |
 |---|---|
+| `PACKAGE_TYPE` | Package type (e.g., `npm`, `maven`, `docker`) |
 | `NAME` | Package name |
-| `--type` | Package type |
-| `--version` | Version to delete (deletes entire package if omitted) |
+| `VERSION` | Version to delete |
 | `--yes`, `-y` | Skip confirmation prompt |
 
 ```bash
-gfo package delete my-package --type npm --version 1.0.0
-gfo package delete my-package --type npm --yes
+gfo package delete npm my-package 1.0.0
+gfo package delete npm my-package 1.0.0 --yes
 ```
 
 ---

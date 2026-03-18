@@ -451,6 +451,10 @@ class TestDeleteInheritance:
         forgejo_adapter.delete_repository()
         assert mock_responses.calls[0].request.method == "DELETE"
 
+
+class TestListIssueTemplates:
+    """list_issue_templates のテスト。"""
+
     def test_list_issue_templates(self, mock_responses, forgejo_adapter):
         mock_responses.add(
             responses.GET,

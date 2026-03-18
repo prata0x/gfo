@@ -563,3 +563,90 @@ class TestParseDuration:
     def test_invalid_format_raises(self):
         with pytest.raises(ConfigError):
             issue_cmd._parse_duration("invalid")
+
+
+# --- C-09: Issue migrate が closed issue の状態を保持する ---
+
+
+class TestMigrateOneIssue:
+    def test_closed_issue_is_closed_on_target(self):
+        """closed 状態の Issue を移行すると、ターゲット側でも close_issue が呼ばれる。"""
+
+        closed_issue = Issue(
+            number=10,
+            title="Closed Issue",
+            body="body",
+            state="closed",
+            author="alice",
+            assignees=[],
+            labels=[],
+            url="https://example.com/issues/10",
+            created_at="2024-01-01T00:00:00Z",
+        )
+        created_issue = Issue(
+            number=20,
+            title="Closed Issue",
+            body="migrated body",
+            state="open",
+            author="bot",
+            assignees=[],
+            labels=[],
+            url="https://example.com/issues/20",
+            created_at="2024-01-01T00:00:00Z",
+        )
+        src = MagicMock()
+        dst = MagicMock()
+        src.get_issue.return_value = closed_issue
+        src.list_comments.return_value = []
+        dst.create_issue.return_value = created_issue
+
+        result = issue_cmd._migrate_one_issue(src, dst, 10, set(), "github:owner/repo")
+        assert result.success is True
+        assert result.target_number == 20
+        dst.close_issue.assert_called_once_with(20)
+
+    def test_open_issue_not_closed_on_target(self):
+        """open 状態の Issue を移行すると、close_issue は呼ばれない。"""
+        open_issue = Issue(
+            number=10,
+            title="Open Issue",
+            body="body",
+            state="open",
+            author="alice",
+            assignees=[],
+            labels=[],
+            url="https://example.com/issues/10",
+            created_at="2024-01-01T00:00:00Z",
+        )
+        created_issue = Issue(
+            number=20,
+            title="Open Issue",
+            body="migrated body",
+            state="open",
+            author="bot",
+            assignees=[],
+            labels=[],
+            url="https://example.com/issues/20",
+            created_at="2024-01-01T00:00:00Z",
+        )
+        src = MagicMock()
+        dst = MagicMock()
+        src.get_issue.return_value = open_issue
+        src.list_comments.return_value = []
+        dst.create_issue.return_value = created_issue
+
+        result = issue_cmd._migrate_one_issue(src, dst, 10, set(), "github:owner/repo")
+        assert result.success is True
+        dst.close_issue.assert_not_called()
+
+    def test_comments_fetched_with_limit_zero(self):
+        """コメント取得時に limit=0 で全件取得されることを検証する。"""
+        open_issue = _make_issue()
+        src = MagicMock()
+        dst = MagicMock()
+        src.get_issue.return_value = open_issue
+        src.list_comments.return_value = []
+        dst.create_issue.return_value = open_issue
+
+        issue_cmd._migrate_one_issue(src, dst, 1, set(), "github:owner/repo")
+        src.list_comments.assert_called_once_with("issue", 1, limit=0)

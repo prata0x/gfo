@@ -36,7 +36,10 @@ def handle_api(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
     path = args.path
     headers = _parse_headers(getattr(args, "header", None))
     data = getattr(args, "data", None)
-    json_data = json.loads(data) if data else None
+    try:
+        json_data = json.loads(data) if data else None
+    except json.JSONDecodeError as e:
+        raise ConfigError(_("Invalid JSON in --data: {err}").format(err=e)) from e
 
     resp = client.request(method, path, json=json_data, headers=headers)
     body = resp.text

@@ -169,34 +169,75 @@ class HttpClient:
         merged_params = {**self._default_params, **self._auth_params, "name": fname}
         upload_headers = {"Content-Type": content_type}
         with open(file_path, "rb") as f:
-            return self._retry_loop(
-                lambda: self._session.post(
-                    url,
-                    params=merged_params,
-                    data=f.read(),
-                    headers=upload_headers,
-                    timeout=timeout,
-                )
+            file_data = f.read()
+        return self._retry_loop(
+            lambda: self._session.post(
+                url,
+                params=merged_params,
+                data=file_data,
+                headers=upload_headers,
+                timeout=timeout,
             )
+        )
 
-    def upload_multipart(
-        self, path: str, file_path: str, *, field_name: str = "attachment", timeout: int = 300
+    def upload_file_absolute(
+        self,
+        url: str,
+        file_path: str,
+        *,
+        name: str | None = None,
+        content_type: str = "application/octet-stream",
+        params: dict | None = None,
+        timeout: int = 300,
     ) -> requests.Response:
-        """multipart/form-data アップロード。Gitea 用。"""
+        """絶対 URL に対してファイルアップロード（raw binary）。GitHub Release Asset 用。"""
         import os
 
+        fname = name or os.path.basename(file_path)
+        merged_params = {
+            **self._default_params,
+            **self._auth_params,
+            "name": fname,
+            **(params or {}),
+        }
+        upload_headers = {"Content-Type": content_type}
+        with open(file_path, "rb") as f:
+            file_data = f.read()
+        return self._retry_loop(
+            lambda: self._session.post(
+                url,
+                params=merged_params,
+                data=file_data,
+                headers=upload_headers,
+                timeout=timeout,
+            )
+        )
+
+    def upload_multipart(
+        self,
+        path: str,
+        file_path: str,
+        *,
+        field_name: str = "attachment",
+        name: str | None = None,
+        timeout: int = 300,
+    ) -> requests.Response:
+        """multipart/form-data アップロード。Gitea / GitLab 用。"""
+        import os
+
+        fname = name or os.path.basename(file_path)
         url = self._base_url + path
         merged_params = {**self._default_params, **self._auth_params}
         with open(file_path, "rb") as f:
-            files = {field_name: (os.path.basename(file_path), f)}
-            return self._retry_loop(
-                lambda: self._session.post(
-                    url,
-                    params=merged_params,
-                    files=files,
-                    timeout=timeout,
-                )
+            file_data = f.read()
+        return self._retry_loop(
+            lambda: self._session.post(
+                url,
+                params=merged_params,
+                files={field_name: (fname, file_data)},
+                timeout=timeout,
             )
+        )
 
     def get_absolute(
         self, url: str, *, params: dict | None = None, timeout: int = 30

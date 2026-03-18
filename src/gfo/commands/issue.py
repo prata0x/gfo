@@ -79,12 +79,14 @@ def handle_close(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     """gfo issue close <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.close_issue(args.number)
+    print(_("Closed issue #{number}.").format(number=args.number))
 
 
 def handle_reopen(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue reopen <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.reopen_issue(args.number)
+    print(_("Reopened issue #{number}.").format(number=args.number))
 
 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -121,6 +123,11 @@ def handle_reaction(args: argparse.Namespace, *, fmt: str, jq: str | None = None
         output(reaction, fmt=fmt, jq=jq)
     elif action == "remove":
         adapter.remove_issue_reaction(args.number, args.reaction)
+        print(
+            _("Removed reaction '{reaction}' from issue #{number}.").format(
+                reaction=args.reaction, number=args.number
+            )
+        )
 
 
 def handle_depends(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -134,8 +141,18 @@ def handle_depends(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
         output(deps, fmt=fmt, fields=["number", "title", "state"], jq=jq)
     elif action == "add":
         adapter.add_issue_dependency(args.number, args.depends_on)
+        print(
+            _("Added dependency #{depends_on} to issue #{number}.").format(
+                depends_on=args.depends_on, number=args.number
+            )
+        )
     elif action == "remove":
         adapter.remove_issue_dependency(args.number, args.depends_on)
+        print(
+            _("Removed dependency #{depends_on} from issue #{number}.").format(
+                depends_on=args.depends_on, number=args.number
+            )
+        )
 
 
 def handle_timeline(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -261,8 +278,12 @@ def _migrate_one_issue(src, dst, number, available_labels, src_spec_str) -> Migr
             label=label,
         )
 
+        # 元 Issue が closed の場合はターゲット側もクローズ
+        if issue.state == "closed":
+            dst.close_issue(created.number)
+
         # コメント移行
-        comments = src.list_comments("issue", number)
+        comments = src.list_comments("issue", number, limit=0)
         for comment in comments:
             new_comment_body = (
                 f"> *Comment by @{comment.author} on {comment.created_at}*\n\n{comment.body}"

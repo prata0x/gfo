@@ -6,6 +6,8 @@ import base64
 import json as _json
 from urllib.parse import quote, urlparse
 
+import requests
+
 from gfo.exceptions import GfoError, NotSupportedError
 from gfo.http import paginate_top_skip
 
@@ -465,7 +467,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     def list_issue_templates(self) -> list[IssueTemplate]:
         try:
             resp = self._client.get("/wit/workitemtypes")
-        except Exception:
+        except (GfoError, requests.RequestException, KeyError, ValueError):
             return []
         templates: list[IssueTemplate] = []
         for t in resp.json().get("value", []):
@@ -518,17 +520,23 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             raise GfoError(f"Unexpected API response: missing field {e}") from e
         self._client.delete(f"/git/repositories/{repo_id}")
 
-    def update_repository(self, *, description=None, private=None, default_branch=None):
+    def update_repository(
+        self,
+        *,
+        description: str | None = None,
+        private: bool | None = None,
+        default_branch: str | None = None,
+    ) -> Repository:
         payload = {}
         if default_branch is not None:
             payload["defaultBranch"] = _add_refs_prefix(default_branch)
         resp = self._client.patch(self._git_path(), json=payload)
         return self._to_repository(resp.json(), self._project)
 
-    def archive_repository(self):
+    def archive_repository(self) -> None:
         self._client.patch(self._git_path(), json={"isDisabled": True})
 
-    def compare(self, base, head):
+    def compare(self, base: str, head: str) -> CompareResult:
         resp = self._client.get(
             f"/git/repositories/{quote(self._repo, safe='')}/diffs/commits",
             params={"baseVersion": base, "targetVersion": head},
@@ -1215,7 +1223,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             try:
                 resp = self._client.get(f"/build/builds/{pipeline_id}/logs/{log_id}")
                 logs.append(f"=== Log {log_id} ===\n{resp.text}")
-            except Exception:
+            except (GfoError, requests.RequestException):
                 logs.append(f"=== Log {log_id} ===\n(log unavailable)")
         return "\n".join(logs)
 

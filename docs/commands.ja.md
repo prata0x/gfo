@@ -738,7 +738,7 @@ gfo repo migrate https://github.com/other/private-repo.git --name imported --pri
 gfo repo mirror list
 gfo repo mirror add URL [--interval INTERVAL]
 gfo repo mirror remove MIRROR_ID
-gfo repo mirror sync [MIRROR_ID]
+gfo repo mirror sync
 ```
 
 | オプション | 説明 |
@@ -752,7 +752,6 @@ gfo repo mirror list
 gfo repo mirror add https://github.com/user/mirror.git
 gfo repo mirror remove 1
 gfo repo mirror sync        # 全ミラーを同期
-gfo repo mirror sync 1      # 特定ミラーを同期
 ```
 
 ### gfo repo transfer
@@ -945,19 +944,17 @@ gfo label update bug --description "Updated description"
 > **対応サービス**: GitHub, GitLab, Gitea, Forgejo, GitBucket（Azure DevOps は部分対応）
 
 ```
-gfo label clone SOURCE_REPO [--host HOST] [--overwrite]
+gfo label clone --from SOURCE [--overwrite]
 ```
 
 | オプション | 説明 |
 |---|---|
-| `SOURCE_REPO` | コピー元リポジトリ（`owner/name` 形式） |
-| `--host` | コピー元のホスト名（省略時は現在のホスト） |
+| `--from SOURCE` | コピー元リポジトリ（`owner/name` 形式） |
 | `--overwrite` | 既存のラベルを上書き |
 
 ```bash
-gfo label clone alice/my-project
-gfo label clone alice/my-project --overwrite
-gfo label clone alice/other-repo --host github.com
+gfo label clone --from alice/my-project
+gfo label clone --from alice/my-project --overwrite
 ```
 
 ---
@@ -1102,7 +1099,7 @@ gfo comment delete 12345 --on issue
 
 PR のレビューを操作します。
 
-> **対応サービス**: GitHub, GitLab
+> **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
 
 ### gfo review list
 
@@ -2134,36 +2131,36 @@ gfo package list --type npm --limit 10
 ### gfo package view
 
 ```
-gfo package view NAME [--type TYPE] [--version VERSION]
+gfo package view PACKAGE_TYPE NAME [--version VERSION]
 ```
 
 | オプション | 説明 |
 |---|---|
+| `PACKAGE_TYPE` | パッケージタイプ（例: `npm`, `maven`, `docker`） |
 | `NAME` | パッケージ名 |
-| `--type` | パッケージタイプ |
 | `--version` | 特定バージョンの詳細を表示 |
 
 ```bash
-gfo package view my-package --type npm
-gfo package view my-package --type npm --version 1.0.0
+gfo package view npm my-package
+gfo package view npm my-package --version 1.0.0
 ```
 
 ### gfo package delete
 
 ```
-gfo package delete NAME [--type TYPE] [--version VERSION] [--yes]
+gfo package delete PACKAGE_TYPE NAME VERSION [--yes]
 ```
 
 | オプション | 説明 |
 |---|---|
+| `PACKAGE_TYPE` | パッケージタイプ（例: `npm`, `maven`, `docker`） |
 | `NAME` | パッケージ名 |
-| `--type` | パッケージタイプ |
-| `--version` | 削除するバージョン（省略時はパッケージ全体を削除） |
+| `VERSION` | 削除するバージョン |
 | `--yes`, `-y` | 確認プロンプトをスキップ |
 
 ```bash
-gfo package delete my-package --type npm --version 1.0.0
-gfo package delete my-package --type npm --yes
+gfo package delete npm my-package 1.0.0
+gfo package delete npm my-package 1.0.0 --yes
 ```
 
 ---

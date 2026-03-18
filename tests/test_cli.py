@@ -375,7 +375,7 @@ def test_parser_ssh_key_delete():
     parser, _ = create_parser()
     args = parser.parse_args(["ssh-key", "delete", "123"])
     assert args.subcommand == "delete"
-    assert args.id == "123"
+    assert args.id == 123
 
 
 # ── branch-protect パーサーのテスト ──

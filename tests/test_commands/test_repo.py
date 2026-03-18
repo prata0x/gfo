@@ -619,8 +619,8 @@ class TestHandleView:
 class TestHandleDelete:
     def test_delete_with_yes_flag(self, sample_config, mock_adapter, capsys):
         args = make_args(yes=True)
-        mock_adapter._owner = "test-owner"
-        mock_adapter._repo = "test-repo"
+        mock_adapter.owner = "test-owner"
+        mock_adapter.repo = "test-repo"
         with _patch_all(sample_config, mock_adapter):
             repo_cmd.handle_delete(args, fmt="table")
 
@@ -630,8 +630,8 @@ class TestHandleDelete:
 
     def test_delete_confirmation_yes(self, sample_config, mock_adapter, capsys):
         args = make_args(yes=False)
-        mock_adapter._owner = "test-owner"
-        mock_adapter._repo = "test-repo"
+        mock_adapter.owner = "test-owner"
+        mock_adapter.repo = "test-repo"
         with _patch_all(sample_config, mock_adapter), patch("builtins.input", return_value="y"):
             repo_cmd.handle_delete(args, fmt="table")
 
@@ -639,8 +639,8 @@ class TestHandleDelete:
 
     def test_delete_confirmation_no(self, sample_config, mock_adapter, capsys):
         args = make_args(yes=False)
-        mock_adapter._owner = "test-owner"
-        mock_adapter._repo = "test-repo"
+        mock_adapter.owner = "test-owner"
+        mock_adapter.repo = "test-repo"
         with _patch_all(sample_config, mock_adapter), patch("builtins.input", return_value="n"):
             repo_cmd.handle_delete(args, fmt="table")
 
@@ -650,8 +650,8 @@ class TestHandleDelete:
 
     def test_delete_prints_success_message(self, sample_config, mock_adapter, capsys):
         args = make_args(yes=True)
-        mock_adapter._owner = "my-org"
-        mock_adapter._repo = "my-repo"
+        mock_adapter.owner = "my-org"
+        mock_adapter.repo = "my-repo"
         with _patch_all(sample_config, mock_adapter):
             repo_cmd.handle_delete(args, fmt="table")
 
@@ -736,8 +736,8 @@ class TestHandleUpdate:
 class TestHandleArchive:
     def test_archive_with_yes_flag(self, sample_config, capsys):
         adapter = MagicMock()
-        adapter._owner = "test-owner"
-        adapter._repo = "test-repo"
+        adapter.owner = "test-owner"
+        adapter.repo = "test-repo"
         args = make_args(yes=True)
         with patch("gfo.commands.repo.get_adapter", return_value=adapter):
             repo_cmd.handle_archive(args, fmt="table")
@@ -748,8 +748,8 @@ class TestHandleArchive:
 
     def test_archive_confirmation_no(self, sample_config, capsys):
         adapter = MagicMock()
-        adapter._owner = "test-owner"
-        adapter._repo = "test-repo"
+        adapter.owner = "test-owner"
+        adapter.repo = "test-repo"
         args = make_args(yes=False)
         with (
             patch("gfo.commands.repo.get_adapter", return_value=adapter),
@@ -763,8 +763,8 @@ class TestHandleArchive:
 
     def test_archive_confirmation_yes(self, sample_config, capsys):
         adapter = MagicMock()
-        adapter._owner = "test-owner"
-        adapter._repo = "test-repo"
+        adapter.owner = "test-owner"
+        adapter.repo = "test-repo"
         args = make_args(yes=False)
         with (
             patch("gfo.commands.repo.get_adapter", return_value=adapter),
@@ -949,16 +949,16 @@ class TestHandleMigrate:
 
 class TestHandleStar:
     def test_star_repository(self, sample_config, mock_adapter, capsys):
-        mock_adapter._owner = "test-owner"
-        mock_adapter._repo = "test-repo"
+        mock_adapter.owner = "test-owner"
+        mock_adapter.repo = "test-repo"
         with _patch_all(sample_config, mock_adapter):
             args = make_args()
             repo_cmd.handle_star(args, fmt="table")
         mock_adapter.star_repository.assert_called_once()
 
     def test_unstar_repository(self, sample_config, mock_adapter, capsys):
-        mock_adapter._owner = "test-owner"
-        mock_adapter._repo = "test-repo"
+        mock_adapter.owner = "test-owner"
+        mock_adapter.repo = "test-repo"
         with _patch_all(sample_config, mock_adapter):
             args = make_args()
             repo_cmd.handle_unstar(args, fmt="table")
@@ -992,8 +992,8 @@ class TestHandleMirror:
 
 class TestHandleTransfer:
     def test_transfer_with_yes(self, sample_config, mock_adapter, capsys):
-        mock_adapter._owner = "test-owner"
-        mock_adapter._repo = "test-repo"
+        mock_adapter.owner = "test-owner"
+        mock_adapter.repo = "test-repo"
         with _patch_all(sample_config, mock_adapter):
             args = make_args(new_owner="new-owner", team_id=None, yes=True)
             repo_cmd.handle_transfer(args, fmt="table")

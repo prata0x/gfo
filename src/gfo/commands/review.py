@@ -36,3 +36,8 @@ def handle_dismiss(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
     """gfo review dismiss <number> <review_id> のハンドラ。"""
     adapter = get_adapter()
     adapter.dismiss_review(args.number, args.review_id, message=args.message or "")
+    print(
+        _("Dismissed review '{review_id}' on PR #{number}.").format(
+            review_id=args.review_id, number=args.number
+        )
+    )

@@ -965,3 +965,86 @@ class TestExtractNextLink:
 
     def test_empty_string(self):
         assert _extract_next_link("") is None
+
+
+# ── upload_file リトライ (C-02) ──
+
+
+class TestUploadFileRetry:
+    @responses.activate
+    def test_upload_file_retry_sends_data_on_second_attempt(self, tmp_path):
+        """429 → 200 リトライで2回目もファイルデータが送信されることを検証する。"""
+        test_file = tmp_path / "test.bin"
+        test_file.write_bytes(b"hello world")
+        client = HttpClient(BASE, auth_header={"Authorization": "Bearer tok"}, max_retries=1)
+        responses.add(
+            responses.POST,
+            f"{BASE}/upload",
+            status=429,
+            headers={"Retry-After": "0"},
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE}/upload",
+            json={"ok": True},
+            status=200,
+        )
+        resp = client.upload_file("/upload", str(test_file))
+        assert resp.status_code == 200
+        # 2回目のリクエストのボディが空でないことを検証
+        assert responses.calls[1].request.body == b"hello world"
+
+    @responses.activate
+    def test_upload_multipart_retry_sends_data_on_second_attempt(self, tmp_path):
+        """429 → 200 リトライで multipart でも2回目にデータが送信されることを検証する。"""
+        test_file = tmp_path / "test.bin"
+        test_file.write_bytes(b"binary data")
+        client = HttpClient(BASE, auth_header={"Authorization": "Bearer tok"}, max_retries=1)
+        responses.add(
+            responses.POST,
+            f"{BASE}/upload",
+            status=429,
+            headers={"Retry-After": "0"},
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE}/upload",
+            json={"ok": True},
+            status=200,
+        )
+        resp = client.upload_multipart("/upload", str(test_file))
+        assert resp.status_code == 200
+        # 2回目のリクエストのボディが空でないことを検証
+        assert b"binary data" in responses.calls[1].request.body
+
+    @responses.activate
+    def test_upload_file_absolute(self, tmp_path):
+        """upload_file_absolute が絶対 URL にアップロードすることを検証する。"""
+        test_file = tmp_path / "asset.zip"
+        test_file.write_bytes(b"zip content")
+        client = HttpClient(BASE, auth_header={"Authorization": "Bearer tok"})
+        upload_url = "https://uploads.github.com/repos/o/r/releases/1/assets"
+        responses.add(
+            responses.POST,
+            upload_url,
+            json={"id": 1, "name": "asset.zip"},
+            status=201,
+        )
+        resp = client.upload_file_absolute(upload_url, str(test_file), name="asset.zip")
+        assert resp.status_code == 201
+        assert responses.calls[0].request.body == b"zip content"
+
+    @responses.activate
+    def test_upload_multipart_name_override(self, tmp_path):
+        """upload_multipart の name パラメータでファイル名をオーバーライドできることを検証する。"""
+        test_file = tmp_path / "original.bin"
+        test_file.write_bytes(b"data")
+        client = HttpClient(BASE, auth_header={"Authorization": "Bearer tok"})
+        responses.add(
+            responses.POST,
+            f"{BASE}/upload",
+            json={"ok": True},
+            status=200,
+        )
+        client.upload_multipart("/upload", str(test_file), name="renamed.bin")
+        assert b"renamed.bin" in responses.calls[0].request.body

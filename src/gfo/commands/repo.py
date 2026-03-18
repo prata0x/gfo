@@ -176,7 +176,7 @@ def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo delete のハンドラ。"""
     adapter = get_adapter()
-    repo_name = f"{adapter._owner}/{adapter._repo}"
+    repo_name = f"{adapter.owner}/{adapter.repo}"
     if not getattr(args, "yes", False):
         confirm = input(
             _(
@@ -211,7 +211,7 @@ def handle_update(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 def handle_archive(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo archive のハンドラ。"""
     adapter = get_adapter()
-    repo_name = f"{adapter._owner}/{adapter._repo}"
+    repo_name = f"{adapter.owner}/{adapter.repo}"
     if not getattr(args, "yes", False):
         confirm = input(
             _("Are you sure you want to archive repository '{repo_name}'? [y/N]: ").format(
@@ -327,7 +327,7 @@ def handle_mirror(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 def handle_transfer(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo transfer <new_owner> のハンドラ。"""
     adapter = get_adapter()
-    repo_name = f"{adapter._owner}/{adapter._repo}"
+    repo_name = f"{adapter.owner}/{adapter.repo}"
     if not getattr(args, "yes", False):
         confirm = input(
             _(
@@ -353,9 +353,7 @@ def handle_star(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     """gfo repo star のハンドラ。"""
     adapter = get_adapter()
     adapter.star_repository()
-    print(
-        _("Starred repository '{owner}/{repo}'.").format(owner=adapter._owner, repo=adapter._repo)
-    )
+    print(_("Starred repository '{owner}/{repo}'.").format(owner=adapter.owner, repo=adapter.repo))
 
 
 def handle_unstar(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -363,5 +361,5 @@ def handle_unstar(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     adapter = get_adapter()
     adapter.unstar_repository()
     print(
-        _("Unstarred repository '{owner}/{repo}'.").format(owner=adapter._owner, repo=adapter._repo)
+        _("Unstarred repository '{owner}/{repo}'.").format(owner=adapter.owner, repo=adapter.repo)
     )

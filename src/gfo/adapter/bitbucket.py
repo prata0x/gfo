@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
+import requests
+
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 from gfo.http import paginate_response_body
 
@@ -290,8 +292,14 @@ class BitbucketAdapter(GitServiceAdapter):
     def delete_repository(self) -> None:
         self._client.delete(self._repos_path())
 
-    def update_repository(self, *, description=None, private=None, default_branch=None):
-        payload = {}
+    def update_repository(
+        self,
+        *,
+        description: str | None = None,
+        private: bool | None = None,
+        default_branch: str | None = None,
+    ) -> Repository:
+        payload: dict = {}
         if description is not None:
             payload["description"] = description
         if private is not None:
@@ -300,7 +308,11 @@ class BitbucketAdapter(GitServiceAdapter):
         resp = self._client.put(self._repos_path(), json=payload)
         return self._to_repository(resp.json())
 
-    def compare(self, base, head):
+    def compare(self, base: str, head: str) -> CompareResult:
+        """2つのコミット/ブランチを比較する。
+
+        Bitbucket Cloud API の制約により、ahead_by / behind_by は常に 0 を返す。
+        """
         results = paginate_response_body(
             self._client,
             f"{self._repos_path()}/diffstat/{quote(base, safe='')}..{quote(head, safe='')}",
@@ -984,7 +996,7 @@ class BitbucketAdapter(GitServiceAdapter):
                     f"{self._repos_path()}/pipelines/{pipeline_id}/steps/{step_uuid}/log",
                 )
                 logs.append(f"=== {step.get('name', step_uuid)} ===\n{resp.text}")
-            except Exception:
+            except (GfoError, requests.RequestException):
                 logs.append(f"=== {step.get('name', step_uuid)} ===\n(log unavailable)")
         return "\n".join(logs)
 

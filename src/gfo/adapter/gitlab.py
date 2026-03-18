@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import base64
+import warnings
 from urllib.parse import quote
+
+import requests
 
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 from gfo.http import paginate_page_param
@@ -293,7 +296,7 @@ class GitLabAdapter(GitServiceAdapter):
     def list_issue_templates(self) -> list[IssueTemplate]:
         try:
             resp = self._client.get(f"{self._project_path()}/templates/issues")
-        except Exception:
+        except (GfoError, requests.RequestException, KeyError, ValueError):
             return []
         templates: list[IssueTemplate] = []
         for t in resp.json():
@@ -337,7 +340,13 @@ class GitLabAdapter(GitServiceAdapter):
     def delete_repository(self) -> None:
         self._client.delete(self._project_path())
 
-    def update_repository(self, *, description=None, private=None, default_branch=None):
+    def update_repository(
+        self,
+        *,
+        description: str | None = None,
+        private: bool | None = None,
+        default_branch: str | None = None,
+    ) -> Repository:
         payload = {}
         if description is not None:
             payload["description"] = description
@@ -348,38 +357,26 @@ class GitLabAdapter(GitServiceAdapter):
         resp = self._client.put(self._project_path(), json=payload)
         return self._to_repository(resp.json())
 
-    def archive_repository(self):
+    def archive_repository(self) -> None:
         self._client.post(f"{self._project_path()}/archive")
 
-    def get_languages(self):
+    def get_languages(self) -> dict[str, int | float]:
         resp = self._client.get(f"{self._project_path()}/languages")
         return dict(resp.json())
 
     # --- Topics ---
 
-    def list_topics(self):
+    def list_topics(self) -> list[str]:
         resp = self._client.get(self._project_path())
         return list(resp.json().get("topics", []))
 
-    def set_topics(self, topics):
+    def set_topics(self, topics: list[str]) -> list[str]:
         resp = self._client.put(self._project_path(), json={"topics": topics})
         return list(resp.json().get("topics", []))
 
-    def add_topic(self, topic):
-        current = self.list_topics()
-        if topic not in current:
-            current.append(topic)
-        return self.set_topics(current)
-
-    def remove_topic(self, topic):
-        current = self.list_topics()
-        if topic in current:
-            current.remove(topic)
-        return self.set_topics(current)
-
     # --- Compare ---
 
-    def compare(self, base, head):
+    def compare(self, base: str, head: str) -> CompareResult:
         resp = self._client.get(
             f"{self._project_path()}/repository/compare",
             params={"from": base, "to": head},
@@ -430,7 +427,12 @@ class GitLabAdapter(GitServiceAdapter):
             payload["mirror"] = True
         if auth_token:
             payload["import_url"] = clone_url.replace("://", f"://oauth2:{auth_token}@")
-        resp = self._client.post("/projects", json=payload)
+        try:
+            resp = self._client.post("/projects", json=payload)
+        except GfoError as e:
+            if auth_token:
+                raise type(e)(str(e).replace(auth_token, "***")) from e.__cause__
+            raise
         return self._to_repository(resp.json())
 
     # --- Release ---
@@ -532,16 +534,7 @@ class GitLabAdapter(GitServiceAdapter):
         fname = name or os.path.basename(file_path)
         # Step 1: Upload to project uploads
         url = f"{self._project_path()}/uploads"
-        with open(file_path, "rb") as f:
-            files = {"file": (fname, f)}
-            upload_resp = self._client._retry_loop(
-                lambda: self._client._session.post(
-                    self._client.base_url + url,
-                    files=files,
-                    timeout=300,
-                )
-            )
-        self._client._handle_response(upload_resp)
+        upload_resp = self._client.upload_multipart(url, file_path, field_name="file", name=fname)
         upload_data = upload_resp.json()
         file_url = upload_data.get("full_path") or upload_data.get("url") or ""
         if not file_url.startswith("http"):
@@ -568,8 +561,10 @@ class GitLabAdapter(GitServiceAdapter):
         )
         data = resp.json()
         url = data.get("direct_asset_url") or data.get("url") or ""
-        asset_name = data.get("name") or f"asset-{asset_id}"
+        asset_name = os.path.basename(data.get("name") or f"asset-{asset_id}")
         output_path = os.path.join(output_dir, asset_name)
+        if not os.path.realpath(output_path).startswith(os.path.realpath(output_dir)):
+            raise GfoError(f"Invalid asset name: {asset_name}")
         self._client.download_file(url, output_path)
         return output_path
 
@@ -986,13 +981,21 @@ class GitLabAdapter(GitServiceAdapter):
         return [r["username"] for r in reviewers]
 
     def _resolve_user_ids(self, usernames: list[str]) -> list[int]:
-        """ユーザー名のリストをユーザー ID のリストに変換する。"""
+        """ユーザー名のリストをユーザー ID のリストに変換する。
+
+        解決できなかったユーザー名については警告を発する。
+        """
         ids: list[int] = []
         for name in usernames:
             resp = self._client.get("/users", params={"username": name})
             users = resp.json()
             if users:
                 ids.append(users[0]["id"])
+            else:
+                warnings.warn(
+                    f"GitLab user '{name}' not found, skipping",
+                    stacklevel=2,
+                )
         return ids
 
     def request_reviewers(self, number: int, reviewers: list[str]) -> None:
@@ -1394,7 +1397,7 @@ class GitLabAdapter(GitServiceAdapter):
             try:
                 resp = self._client.get(f"{self._project_path()}/jobs/{job['id']}/trace")
                 logs.append(f"=== {job.get('name', job['id'])} ===\n{resp.text}")
-            except Exception:
+            except (GfoError, requests.RequestException):
                 logs.append(f"=== {job.get('name', job['id'])} ===\n(log unavailable)")
         return "\n".join(logs)
 
@@ -2024,6 +2027,12 @@ class GitLabAdapter(GitServiceAdapter):
         return TimeEntry(id=0, user="", duration=data.get("total_time_spent", 0), created_at="")
 
     def delete_time_entry(self, issue_number: int, entry_id: int | str) -> None:
+        """指定 Issue の記録時間をリセットする。
+
+        GitLab API の制約により、指定 entry だけの削除はできず、
+        当該 Issue の全 time entries がリセットされる。
+        entry_id パラメータは互換性のために受け取るが無視される。
+        """
         self._client.post(
             f"{self._project_path()}/issues/{issue_number}/reset_spent_time",
             json={},

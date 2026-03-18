@@ -629,6 +629,16 @@ class GitServiceAdapter(ABC):
         self._owner = owner
         self._repo = repo
 
+    @property
+    def owner(self) -> str:
+        """リポジトリオーナー名（読み取り専用）。"""
+        return self._owner
+
+    @property
+    def repo(self) -> str:
+        """リポジトリ名（読み取り専用）。"""
+        return self._repo
+
     # --- PR ---
     @abstractmethod
     def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]: ...
@@ -773,10 +783,28 @@ class GitServiceAdapter(ABC):
         raise NotSupportedError(self.service_name, "repo topics set")
 
     def add_topic(self, topic: str) -> list[str]:
-        raise NotSupportedError(self.service_name, "repo topics add")
+        """トピックを追加する。
+
+        list_topics() + set_topics() を使うデフォルト実装。
+        サービス固有の API がある場合はオーバーライドすること。
+        """
+        topics = self.list_topics()
+        if topic not in topics:
+            topics.append(topic)
+            return self.set_topics(topics)
+        return topics
 
     def remove_topic(self, topic: str) -> list[str]:
-        raise NotSupportedError(self.service_name, "repo topics remove")
+        """トピックを削除する。
+
+        list_topics() + set_topics() を使うデフォルト実装。
+        サービス固有の API がある場合はオーバーライドすること。
+        """
+        topics = self.list_topics()
+        if topic in topics:
+            topics.remove(topic)
+            return self.set_topics(topics)
+        return topics
 
     def compare(self, base: str, head: str) -> CompareResult:
         raise NotSupportedError(self.service_name, "repo compare")

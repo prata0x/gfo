@@ -5,7 +5,9 @@ from __future__ import annotations
 import base64
 from urllib.parse import quote
 
-from gfo.exceptions import NotFoundError
+import requests
+
+from gfo.exceptions import GfoError, NotFoundError
 from gfo.http import paginate_link_header
 
 from .base import (
@@ -170,7 +172,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def list_issue_templates(self) -> list[IssueTemplate]:
         try:
             resp = self._client.get(f"{self._repos_path()}/issue_templates")
-        except Exception:
+        except (GfoError, requests.RequestException, KeyError, ValueError):
             return []
         templates: list[IssueTemplate] = []
         for t in resp.json() or []:
@@ -211,8 +213,14 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def delete_repository(self) -> None:
         self._client.delete(self._repos_path())
 
-    def update_repository(self, *, description=None, private=None, default_branch=None):
-        payload = {}
+    def update_repository(
+        self,
+        *,
+        description: str | None = None,
+        private: bool | None = None,
+        default_branch: str | None = None,
+    ) -> Repository:
+        payload: dict = {}
         if description is not None:
             payload["description"] = description
         if private is not None:
@@ -222,34 +230,39 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.patch(self._repos_path(), json=payload)
         return self._to_repository(resp.json())
 
-    def archive_repository(self):
+    def archive_repository(self) -> None:
         self._client.patch(self._repos_path(), json={"archived": True})
 
-    def get_languages(self):
+    def get_languages(self) -> dict[str, int | float]:
         resp = self._client.get(f"{self._repos_path()}/languages")
         return dict(resp.json())
 
     # --- Topics ---
 
-    def list_topics(self):
+    def list_topics(self) -> list[str]:
         resp = self._client.get(f"{self._repos_path()}/topics")
         return list(resp.json().get("topics") or [])
 
-    def set_topics(self, topics):
+    def set_topics(self, topics: list[str]) -> list[str]:
         resp = self._client.put(f"{self._repos_path()}/topics", json={"topics": topics})
         return list(resp.json().get("topics") or [])
 
-    def add_topic(self, topic):
+    def add_topic(self, topic: str) -> list[str]:
         self._client.put(f"{self._repos_path()}/topics/{quote(topic, safe='')}")
         return self.list_topics()
 
-    def remove_topic(self, topic):
+    def remove_topic(self, topic: str) -> list[str]:
         self._client.delete(f"{self._repos_path()}/topics/{quote(topic, safe='')}")
         return self.list_topics()
 
     # --- Compare ---
 
-    def compare(self, base, head):
+    def compare(self, base: str, head: str) -> CompareResult:
+        """2つのコミット/ブランチを比較する。
+
+        Gitea API の制約により behind_by は常に 0 を返す。
+        ahead_by は total_commits と同値を返す。
+        """
         resp = self._client.get(
             f"{self._repos_path()}/compare/{quote(base, safe='')}...{quote(head, safe='')}"
         )
@@ -388,14 +401,18 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def download_release_asset(self, *, tag, asset_id, output_dir):
         import os
 
+        from gfo.exceptions import GfoError
+
         resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
         release_id = resp.json()["id"]
         meta_resp = self._client.get(
             f"{self._repos_path()}/releases/{release_id}/assets/{asset_id}"
         )
         data = meta_resp.json()
-        asset_name = data.get("name") or f"asset-{asset_id}"
+        asset_name = os.path.basename(data.get("name") or f"asset-{asset_id}")
         output_path = os.path.join(output_dir, asset_name)
+        if not os.path.realpath(output_path).startswith(os.path.realpath(output_dir)):
+            raise GfoError(f"Invalid asset name: {asset_name}")
         url = (
             data.get("browser_download_url")
             or f"{self._client.base_url}{self._repos_path()}/releases/{release_id}/assets/{asset_id}"
