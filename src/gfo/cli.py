@@ -228,6 +228,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_update_branch.add_argument("number", type=int, help=_("PR number"))
     pr_ready = pr_sub.add_parser("ready", help=_("Mark as ready for review"))
     pr_ready.add_argument("number", type=int, help=_("PR number"))
+    pr_sub.add_parser("status", help=_("Show status of pull requests related to you"))
 
     # gfo pr review → サブサブコマンド
     pr_review = pr_sub.add_parser("review", help=_("Manage PR reviews"))
@@ -1146,6 +1147,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("pr", "reviewers"): gfo.commands.pr.handle_reviewers,
     ("pr", "update-branch"): gfo.commands.pr.handle_update_branch,
     ("pr", "ready"): gfo.commands.pr.handle_ready,
+    ("pr", "status"): gfo.commands.pr.handle_status,
     ("issue", "list"): gfo.commands.issue.handle_list,
     ("issue", "create"): gfo.commands.issue.handle_create,
     ("issue", "view"): gfo.commands.issue.handle_view,
