@@ -9,14 +9,19 @@
 **課題**: A1, B4-1, B1-1
 **変更ファイル**: `cli.py`, `commands/pr.py`, `commands/release.py`, `commands/label.py`
 
-### A1: `label edit --name` エイリアス
+### A1: `label edit --new-name` → `--name` リネーム
 
-`cli.py` の `label edit` パーサーに `--name` を `--new-name` のエイリアスとして追加。
+`cli.py` の `label edit` パーサーで `--new-name` を `--name` にリネーム。`commands/label.py` の `handle_edit` で `args.new_name` → `args.name` に変更。
 
 ```python
 # cli.py label edit セクション
-label_edit.add_argument("--new-name", "--name", ...)
+label_edit.add_argument("--name", ...)  # 旧 --new-name
+
+# commands/label.py handle_edit()
+adapter.update_label(args.current_name, name=args.name, ...)  # 旧 args.new_name
 ```
+
+テスト・ドキュメント (`commands.md`) も `--new-name` → `--name` に更新。
 
 ### B4-1: `release create --notes-file`
 
