@@ -80,6 +80,13 @@ class GitBucketAdapter(GitHubAdapter):
         labels: list[str] | None = None,
         milestone: str | None = None,
     ) -> PullRequest:
+        self._warn_unsupported_params(
+            "pull requests",
+            reviewers=reviewers,
+            assignees=assignees,
+            labels=labels,
+            milestone=milestone,
+        )
         payload = {"title": title, "body": body, "base": base, "head": head, "draft": draft}
         resp = self._client.post(f"{self._repos_path()}/pulls", json=payload)
         return self._to_pull_request(self._parse_response(resp))

@@ -181,6 +181,13 @@ class BacklogAdapter(GitServiceAdapter):
         labels: list[str] | None = None,
         milestone: str | None = None,
     ) -> PullRequest:
+        self._warn_unsupported_params(
+            "pull requests",
+            reviewers=reviewers,
+            assignees=assignees,
+            labels=labels,
+            milestone=milestone,
+        )
         payload = {
             "summary": title,
             "description": body,

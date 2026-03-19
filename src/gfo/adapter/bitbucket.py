@@ -160,6 +160,9 @@ class BitbucketAdapter(GitServiceAdapter):
         labels: list[str] | None = None,
         milestone: str | None = None,
     ) -> PullRequest:
+        self._warn_unsupported_params(
+            "pull requests", assignees=assignees, labels=labels, milestone=milestone
+        )
         payload: dict = {
             "title": title,
             "description": body,

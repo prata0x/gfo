@@ -396,18 +396,26 @@ class TestCreatePullRequest:
         )
         assert len(mock_responses.calls) == 3
 
-    def test_create_ignores_unsupported_options(self, mock_responses, azure_devops_adapter):
+    def test_create_warns_unsupported_options(self, mock_responses, azure_devops_adapter):
         mock_responses.add(responses.POST, f"{GIT}/pullrequests", json=_pr_data(), status=201)
-        azure_devops_adapter.create_pull_request(
-            title="PR #1",
-            body="desc",
-            base="main",
-            head="feature",
-            assignees=["alice"],
-            labels=["bug"],
-            milestone="v1.0",
-        )
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            azure_devops_adapter.create_pull_request(
+                title="PR #1",
+                body="desc",
+                base="main",
+                head="feature",
+                assignees=["alice"],
+                labels=["bug"],
+                milestone="v1.0",
+            )
         assert len(mock_responses.calls) == 1
+        messages = [str(x.message) for x in w]
+        assert any("assignees" in m for m in messages)
+        assert any("labels" in m for m in messages)
+        assert any("milestone" in m for m in messages)
 
 
 class TestGetPullRequest:

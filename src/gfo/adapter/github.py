@@ -100,6 +100,8 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             self._client.patch(f"{self._repos_path()}/issues/{pr.number}", json=patch_payload)
         if reviewers:
             self.request_reviewers(pr.number, reviewers)
+        if patch_payload or reviewers:
+            return self.get_pull_request(pr.number)
         return pr
 
     def _resolve_milestone_number(self, title: str) -> int:

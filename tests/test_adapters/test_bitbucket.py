@@ -280,21 +280,29 @@ class TestCreatePullRequest:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["reviewers"] == [{"username": "alice"}, {"username": "bob"}]
 
-    def test_create_ignores_unsupported_options(self, mock_responses, bitbucket_adapter):
+    def test_create_warns_unsupported_options(self, mock_responses, bitbucket_adapter):
         mock_responses.add(responses.POST, f"{REPOS}/pullrequests", json=_pr_data(), status=201)
-        bitbucket_adapter.create_pull_request(
-            title="PR #1",
-            body="desc",
-            base="main",
-            head="feature",
-            assignees=["alice"],
-            labels=["bug"],
-            milestone="v1.0",
-        )
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            bitbucket_adapter.create_pull_request(
+                title="PR #1",
+                body="desc",
+                base="main",
+                head="feature",
+                assignees=["alice"],
+                labels=["bug"],
+                milestone="v1.0",
+            )
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert "assignees" not in req_body
         assert "labels" not in req_body
         assert "milestone" not in req_body
+        messages = [str(x.message) for x in w]
+        assert any("assignees" in m for m in messages)
+        assert any("labels" in m for m in messages)
+        assert any("milestone" in m for m in messages)
 
 
 class TestCreatePullRequestDescription:

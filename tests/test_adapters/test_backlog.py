@@ -345,7 +345,7 @@ class TestCreatePullRequest:
         assert req_body["base"] == "main"
         assert req_body["branch"] == "feature"
 
-    def test_create_ignores_extra_options(self, mock_responses, backlog_adapter):
+    def test_create_warns_unsupported_options(self, mock_responses, backlog_adapter):
         mock_responses.add(responses.POST, PR_PATH, json=_pr_data(), status=201)
         mock_responses.add(
             responses.GET,
@@ -353,17 +353,26 @@ class TestCreatePullRequest:
             json=[{"id": 5, "name": "Merged"}],
             status=200,
         )
-        pr = backlog_adapter.create_pull_request(
-            title="PR #1",
-            body="desc",
-            base="main",
-            head="feature",
-            reviewers=["alice"],
-            assignees=["bob"],
-            labels=["bug"],
-            milestone="v1.0",
-        )
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            pr = backlog_adapter.create_pull_request(
+                title="PR #1",
+                body="desc",
+                base="main",
+                head="feature",
+                reviewers=["alice"],
+                assignees=["bob"],
+                labels=["bug"],
+                milestone="v1.0",
+            )
         assert isinstance(pr, PullRequest)
+        messages = [str(x.message) for x in w]
+        assert any("reviewers" in m for m in messages)
+        assert any("assignees" in m for m in messages)
+        assert any("labels" in m for m in messages)
+        assert any("milestone" in m for m in messages)
 
 
 class TestGetPullRequest:

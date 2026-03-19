@@ -38,8 +38,8 @@
 **対象**: #4, #8
 **ファイル**: `base.py`, `bitbucket.py`, `azure_devops.py`, `backlog.py`, `gitbucket.py`, `github.py`
 
-- [ ] #4 `base.py` に `_warn_unsupported_params()` ヘルパーを追加し、未対応アダプターで呼び出す
-- [ ] #8 GitHub `create_pull_request` で PATCH/POST 後に `get_pull_request(pr.number)` で再取得
+- [x] #4 `base.py` に `_warn_unsupported_params()` ヘルパーを追加し、未対応アダプターで呼び出す
+- [x] #8 GitHub `create_pull_request` で PATCH/POST 後に `get_pull_request(pr.number)` で再取得
 
 ---
 

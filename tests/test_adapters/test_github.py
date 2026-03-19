@@ -451,6 +451,7 @@ class TestCreatePullRequest:
         mock_responses.add(
             responses.POST, f"{REPOS}/pulls/1/requested_reviewers", json={}, status=201
         )
+        mock_responses.add(responses.GET, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
         github_adapter.create_pull_request(
             title="PR #1",
             body="desc",
@@ -464,6 +465,7 @@ class TestCreatePullRequest:
     def test_create_with_labels_and_assignees(self, mock_responses, github_adapter):
         mock_responses.add(responses.POST, f"{REPOS}/pulls", json=_pr_data(), status=201)
         mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json={}, status=200)
+        mock_responses.add(responses.GET, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
         github_adapter.create_pull_request(
             title="PR #1",
             body="desc",
@@ -494,6 +496,7 @@ class TestCreatePullRequest:
             status=200,
         )
         mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json={}, status=200)
+        mock_responses.add(responses.GET, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
         github_adapter.create_pull_request(
             title="PR #1",
             body="desc",
@@ -515,6 +518,35 @@ class TestCreatePullRequest:
                 head="feature",
                 milestone="nonexistent",
             )
+
+    def test_create_with_patch_re_fetches(self, mock_responses, github_adapter):
+        """PATCH 後に get_pull_request で再取得して最新状態を返す（#8）。"""
+        mock_responses.add(responses.POST, f"{REPOS}/pulls", json=_pr_data(), status=201)
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json={}, status=200)
+        updated = _pr_data()
+        updated["title"] = "Updated PR #1"
+        mock_responses.add(responses.GET, f"{REPOS}/pulls/1", json=updated, status=200)
+        pr = github_adapter.create_pull_request(
+            title="PR #1",
+            body="desc",
+            base="main",
+            head="feature",
+            labels=["bug"],
+        )
+        assert pr.title == "Updated PR #1"
+        assert mock_responses.calls[2].request.method == "GET"
+
+    def test_create_without_extras_does_not_re_fetch(self, mock_responses, github_adapter):
+        """追加パラメータなしの場合、再取得しない。"""
+        mock_responses.add(responses.POST, f"{REPOS}/pulls", json=_pr_data(), status=201)
+        pr = github_adapter.create_pull_request(
+            title="PR #1",
+            body="desc",
+            base="main",
+            head="feature",
+        )
+        assert pr.title == "PR #1"
+        assert len(mock_responses.calls) == 1
 
 
 class TestGetPullRequest:

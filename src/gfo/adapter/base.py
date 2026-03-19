@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -638,6 +639,15 @@ class GitServiceAdapter(ABC):
     def repo(self) -> str:
         """リポジトリ名（読み取り専用）。"""
         return self._repo
+
+    def _warn_unsupported_params(self, resource: str, **kwargs: object) -> None:
+        """未対応パラメータが渡された場合に警告を出す。"""
+        for param, value in kwargs.items():
+            if value:
+                warnings.warn(
+                    f"{self.service_name} does not support {param} on {resource}",
+                    stacklevel=3,
+                )
 
     # --- PR ---
     @abstractmethod
