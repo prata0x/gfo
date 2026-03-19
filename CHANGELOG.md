@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-03-20
+
+### Breaking Changes
+
+- Rename `update` subcommand to `edit` across all 8 commands (pr, issue, release, label, milestone, repo, wiki, branch-protect)
+- Move `comment` command to `pr comment` / `issue comment` subcommands
+- Move `review` command to `pr review` subcommand
+- Replace `pr merge --method` with `--merge` / `--squash` / `--rebase` individual flags
+- Change `credentials.toml` to new multi-account format
+
+### Added
+
+- `auth logout` subcommand
+- `--web` / `-w` option for `view` / `list` subcommands (open in browser)
+- `pr create` options: `--reviewer`, `--assignee`, `--label`, `--milestone`, `--fill`
+- `release create --target` option
+
+### Fixed
+
+- Fix auth.py review issues (#1, #2, #3, #5, #6, #13)
+- Fix command handler issues (#7, #9, #10, #11, #12, #21, #26)
+- Fix `create_pull_request` issues (#4, #8)
+
 ## [0.3.0] - 2026-03-18
 
 ### Added

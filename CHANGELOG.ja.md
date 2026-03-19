@@ -2,6 +2,29 @@
 
 このプロジェクトの主な変更はすべてこのファイルに記録します。
 
+## [0.4.0] - 2026-03-20
+
+### 破壊的変更
+
+- `update` サブコマンドを `edit` にリネーム（全 8 コマンド: pr, issue, release, label, milestone, repo, wiki, branch-protect）
+- `comment` コマンドを `pr comment` / `issue comment` サブコマンドに移動
+- `review` コマンドを `pr review` サブコマンドに移動
+- `pr merge --method` を `--merge` / `--squash` / `--rebase` 個別フラグに変更
+- `credentials.toml` をマルチアカウント対応の新形式に変更
+
+### 追加
+
+- `auth logout` サブコマンド
+- `view` / `list` サブコマンドに `--web` / `-w` オプション（ブラウザで開く）
+- `pr create` に `--reviewer` / `--assignee` / `--label` / `--milestone` / `--fill` オプション
+- `release create` に `--target` オプション
+
+### 修正
+
+- auth.py のレビュー指摘事項を修正（#1, #2, #3, #5, #6, #13）
+- コマンドハンドラの不具合を修正（#7, #9, #10, #11, #12, #21, #26）
+- `create_pull_request` の不具合を修正（#4, #8）
+
 ## [0.3.0] - 2026-03-18
 
 ### 追加
