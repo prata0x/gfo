@@ -2,11 +2,51 @@
 
 from __future__ import annotations
 
+import json
+
+import pytest
+
 from gfo.adapter.base import Tag
 from gfo.commands import tag as tag_cmd
+from gfo.exceptions import HttpError
 from tests.test_commands.conftest import make_args, patch_adapter
 
 SAMPLE_TAG = Tag(name="v1.0.0", sha="abc123", message="Release v1.0.0", url="")
+
+
+class TestHandleView:
+    def test_calls_get_tag(self):
+        with patch_adapter("gfo.commands.tag") as adapter:
+            adapter.get_tag.return_value = SAMPLE_TAG
+            args = make_args(name="v1.0.0")
+            tag_cmd.handle_view(args, fmt="table")
+        adapter.get_tag.assert_called_once_with("v1.0.0")
+
+    def test_outputs_result(self, capsys):
+        with patch_adapter("gfo.commands.tag") as adapter:
+            adapter.get_tag.return_value = SAMPLE_TAG
+            args = make_args(name="v1.0.0")
+            tag_cmd.handle_view(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "v1.0.0" in out
+        assert "abc123" in out
+
+    def test_json_format(self, capsys):
+        with patch_adapter("gfo.commands.tag") as adapter:
+            adapter.get_tag.return_value = SAMPLE_TAG
+            args = make_args(name="v1.0.0")
+            tag_cmd.handle_view(args, fmt="json")
+        out = capsys.readouterr().out
+        parsed = json.loads(out)
+        assert isinstance(parsed, list)
+        assert parsed[0]["name"] == "v1.0.0"
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.tag") as adapter:
+            adapter.get_tag.side_effect = HttpError(404, "Not found")
+            args = make_args(name="nonexistent")
+            with pytest.raises(HttpError):
+                tag_cmd.handle_view(args, fmt="table")
 
 
 class TestHandleList:

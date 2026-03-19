@@ -8,6 +8,13 @@ from gfo.commands import get_adapter
 from gfo.output import output
 
 
+def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo tag view <name> のハンドラ。"""
+    adapter = get_adapter()
+    tag = adapter.get_tag(args.name)
+    output(tag, fmt=fmt, jq=jq)
+
+
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo tag list のハンドラ。"""
     adapter = get_adapter()

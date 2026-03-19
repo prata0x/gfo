@@ -394,6 +394,9 @@ class GogsAdapter(GiteaAdapter):
 
     # --- GPG Key（Gogs 0.13 未対応）---
 
+    def get_gpg_key(self, key_id: int | str) -> GpgKey:
+        raise NotSupportedError("Gogs", "gpg-key operations")
+
     def list_gpg_keys(self, *, limit: int = 30) -> list[GpgKey]:
         raise NotSupportedError("Gogs", "gpg-key operations")
 

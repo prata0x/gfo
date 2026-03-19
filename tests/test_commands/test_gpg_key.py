@@ -20,6 +20,40 @@ SAMPLE_GPG_KEY = GpgKey(
 )
 
 
+class TestHandleView:
+    def test_calls_get_gpg_key(self):
+        with patch_adapter("gfo.commands.gpg_key") as adapter:
+            adapter.get_gpg_key.return_value = SAMPLE_GPG_KEY
+            args = make_args(id=1)
+            gpg_key_cmd.handle_view(args, fmt="table")
+        adapter.get_gpg_key.assert_called_once_with(1)
+
+    def test_outputs_result(self, capsys):
+        with patch_adapter("gfo.commands.gpg_key") as adapter:
+            adapter.get_gpg_key.return_value = SAMPLE_GPG_KEY
+            args = make_args(id=1)
+            gpg_key_cmd.handle_view(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "ABC123" in out
+
+    def test_json_format(self, capsys):
+        with patch_adapter("gfo.commands.gpg_key") as adapter:
+            adapter.get_gpg_key.return_value = SAMPLE_GPG_KEY
+            args = make_args(id=1)
+            gpg_key_cmd.handle_view(args, fmt="json")
+        out = capsys.readouterr().out
+        parsed = json.loads(out)
+        assert isinstance(parsed, list)
+        assert parsed[0]["primary_key_id"] == "ABC123"
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.gpg_key") as adapter:
+            adapter.get_gpg_key.side_effect = HttpError(404, "Not found")
+            args = make_args(id=999)
+            with pytest.raises(HttpError):
+                gpg_key_cmd.handle_view(args, fmt="table")
+
+
 class TestHandleList:
     def test_calls_list_gpg_keys(self, capsys):
         with patch_adapter("gfo.commands.gpg_key") as adapter:

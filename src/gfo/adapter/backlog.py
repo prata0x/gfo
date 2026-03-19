@@ -629,6 +629,20 @@ class BacklogAdapter(GitServiceAdapter):
 
     # --- Branch ---
 
+    def get_branch(self, name: str) -> Branch:
+        # Backlog API には単一ブランチ取得エンドポイントがないため一覧から検索
+        results = paginate_offset(
+            self._client,
+            f"/projects/{self._project_key}/git/repositories/{urllib.parse.quote(self._repo, safe='')}/branches",
+            limit=0,
+        )
+        for r in results:
+            if r.get("name") == name:
+                return self._to_branch(r)
+        from gfo.exceptions import NotFoundError
+
+        raise NotFoundError(f"Branch '{name}' not found")
+
     def list_branches(self, *, limit: int = 30) -> list[Branch]:
         results = paginate_offset(
             self._client,
@@ -650,6 +664,20 @@ class BacklogAdapter(GitServiceAdapter):
         )
 
     # --- Tag ---
+
+    def get_tag(self, name: str) -> Tag:
+        # Backlog API には単一タグ取得エンドポイントがないため一覧から検索
+        results = paginate_offset(
+            self._client,
+            f"/projects/{self._project_key}/git/repositories/{urllib.parse.quote(self._repo, safe='')}/tags",
+            limit=0,
+        )
+        for r in results:
+            if r.get("name") == name:
+                return self._to_tag(r)
+        from gfo.exceptions import NotFoundError
+
+        raise NotFoundError(f"Tag '{name}' not found")
 
     def list_tags(self, *, limit: int = 30) -> list[Tag]:
         results = paginate_offset(

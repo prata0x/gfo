@@ -2,11 +2,51 @@
 
 from __future__ import annotations
 
+import json
+
+import pytest
+
 from gfo.adapter.base import Branch
 from gfo.commands import branch as branch_cmd
+from gfo.exceptions import HttpError
 from tests.test_commands.conftest import make_args, patch_adapter
 
 SAMPLE_BRANCH = Branch(name="feature/test", sha="abc123", protected=False, url="")
+
+
+class TestHandleView:
+    def test_calls_get_branch(self):
+        with patch_adapter("gfo.commands.branch") as adapter:
+            adapter.get_branch.return_value = SAMPLE_BRANCH
+            args = make_args(name="feature/test")
+            branch_cmd.handle_view(args, fmt="table")
+        adapter.get_branch.assert_called_once_with("feature/test")
+
+    def test_outputs_result(self, capsys):
+        with patch_adapter("gfo.commands.branch") as adapter:
+            adapter.get_branch.return_value = SAMPLE_BRANCH
+            args = make_args(name="feature/test")
+            branch_cmd.handle_view(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "feature/test" in out
+        assert "abc123" in out
+
+    def test_json_format(self, capsys):
+        with patch_adapter("gfo.commands.branch") as adapter:
+            adapter.get_branch.return_value = SAMPLE_BRANCH
+            args = make_args(name="feature/test")
+            branch_cmd.handle_view(args, fmt="json")
+        out = capsys.readouterr().out
+        parsed = json.loads(out)
+        assert isinstance(parsed, list)
+        assert parsed[0]["name"] == "feature/test"
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.branch") as adapter:
+            adapter.get_branch.side_effect = HttpError(404, "Not found")
+            args = make_args(name="nonexistent")
+            with pytest.raises(HttpError):
+                branch_cmd.handle_view(args, fmt="table")
 
 
 class TestHandleList:

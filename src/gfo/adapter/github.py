@@ -879,6 +879,10 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- Branch ---
 
+    def get_branch(self, name: str) -> Branch:
+        resp = self._client.get(f"{self._repos_path()}/branches/{quote(name, safe='')}")
+        return self._to_branch(resp.json())
+
     def list_branches(self, *, limit: int = 30) -> list[Branch]:
         results = paginate_link_header(
             self._client,
@@ -904,6 +908,20 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.delete(f"{self._repos_path()}/git/refs/heads/{quote(name, safe='')}")
 
     # --- Tag ---
+
+    def get_tag(self, name: str) -> Tag:
+        # GitHub REST API にはタグ単体取得エンドポイントがないため、一覧から検索する
+        results = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/tags",
+            limit=0,
+        )
+        for t in results:
+            if t.get("name") == name:
+                return self._to_tag(t)
+        from gfo.exceptions import NotFoundError
+
+        raise NotFoundError(f"Tag '{name}' not found")
 
     def list_tags(self, *, limit: int = 30) -> list[Tag]:
         results = paginate_link_header(
@@ -1064,6 +1082,10 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.post(f"{self._repos_path()}/hooks/{hook_id}/tests")
 
     # --- DeployKey ---
+
+    def get_deploy_key(self, key_id: int) -> DeployKey:
+        resp = self._client.get(f"{self._repos_path()}/keys/{key_id}")
+        return self._to_deploy_key(resp.json())
 
     def list_deploy_keys(self, *, limit: int = 30) -> list[DeployKey]:
         results = paginate_link_header(
@@ -1547,6 +1569,10 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- SSH Key ---
 
+    def get_ssh_key(self, key_id: int | str) -> SshKey:
+        resp = self._client.get(f"/user/keys/{key_id}")
+        return self._to_ssh_key(resp.json())
+
     def list_ssh_keys(self, *, limit: int = 30) -> list[SshKey]:
         results = paginate_link_header(self._client, "/user/keys", limit=limit)
         return [self._to_ssh_key(d) for d in results]
@@ -1573,6 +1599,10 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- GPG Key ---
+
+    def get_gpg_key(self, key_id: int | str) -> GpgKey:
+        resp = self._client.get(f"/user/gpg_keys/{key_id}")
+        return self._to_gpg_key(resp.json())
 
     def list_gpg_keys(self, *, limit: int = 30) -> list[GpgKey]:
         results = paginate_link_header(self._client, "/user/gpg_keys", limit=limit)

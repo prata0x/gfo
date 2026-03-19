@@ -512,7 +512,7 @@ def test_parser_org_repos():
 
 
 def test_dispatch_table_entry_count():
-    assert len(_DISPATCH) == 145
+    assert len(_DISPATCH) == 150
 
 
 def test_dispatch_table_all_keys():
@@ -577,9 +577,11 @@ def test_dispatch_table_all_keys():
         ("pr", "comment"),
         ("issue", "comment"),
         ("pr", "review"),
+        ("branch", "view"),
         ("branch", "list"),
         ("branch", "create"),
         ("branch", "delete"),
+        ("tag", "view"),
         ("tag", "list"),
         ("tag", "create"),
         ("tag", "delete"),
@@ -592,6 +594,7 @@ def test_dispatch_table_all_keys():
         ("webhook", "create"),
         ("webhook", "delete"),
         ("webhook", "test"),
+        ("deploy-key", "view"),
         ("deploy-key", "list"),
         ("deploy-key", "create"),
         ("deploy-key", "delete"),
@@ -648,9 +651,11 @@ def test_dispatch_table_all_keys():
         ("variable", "set"),
         ("variable", "get"),
         ("variable", "delete"),
+        ("ssh-key", "view"),
         ("ssh-key", "list"),
         ("ssh-key", "create"),
         ("ssh-key", "delete"),
+        ("gpg-key", "view"),
         ("gpg-key", "list"),
         ("gpg-key", "create"),
         ("gpg-key", "delete"),

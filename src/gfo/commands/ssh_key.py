@@ -9,6 +9,13 @@ from gfo.i18n import _
 from gfo.output import output
 
 
+def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo ssh-key view <id> のハンドラ。"""
+    adapter = get_adapter()
+    key = adapter.get_ssh_key(args.id)
+    output(key, fmt=fmt, jq=jq)
+
+
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo ssh-key list のハンドラ。"""
     adapter = get_adapter()

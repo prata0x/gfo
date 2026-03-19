@@ -14,6 +14,40 @@ from tests.test_commands.conftest import make_args, patch_adapter
 SAMPLE_KEY = SshKey(id=1, title="my-key", key="ssh-rsa AAAA...", created_at="2024-01-01T00:00:00Z")
 
 
+class TestHandleView:
+    def test_calls_get_ssh_key(self):
+        with patch_adapter("gfo.commands.ssh_key") as adapter:
+            adapter.get_ssh_key.return_value = SAMPLE_KEY
+            args = make_args(id=1)
+            ssh_key_cmd.handle_view(args, fmt="table")
+        adapter.get_ssh_key.assert_called_once_with(1)
+
+    def test_outputs_result(self, capsys):
+        with patch_adapter("gfo.commands.ssh_key") as adapter:
+            adapter.get_ssh_key.return_value = SAMPLE_KEY
+            args = make_args(id=1)
+            ssh_key_cmd.handle_view(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "my-key" in out
+
+    def test_json_format(self, capsys):
+        with patch_adapter("gfo.commands.ssh_key") as adapter:
+            adapter.get_ssh_key.return_value = SAMPLE_KEY
+            args = make_args(id=1)
+            ssh_key_cmd.handle_view(args, fmt="json")
+        out = capsys.readouterr().out
+        parsed = json.loads(out)
+        assert isinstance(parsed, list)
+        assert parsed[0]["title"] == "my-key"
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.ssh_key") as adapter:
+            adapter.get_ssh_key.side_effect = HttpError(404, "Not found")
+            args = make_args(id=999)
+            with pytest.raises(HttpError):
+                ssh_key_cmd.handle_view(args, fmt="table")
+
+
 class TestHandleList:
     def test_calls_list_ssh_keys(self, capsys):
         with patch_adapter("gfo.commands.ssh_key") as adapter:

@@ -2,11 +2,50 @@
 
 from __future__ import annotations
 
+import json
+
+import pytest
+
 from gfo.adapter.base import DeployKey
 from gfo.commands import deploy_key as deploy_key_cmd
+from gfo.exceptions import HttpError
 from tests.test_commands.conftest import make_args, patch_adapter
 
 SAMPLE_KEY = DeployKey(id=1, title="CI Key", key="ssh-rsa AAAA...", read_only=True)
+
+
+class TestHandleView:
+    def test_calls_get_deploy_key(self):
+        with patch_adapter("gfo.commands.deploy_key") as adapter:
+            adapter.get_deploy_key.return_value = SAMPLE_KEY
+            args = make_args(id=1)
+            deploy_key_cmd.handle_view(args, fmt="table")
+        adapter.get_deploy_key.assert_called_once_with(1)
+
+    def test_outputs_result(self, capsys):
+        with patch_adapter("gfo.commands.deploy_key") as adapter:
+            adapter.get_deploy_key.return_value = SAMPLE_KEY
+            args = make_args(id=1)
+            deploy_key_cmd.handle_view(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "CI Key" in out
+
+    def test_json_format(self, capsys):
+        with patch_adapter("gfo.commands.deploy_key") as adapter:
+            adapter.get_deploy_key.return_value = SAMPLE_KEY
+            args = make_args(id=1)
+            deploy_key_cmd.handle_view(args, fmt="json")
+        out = capsys.readouterr().out
+        parsed = json.loads(out)
+        assert isinstance(parsed, list)
+        assert parsed[0]["title"] == "CI Key"
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.deploy_key") as adapter:
+            adapter.get_deploy_key.side_effect = HttpError(404, "Not found")
+            args = make_args(id=999)
+            with pytest.raises(HttpError):
+                deploy_key_cmd.handle_view(args, fmt="table")
 
 
 class TestHandleList:

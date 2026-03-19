@@ -810,6 +810,10 @@ class BitbucketAdapter(GitServiceAdapter):
 
     # --- Branch ---
 
+    def get_branch(self, name: str) -> Branch:
+        resp = self._client.get(f"{self._repos_path()}/refs/branches/{quote(name, safe='')}")
+        return self._to_branch(resp.json())
+
     def list_branches(self, *, limit: int = 30) -> list[Branch]:
         results = paginate_response_body(
             self._client,
@@ -827,6 +831,10 @@ class BitbucketAdapter(GitServiceAdapter):
         self._client.delete(f"{self._repos_path()}/refs/branches/{quote(name, safe='')}")
 
     # --- Tag ---
+
+    def get_tag(self, name: str) -> Tag:
+        resp = self._client.get(f"{self._repos_path()}/refs/tags/{quote(name, safe='')}")
+        return self._to_tag(resp.json())
 
     def list_tags(self, *, limit: int = 30) -> list[Tag]:
         results = paginate_response_body(
@@ -956,6 +964,10 @@ class BitbucketAdapter(GitServiceAdapter):
         self._client.delete(f"{self._repos_path()}/hooks/{hook_id}")
 
     # --- DeployKey ---
+
+    def get_deploy_key(self, key_id: int) -> DeployKey:
+        resp = self._client.get(f"{self._repos_path()}/deploy-keys/{key_id}")
+        return self._to_deploy_key(resp.json())
 
     def list_deploy_keys(self, *, limit: int = 30) -> list[DeployKey]:
         results = paginate_response_body(
@@ -1312,6 +1324,10 @@ class BitbucketAdapter(GitServiceAdapter):
 
     # --- SSH Key ---
 
+    def get_ssh_key(self, key_id: int | str) -> SshKey:
+        resp = self._client.get(f"/users/{quote(self._owner, safe='')}/ssh-keys/{key_id}")
+        return self._to_ssh_key(resp.json())
+
     def list_ssh_keys(self, *, limit: int = 30) -> list[SshKey]:
         results = paginate_response_body(
             self._client,
@@ -1348,6 +1364,10 @@ class BitbucketAdapter(GitServiceAdapter):
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- GPG Key ---
+
+    def get_gpg_key(self, key_id: int | str) -> GpgKey:
+        resp = self._client.get(f"/users/{quote(self._owner, safe='')}/gpg-keys/{key_id}")
+        return self._to_gpg_key(resp.json())
 
     def list_gpg_keys(self, *, limit: int = 30) -> list[GpgKey]:
         results = paginate_response_body(

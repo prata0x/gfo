@@ -1829,6 +1829,20 @@ class TestListBranches:
         assert branches[0].name == "feature"
 
 
+class TestGetBranch:
+    def test_get(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/branches/feature",
+            json=_branch_data(),
+            status=200,
+        )
+        branch = github_adapter.get_branch("feature")
+        assert isinstance(branch, Branch)
+        assert branch.name == "feature"
+        assert branch.sha == "abc123"
+
+
 class TestCreateBranch:
     def test_create_from_sha(self, mock_responses, github_adapter):
         # 40文字の hex SHA を渡すと直接 POST /git/refs する
@@ -1902,6 +1916,31 @@ class TestListTags:
         assert len(tags) == 1
         assert isinstance(tags[0], Tag)
         assert tags[0].name == "v1.0.0"
+
+
+class TestGetTag:
+    def test_get(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/tags",
+            json=[_tag_data()],
+            status=200,
+        )
+        tag = github_adapter.get_tag("v1.0.0")
+        assert isinstance(tag, Tag)
+        assert tag.name == "v1.0.0"
+
+    def test_not_found(self, mock_responses, github_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/tags",
+            json=[],
+            status=200,
+        )
+        with pytest.raises(NotFoundError):
+            github_adapter.get_tag("nonexistent")
 
 
 class TestCreateTag:
@@ -2137,6 +2176,20 @@ class TestListDeployKeys:
         keys = github_adapter.list_deploy_keys()
         assert len(keys) == 1
         assert isinstance(keys[0], DeployKey)
+
+
+class TestGetDeployKey:
+    def test_get(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/keys/200",
+            json=_deploy_key_data(),
+            status=200,
+        )
+        key = github_adapter.get_deploy_key(200)
+        assert isinstance(key, DeployKey)
+        assert key.id == 200
+        assert key.title == "Deploy Key"
 
 
 class TestCreateDeployKey:
@@ -3125,3 +3178,62 @@ class TestUploadReleaseAssetUrl:
         assert result.name == "asset.zip"
         # アップロード先が uploads.github.com であることを検証
         assert "uploads.github.com" in responses.calls[1].request.url
+
+
+# --- SSH Key 系 ---
+
+
+def _ssh_key_data(*, key_id=1):
+    return {
+        "id": key_id,
+        "title": "my-key",
+        "key": "ssh-rsa AAAA...",
+        "created_at": "2025-01-01T00:00:00Z",
+    }
+
+
+class TestGetSshKey:
+    @responses.activate
+    def test_get(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{BASE}/user/keys/1",
+            json=_ssh_key_data(),
+            status=200,
+        )
+        from gfo.adapter.base import SshKey
+
+        key = github_adapter.get_ssh_key(1)
+        assert isinstance(key, SshKey)
+        assert key.id == 1
+        assert key.title == "my-key"
+
+
+# --- GPG Key 系 ---
+
+
+def _gpg_key_data(*, key_id=10):
+    return {
+        "id": key_id,
+        "primary_key_id": "ABC123",
+        "public_key": "-----BEGIN PGP PUBLIC KEY BLOCK-----",
+        "emails": [{"email": "user@example.com"}],
+        "created_at": "2025-01-01T00:00:00Z",
+    }
+
+
+class TestGetGpgKey:
+    @responses.activate
+    def test_get(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{BASE}/user/gpg_keys/10",
+            json=_gpg_key_data(),
+            status=200,
+        )
+        from gfo.adapter.base import GpgKey
+
+        key = github_adapter.get_gpg_key(10)
+        assert isinstance(key, GpgKey)
+        assert key.id == 10
+        assert key.primary_key_id == "ABC123"

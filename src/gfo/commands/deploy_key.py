@@ -8,6 +8,13 @@ from gfo.commands import get_adapter
 from gfo.output import output
 
 
+def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo deploy-key view <id> のハンドラ。"""
+    adapter = get_adapter()
+    key = adapter.get_deploy_key(args.id)
+    output(key, fmt=fmt, jq=jq)
+
+
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo deploy-key list のハンドラ。"""
     adapter = get_adapter()

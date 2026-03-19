@@ -1234,6 +1234,12 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- Branch ---
 
+    def get_branch(self, name: str) -> Branch:
+        resp = self._client.get(
+            f"{self._project_path()}/repository/branches/{quote(name, safe='')}"
+        )
+        return self._to_branch(resp.json())
+
     def list_branches(self, *, limit: int = 30) -> list[Branch]:
         results = paginate_page_param(
             self._client,
@@ -1253,6 +1259,10 @@ class GitLabAdapter(GitServiceAdapter):
         self._client.delete(f"{self._project_path()}/repository/branches/{quote(name, safe='')}")
 
     # --- Tag ---
+
+    def get_tag(self, name: str) -> Tag:
+        resp = self._client.get(f"{self._project_path()}/repository/tags/{quote(name, safe='')}")
+        return self._to_tag(resp.json())
 
     def list_tags(self, *, limit: int = 30) -> list[Tag]:
         results = paginate_page_param(
@@ -1422,6 +1432,10 @@ class GitLabAdapter(GitServiceAdapter):
         self._client.post(f"{self._project_path()}/hooks/{hook_id}/test/push_events")
 
     # --- DeployKey ---
+
+    def get_deploy_key(self, key_id: int) -> DeployKey:
+        resp = self._client.get(f"{self._project_path()}/deploy_keys/{key_id}")
+        return self._to_deploy_key(resp.json())
 
     def list_deploy_keys(self, *, limit: int = 30) -> list[DeployKey]:
         results = paginate_page_param(
@@ -1721,6 +1735,10 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- SSH Key ---
 
+    def get_ssh_key(self, key_id: int | str) -> SshKey:
+        resp = self._client.get(f"/user/keys/{key_id}")
+        return self._to_ssh_key(resp.json())
+
     def list_ssh_keys(self, *, limit: int = 30) -> list[SshKey]:
         results = paginate_page_param(self._client, "/user/keys", limit=limit)
         return [self._to_ssh_key(d) for d in results]
@@ -1745,6 +1763,10 @@ class GitLabAdapter(GitServiceAdapter):
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- GPG Key ---
+
+    def get_gpg_key(self, key_id: int | str) -> GpgKey:
+        resp = self._client.get(f"/user/gpg_keys/{key_id}")
+        return self._to_gpg_key(resp.json())
 
     def list_gpg_keys(self, *, limit: int = 30) -> list[GpgKey]:
         results = paginate_page_param(self._client, "/user/gpg_keys", limit=limit)

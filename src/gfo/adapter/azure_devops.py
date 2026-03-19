@@ -981,6 +981,18 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     # --- Branch ---
 
+    def get_branch(self, name: str) -> Branch:
+        resp = self._client.get(
+            f"{self._git_path()}/refs",
+            params={"filter": f"heads/{name}"},
+        )
+        items = resp.json().get("value", [])
+        if not items:
+            from gfo.exceptions import NotFoundError
+
+            raise NotFoundError(f"refs/heads/{name}")
+        return self._to_branch(items[0])
+
     def list_branches(self, *, limit: int = 30) -> list[Branch]:
         results = paginate_top_skip(
             self._client,
@@ -1022,6 +1034,18 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         self._client.post(f"{self._git_path()}/refs", json=payload)
 
     # --- Tag ---
+
+    def get_tag(self, name: str) -> Tag:
+        resp = self._client.get(
+            f"{self._git_path()}/refs",
+            params={"filter": f"tags/{name}"},
+        )
+        items = resp.json().get("value", [])
+        if not items:
+            from gfo.exceptions import NotFoundError
+
+            raise NotFoundError(f"refs/tags/{name}")
+        return self._to_tag(items[0])
 
     def list_tags(self, *, limit: int = 30) -> list[Tag]:
         results = paginate_top_skip(

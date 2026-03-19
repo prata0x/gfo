@@ -553,6 +553,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "branch", help=_("Manage branches")
     )
     branch_sub = branch_parser.add_subparsers(dest="subcommand")
+    branch_view = branch_sub.add_parser("view", help=_("View branch details"))
+    branch_view.add_argument("name", help=_("Branch name"))
     branch_list = branch_sub.add_parser("list", help=_("List branches"))
     branch_list.add_argument(
         "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
@@ -566,6 +568,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     # gfo tag → サブサブコマンド
     tag_parser = subparser_map["tag"] = subparsers.add_parser("tag", help=_("Manage tags"))
     tag_sub = tag_parser.add_subparsers(dest="subcommand")
+    tag_view = tag_sub.add_parser("view", help=_("View tag details"))
+    tag_view.add_argument("name", help=_("Tag name"))
     tag_list = tag_sub.add_parser("list", help=_("List tags"))
     tag_list.add_argument(
         "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
@@ -639,6 +643,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "deploy-key", help=_("Manage deploy keys")
     )
     deploy_key_sub = deploy_key_parser.add_subparsers(dest="subcommand")
+    deploy_key_view = deploy_key_sub.add_parser("view", help=_("View deploy key details"))
+    deploy_key_view.add_argument("id", type=int, help=_("Deploy key ID"))
     deploy_key_list = deploy_key_sub.add_parser("list", help=_("List deploy keys"))
     deploy_key_list.add_argument(
         "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
@@ -979,6 +985,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "ssh-key", help=_("Manage SSH keys")
     )
     ssh_key_sub = ssh_key_parser.add_subparsers(dest="subcommand")
+    ssh_key_view = ssh_key_sub.add_parser("view", help=_("View SSH key details"))
+    ssh_key_view.add_argument("id", type=int, help=_("SSH key ID"))
     ssh_key_list = ssh_key_sub.add_parser("list", help=_("List SSH keys"))
     ssh_key_list.add_argument(
         "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
@@ -994,6 +1002,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "gpg-key", help=_("Manage GPG keys")
     )
     gpg_key_sub = gpg_key_parser.add_subparsers(dest="subcommand")
+    gpg_key_view = gpg_key_sub.add_parser("view", help=_("View GPG key details"))
+    gpg_key_view.add_argument("id", type=int, help=_("GPG key ID"))
     gpg_key_list = gpg_key_sub.add_parser("list", help=_("List GPG keys"))
     gpg_key_list.add_argument(
         "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
@@ -1157,9 +1167,11 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("pr", "comment"): gfo.commands.comment.handle_pr_comment,
     ("issue", "comment"): gfo.commands.comment.handle_issue_comment,
     ("pr", "review"): gfo.commands.review.handle_review,
+    ("branch", "view"): gfo.commands.branch.handle_view,
     ("branch", "list"): gfo.commands.branch.handle_list,
     ("branch", "create"): gfo.commands.branch.handle_create,
     ("branch", "delete"): gfo.commands.branch.handle_delete,
+    ("tag", "view"): gfo.commands.tag.handle_view,
     ("tag", "list"): gfo.commands.tag.handle_list,
     ("tag", "create"): gfo.commands.tag.handle_create,
     ("tag", "delete"): gfo.commands.tag.handle_delete,
@@ -1172,6 +1184,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("webhook", "create"): gfo.commands.webhook.handle_create,
     ("webhook", "delete"): gfo.commands.webhook.handle_delete,
     ("webhook", "test"): gfo.commands.webhook.handle_test,
+    ("deploy-key", "view"): gfo.commands.deploy_key.handle_view,
     ("deploy-key", "list"): gfo.commands.deploy_key.handle_list,
     ("deploy-key", "create"): gfo.commands.deploy_key.handle_create,
     ("deploy-key", "delete"): gfo.commands.deploy_key.handle_delete,
@@ -1232,9 +1245,11 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("variable", "set"): gfo.commands.variable.handle_set,
     ("variable", "get"): gfo.commands.variable.handle_get,
     ("variable", "delete"): gfo.commands.variable.handle_delete,
+    ("ssh-key", "view"): gfo.commands.ssh_key.handle_view,
     ("ssh-key", "list"): gfo.commands.ssh_key.handle_list,
     ("ssh-key", "create"): gfo.commands.ssh_key.handle_create,
     ("ssh-key", "delete"): gfo.commands.ssh_key.handle_delete,
+    ("gpg-key", "view"): gfo.commands.gpg_key.handle_view,
     ("gpg-key", "list"): gfo.commands.gpg_key.handle_list,
     ("gpg-key", "create"): gfo.commands.gpg_key.handle_create,
     ("gpg-key", "delete"): gfo.commands.gpg_key.handle_delete,

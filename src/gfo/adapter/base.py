@@ -1023,10 +1023,16 @@ class GitServiceAdapter(ABC):
     @abstractmethod
     def create_branch(self, *, name: str, ref: str) -> Branch: ...
 
+    def get_branch(self, name: str) -> Branch:
+        raise NotSupportedError(self.service_name, "branch view")
+
     def delete_branch(self, *, name: str) -> None:
         raise NotSupportedError(self.service_name, "branch delete")
 
     # --- Tag ---
+    def get_tag(self, name: str) -> Tag:
+        raise NotSupportedError(self.service_name, "tag view")
+
     def list_tags(self, *, limit: int = 30) -> list[Tag]:
         raise NotSupportedError(self.service_name, "tag list")
 
@@ -1101,6 +1107,9 @@ class GitServiceAdapter(ABC):
 
     def create_deploy_key(self, *, title: str, key: str, read_only: bool = True) -> DeployKey:
         raise NotSupportedError(self.service_name, "deploy-key create")
+
+    def get_deploy_key(self, key_id: int) -> DeployKey:
+        raise NotSupportedError(self.service_name, "deploy-key view")
 
     def delete_deploy_key(self, *, key_id: int) -> None:
         raise NotSupportedError(self.service_name, "deploy-key delete")
@@ -1245,10 +1254,16 @@ class GitServiceAdapter(ABC):
     def create_ssh_key(self, *, title: str, key: str) -> SshKey:
         raise NotSupportedError(self.service_name, "ssh-key create")
 
+    def get_ssh_key(self, key_id: int | str) -> SshKey:
+        raise NotSupportedError(self.service_name, "ssh-key view")
+
     def delete_ssh_key(self, *, key_id: int | str) -> None:
         raise NotSupportedError(self.service_name, "ssh-key delete")
 
     # --- GPG Key ---
+    def get_gpg_key(self, key_id: int | str) -> GpgKey:
+        raise NotSupportedError(self.service_name, "gpg-key view")
+
     def list_gpg_keys(self, *, limit: int = 30) -> list[GpgKey]:
         raise NotSupportedError(self.service_name, "gpg-key list")
 
