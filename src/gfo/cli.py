@@ -206,6 +206,11 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_checkout.add_argument("number", type=int, help=_("PR number"))
     pr_reopen = pr_sub.add_parser("reopen", help=_("Reopen pull request"))
     pr_reopen.add_argument("number", type=int, help=_("PR number"))
+    pr_lock = pr_sub.add_parser("lock", help=_("Lock pull request conversation"))
+    pr_lock.add_argument("number", type=int, help=_("PR number"))
+    pr_lock.add_argument("--reason", help=_("Lock reason"))
+    pr_unlock = pr_sub.add_parser("unlock", help=_("Unlock pull request conversation"))
+    pr_unlock.add_argument("number", type=int, help=_("PR number"))
     pr_diff = pr_sub.add_parser("diff", help=_("Show pull request diff"))
     pr_diff.add_argument("number", type=int, help=_("PR number"))
     pr_checks = pr_sub.add_parser("checks", help=_("List pull request checks"))
@@ -299,6 +304,11 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_delete.add_argument("number", type=int, help=_("Issue number"))
     issue_reopen = issue_sub.add_parser("reopen", help=_("Reopen issue"))
     issue_reopen.add_argument("number", type=int, help=_("Issue number"))
+    issue_lock = issue_sub.add_parser("lock", help=_("Lock issue conversation"))
+    issue_lock.add_argument("number", type=int, help=_("Issue number"))
+    issue_lock.add_argument("--reason", help=_("Lock reason"))
+    issue_unlock = issue_sub.add_parser("unlock", help=_("Unlock issue conversation"))
+    issue_unlock.add_argument("number", type=int, help=_("Issue number"))
 
     issue_migrate = issue_sub.add_parser("migrate", help=_("Migrate issues between services"))
     issue_migrate.add_argument(
@@ -1140,6 +1150,8 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("pr", "checkout"): gfo.commands.pr.handle_checkout,
     ("pr", "edit"): gfo.commands.pr.handle_edit,
     ("pr", "reopen"): gfo.commands.pr.handle_reopen,
+    ("pr", "lock"): gfo.commands.pr.handle_lock,
+    ("pr", "unlock"): gfo.commands.pr.handle_unlock,
     ("pr", "diff"): gfo.commands.pr.handle_diff,
     ("pr", "checks"): gfo.commands.pr.handle_checks,
     ("pr", "files"): gfo.commands.pr.handle_files,
@@ -1152,6 +1164,8 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("issue", "create"): gfo.commands.issue.handle_create,
     ("issue", "view"): gfo.commands.issue.handle_view,
     ("issue", "close"): gfo.commands.issue.handle_close,
+    ("issue", "lock"): gfo.commands.issue.handle_lock,
+    ("issue", "unlock"): gfo.commands.issue.handle_unlock,
     ("issue", "delete"): gfo.commands.issue.handle_delete,
     ("issue", "edit"): gfo.commands.issue.handle_edit,
     ("issue", "reopen"): gfo.commands.issue.handle_reopen,

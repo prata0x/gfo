@@ -699,6 +699,12 @@ class GitServiceAdapter(ABC):
     def reopen_pull_request(self, number: int) -> None:
         raise NotSupportedError(self.service_name, "pr reopen")
 
+    def lock_pull_request(self, number: int, *, reason: str | None = None) -> None:
+        raise NotSupportedError(self.service_name, "pr lock")
+
+    def unlock_pull_request(self, number: int) -> None:
+        raise NotSupportedError(self.service_name, "pr unlock")
+
     def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         """PR チェックアウト用の refspec を返す。
 
@@ -1369,6 +1375,13 @@ class GitServiceAdapter(ABC):
     # --- Issue Timeline ---
     def get_issue_timeline(self, number: int, *, limit: int = 30) -> list[TimelineEvent]:
         raise NotSupportedError(self.service_name, "issue timeline")
+
+    # --- Issue Lock ---
+    def lock_issue(self, number: int, *, reason: str | None = None) -> None:
+        raise NotSupportedError(self.service_name, "issue lock")
+
+    def unlock_issue(self, number: int) -> None:
+        raise NotSupportedError(self.service_name, "issue unlock")
 
     # --- Issue Pin ---
     def pin_issue(self, number: int) -> None:

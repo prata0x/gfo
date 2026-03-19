@@ -512,7 +512,7 @@ def test_parser_org_repos():
 
 
 def test_dispatch_table_entry_count():
-    assert len(_DISPATCH) == 154
+    assert len(_DISPATCH) == 158
 
 
 def test_dispatch_table_all_keys():
@@ -530,6 +530,8 @@ def test_dispatch_table_all_keys():
         ("pr", "checkout"),
         ("pr", "edit"),
         ("pr", "reopen"),
+        ("pr", "lock"),
+        ("pr", "unlock"),
         ("pr", "diff"),
         ("pr", "checks"),
         ("pr", "files"),
@@ -542,6 +544,8 @@ def test_dispatch_table_all_keys():
         ("issue", "create"),
         ("issue", "view"),
         ("issue", "close"),
+        ("issue", "lock"),
+        ("issue", "unlock"),
         ("issue", "delete"),
         ("issue", "edit"),
         ("issue", "reopen"),

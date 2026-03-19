@@ -591,6 +591,26 @@ class TestHandleTimeline:
         adapter.get_issue_timeline.assert_called_once_with(1, limit=30)
 
 
+class TestHandleLock:
+    def test_lock_issue(self, capsys):
+        with patch_adapter("gfo.commands.issue") as adapter:
+            args = make_args(number=1, reason=None)
+            issue_cmd.handle_lock(args, fmt="table")
+        adapter.lock_issue.assert_called_once_with(1, reason=None)
+
+    def test_lock_issue_with_reason(self, capsys):
+        with patch_adapter("gfo.commands.issue") as adapter:
+            args = make_args(number=1, reason="spam")
+            issue_cmd.handle_lock(args, fmt="table")
+        adapter.lock_issue.assert_called_once_with(1, reason="spam")
+
+    def test_unlock_issue(self, capsys):
+        with patch_adapter("gfo.commands.issue") as adapter:
+            args = make_args(number=1)
+            issue_cmd.handle_unlock(args, fmt="table")
+        adapter.unlock_issue.assert_called_once_with(1)
+
+
 class TestHandlePin:
     def test_pin_issue(self, capsys):
         with patch_adapter("gfo.commands.issue") as adapter:

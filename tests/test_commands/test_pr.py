@@ -472,6 +472,29 @@ class TestHandleReopen:
         mock_adapter.reopen_pull_request.assert_called_once_with(42)
 
 
+class TestHandleLock:
+    def test_lock_pull_request(self, sample_config, mock_adapter):
+        args = make_args(number=1, reason=None)
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_lock(args, fmt="table")
+
+        mock_adapter.lock_pull_request.assert_called_once_with(1, reason=None)
+
+    def test_lock_pull_request_with_reason(self, sample_config, mock_adapter):
+        args = make_args(number=1, reason="resolved")
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_lock(args, fmt="table")
+
+        mock_adapter.lock_pull_request.assert_called_once_with(1, reason="resolved")
+
+    def test_unlock_pull_request(self, sample_config, mock_adapter):
+        args = make_args(number=1)
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_unlock(args, fmt="table")
+
+        mock_adapter.unlock_pull_request.assert_called_once_with(1)
+
+
 class TestHandleCheckout:
     def test_fetches_and_checks_out(self, sample_config, mock_adapter):
         args = make_args(number=1)

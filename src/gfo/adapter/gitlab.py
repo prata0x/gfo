@@ -299,6 +299,18 @@ class GitLabAdapter(GitServiceAdapter):
             json={"state_event": "reopen"},
         )
 
+    def lock_pull_request(self, number: int, *, reason: str | None = None) -> None:
+        self._client.put(
+            f"{self._project_path()}/merge_requests/{number}",
+            json={"discussion_locked": True},
+        )
+
+    def unlock_pull_request(self, number: int) -> None:
+        self._client.put(
+            f"{self._project_path()}/merge_requests/{number}",
+            json={"discussion_locked": False},
+        )
+
     def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         return f"refs/merge-requests/{number}/head"
 
@@ -2109,6 +2121,20 @@ class GitLabAdapter(GitServiceAdapter):
             )
         events.sort(key=lambda ev: ev.created_at)
         return events[:limit]
+
+    # --- Issue Lock ---
+
+    def lock_issue(self, number: int, *, reason: str | None = None) -> None:
+        self._client.put(
+            f"{self._project_path()}/issues/{number}",
+            json={"discussion_locked": True},
+        )
+
+    def unlock_issue(self, number: int) -> None:
+        self._client.put(
+            f"{self._project_path()}/issues/{number}",
+            json={"discussion_locked": False},
+        )
 
     # --- Search PRs ---
 

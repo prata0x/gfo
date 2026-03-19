@@ -182,6 +182,12 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             json={"state": "open"},
         )
 
+    def lock_pull_request(self, number: int, *, reason: str | None = None) -> None:
+        self.lock_issue(number, reason=reason)
+
+    def unlock_pull_request(self, number: int) -> None:
+        self.unlock_issue(number)
+
     def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         return f"refs/pull/{number}/head"
 
@@ -1819,6 +1825,20 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             )
             for e in results
         ]
+
+    # --- Issue Lock ---
+
+    def lock_issue(self, number: int, *, reason: str | None = None) -> None:
+        payload: dict = {}
+        if reason is not None:
+            payload["lock_reason"] = reason
+        self._client.put(
+            f"{self._repos_path()}/issues/{number}/lock",
+            json=payload,
+        )
+
+    def unlock_issue(self, number: int) -> None:
+        self._client.delete(f"{self._repos_path()}/issues/{number}/lock")
 
     # --- Issue Pin ---
 

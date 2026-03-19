@@ -114,6 +114,20 @@ def handle_reopen(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     print(_("Reopened PR #{number}.").format(number=args.number))
 
 
+def handle_lock(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo pr lock <number> のハンドラ。"""
+    adapter = get_adapter()
+    adapter.lock_pull_request(args.number, reason=getattr(args, "reason", None))
+    print(_("Locked PR #{number}.").format(number=args.number))
+
+
+def handle_unlock(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo pr unlock <number> のハンドラ。"""
+    adapter = get_adapter()
+    adapter.unlock_pull_request(args.number)
+    print(_("Unlocked PR #{number}.").format(number=args.number))
+
+
 def handle_checkout(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr checkout <number> のハンドラ。"""
     adapter = get_adapter()

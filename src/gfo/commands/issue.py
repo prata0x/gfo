@@ -184,6 +184,20 @@ def handle_timeline(args: argparse.Namespace, *, fmt: str, jq: str | None = None
     output(events, fmt=fmt, fields=["event", "actor", "detail", "created_at"], jq=jq)
 
 
+def handle_lock(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo issue lock <number> のハンドラ。"""
+    adapter = get_adapter()
+    adapter.lock_issue(args.number, reason=getattr(args, "reason", None))
+    print(_("Locked issue #{number}.").format(number=args.number))
+
+
+def handle_unlock(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo issue unlock <number> のハンドラ。"""
+    adapter = get_adapter()
+    adapter.unlock_issue(args.number)
+    print(_("Unlocked issue #{number}.").format(number=args.number))
+
+
 def handle_pin(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue pin <number> のハンドラ。"""
     adapter = get_adapter()

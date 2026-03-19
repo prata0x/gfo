@@ -3118,6 +3118,55 @@ class TestRepoTransfer:
         github_adapter.transfer_repository("new-owner")
 
 
+class TestIssueLock:
+    @responses.activate
+    def test_lock_issue(self, github_adapter):
+        responses.add(
+            responses.PUT,
+            f"{REPOS}/issues/1/lock",
+            status=204,
+        )
+        github_adapter.lock_issue(1)
+
+    @responses.activate
+    def test_lock_issue_with_reason(self, github_adapter):
+        responses.add(
+            responses.PUT,
+            f"{REPOS}/issues/1/lock",
+            status=204,
+        )
+        github_adapter.lock_issue(1, reason="spam")
+        req_body = json.loads(responses.calls[0].request.body)
+        assert req_body["lock_reason"] == "spam"
+
+    @responses.activate
+    def test_unlock_issue(self, github_adapter):
+        responses.add(
+            responses.DELETE,
+            f"{REPOS}/issues/1/lock",
+            status=204,
+        )
+        github_adapter.unlock_issue(1)
+
+    @responses.activate
+    def test_lock_pull_request(self, github_adapter):
+        responses.add(
+            responses.PUT,
+            f"{REPOS}/issues/1/lock",
+            status=204,
+        )
+        github_adapter.lock_pull_request(1)
+
+    @responses.activate
+    def test_unlock_pull_request(self, github_adapter):
+        responses.add(
+            responses.DELETE,
+            f"{REPOS}/issues/1/lock",
+            status=204,
+        )
+        github_adapter.unlock_pull_request(1)
+
+
 class TestIssuePin:
     @responses.activate
     def test_pin_issue(self, github_adapter):

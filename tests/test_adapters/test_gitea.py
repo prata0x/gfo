@@ -715,6 +715,24 @@ class TestReopenPullRequest:
         assert req_body["state"] == "open"
 
 
+class TestLockPullRequest:
+    def test_lock(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/issues/1/lock",
+            status=204,
+        )
+        gitea_adapter.lock_pull_request(1)
+
+    def test_unlock(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/issues/1/lock",
+            status=204,
+        )
+        gitea_adapter.unlock_pull_request(1)
+
+
 class TestCheckoutRefspec:
     def test_refspec(self, gitea_adapter):
         assert gitea_adapter.get_pr_checkout_refspec(42) == "refs/pull/42/head"
@@ -828,6 +846,24 @@ class TestReopenIssue:
         gitea_adapter.reopen_issue(3)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["state"] == "open"
+
+
+class TestLockIssue:
+    def test_lock(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/issues/3/lock",
+            status=204,
+        )
+        gitea_adapter.lock_issue(3)
+
+    def test_unlock(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/issues/3/lock",
+            status=204,
+        )
+        gitea_adapter.unlock_issue(3)
 
 
 # --- Repository 系 ---

@@ -686,6 +686,30 @@ class TestReopenPullRequest:
         assert req_body["state_event"] == "reopen"
 
 
+class TestLockPullRequest:
+    def test_lock(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1",
+            json=_mr_data(),
+            status=200,
+        )
+        gitlab_adapter.lock_pull_request(1)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["discussion_locked"] is True
+
+    def test_unlock(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1",
+            json=_mr_data(),
+            status=200,
+        )
+        gitlab_adapter.unlock_pull_request(1)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["discussion_locked"] is False
+
+
 class TestCheckoutRefspec:
     def test_refspec(self, gitlab_adapter):
         assert gitlab_adapter.get_pr_checkout_refspec(42) == "refs/merge-requests/42/head"
@@ -799,6 +823,30 @@ class TestReopenIssue:
         gitlab_adapter.reopen_issue(3)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["state_event"] == "reopen"
+
+
+class TestLockIssue:
+    def test_lock(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/issues/3",
+            json=_issue_data(iid=3),
+            status=200,
+        )
+        gitlab_adapter.lock_issue(3)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["discussion_locked"] is True
+
+    def test_unlock(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/issues/3",
+            json=_issue_data(iid=3),
+            status=200,
+        )
+        gitlab_adapter.unlock_issue(3)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["discussion_locked"] is False
 
 
 # --- Repository 系 ---
