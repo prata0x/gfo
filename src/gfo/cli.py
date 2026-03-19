@@ -570,6 +570,10 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_fork = repo_sub.add_parser("fork", help=_("Fork repository"))
     repo_fork.add_argument("--org", help=_("Organization to fork into"))
 
+    # gfo repo sync（fork を上流と同期）
+    repo_sync = repo_sub.add_parser("sync", help=_("Sync fork with upstream"))
+    repo_sync.add_argument("--branch", "-b", help=_("Branch to sync"))
+
     # gfo branch → サブサブコマンド
     branch_parser = subparser_map["branch"] = subparsers.add_parser(
         "branch", help=_("Manage branches")
@@ -1221,6 +1225,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("repo", "view"): gfo.commands.repo.handle_view,
     ("repo", "delete"): gfo.commands.repo.handle_delete,
     ("repo", "fork"): gfo.commands.repo.handle_fork,
+    ("repo", "sync"): gfo.commands.repo.handle_sync_fork,
     ("repo", "edit"): gfo.commands.repo.handle_edit,
     ("repo", "archive"): gfo.commands.repo.handle_archive,
     ("repo", "languages"): gfo.commands.repo.handle_languages,

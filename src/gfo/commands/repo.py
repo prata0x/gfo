@@ -208,6 +208,13 @@ def handle_fork(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     output(repo, fmt=fmt, jq=jq)
 
 
+def handle_sync_fork(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo repo sync のハンドラ。"""
+    adapter = get_adapter()
+    adapter.sync_fork(branch=getattr(args, "branch", None))
+    print(_("Fork synced with upstream."))
+
+
 def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo edit のハンドラ。"""
     adapter = get_adapter()

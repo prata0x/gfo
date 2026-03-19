@@ -2030,6 +2030,28 @@ class TestForkRepository:
         assert req_body["organization"] == "myorg"
 
 
+class TestSyncFork:
+    def test_sync_fork(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/merge-upstream",
+            json={},
+            status=200,
+        )
+        gitea_adapter.sync_fork()
+
+    def test_sync_fork_with_branch(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/merge-upstream",
+            json={},
+            status=200,
+        )
+        gitea_adapter.sync_fork(branch="develop")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["branch"] == "develop"
+
+
 # --- Webhook 系 ---
 
 

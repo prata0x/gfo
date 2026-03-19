@@ -1018,6 +1018,12 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.post(f"{self._repos_path()}/forks", json=payload)
         return self._to_repository(resp.json())
 
+    def sync_fork(self, *, branch: str | None = None) -> None:
+        payload: dict = {}
+        if branch is not None:
+            payload["branch"] = branch
+        self._client.post(f"{self._repos_path()}/merge-upstream", json=payload)
+
     # --- Webhook ---
 
     def list_webhooks(self, *, limit: int = 30) -> list[Webhook]:

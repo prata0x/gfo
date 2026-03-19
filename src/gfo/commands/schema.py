@@ -90,6 +90,7 @@ _OUTPUT_MAP: dict[tuple[str, str | None], type | None] = {
     ("repo", "view"): Repository,
     ("repo", "delete"): None,
     ("repo", "fork"): Repository,
+    ("repo", "sync"): None,
     ("repo", "edit"): Repository,
     ("repo", "archive"): None,
     ("repo", "languages"): dict,

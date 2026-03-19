@@ -2107,6 +2107,28 @@ class TestForkRepository:
         assert req_body["organization"] == "myorg"
 
 
+class TestSyncFork:
+    def test_sync_fork(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/merge-upstream",
+            json={"merge_type": "fast-forward", "base_branch": "main"},
+            status=200,
+        )
+        github_adapter.sync_fork()
+
+    def test_sync_fork_with_branch(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/merge-upstream",
+            json={"merge_type": "fast-forward", "base_branch": "develop"},
+            status=200,
+        )
+        github_adapter.sync_fork(branch="develop")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["branch"] == "develop"
+
+
 # --- Webhook 系 ---
 
 

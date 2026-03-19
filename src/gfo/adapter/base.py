@@ -1496,6 +1496,10 @@ class GitServiceAdapter(ABC):
     def sync_mirror(self) -> None:
         raise NotSupportedError(self.service_name, "repo mirror sync")
 
+    # --- Fork Sync ---
+    def sync_fork(self, *, branch: str | None = None) -> None:
+        raise NotSupportedError(self.service_name, "repo sync")
+
     # --- Repo Transfer ---
     def transfer_repository(self, new_owner: str, *, team_ids: list[int] | None = None) -> None:
         raise NotSupportedError(self.service_name, "repo transfer")

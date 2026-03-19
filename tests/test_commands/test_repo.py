@@ -1058,3 +1058,25 @@ class TestHandleViewWeb:
             repo_cmd.handle_view(args, fmt="table")
         mock_adapter.get_repository.assert_called_once_with("other-owner", "other-repo")
         mock_open.assert_called_once_with(mock_adapter.get_repository.return_value.url)
+
+
+class TestHandleSyncFork:
+    def test_sync_fork(self, sample_config, mock_adapter, capsys):
+        with _patch_all(sample_config, mock_adapter):
+            args = make_args(branch=None)
+            repo_cmd.handle_sync_fork(args, fmt="table")
+        mock_adapter.sync_fork.assert_called_once_with(branch=None)
+        out = capsys.readouterr().out
+        assert "sync" in out.lower()
+
+    def test_sync_fork_with_branch(self, sample_config, mock_adapter, capsys):
+        with _patch_all(sample_config, mock_adapter):
+            args = make_args(branch="main")
+            repo_cmd.handle_sync_fork(args, fmt="table")
+        mock_adapter.sync_fork.assert_called_once_with(branch="main")
+
+    def test_sync_fork_json(self, sample_config, mock_adapter, capsys):
+        with _patch_all(sample_config, mock_adapter):
+            args = make_args(branch=None)
+            repo_cmd.handle_sync_fork(args, fmt="json")
+        mock_adapter.sync_fork.assert_called_once_with(branch=None)
