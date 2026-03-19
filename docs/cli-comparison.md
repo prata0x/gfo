@@ -54,7 +54,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 
 | カテゴリ | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
-| ブランチ | `branch` | `---` | `---` | `---` | `---` |
+| ブランチ | `branch` | `---` | `---` | `branches` | `---` |
 | タグ | `tag` | `---` | `---` | `---` | `---` |
 | コミットステータス | `status` | `---` | `---` | `---` | `---` |
 
@@ -62,9 +62,9 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 
 | カテゴリ | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
-| CI | `ci` | `run` / `workflow` | `ci` / `pipeline` | `---` | `---` |
-| シークレット | `secret` | `secret` | `variable` | `---` | `---` |
-| 変数 | `variable` | `variable` | `variable` | `---` | `---` |
+| CI | `ci` | `run` / `workflow` | `ci` / `pipeline` | `actions runs` / `workflows` | `---` |
+| シークレット | `secret` | `secret` | `variable` | `actions secrets` | `---` |
+| 変数 | `variable` | `variable` | `variable` | `actions variables` | `---` |
 
 **検索・通知**
 
@@ -78,10 +78,10 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | カテゴリ | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
 | ファイル | `file` | `---` | `---` | `---` | `---` |
-| Webhook | `webhook` | `---` | `---` | `---` | `---` |
+| Webhook | `webhook` | `---` | `---` | `webhooks` | `---` |
 | デプロイキー | `deploy-key` | `repo deploy-key` | `deploy-key` | `---` | `---` |
 | コラボレーター | `collaborator` | `---` | `repo members` | `---` | `---` |
-| ブランチ保護 | `branch-protect` | `ruleset` | `---` | `---` | `---` |
+| ブランチ保護 | `branch-protect` | `ruleset` | `---` | `branches protect` | `---` |
 | タグ保護 | `tag-protect` | `---` | `---` | `---` | `---` |
 | Wiki | `wiki` | `---` | `---` | `---` | `wiki` |
 | パッケージ | `package` | `---` | `---` | `---` | `---` |
@@ -90,8 +90,8 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 
 | カテゴリ | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
-| ユーザー | `user` | `---` | `user` | `---` | `user` |
-| 組織 | `org` | `org` | `---` | `---` | `---` |
+| ユーザー | `user` | `---` | `user` | `whoami` | `user` |
+| 組織 | `org` | `org` | `---` | `organizations` | `---` |
 | SSH キー | `ssh-key` | `ssh-key` | `ssh-key` | `---` | `ssh-key` |
 | GPG キー | `gpg-key` | `gpg-key` | `gpg-key` | `---` | `---` |
 
@@ -134,7 +134,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | ready | `pr ready` | `pr ready` | `---` | `---` | `---` |
 | update-branch | `pr update-branch` | `pr update-branch` | `---` | `---` | `---` |
 | review | `pr review` (list/create/dismiss) | `pr review` | `mr approve` / `mr revoke` | `pr approve`/`reject` | `---` |
-| comment | `pr comment` (list/create/edit/delete) | `pr comment` | `mr note` | `---` | `---` |
+| comment | `pr comment` (list/create/edit/delete) | `pr comment` | `mr note` | `comment` (独立コマンド) | `---` |
 | reviewers | `pr reviewers` (list/add/remove) | `---` | `mr approvers` | `---` | `---` |
 | subscribe | `---` | `---` | `mr subscribe` / `unsubscribe` | `---` | `---` |
 | todo | `---` | `---` | `mr todo` | `---` | `---` |
@@ -153,9 +153,10 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | ヘッドブランチ | `--head` | `--head` | `--source-branch` | `--head` | `--head` |
 | ドラフト | `--draft` | `--draft` | `--draft` | `---` | `---` |
 | レビュアー | `--reviewer` | `--reviewer` | `--reviewer` | `---` | `---` |
-| 担当者 | `--assignee` | `--assignee` | `--assignee` | `---` | `---` |
-| ラベル | `--label` | `--label` | `--label` | `--label` | `--label` |
+| 担当者 | `--assignee` | `--assignee` | `--assignee` | `--assignees` | `---` |
+| ラベル | `--label` | `--label` | `--label` | `--labels` | `--label` |
 | マイルストーン | `--milestone` | `--milestone` | `--milestone` | `--milestone` | `---` |
+| 期限 | `---` | `---` | `---` | `--deadline` | `---` |
 | 自動入力 | `--fill` | `--fill` | `--fill` | `---` | `---` |
 | プロジェクト | `---` | `--project` | `---` | `---` | `---` |
 | Web で作成 | `---` | `--web` | `--web` | `---` | `---` |
@@ -181,12 +182,12 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | オプション | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
 | タイトル | `--title` | `--title` | `--title` | `--title` | `--title` |
-| 本文 | `--body` | `--body` | `--description` | `---` | `--body` |
+| 本文 | `--body` | `--body` | `--description` | `--description` | `--body` |
 | ベースブランチ | `--base` | `--base` | `--target-branch` | `---` | `---` |
-| ラベル追加/削除 | `---` | `--add-label` / `--remove-label` | `--label` / `--unlabel` | `---` | `---` |
-| 担当者追加/削除 | `---` | `--add-assignee` / `--remove-assignee` | `--assignee` (接頭辞 `+`/`-`) / `--unassign` | `---` | `---` |
+| ラベル追加/削除 | `---` | `--add-label` / `--remove-label` | `--label` / `--unlabel` | `--add-labels` / `--remove-labels` | `---` |
+| 担当者追加/削除 | `---` | `--add-assignee` / `--remove-assignee` | `--assignee` (接頭辞 `+`/`-`) / `--unassign` | `--add-assignees` | `---` |
 | レビュアー追加/削除 | `---` | `--add-reviewer` / `--remove-reviewer` | `--reviewer` (接頭辞 `+`/`-`) | `---` | `---` |
-| マイルストーン | `---` | `--milestone` / `--remove-milestone` | `--milestone` | `---` | `---` |
+| マイルストーン | `---` | `--milestone` / `--remove-milestone` | `--milestone` | `--milestone` | `---` |
 | ドラフト切替 | `---` | `---` | `--draft` / `--ready` | `---` | `---` |
 | プロジェクト | `---` | `--add-project` / `--remove-project` | `---` | `---` | `---` |
 | Discussion ロック | `---` | `---` | `--lock-discussion` / `--unlock-discussion` | `---` | `---` |
@@ -216,13 +217,13 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | close | `issue close` | `issue close` | `issue close` | `issue close` | `issue close` |
 | reopen | `issue reopen` | `issue reopen` | `issue reopen` | `issue reopen` | `issue reopen` |
 | delete | `issue delete` | `issue delete` | `issue delete` | `---` | `---` |
-| comment | `issue comment` (list/create/edit/delete) | `issue comment` | `issue note` | `---` | `---` |
+| comment | `issue comment` (list/create/edit/delete) | `issue comment` | `issue note` | `comment` (独立コマンド) | `---` |
 | subscribe | `---` | `---` | `issue subscribe` / `unsubscribe` | `---` | `---` |
 | pin / unpin | `issue pin` / `issue unpin` | `issue pin` / `unpin` | `---` | `---` | `---` |
 | reaction | `issue reaction` (list/add/remove) | `---` | `---` | `---` | `---` |
 | depends | `issue depends` (list/add/remove) | `---` | `---` | `---` | `---` |
 | timeline | `issue timeline` | `---` | `---` | `---` | `---` |
-| time | `issue time` (list/add/delete) | `---` | `issue time-tracking` | `---` | `---` |
+| time | `issue time` (list/add/delete) | `---` | `issue time-tracking` | `times` (独立コマンド) | `---` |
 | migrate | `issue migrate` | `---` | `---` | `---` | `---` |
 | lock / unlock | `---` | `issue lock` / `issue unlock` | `---` | `---` | `---` |
 | develop | `---` | `issue develop` | `---` | `---` | `---` |
@@ -239,7 +240,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | 作者 | `---` | `--author` | `--author` | `---` | `--author` |
 | マイルストーン | `---` | `--milestone` | `--milestone` | `--milestone` | `---` |
 | 件数上限 | `--limit` | `--limit` | `--per-page` / `--page` | `--limit` | `--limit` |
-| 検索クエリ | `---` | `--search` | `--search` / `--in` | `---` | `---` |
+| 検索クエリ | `---` | `--search` | `--search` / `--in` | `--keyword` | `---` |
 | 機密 | `---` | `---` | `--confidential` | `---` | `---` |
 | Issue タイプ | `---` | `---` | `--issue-type` (issue/incident/test_case) | `---` | `---` |
 | Epic | `---` | `---` | `--epic` | `---` | `---` |
@@ -252,9 +253,9 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 |---|---|---|---|---|---|
 | タイトル | `--title` | `--title` | `--title` | `--title` | `--title` |
 | 本文 | `--body` | `--body` | `--description` | `--description` | `--body` |
-| 担当者 | `--assignee` | `--assignee` | `--assignee` | `---` | `---` |
-| ラベル | `--label` | `--label` | `--label` | `--label` | `--label` |
-| マイルストーン | `---` | `--milestone` | `--milestone` | `---` | `---` |
+| 担当者 | `--assignee` | `--assignee` | `--assignee` | `--assignees` | `---` |
+| ラベル | `--label` | `--label` | `--label` | `--labels` | `--label` |
+| マイルストーン | `---` | `--milestone` | `--milestone` | `--milestone` | `---` |
 | プロジェクト | `---` | `--project` | `---` | `---` | `---` |
 | タイプ | `--type` | `---` | `---` | `---` | `---` |
 | 優先度 | `--priority` | `---` | `---` | `---` | `---` |
@@ -271,10 +272,10 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | オプション | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
 | タイトル | `--title` | `--title` | `--title` | `--title` | `--title` |
-| 本文 | `--body` | `--body` | `--description` | `---` | `--body` |
-| 担当者 | `--assignee` | `--add-assignee` / `--remove-assignee` | `--assignee` (接頭辞 `+`/`-`) / `--unassign` | `---` | `---` |
-| ラベル | `--label` | `--add-label` / `--remove-label` | `--label` / `--unlabel` | `---` | `---` |
-| マイルストーン | `---` | `--milestone` / `--remove-milestone` | `--milestone` | `---` | `---` |
+| 本文 | `--body` | `--body` | `--description` | `--description` | `--body` |
+| 担当者 | `--assignee` | `--add-assignee` / `--remove-assignee` | `--assignee` (接頭辞 `+`/`-`) / `--unassign` | `--add-assignees` | `---` |
+| ラベル | `--label` | `--add-label` / `--remove-label` | `--label` / `--unlabel` | `--add-labels` / `--remove-labels` | `---` |
+| マイルストーン | `---` | `--milestone` / `--remove-milestone` | `--milestone` | `--milestone` | `---` |
 | 機密 | `---` | `---` | `--confidential` / `--public` | `---` | `---` |
 | 重み | `---` | `---` | `--weight` | `---` | `---` |
 | 期限 | `---` | `---` | `--due-date` | `---` | `---` |
@@ -376,9 +377,9 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | view | `release view` | `release view` | `release view` | `---` | `---` |
 | edit | `release edit` | `release edit` | `---` | `release edit` | `---` |
 | delete | `release delete` | `release delete` | `release delete` | `release delete` | `---` |
-| asset upload | `release asset upload` | `release upload` | `release upload` | `---` | `---` |
-| asset download | `release asset download` | `release download` | `release download` | `---` | `---` |
-| asset list | `release asset list` | `---` | `---` | `---` | `---` |
+| asset upload | `release asset upload` | `release upload` | `release upload` | `release attachments create` | `---` |
+| asset download | `release asset download` | `release download` | `release download` | `release attachments download` | `---` |
+| asset list | `release asset list` | `---` | `---` | `release attachments list` | `---` |
 | asset delete | `release asset delete` | `release delete-asset` | `---` | `---` | `---` |
 | verify | `---` | `release verify` / `verify-asset` | `---` | `---` | `---` |
 
@@ -393,6 +394,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | プレリリース | `--prerelease` | `--prerelease` | `---` | `--prerelease` | `---` |
 | ターゲット ref | `--target` | `--target` | `--ref` | `--target` | `---` |
 | マイルストーン | `---` | `---` | `--milestone` | `---` | `---` |
+| ノートファイル | `---` | `--notes-file` | `--notes-file` | `--note-file` | `---` |
 | ファイル添付 | 別途 `asset upload` | 位置引数 | `--assets-links` | `--asset` | `---` |
 
 #### オプション比較: release edit
@@ -483,7 +485,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 |---|---|---|---|---|---|
 | タイトル | 位置引数 | `---` | `--title` | `--title` | `---` |
 | 説明 | `--description` | `---` | `--description` | `--description` | `---` |
-| 期限 | `--due` (YYYY-MM-DD) | `---` | `--due-date` | `--deadline` | `---` |
+| 期限 | `--due` (YYYY-MM-DD) | `---` | `--due-date` | `--deadline` / `-D` | `---` |
 
 #### オプション比較: milestone edit
 
@@ -502,7 +504,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 
 | サブコマンド | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
-| list | `branch list` | `---` | `---` | `---` | `---` |
+| list | `branch list` | `---` | `---` | `branches list` | `---` |
 | create | `branch create` | `---` | `---` | `---` | `---` |
 | delete | `branch delete` | `---` | `---` | `---` | `---` |
 
@@ -552,7 +554,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | download | `---` | `run download` | `---` | `---` | `---` |
 | delete | `---` | `run delete` | `---` | `---` | `---` |
 | watch | `---` | `run watch` | `---` | `---` | `---` |
-| workflow list | `---` | `workflow list` | `---` | `---` | `---` |
+| workflow list | `---` | `workflow list` | `---` | `actions workflows` | `---` |
 | workflow enable/disable | `---` | `workflow enable` / `disable` | `---` | `---` | `---` |
 | lint | `---` | `---` | `ci lint` | `---` | `---` |
 | status | `---` | `---` | `ci status` | `---` | `---` |
@@ -584,9 +586,9 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 
 | サブコマンド | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
-| list | `secret list` | `secret list` | `variable list` (type filter) | `---` | `---` |
-| set | `secret set` | `secret set` | `variable set` (masked) | `---` | `---` |
-| delete | `secret delete` | `secret delete` | `variable delete` | `---` | `---` |
+| list | `secret list` | `secret list` | `variable list` (type filter) | `actions secrets list` | `---` |
+| set | `secret set` | `secret set` | `variable set` (masked) | `actions secrets add` | `---` |
+| delete | `secret delete` | `secret delete` | `variable delete` | `actions secrets delete` | `---` |
 
 #### オプション比較: secret set
 
@@ -604,10 +606,10 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 
 | サブコマンド | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
-| list | `variable list` | `variable list` | `variable list` | `---` | `---` |
-| set | `variable set` | `variable set` | `variable set` | `---` | `---` |
+| list | `variable list` | `variable list` | `variable list` | `actions variables list` | `---` |
+| set | `variable set` | `variable set` | `variable set` | `actions variables add` | `---` |
 | get | `variable get` | `variable get` | `variable get` | `---` | `---` |
-| delete | `variable delete` | `variable delete` | `variable delete` | `---` | `---` |
+| delete | `variable delete` | `variable delete` | `variable delete` | `actions variables delete` | `---` |
 | update | `---` | `---` | `variable update` | `---` | `---` |
 | export | `---` | `---` | `variable export` | `---` | `---` |
 
@@ -642,8 +644,10 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 
 | サブコマンド | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
-| list | `notification list` | `status` | `---` | `notification list` | `notification list` |
-| read | `notification read` | `---` | `---` | `notification read` | `notification read` |
+| list | `notification list` | `status` | `---` | `notifications list` | `notification list` |
+| read | `notification read` | `---` | `---` | `notifications read` | `notification read` |
+| mark-unread | `---` | `---` | `---` | `notifications unread` | `---` |
+| pin / unpin | `---` | `---` | `---` | `notifications pin` / `unpin` | `---` |
 
 > gfo の `notification list` は `--unread-only` / `--limit` オプション、`notification read` は `--all` オプションをサポート。
 
@@ -655,19 +659,19 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 
 | サブコマンド | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
-| whoami | `user whoami` | `---` | `---` | `---` | `user` |
+| whoami | `user whoami` | `---` | `---` | `whoami` (独立コマンド) | `user` |
 | events | `---` | `---` | `user events` | `---` | `---` |
 
 #### Org サブコマンド対応表
 
 | サブコマンド | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
-| list | `org list` | `org list` | `---` | `---` | `---` |
+| list | `org list` | `org list` | `---` | `organizations list` | `---` |
 | view | `org view` | `---` | `---` | `---` | `---` |
 | members | `org members` | `org list` (members) | `---` | `---` | `---` |
 | repos | `org repos` | `repo list --owner` | `---` | `---` | `---` |
-| create | `org create` | `---` | `---` | `---` | `---` |
-| delete | `org delete` | `---` | `---` | `---` | `---` |
+| create | `org create` | `---` | `---` | `organizations create` | `---` |
+| delete | `org delete` | `---` | `---` | `organizations delete` | `---` |
 
 ---
 
@@ -699,7 +703,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | login | `auth login` | `auth login` | `auth login` | `login` | `auth login` |
 | status | `auth status` | `auth status` | `auth status` | `---` | `---` |
 | switch | `auth switch` | `auth switch` | `---` | `---` | `---` |
-| logout | `auth logout` | `auth logout` | `auth logout` | `---` | `---` |
+| logout | `auth logout` | `auth logout` | `auth logout` | `logout` (独立コマンド) | `---` |
 | token | `---` | `auth token` | `---` | `---` | `---` |
 | refresh | `---` | `auth refresh` | `---` | `---` | `---` |
 | setup-git | `---` | `auth setup-git` | `---` | `---` | `---` |
@@ -732,9 +736,9 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 
 | サブコマンド | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
-| list | `webhook list` | `---` | `---` | `---` | `---` |
-| create | `webhook create` | `---` | `---` | `---` | `---` |
-| delete | `webhook delete` | `---` | `---` | `---` | `---` |
+| list | `webhook list` | `---` | `---` | `webhooks list` | `---` |
+| create | `webhook create` | `---` | `---` | `webhooks create` | `---` |
+| delete | `webhook delete` | `---` | `---` | `webhooks delete` | `---` |
 | test | `webhook test` | `---` | `---` | `---` | `---` |
 
 #### オプション比較: webhook create
@@ -774,8 +778,8 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 |---|---|---|---|---|---|
 | list | `branch-protect list` | `ruleset list` | `---` | `---` | `---` |
 | view | `branch-protect view` | `ruleset view` | `---` | `---` | `---` |
-| set | `branch-protect set` | `---` | `---` | `---` | `---` |
-| remove | `branch-protect remove` | `---` | `---` | `---` | `---` |
+| set | `branch-protect set` | `---` | `---` | `branches protect` | `---` |
+| remove | `branch-protect remove` | `---` | `---` | `branches unprotect` | `---` |
 | check | `---` | `ruleset check` | `---` | `---` | `---` |
 
 > gh は従来のブランチ保護に代わり `ruleset` コマンドを提供。Ruleset はブランチ・タグ両方のルールを管理する。
@@ -895,7 +899,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | gfo | 33 | 170+ |
 | gh | 32 | 200+ |
 | glab | 36 | 150+ |
-| tea | 約 10 | 約 40+ |
+| tea | 20 | 80+ |
 | fj | 約 10 | 約 30+ |
 
 ---
