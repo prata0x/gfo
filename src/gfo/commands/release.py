@@ -24,10 +24,15 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         raise ConfigError(_("tag must not be empty. Use 'gfo release create <tag>'."))
     adapter = get_adapter()
     title = (args.title or "").strip() or tag
+    notes = args.notes or ""
+    notes_file = getattr(args, "notes_file", None)
+    if notes_file:
+        notes = notes_file.read()
+        notes_file.close()
     release = adapter.create_release(
         tag=tag,
         title=title,
-        notes=args.notes or "",
+        notes=notes,
         draft=args.draft,
         prerelease=args.prerelease,
         target=getattr(args, "target", None),

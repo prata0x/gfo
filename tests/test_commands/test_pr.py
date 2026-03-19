@@ -346,6 +346,22 @@ class TestHandleMerge:
 
         mock_adapter.merge_pull_request.assert_called_once_with(3, method="rebase")
 
+    def test_delete_branch_after_merge(self, sample_config, mock_adapter):
+        args = make_args(number=1, merge=False, squash=False, rebase=False, delete_branch=True)
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_merge(args, fmt="table")
+
+        mock_adapter.merge_pull_request.assert_called_once_with(1, method="merge")
+        mock_adapter.get_pull_request.assert_called_once_with(1)
+        mock_adapter.delete_branch.assert_called_once_with(name="feature/test")
+
+    def test_no_delete_branch_by_default(self, sample_config, mock_adapter):
+        args = make_args(number=1, merge=False, squash=False, rebase=False)
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_merge(args, fmt="table")
+
+        mock_adapter.delete_branch.assert_not_called()
+
 
 class TestHandleClose:
     def test_calls_close_pull_request(self, sample_config, mock_adapter):

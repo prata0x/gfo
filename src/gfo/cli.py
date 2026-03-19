@@ -177,6 +177,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     _merge_method.add_argument("--merge", action="store_true", help=_("Create a merge commit"))
     _merge_method.add_argument("--squash", action="store_true", help=_("Squash and merge"))
     _merge_method.add_argument("--rebase", action="store_true", help=_("Rebase and merge"))
+    pr_merge.add_argument(
+        "--delete-branch",
+        "-d",
+        dest="delete_branch",
+        action="store_true",
+        help=_("Delete branch after merge"),
+    )
     pr_merge.add_argument("--auto", action="store_true", help=_("Enable auto-merge"))
     pr_close = pr_sub.add_parser("close", help=_("Close pull request"))
     pr_close.add_argument("number", type=int, help=_("PR number"))
@@ -385,6 +392,12 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     release_create.add_argument("tag", help=_("Tag name"))
     release_create.add_argument("--title", default=None, help=_("Title"))
     release_create.add_argument("--notes", default="", help=_("Release notes"))
+    release_create.add_argument(
+        "--notes-file",
+        dest="notes_file",
+        type=argparse.FileType("r"),
+        help=_("Read release notes from file"),
+    )
     release_create.add_argument("--draft", action="store_true", help=_("Create as draft"))
     release_create.add_argument("--prerelease", action="store_true", help=_("Mark as prerelease"))
     release_create.add_argument("--target", help=_("Target branch or commit SHA"))
@@ -438,8 +451,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     label_delete = label_sub.add_parser("delete", help=_("Delete label"))
     label_delete.add_argument("name", help=_("Label name"))
     label_edit = label_sub.add_parser("edit", help=_("Edit label"))
-    label_edit.add_argument("name", help=_("Label name"))
-    label_edit.add_argument("--new-name", dest="new_name", help=_("New name"))
+    label_edit.add_argument("current_name", metavar="NAME", help=_("Label name"))
+    label_edit.add_argument("--name", help=_("New name"))
     label_edit.add_argument("--color", help=_("Color (hex)"))
     label_edit.add_argument("--description", help=_("Description"))
 

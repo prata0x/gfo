@@ -78,6 +78,10 @@ def handle_merge(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     else:
         adapter.merge_pull_request(args.number, method=method)
         print(_("Merged PR #{number}.").format(number=args.number))
+    if getattr(args, "delete_branch", False):
+        pr = adapter.get_pull_request(args.number)
+        adapter.delete_branch(name=pr.source_branch)
+        print(_("Deleted branch '{branch}'.").format(branch=pr.source_branch))
 
 
 def handle_close(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

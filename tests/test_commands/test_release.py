@@ -175,6 +175,41 @@ class TestHandleCreate:
         call_kwargs = self.adapter.create_release.call_args.kwargs
         assert call_kwargs["target"] is None
 
+    def test_notes_file_overrides_notes(self, sample_config):
+        """--notes-file が指定されたらファイル内容を notes として使用する。"""
+        import io
+
+        notes_file = io.StringIO("Notes from file")
+        args = make_args(
+            tag="v1.0.0",
+            title="Release",
+            notes="",
+            draft=False,
+            prerelease=False,
+            notes_file=notes_file,
+        )
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = self.adapter.create_release.call_args.kwargs
+        assert call_kwargs["notes"] == "Notes from file"
+
+    def test_notes_file_none_uses_notes(self, sample_config):
+        """--notes-file 未指定なら --notes の値を使用する。"""
+        args = make_args(
+            tag="v1.0.0",
+            title="Release",
+            notes="Inline notes",
+            draft=False,
+            prerelease=False,
+            notes_file=None,
+        )
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = self.adapter.create_release.call_args.kwargs
+        assert call_kwargs["notes"] == "Inline notes"
+
     def test_empty_tag_raises_config_error_with_correct_message(self, sample_config):
         """空文字 tag では正しいエラーメッセージが表示される（R39-02）。"""
         args = make_args(tag="", title=None, notes="", draft=False, prerelease=False)

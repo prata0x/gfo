@@ -52,9 +52,9 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 
 
 def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
-    """gfo label edit <name> のハンドラ。"""
-    name = args.name.strip()
-    if not name:
+    """gfo label edit <current_name> のハンドラ。"""
+    current_name = args.current_name.strip()
+    if not current_name:
         raise ConfigError(_("name must not be empty."))
     color = args.color
     if color is not None:
@@ -67,8 +67,8 @@ def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
             )
     adapter = get_adapter()
     label = adapter.update_label(
-        name=name,
-        new_name=args.new_name,
+        name=current_name,
+        new_name=args.name,
         color=color,
         description=args.description,
     )

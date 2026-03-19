@@ -1038,18 +1038,18 @@ gfo label delete old-label
 ### gfo label edit
 
 ```
-gfo label edit NAME [--new-name NEW_NAME] [--color COLOR] [--description DESC]
+gfo label edit NAME [--name NEW_NAME] [--color COLOR] [--description DESC]
 ```
 
 | Option | Description |
 |---|---|
-| `--new-name` | Rename the label |
+| `--name` | Rename the label |
 | `--color` | Color (`RRGGBB` format, without `#`) |
 | `--description` | Description |
 
 ```bash
 gfo label edit bug --color 00ff00
-gfo label edit old-name --new-name new-name
+gfo label edit old-name --name new-name
 gfo label edit bug --description "Updated description"
 ```
 
