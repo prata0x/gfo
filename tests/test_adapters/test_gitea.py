@@ -1581,6 +1581,45 @@ class TestUpdatePullRequest:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert "body" not in req_body
 
+    def test_add_labels(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1",
+            json={
+                **_pr_data(),
+                "labels": [{"id": 1, "name": "existing"}],
+                "assignees": [],
+            },
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/labels",
+            json=[
+                {"id": 1, "name": "existing", "color": "ff0000"},
+                {"id": 2, "name": "new", "color": "00ff00"},
+            ],
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
+        gitea_adapter.update_pull_request(1, add_labels=["new"])
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert sorted(req_body["labels"]) == [1, 2]
+
+    def test_milestone(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/milestones",
+            json=[
+                {"id": 3, "title": "v1.0", "description": None, "state": "open", "due_on": None},
+            ],
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
+        gitea_adapter.update_pull_request(1, milestone="v1.0")
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["milestone"] == 3
+
 
 class TestUpdateIssue:
     def test_update_title(self, mock_responses, gitea_adapter):
@@ -1594,6 +1633,61 @@ class TestUpdateIssue:
         assert isinstance(issue, Issue)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["title"] == "New Title"
+
+    def test_add_labels(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues/1",
+            json={
+                **_issue_data(),
+                "labels": [{"id": 1, "name": "bug"}],
+                "assignees": [{"login": "dev1"}],
+            },
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/labels",
+            json=[
+                {"id": 1, "name": "bug", "color": "ff0000"},
+                {"id": 5, "name": "feature", "color": "00ff00"},
+            ],
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json=_issue_data(), status=200)
+        gitea_adapter.update_issue(1, add_labels=["feature"])
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert sorted(req_body["labels"]) == [1, 5]
+
+    def test_add_assignees(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues/1",
+            json={
+                **_issue_data(),
+                "labels": [],
+                "assignees": [{"login": "dev1"}],
+            },
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json=_issue_data(), status=200)
+        gitea_adapter.update_issue(1, add_assignees=["dev2"])
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert sorted(req_body["assignees"]) == ["dev1", "dev2"]
+
+    def test_milestone(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/milestones",
+            json=[
+                {"id": 7, "title": "v2.0", "description": None, "state": "open", "due_on": None},
+            ],
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json=_issue_data(), status=200)
+        gitea_adapter.update_issue(1, milestone="v2.0")
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["milestone"] == 7
 
 
 # --- Review 系 ---

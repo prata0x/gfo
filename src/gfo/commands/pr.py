@@ -125,6 +125,11 @@ def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         title=args.title,
         body=args.body,
         base=args.base,
+        add_labels=getattr(args, "add_label", None),
+        remove_labels=getattr(args, "remove_label", None),
+        add_assignees=getattr(args, "add_assignee", None),
+        remove_assignees=getattr(args, "remove_assignee", None),
+        milestone=getattr(args, "milestone", None),
     )
     output(pr, fmt=fmt, jq=jq)
 

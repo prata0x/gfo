@@ -251,6 +251,11 @@ class GogsAdapter(GiteaAdapter):
         title: str | None = None,
         body: str | None = None,
         base: str | None = None,
+        add_labels: list[str] | None = None,
+        remove_labels: list[str] | None = None,
+        add_assignees: list[str] | None = None,
+        remove_assignees: list[str] | None = None,
+        milestone: str | None = None,
     ) -> PullRequest:
         raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
 

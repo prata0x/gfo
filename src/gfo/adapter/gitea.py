@@ -648,6 +648,11 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         title: str | None = None,
         body: str | None = None,
         base: str | None = None,
+        add_labels: list[str] | None = None,
+        remove_labels: list[str] | None = None,
+        add_assignees: list[str] | None = None,
+        remove_assignees: list[str] | None = None,
+        milestone: str | None = None,
     ) -> PullRequest:
         payload: dict = {}
         if title is not None:
@@ -656,6 +661,28 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["body"] = body
         if base is not None:
             payload["base"] = base
+        if add_labels or remove_labels or add_assignees or remove_assignees:
+            pr_resp = self._client.get(f"{self._repos_path()}/pulls/{number}")
+            pr_data = pr_resp.json()
+            if add_labels or remove_labels:
+                current_names = {lb["name"] for lb in pr_data.get("labels") or []}
+                if add_labels:
+                    current_names.update(add_labels)
+                if remove_labels:
+                    current_names -= set(remove_labels)
+                if current_names:
+                    payload["labels"] = self._resolve_label_ids(sorted(current_names))
+                else:
+                    payload["labels"] = []
+            if add_assignees or remove_assignees:
+                current = {a["login"] for a in pr_data.get("assignees") or []}
+                if add_assignees:
+                    current.update(add_assignees)
+                if remove_assignees:
+                    current -= set(remove_assignees)
+                payload["assignees"] = sorted(current)
+        if milestone is not None:
+            payload["milestone"] = self._resolve_milestone_id_by_title(milestone)
         resp = self._client.patch(f"{self._repos_path()}/pulls/{number}", json=payload)
         return self._to_pull_request(resp.json())
 
@@ -740,6 +767,11 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         body: str | None = None,
         assignee: str | None = None,
         label: str | None = None,
+        add_labels: list[str] | None = None,
+        remove_labels: list[str] | None = None,
+        add_assignees: list[str] | None = None,
+        remove_assignees: list[str] | None = None,
+        milestone: str | None = None,
     ) -> Issue:
         payload: dict = {}
         if title is not None:
@@ -748,6 +780,28 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["body"] = body
         if assignee is not None:
             payload["assignees"] = [assignee]
+        if add_labels or remove_labels or add_assignees or remove_assignees:
+            issue_resp = self._client.get(f"{self._repos_path()}/issues/{number}")
+            issue_data = issue_resp.json()
+            if add_labels or remove_labels:
+                current_names = {lb["name"] for lb in issue_data.get("labels") or []}
+                if add_labels:
+                    current_names.update(add_labels)
+                if remove_labels:
+                    current_names -= set(remove_labels)
+                if current_names:
+                    payload["labels"] = self._resolve_label_ids(sorted(current_names))
+                else:
+                    payload["labels"] = []
+            if add_assignees or remove_assignees:
+                current = {a["login"] for a in issue_data.get("assignees") or []}
+                if add_assignees:
+                    current.update(add_assignees)
+                if remove_assignees:
+                    current -= set(remove_assignees)
+                payload["assignees"] = sorted(current)
+        if milestone is not None:
+            payload["milestone"] = self._resolve_milestone_id_by_title(milestone)
         resp = self._client.patch(f"{self._repos_path()}/issues/{number}", json=payload)
         return self._to_issue(resp.json())
 

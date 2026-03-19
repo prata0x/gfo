@@ -639,6 +639,11 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         title: str | None = None,
         body: str | None = None,
         base: str | None = None,
+        add_labels: list[str] | None = None,
+        remove_labels: list[str] | None = None,
+        add_assignees: list[str] | None = None,
+        remove_assignees: list[str] | None = None,
+        milestone: str | None = None,
     ) -> PullRequest:
         payload: dict = {}
         if title is not None:
@@ -648,7 +653,33 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         if base is not None:
             payload["base"] = base
         resp = self._client.patch(f"{self._repos_path()}/pulls/{number}", json=payload)
-        return self._to_pull_request(resp.json())
+        pr = self._to_pull_request(resp.json())
+        # labels/assignees/milestone は issues API 経由で更新
+        issue_payload: dict = {}
+        if add_labels or remove_labels or add_assignees or remove_assignees:
+            issue_resp = self._client.get(f"{self._repos_path()}/issues/{number}")
+            issue_data = issue_resp.json()
+            if add_labels or remove_labels:
+                current = [lb["name"] for lb in issue_data.get("labels") or []]
+                updated = set(current)
+                if add_labels:
+                    updated.update(add_labels)
+                if remove_labels:
+                    updated -= set(remove_labels)
+                issue_payload["labels"] = sorted(updated)
+            if add_assignees or remove_assignees:
+                current = [a["login"] for a in issue_data.get("assignees") or []]
+                updated = set(current)
+                if add_assignees:
+                    updated.update(add_assignees)
+                if remove_assignees:
+                    updated -= set(remove_assignees)
+                issue_payload["assignees"] = sorted(updated)
+        if milestone is not None:
+            issue_payload["milestone"] = self._resolve_milestone_number(milestone)
+        if issue_payload:
+            self._client.patch(f"{self._repos_path()}/issues/{number}", json=issue_payload)
+        return pr
 
     # --- PR diff / checks / files / commits / reviewers / update-branch / dismiss ---
 
@@ -775,6 +806,11 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         body: str | None = None,
         assignee: str | None = None,
         label: str | None = None,
+        add_labels: list[str] | None = None,
+        remove_labels: list[str] | None = None,
+        add_assignees: list[str] | None = None,
+        remove_assignees: list[str] | None = None,
+        milestone: str | None = None,
     ) -> Issue:
         payload: dict = {}
         if title is not None:
@@ -785,6 +821,27 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["assignees"] = [assignee]
         if label is not None:
             payload["labels"] = [label]
+        if add_labels or remove_labels or add_assignees or remove_assignees:
+            issue_resp = self._client.get(f"{self._repos_path()}/issues/{number}")
+            issue_data = issue_resp.json()
+            if add_labels or remove_labels:
+                current = [lb["name"] for lb in issue_data.get("labels") or []]
+                updated = set(current)
+                if add_labels:
+                    updated.update(add_labels)
+                if remove_labels:
+                    updated -= set(remove_labels)
+                payload["labels"] = sorted(updated)
+            if add_assignees or remove_assignees:
+                current = [a["login"] for a in issue_data.get("assignees") or []]
+                updated = set(current)
+                if add_assignees:
+                    updated.update(add_assignees)
+                if remove_assignees:
+                    updated -= set(remove_assignees)
+                payload["assignees"] = sorted(updated)
+        if milestone is not None:
+            payload["milestone"] = self._resolve_milestone_number(milestone)
         resp = self._client.patch(f"{self._repos_path()}/issues/{number}", json=payload)
         return self._to_issue(resp.json())
 

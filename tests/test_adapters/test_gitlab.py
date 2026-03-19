@@ -1593,6 +1593,68 @@ class TestUpdatePullRequest:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["target_branch"] == "develop"
 
+    def test_add_labels(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1",
+            json=_mr_data(),
+            status=200,
+        )
+        gitlab_adapter.update_pull_request(1, add_labels=["bug", "urgent"])
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["add_labels"] == "bug,urgent"
+
+    def test_remove_labels(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1",
+            json=_mr_data(),
+            status=200,
+        )
+        gitlab_adapter.update_pull_request(1, remove_labels=["wontfix"])
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["remove_labels"] == "wontfix"
+
+    def test_add_assignees(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests/1",
+            json={"assignees": [{"id": 10, "username": "alice"}]},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/users",
+            json=[{"id": 20, "username": "bob"}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1",
+            json=_mr_data(),
+            status=200,
+        )
+        gitlab_adapter.update_pull_request(1, add_assignees=["bob"])
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert sorted(req_body["assignee_ids"]) == [10, 20]
+
+    def test_milestone(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/milestones",
+            json=[{"id": 5, "title": "v1.0"}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1",
+            json=_mr_data(),
+            status=200,
+        )
+        gitlab_adapter.update_pull_request(1, milestone="v1.0")
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["milestone_id"] == 5
+
 
 class TestUpdateIssue:
     def test_update_title(self, mock_responses, gitlab_adapter):
@@ -1617,6 +1679,45 @@ class TestUpdateIssue:
         gitlab_adapter.update_issue(1, assignee="devuser")
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["assignee_username"] == "devuser"
+
+    def test_add_labels(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/issues/1",
+            json=_issue_data(),
+            status=200,
+        )
+        gitlab_adapter.update_issue(1, add_labels=["enhancement", "priority"])
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["add_labels"] == "enhancement,priority"
+
+    def test_remove_labels(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/issues/1",
+            json=_issue_data(),
+            status=200,
+        )
+        gitlab_adapter.update_issue(1, remove_labels=["wontfix"])
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["remove_labels"] == "wontfix"
+
+    def test_milestone(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/milestones",
+            json=[{"id": 8, "title": "v2.0"}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/issues/1",
+            json=_issue_data(),
+            status=200,
+        )
+        gitlab_adapter.update_issue(1, milestone="v2.0")
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["milestone_id"] == 8
 
 
 # --- Review 系 ---

@@ -588,6 +588,11 @@ class BitbucketAdapter(GitServiceAdapter):
         title: str | None = None,
         body: str | None = None,
         base: str | None = None,
+        add_labels: list[str] | None = None,
+        remove_labels: list[str] | None = None,
+        add_assignees: list[str] | None = None,
+        remove_assignees: list[str] | None = None,
+        milestone: str | None = None,
     ) -> PullRequest:
         payload: dict = {}
         if title is not None:
@@ -609,6 +614,11 @@ class BitbucketAdapter(GitServiceAdapter):
         body: str | None = None,
         assignee: str | None = None,
         label: str | None = None,
+        add_labels: list[str] | None = None,
+        remove_labels: list[str] | None = None,
+        add_assignees: list[str] | None = None,
+        remove_assignees: list[str] | None = None,
+        milestone: str | None = None,
     ) -> Issue:
         payload: dict = {}
         if title is not None:

@@ -883,6 +883,11 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         title: str | None = None,
         body: str | None = None,
         base: str | None = None,
+        add_labels: list[str] | None = None,
+        remove_labels: list[str] | None = None,
+        add_assignees: list[str] | None = None,
+        remove_assignees: list[str] | None = None,
+        milestone: str | None = None,
     ) -> PullRequest:
         payload: dict = {}
         if title is not None:
@@ -904,6 +909,11 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         body: str | None = None,
         assignee: str | None = None,
         label: str | None = None,
+        add_labels: list[str] | None = None,
+        remove_labels: list[str] | None = None,
+        add_assignees: list[str] | None = None,
+        remove_assignees: list[str] | None = None,
+        milestone: str | None = None,
     ) -> Issue:
         patch_ops = []
         if title is not None:

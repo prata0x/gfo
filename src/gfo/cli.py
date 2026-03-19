@@ -506,6 +506,11 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_edit.add_argument("--title", help=_("Title"))
     pr_edit.add_argument("--body", help=_("Body"))
     pr_edit.add_argument("--base", help=_("Base branch"))
+    pr_edit.add_argument("--add-label", action="append", help=_("Add label"))
+    pr_edit.add_argument("--remove-label", action="append", help=_("Remove label"))
+    pr_edit.add_argument("--add-assignee", action="append", help=_("Add assignee"))
+    pr_edit.add_argument("--remove-assignee", action="append", help=_("Remove assignee"))
+    pr_edit.add_argument("--milestone", help=_("Milestone"))
 
     # gfo issue edit（既存 issue に追加）
     issue_edit = issue_sub.add_parser("edit", help=_("Edit issue"))
@@ -514,6 +519,11 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_edit.add_argument("--body", help=_("Body"))
     issue_edit.add_argument("--assignee", help=_("Assignee"))
     issue_edit.add_argument("--label", help=_("Label"))
+    issue_edit.add_argument("--add-label", action="append", help=_("Add label"))
+    issue_edit.add_argument("--remove-label", action="append", help=_("Remove label"))
+    issue_edit.add_argument("--add-assignee", action="append", help=_("Add assignee"))
+    issue_edit.add_argument("--remove-assignee", action="append", help=_("Remove assignee"))
+    issue_edit.add_argument("--milestone", help=_("Milestone"))
 
     # gfo issue comment → サブサブコマンド
     issue_comment = issue_sub.add_parser("comment", help=_("Manage issue comments"))

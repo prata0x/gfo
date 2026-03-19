@@ -940,6 +940,11 @@ class GitLabAdapter(GitServiceAdapter):
         title: str | None = None,
         body: str | None = None,
         base: str | None = None,
+        add_labels: list[str] | None = None,
+        remove_labels: list[str] | None = None,
+        add_assignees: list[str] | None = None,
+        remove_assignees: list[str] | None = None,
+        milestone: str | None = None,
     ) -> PullRequest:
         payload: dict = {}
         if title is not None:
@@ -948,6 +953,21 @@ class GitLabAdapter(GitServiceAdapter):
             payload["description"] = body
         if base is not None:
             payload["target_branch"] = base
+        if add_labels:
+            payload["add_labels"] = ",".join(add_labels)
+        if remove_labels:
+            payload["remove_labels"] = ",".join(remove_labels)
+        if add_assignees or remove_assignees:
+            mr_resp = self._client.get(f"{self._project_path()}/merge_requests/{number}")
+            current_ids = [a["id"] for a in mr_resp.json().get("assignees") or []]
+            updated: set[int] = set(current_ids)
+            if add_assignees:
+                updated.update(self._resolve_user_ids(add_assignees))
+            if remove_assignees:
+                updated -= set(self._resolve_user_ids(remove_assignees))
+            payload["assignee_ids"] = sorted(updated)
+        if milestone is not None:
+            payload["milestone_id"] = self._resolve_milestone_id_by_title(milestone)
         resp = self._client.put(f"{self._project_path()}/merge_requests/{number}", json=payload)
         return self._to_pull_request(resp.json())
 
@@ -1122,6 +1142,11 @@ class GitLabAdapter(GitServiceAdapter):
         body: str | None = None,
         assignee: str | None = None,
         label: str | None = None,
+        add_labels: list[str] | None = None,
+        remove_labels: list[str] | None = None,
+        add_assignees: list[str] | None = None,
+        remove_assignees: list[str] | None = None,
+        milestone: str | None = None,
     ) -> Issue:
         payload: dict = {}
         if title is not None:
@@ -1132,6 +1157,21 @@ class GitLabAdapter(GitServiceAdapter):
             payload["assignee_username"] = assignee
         if label is not None:
             payload["labels"] = label
+        if add_labels:
+            payload["add_labels"] = ",".join(add_labels)
+        if remove_labels:
+            payload["remove_labels"] = ",".join(remove_labels)
+        if add_assignees or remove_assignees:
+            issue_resp = self._client.get(f"{self._project_path()}/issues/{number}")
+            current_ids = [a["id"] for a in issue_resp.json().get("assignees") or []]
+            updated: set[int] = set(current_ids)
+            if add_assignees:
+                updated.update(self._resolve_user_ids(add_assignees))
+            if remove_assignees:
+                updated -= set(self._resolve_user_ids(remove_assignees))
+            payload["assignee_ids"] = sorted(updated)
+        if milestone is not None:
+            payload["milestone_id"] = self._resolve_milestone_id_by_title(milestone)
         resp = self._client.put(f"{self._project_path()}/issues/{number}", json=payload)
         return self._to_issue(resp.json())
 

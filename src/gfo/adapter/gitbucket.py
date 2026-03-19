@@ -268,6 +268,11 @@ class GitBucketAdapter(GitHubAdapter):
         state: str | None = None,
         assignee: str | None = None,
         label: str | None = None,
+        add_labels: list[str] | None = None,
+        remove_labels: list[str] | None = None,
+        add_assignees: list[str] | None = None,
+        remove_assignees: list[str] | None = None,
+        milestone: str | None = None,
     ) -> Issue:
         raise NotSupportedError("GitBucket", "issue update")
 

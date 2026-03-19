@@ -1591,6 +1591,79 @@ class TestUpdatePullRequest:
         assert "body" not in req_body
         assert "base" not in req_body
 
+    def test_add_labels(self, mock_responses, github_adapter):
+        mock_responses.add(responses.PATCH, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues/1",
+            json={"labels": [{"name": "existing"}], "assignees": []},
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json={}, status=200)
+        github_adapter.update_pull_request(1, add_labels=["new"])
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert sorted(req_body["labels"]) == ["existing", "new"]
+
+    def test_remove_labels(self, mock_responses, github_adapter):
+        mock_responses.add(responses.PATCH, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues/1",
+            json={"labels": [{"name": "bug"}, {"name": "wontfix"}], "assignees": []},
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json={}, status=200)
+        github_adapter.update_pull_request(1, remove_labels=["wontfix"])
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert req_body["labels"] == ["bug"]
+
+    def test_add_assignees(self, mock_responses, github_adapter):
+        mock_responses.add(responses.PATCH, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues/1",
+            json={"labels": [], "assignees": [{"login": "alice"}]},
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json={}, status=200)
+        github_adapter.update_pull_request(1, add_assignees=["bob"])
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert sorted(req_body["assignees"]) == ["alice", "bob"]
+
+    def test_remove_assignees(self, mock_responses, github_adapter):
+        mock_responses.add(responses.PATCH, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues/1",
+            json={"labels": [], "assignees": [{"login": "alice"}, {"login": "bob"}]},
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json={}, status=200)
+        github_adapter.update_pull_request(1, remove_assignees=["bob"])
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert req_body["assignees"] == ["alice"]
+
+    def test_milestone(self, mock_responses, github_adapter):
+        mock_responses.add(responses.PATCH, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/milestones",
+            json=[
+                {
+                    "number": 5,
+                    "title": "v1.0",
+                    "description": None,
+                    "state": "open",
+                    "due_on": None,
+                },
+            ],
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json={}, status=200)
+        github_adapter.update_pull_request(1, milestone="v1.0")
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert req_body["milestone"] == 5
+
 
 class TestUpdateIssue:
     def test_update_title(self, mock_responses, github_adapter):
@@ -1616,6 +1689,62 @@ class TestUpdateIssue:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert "body" not in req_body
         assert "assignees" not in req_body
+
+    def test_add_labels(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues/1",
+            json={"labels": [{"name": "bug"}], "assignees": []},
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json=_issue_data(), status=200)
+        github_adapter.update_issue(1, add_labels=["enhancement"])
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert sorted(req_body["labels"]) == ["bug", "enhancement"]
+
+    def test_remove_labels(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues/1",
+            json={"labels": [{"name": "bug"}, {"name": "wontfix"}], "assignees": []},
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json=_issue_data(), status=200)
+        github_adapter.update_issue(1, remove_labels=["wontfix"])
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["labels"] == ["bug"]
+
+    def test_add_assignees(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues/1",
+            json={"labels": [], "assignees": [{"login": "dev1"}]},
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json=_issue_data(), status=200)
+        github_adapter.update_issue(1, add_assignees=["dev2"])
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert sorted(req_body["assignees"]) == ["dev1", "dev2"]
+
+    def test_milestone(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/milestones",
+            json=[
+                {
+                    "number": 5,
+                    "title": "v1.0",
+                    "description": None,
+                    "state": "open",
+                    "due_on": None,
+                },
+            ],
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json=_issue_data(), status=200)
+        github_adapter.update_issue(1, milestone="v1.0")
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["milestone"] == 5
 
 
 # --- Review 系 ---
