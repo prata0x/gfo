@@ -11,6 +11,7 @@ from gfo.exceptions import GfoError
 from gfo.http import paginate_link_header
 
 from .base import (
+    Artifact,
     Branch,
     BranchProtection,
     CheckRun,
@@ -44,6 +45,7 @@ from .base import (
     TimelineEvent,
     Variable,
     Webhook,
+    Workflow,
 )
 from .registry import register
 
@@ -1242,6 +1244,122 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             except (GfoError, requests.RequestException):
                 logs.append(f"=== {job.get('name', job['id'])} ===\n(log unavailable)")
         return "\n".join(logs)
+
+    def list_workflows(self, *, limit: int = 30) -> list[Workflow]:
+        results: list[dict] = []
+        per_page = min(limit, 30) if limit > 0 else 30
+        page = 1
+        while True:
+            resp = self._client.get(
+                f"{self._repos_path()}/actions/workflows",
+                params={"per_page": per_page, "page": page},
+            )
+            body = resp.json()
+            page_data: list[dict] = body.get("workflows", []) if isinstance(body, dict) else []
+            if not page_data:
+                break
+            results.extend(page_data)
+            if limit > 0 and len(results) >= limit:
+                results = results[:limit]
+                break
+            if len(page_data) < per_page:
+                break
+            page += 1
+        return [self._to_workflow(r) for r in results]
+
+    def enable_workflow(self, workflow_id: int | str) -> None:
+        self._client.put(
+            f"{self._repos_path()}/actions/workflows/{workflow_id}/enable",
+            json={},
+        )
+
+    def disable_workflow(self, workflow_id: int | str) -> None:
+        self._client.put(
+            f"{self._repos_path()}/actions/workflows/{workflow_id}/disable",
+            json={},
+        )
+
+    def list_artifacts(self, run_id: int | str, *, limit: int = 30) -> list[Artifact]:
+        results: list[dict] = []
+        per_page = min(limit, 30) if limit > 0 else 30
+        page = 1
+        while True:
+            resp = self._client.get(
+                f"{self._repos_path()}/actions/runs/{run_id}/artifacts",
+                params={"per_page": per_page, "page": page},
+            )
+            body = resp.json()
+            page_data: list[dict] = body.get("artifacts", []) if isinstance(body, dict) else []
+            if not page_data:
+                break
+            results.extend(page_data)
+            if limit > 0 and len(results) >= limit:
+                results = results[:limit]
+                break
+            if len(page_data) < per_page:
+                break
+            page += 1
+        return [self._to_artifact(r) for r in results]
+
+    def download_artifact(
+        self, run_id: int | str, artifact_id: int | str, *, output_dir: str = "."
+    ) -> str:
+        import os
+
+        resp = self._client.get(f"{self._repos_path()}/actions/artifacts/{artifact_id}")
+        data = resp.json()
+        name = os.path.basename(data.get("name", f"artifact-{artifact_id}"))
+        output_path = os.path.join(output_dir, f"{name}.zip")
+        if not os.path.realpath(output_path).startswith(os.path.realpath(output_dir)):
+            raise GfoError(f"Invalid artifact name: {name}")
+        url = f"{self._client.base_url}{self._repos_path()}/actions/artifacts/{artifact_id}/zip"
+        self._client.download_file(url, output_path)
+        return output_path
+
+    def download_run_logs(
+        self, run_id: int | str, *, job_id: int | str | None = None, output_dir: str = "."
+    ) -> str:
+        import os
+
+        if job_id is not None:
+            output_path = os.path.join(output_dir, f"logs-{run_id}-job-{job_id}.txt")
+            resp = self._client.get(
+                f"{self._repos_path()}/actions/jobs/{job_id}/logs",
+                headers={"Accept": "application/vnd.github.v3+json"},
+            )
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(resp.text)
+        else:
+            output_path = os.path.join(output_dir, f"logs-{run_id}.zip")
+            url = f"{self._client.base_url}{self._repos_path()}/actions/runs/{run_id}/logs"
+            self._client.download_file(url, output_path)
+        return output_path
+
+    @staticmethod
+    def _to_workflow(data: dict) -> Workflow:
+        try:
+            state = "active" if data.get("state") == "active" else "disabled"
+            return Workflow(
+                id=data["id"],
+                name=data.get("name") or "",
+                path=data.get("path") or "",
+                state=state,
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: {e}") from e
+
+    @staticmethod
+    def _to_artifact(data: dict) -> Artifact:
+        try:
+            return Artifact(
+                id=data["id"],
+                name=data.get("name") or "",
+                size=data.get("size_in_bytes") or 0,
+                url=data.get("archive_download_url") or "",
+                created_at=data.get("created_at") or "",
+            )
+        except (KeyError, TypeError) as e:
+            raise GfoError(f"Unexpected API response: {e}") from e
 
     @staticmethod
     def _to_pipeline(data: dict) -> Pipeline:

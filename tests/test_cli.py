@@ -512,7 +512,7 @@ def test_parser_org_repos():
 
 
 def test_dispatch_table_entry_count():
-    assert len(_DISPATCH) == 158
+    assert len(_DISPATCH) == 162
 
 
 def test_dispatch_table_all_keys():
@@ -613,6 +613,10 @@ def test_dispatch_table_all_keys():
         ("ci", "trigger"),
         ("ci", "retry"),
         ("ci", "logs"),
+        ("ci", "watch"),
+        ("ci", "download"),
+        ("ci", "workflow"),
+        ("ci", "artifact"),
         ("user", "whoami"),
         ("search", "repos"),
         ("search", "issues"),

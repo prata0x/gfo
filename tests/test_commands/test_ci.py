@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
-from gfo.adapter.base import Pipeline
+from gfo.adapter.base import Artifact, Pipeline, Workflow
 from gfo.commands import ci as ci_cmd
 from gfo.exceptions import ConfigError, GfoError
 from tests.test_commands.conftest import make_args, patch_adapter
@@ -14,6 +16,21 @@ SAMPLE_PIPELINE = Pipeline(
     status="success",
     ref="main",
     url="https://example.com/ci/123",
+    created_at="2024-01-01T00:00:00Z",
+)
+
+SAMPLE_WORKFLOW = Workflow(
+    id=1,
+    name="CI",
+    path=".github/workflows/ci.yml",
+    state="active",
+)
+
+SAMPLE_ARTIFACT = Artifact(
+    id=11,
+    name="build-output",
+    size=1024,
+    url="https://example.com/artifacts/11",
     created_at="2024-01-01T00:00:00Z",
 )
 
@@ -147,3 +164,161 @@ class TestHandleLogs:
             args = make_args(id="123", job=None)
             with pytest.raises(GfoError, match="logs failed"):
                 ci_cmd.handle_logs(args, fmt="table")
+
+
+class TestHandleWatch:
+    def test_watch_immediate_success(self, capsys):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.get_pipeline.return_value = SAMPLE_PIPELINE
+            args = make_args(id="123", interval=1)
+            ci_cmd.handle_watch(args, fmt="json")
+        adapter.get_pipeline.assert_called_once_with("123")
+        out = capsys.readouterr().out
+        assert '"status"' in out
+
+    def test_watch_polls_until_done(self, capsys):
+        running_pipeline = Pipeline(
+            id=123,
+            status="running",
+            ref="main",
+            url="https://example.com/ci/123",
+            created_at="2024-01-01T00:00:00Z",
+        )
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.get_pipeline.side_effect = [running_pipeline, SAMPLE_PIPELINE]
+            args = make_args(id="123", interval=0)
+            with patch("time.sleep"):
+                ci_cmd.handle_watch(args, fmt="table")
+        assert adapter.get_pipeline.call_count == 2
+
+    def test_watch_failure(self, capsys):
+        failed_pipeline = Pipeline(
+            id=123,
+            status="failure",
+            ref="main",
+            url="https://example.com/ci/123",
+            created_at="2024-01-01T00:00:00Z",
+        )
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.get_pipeline.return_value = failed_pipeline
+            args = make_args(id="123", interval=1)
+            ci_cmd.handle_watch(args, fmt="json")
+        out = capsys.readouterr().out
+        assert '"failure"' in out
+
+    def test_watch_error_propagation(self):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.get_pipeline.side_effect = GfoError("watch failed")
+            args = make_args(id="123", interval=1)
+            with pytest.raises(GfoError, match="watch failed"):
+                ci_cmd.handle_watch(args, fmt="table")
+
+
+class TestHandleDownload:
+    def test_calls_download_run_logs(self, capsys):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.download_run_logs.return_value = "/tmp/logs-123.zip"
+            args = make_args(id="123", job=None, dir=".")
+            ci_cmd.handle_download(args, fmt="table")
+        adapter.download_run_logs.assert_called_once_with("123", job_id=None, output_dir=".")
+        out = capsys.readouterr().out
+        assert "logs-123.zip" in out
+
+    def test_with_job_id(self, capsys):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.download_run_logs.return_value = "/tmp/logs-123-job-42.txt"
+            args = make_args(id="123", job="42", dir="/tmp")
+            ci_cmd.handle_download(args, fmt="table")
+        adapter.download_run_logs.assert_called_once_with("123", job_id="42", output_dir="/tmp")
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.download_run_logs.side_effect = GfoError("download failed")
+            args = make_args(id="123", job=None, dir=".")
+            with pytest.raises(GfoError, match="download failed"):
+                ci_cmd.handle_download(args, fmt="table")
+
+
+class TestHandleWorkflow:
+    def test_list(self, capsys):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.list_workflows.return_value = [SAMPLE_WORKFLOW]
+            args = make_args(workflow_action="list", limit=30)
+            ci_cmd.handle_workflow(args, fmt="table")
+        adapter.list_workflows.assert_called_once_with(limit=30)
+        out = capsys.readouterr().out
+        assert "CI" in out
+
+    def test_list_json(self, capsys):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.list_workflows.return_value = [SAMPLE_WORKFLOW]
+            args = make_args(workflow_action="list", limit=30)
+            ci_cmd.handle_workflow(args, fmt="json")
+        out = capsys.readouterr().out
+        assert '"name"' in out
+
+    def test_enable(self):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            args = make_args(workflow_action="enable", id="1")
+            ci_cmd.handle_workflow(args, fmt="table")
+        adapter.enable_workflow.assert_called_once_with("1")
+
+    def test_disable(self):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            args = make_args(workflow_action="disable", id="1")
+            ci_cmd.handle_workflow(args, fmt="table")
+        adapter.disable_workflow.assert_called_once_with("1")
+
+    def test_no_action(self):
+        with patch_adapter("gfo.commands.ci"):
+            args = make_args(workflow_action=None)
+            with pytest.raises(ConfigError):
+                ci_cmd.handle_workflow(args, fmt="table")
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.list_workflows.side_effect = GfoError("workflow failed")
+            args = make_args(workflow_action="list", limit=30)
+            with pytest.raises(GfoError, match="workflow failed"):
+                ci_cmd.handle_workflow(args, fmt="table")
+
+
+class TestHandleArtifact:
+    def test_list(self, capsys):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.list_artifacts.return_value = [SAMPLE_ARTIFACT]
+            args = make_args(artifact_action="list", run_id="300", limit=30)
+            ci_cmd.handle_artifact(args, fmt="table")
+        adapter.list_artifacts.assert_called_once_with("300", limit=30)
+        out = capsys.readouterr().out
+        assert "build-output" in out
+
+    def test_list_json(self, capsys):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.list_artifacts.return_value = [SAMPLE_ARTIFACT]
+            args = make_args(artifact_action="list", run_id="300", limit=30)
+            ci_cmd.handle_artifact(args, fmt="json")
+        out = capsys.readouterr().out
+        assert '"name"' in out
+
+    def test_download(self, capsys):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.download_artifact.return_value = "/tmp/build-output.zip"
+            args = make_args(artifact_action="download", run_id="300", artifact_id="11", dir=".")
+            ci_cmd.handle_artifact(args, fmt="table")
+        adapter.download_artifact.assert_called_once_with("300", "11", output_dir=".")
+        out = capsys.readouterr().out
+        assert "build-output.zip" in out
+
+    def test_no_action(self):
+        with patch_adapter("gfo.commands.ci"):
+            args = make_args(artifact_action=None)
+            with pytest.raises(ConfigError):
+                ci_cmd.handle_artifact(args, fmt="table")
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.list_artifacts.side_effect = GfoError("artifact failed")
+            args = make_args(artifact_action="list", run_id="300", limit=30)
+            with pytest.raises(GfoError, match="artifact failed"):
+                ci_cmd.handle_artifact(args, fmt="table")

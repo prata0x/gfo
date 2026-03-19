@@ -293,6 +293,24 @@ class GogsAdapter(GiteaAdapter):
     def cancel_pipeline(self, pipeline_id: int | str) -> None:
         raise NotSupportedError("Gogs", "ci operations")
 
+    def list_workflows(self, *, limit: int = 30):
+        raise NotSupportedError("Gogs", "ci operations")
+
+    def enable_workflow(self, workflow_id):
+        raise NotSupportedError("Gogs", "ci operations")
+
+    def disable_workflow(self, workflow_id):
+        raise NotSupportedError("Gogs", "ci operations")
+
+    def list_artifacts(self, run_id, *, limit: int = 30):
+        raise NotSupportedError("Gogs", "ci operations")
+
+    def download_artifact(self, run_id, artifact_id, *, output_dir: str = "."):
+        raise NotSupportedError("Gogs", "ci operations")
+
+    def download_run_logs(self, run_id, *, job_id=None, output_dir: str = "."):
+        raise NotSupportedError("Gogs", "ci operations")
+
     # --- Tag（Gogs 0.13: create/delete 未対応）---
 
     def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:

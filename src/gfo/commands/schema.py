@@ -11,6 +11,7 @@ import typing
 from typing import Any, get_type_hints
 
 from gfo.adapter.base import (
+    Artifact,
     Branch,
     BranchProtection,
     CheckRun,
@@ -47,6 +48,7 @@ from gfo.adapter.base import (
     Webhook,
     WikiPage,
     WikiRevision,
+    Workflow,
 )
 from gfo.exceptions import ConfigError
 from gfo.output import apply_jq_filter
@@ -145,6 +147,10 @@ _OUTPUT_MAP: dict[tuple[str, str | None], type | None] = {
     ("ci", "trigger"): Pipeline,
     ("ci", "retry"): Pipeline,
     ("ci", "logs"): None,
+    ("ci", "watch"): Pipeline,
+    ("ci", "download"): None,
+    ("ci", "workflow"): list[Workflow],
+    ("ci", "artifact"): list[Artifact],
     ("user", "whoami"): dict,
     ("search", "repos"): list[Repository],
     ("search", "issues"): list[Issue],

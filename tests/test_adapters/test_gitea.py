@@ -2995,3 +2995,120 @@ class TestUpdateOrganization:
         )
         org = gitea_adapter.update_organization("my-org", description="New description")
         assert org.description == "New description"
+
+
+# --- Workflow ---
+
+
+class TestListWorkflows:
+    def test_list(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/workflows",
+            json={
+                "workflows": [
+                    {"id": 1, "name": "CI", "path": ".gitea/workflows/ci.yml", "state": "active"}
+                ]
+            },
+            status=200,
+        )
+        from gfo.adapter.base import Workflow
+
+        workflows = gitea_adapter.list_workflows()
+        assert len(workflows) == 1
+        assert isinstance(workflows[0], Workflow)
+        assert workflows[0].name == "CI"
+
+    def test_empty(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/workflows",
+            json={"workflows": []},
+            status=200,
+        )
+        assert gitea_adapter.list_workflows() == []
+
+
+class TestEnableWorkflow:
+    def test_enable(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/actions/workflows/1/enable",
+            status=204,
+        )
+        gitea_adapter.enable_workflow(1)
+        assert mock_responses.calls[0].request.method == "PUT"
+
+
+class TestDisableWorkflow:
+    def test_disable(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/actions/workflows/1/disable",
+            status=204,
+        )
+        gitea_adapter.disable_workflow(1)
+        assert mock_responses.calls[0].request.method == "PUT"
+
+
+# --- Artifact ---
+
+
+class TestListArtifacts:
+    def test_list(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/runs/300/artifacts",
+            json=[
+                {
+                    "id": 11,
+                    "name": "build-output",
+                    "size": 1024,
+                    "url": "",
+                    "created_at": "2025-01-01T00:00:00Z",
+                }
+            ],
+            status=200,
+        )
+        from gfo.adapter.base import Artifact
+
+        artifacts = gitea_adapter.list_artifacts(300)
+        assert len(artifacts) == 1
+        assert isinstance(artifacts[0], Artifact)
+        assert artifacts[0].name == "build-output"
+
+
+class TestDownloadArtifact:
+    def test_download(self, mock_responses, gitea_adapter, tmp_path):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/artifacts/11",
+            json={"id": 11, "name": "build-output"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/artifacts/11/zip",
+            body=b"PK\x03\x04zipdata",
+            status=200,
+        )
+        result = gitea_adapter.download_artifact(300, 11, output_dir=str(tmp_path))
+        import os
+
+        assert os.path.basename(result) == "build-output.zip"
+        assert os.path.exists(result)
+
+
+class TestDownloadRunLogs:
+    def test_download(self, mock_responses, gitea_adapter, tmp_path):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/runs/300/logs",
+            body=b"PK\x03\x04logdata",
+            status=200,
+        )
+        result = gitea_adapter.download_run_logs(300, output_dir=str(tmp_path))
+        import os
+
+        assert os.path.basename(result) == "logs-300.zip"
+        assert os.path.exists(result)

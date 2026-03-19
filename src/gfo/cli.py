@@ -721,6 +721,38 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     ci_logs = ci_sub.add_parser("logs", help=_("View pipeline logs"))
     ci_logs.add_argument("id", help=_("Pipeline ID"))
     ci_logs.add_argument("--job", "-j", help=_("Job name or ID"))
+    ci_watch = ci_sub.add_parser("watch", help=_("Watch pipeline status"))
+    ci_watch.add_argument("id", help=_("Pipeline ID"))
+    ci_watch.add_argument(
+        "--interval", "-i", type=int, default=5, help=_("Poll interval in seconds")
+    )
+    ci_download = ci_sub.add_parser("download", help=_("Download pipeline logs to file"))
+    ci_download.add_argument("id", help=_("Pipeline ID"))
+    ci_download.add_argument("--job", "-j", help=_("Job name or ID"))
+    ci_download.add_argument("--dir", default=".", help=_("Output directory"))
+    # gfo ci workflow → サブサブコマンド
+    ci_workflow = ci_sub.add_parser("workflow", help=_("Manage CI workflows"))
+    ci_workflow_sub = ci_workflow.add_subparsers(dest="workflow_action")
+    ci_wf_list = ci_workflow_sub.add_parser("list", help=_("List workflows"))
+    ci_wf_list.add_argument(
+        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+    )
+    ci_wf_enable = ci_workflow_sub.add_parser("enable", help=_("Enable workflow"))
+    ci_wf_enable.add_argument("id", help=_("Workflow ID"))
+    ci_wf_disable = ci_workflow_sub.add_parser("disable", help=_("Disable workflow"))
+    ci_wf_disable.add_argument("id", help=_("Workflow ID"))
+    # gfo ci artifact → サブサブコマンド
+    ci_artifact = ci_sub.add_parser("artifact", help=_("Manage CI artifacts"))
+    ci_artifact_sub = ci_artifact.add_subparsers(dest="artifact_action")
+    ci_art_list = ci_artifact_sub.add_parser("list", help=_("List artifacts"))
+    ci_art_list.add_argument("run_id", help=_("Pipeline run ID"))
+    ci_art_list.add_argument(
+        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+    )
+    ci_art_download = ci_artifact_sub.add_parser("download", help=_("Download artifact"))
+    ci_art_download.add_argument("run_id", help=_("Pipeline run ID"))
+    ci_art_download.add_argument("artifact_id", help=_("Artifact ID"))
+    ci_art_download.add_argument("--dir", default=".", help=_("Output directory"))
 
     # gfo user → サブサブコマンド
     user_parser = subparser_map["user"] = subparsers.add_parser("user", help=_("User commands"))
@@ -1233,6 +1265,10 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("ci", "trigger"): gfo.commands.ci.handle_trigger,
     ("ci", "retry"): gfo.commands.ci.handle_retry,
     ("ci", "logs"): gfo.commands.ci.handle_logs,
+    ("ci", "watch"): gfo.commands.ci.handle_watch,
+    ("ci", "download"): gfo.commands.ci.handle_download,
+    ("ci", "workflow"): gfo.commands.ci.handle_workflow,
+    ("ci", "artifact"): gfo.commands.ci.handle_artifact,
     ("user", "whoami"): gfo.commands.user.handle_whoami,
     ("search", "repos"): gfo.commands.search.handle_repos,
     ("search", "issues"): gfo.commands.search.handle_issues,

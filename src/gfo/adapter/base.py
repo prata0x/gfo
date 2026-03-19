@@ -163,6 +163,23 @@ class Pipeline:
 
 
 @dataclass(frozen=True, slots=True)
+class Workflow:
+    id: int | str
+    name: str
+    path: str
+    state: str  # "active" | "disabled"
+
+
+@dataclass(frozen=True, slots=True)
+class Artifact:
+    id: int | str
+    name: str
+    size: int
+    url: str
+    created_at: str
+
+
+@dataclass(frozen=True, slots=True)
 class SshKey:
     id: int | str  # GitHub/GitLab/Gitea 系は int、Bitbucket は UUID 文字列
     title: str
@@ -1166,6 +1183,28 @@ class GitServiceAdapter(ABC):
 
     def get_pipeline_logs(self, pipeline_id: int | str, *, job_id: int | str | None = None) -> str:
         raise NotSupportedError(self.service_name, "ci logs")
+
+    def list_workflows(self, *, limit: int = 30) -> list[Workflow]:
+        raise NotSupportedError(self.service_name, "ci workflow list")
+
+    def enable_workflow(self, workflow_id: int | str) -> None:
+        raise NotSupportedError(self.service_name, "ci workflow enable")
+
+    def disable_workflow(self, workflow_id: int | str) -> None:
+        raise NotSupportedError(self.service_name, "ci workflow disable")
+
+    def list_artifacts(self, run_id: int | str, *, limit: int = 30) -> list[Artifact]:
+        raise NotSupportedError(self.service_name, "ci artifact list")
+
+    def download_artifact(
+        self, run_id: int | str, artifact_id: int | str, *, output_dir: str = "."
+    ) -> str:
+        raise NotSupportedError(self.service_name, "ci artifact download")
+
+    def download_run_logs(
+        self, run_id: int | str, *, job_id: int | str | None = None, output_dir: str = "."
+    ) -> str:
+        raise NotSupportedError(self.service_name, "ci download")
 
     # --- User ---
     def get_current_user(self) -> dict:

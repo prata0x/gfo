@@ -3391,3 +3391,181 @@ class TestGetGpgKey:
         assert isinstance(key, GpgKey)
         assert key.id == 10
         assert key.primary_key_id == "ABC123"
+
+
+# --- Workflow ---
+
+
+def _workflow_data(*, wf_id=1, state="active"):
+    return {
+        "id": wf_id,
+        "name": "CI",
+        "path": ".github/workflows/ci.yml",
+        "state": state,
+    }
+
+
+class TestListWorkflows:
+    @responses.activate
+    def test_list(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/workflows",
+            json={"workflows": [_workflow_data()], "total_count": 1},
+            status=200,
+        )
+        from gfo.adapter.base import Workflow
+
+        workflows = github_adapter.list_workflows()
+        assert len(workflows) == 1
+        assert isinstance(workflows[0], Workflow)
+        assert workflows[0].name == "CI"
+        assert workflows[0].state == "active"
+
+    @responses.activate
+    def test_empty(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/workflows",
+            json={"workflows": [], "total_count": 0},
+            status=200,
+        )
+        assert github_adapter.list_workflows() == []
+
+
+class TestEnableWorkflow:
+    @responses.activate
+    def test_enable(self, github_adapter):
+        responses.add(
+            responses.PUT,
+            f"{REPOS}/actions/workflows/1/enable",
+            status=204,
+        )
+        github_adapter.enable_workflow(1)
+        assert responses.calls[0].request.method == "PUT"
+
+    @responses.activate
+    def test_enable_404(self, github_adapter):
+        responses.add(
+            responses.PUT,
+            f"{REPOS}/actions/workflows/999/enable",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            github_adapter.enable_workflow(999)
+
+
+class TestDisableWorkflow:
+    @responses.activate
+    def test_disable(self, github_adapter):
+        responses.add(
+            responses.PUT,
+            f"{REPOS}/actions/workflows/1/disable",
+            status=204,
+        )
+        github_adapter.disable_workflow(1)
+        assert responses.calls[0].request.method == "PUT"
+
+
+# --- Artifact ---
+
+
+def _artifact_data(*, artifact_id=11, name="build-output"):
+    return {
+        "id": artifact_id,
+        "name": name,
+        "size_in_bytes": 1024,
+        "archive_download_url": f"https://api.github.com/repos/test-owner/test-repo/actions/artifacts/{artifact_id}/zip",
+        "created_at": "2025-01-01T00:00:00Z",
+    }
+
+
+class TestListArtifacts:
+    @responses.activate
+    def test_list(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/runs/300/artifacts",
+            json={"artifacts": [_artifact_data()], "total_count": 1},
+            status=200,
+        )
+        from gfo.adapter.base import Artifact
+
+        artifacts = github_adapter.list_artifacts(300)
+        assert len(artifacts) == 1
+        assert isinstance(artifacts[0], Artifact)
+        assert artifacts[0].name == "build-output"
+
+    @responses.activate
+    def test_empty(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/runs/300/artifacts",
+            json={"artifacts": [], "total_count": 0},
+            status=200,
+        )
+        assert github_adapter.list_artifacts(300) == []
+
+
+class TestDownloadArtifact:
+    @responses.activate
+    def test_download(self, github_adapter, tmp_path):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/artifacts/11",
+            json=_artifact_data(),
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/artifacts/11/zip",
+            body=b"PK\x03\x04zipdata",
+            status=200,
+        )
+        result = github_adapter.download_artifact(300, 11, output_dir=str(tmp_path))
+        import os
+
+        assert os.path.basename(result) == "build-output.zip"
+        assert os.path.exists(result)
+
+    @responses.activate
+    def test_download_404(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/artifacts/999",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            github_adapter.download_artifact(300, 999)
+
+
+class TestDownloadRunLogs:
+    @responses.activate
+    def test_download_all_logs(self, github_adapter, tmp_path):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/runs/300/logs",
+            body=b"PK\x03\x04logdata",
+            status=200,
+        )
+        result = github_adapter.download_run_logs(300, output_dir=str(tmp_path))
+        import os
+
+        assert os.path.basename(result) == "logs-300.zip"
+        assert os.path.exists(result)
+
+    @responses.activate
+    def test_download_job_logs(self, github_adapter, tmp_path):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/jobs/42/logs",
+            body="log line 1\nlog line 2",
+            status=200,
+        )
+        result = github_adapter.download_run_logs(300, job_id=42, output_dir=str(tmp_path))
+        import os
+
+        assert os.path.basename(result) == "logs-300-job-42.txt"
+        assert os.path.exists(result)
+        with open(result) as f:
+            assert "log line 1" in f.read()
