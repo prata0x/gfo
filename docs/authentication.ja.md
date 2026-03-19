@@ -49,6 +49,13 @@ gfo auth login --host github.com --account work
 gfo auth switch work --host github.com
 ```
 
+保存済みトークンの削除:
+
+```bash
+gfo auth logout --host github.com
+gfo auth logout --host github.com --account work
+```
+
 単一コマンドで特定アカウントを使用:
 
 ```bash

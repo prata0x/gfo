@@ -110,6 +110,27 @@ gfo auth switch work
 gfo auth switch work --host github.com
 ```
 
+### gfo auth logout
+
+保存済みトークンを削除します。
+
+```
+gfo auth logout [--host HOST] [--account ACCOUNT]
+```
+
+| オプション | 説明 |
+|---|---|
+| `--host HOST` | ログアウト対象のホスト（省略時は自動解決） |
+| `--account ACCOUNT` | 削除するアカウント名（省略時はホストの全アカウントを削除） |
+
+**例:**
+
+```bash
+gfo auth logout
+gfo auth logout --host github.com
+gfo auth logout --host github.com --account work
+```
+
 ---
 
 ## gfo pr

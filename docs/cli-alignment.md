@@ -108,17 +108,18 @@ gfo のコマンド/サブコマンド/オプション名を他ツール（gh, g
 
 ---
 
-## 7. `auth logout` 追加
+## 7. `auth logout` 追加 ✅
 
-**現状**: gfo の `auth` は `login` / `status` のみ。
+**現状**: ~~gfo の `auth` は `login` / `status` のみ。~~ 実装済み。
 
 | サブコマンド | gh | glab | tea | fj | gfo (現在) |
 |---|---|---|---|---|---|
-| logout | Y | Y | — | — | — |
+| logout | Y | Y | — | — | Y |
 
-**判定: 追加**
+**判定: 追加** → 完了
 
 - gh / glab が対応。認証管理の基本機能として必要。
+- `--host` / `--account` オプション付きで実装。
 
 ---
 

@@ -90,3 +90,25 @@ def handle_switch(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 
     gfo.auth.switch_account(host, args.account)
     print(_("Switched to account '{account}' for {host}").format(account=args.account, host=host))
+
+
+def handle_logout(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo auth logout のハンドラ。"""
+    if args.host:
+        host = args.host
+    else:
+        try:
+            result = gfo.detect.detect_service()
+            host = result.host
+        except (DetectionError, GitCommandError):
+            raise ConfigError(
+                _("Could not detect host. Use --host option: gfo auth logout --host <host>")
+            )
+
+    account = getattr(args, "account", None)
+    gfo.auth.remove_token(host, account=account)
+
+    if account:
+        print(_("Logged out account '{account}' from {host}").format(account=account, host=host))
+    else:
+        print(_("Logged out from {host}").format(host=host))

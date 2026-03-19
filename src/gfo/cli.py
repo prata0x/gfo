@@ -137,6 +137,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     auth_switch = auth_sub.add_parser("switch", help=_("Switch active account"))
     auth_switch.add_argument("account", help=_("Account name"))
     auth_switch.add_argument("--host", help=_("Host"))
+    auth_logout = auth_sub.add_parser("logout", help=_("Remove saved token"))
+    auth_logout.add_argument("--host", help=_("Host to logout from"))
+    auth_logout.add_argument("--account", help=_("Account name to remove"))
 
     # gfo pr → サブサブコマンド
     pr_parser = subparser_map["pr"] = subparsers.add_parser("pr", help=_("Manage pull requests"))
@@ -1056,6 +1059,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("auth", "login"): gfo.commands.auth_cmd.handle_login,
     ("auth", "status"): gfo.commands.auth_cmd.handle_status,
     ("auth", "switch"): gfo.commands.auth_cmd.handle_switch,
+    ("auth", "logout"): gfo.commands.auth_cmd.handle_logout,
     ("pr", "list"): gfo.commands.pr.handle_list,
     ("pr", "create"): gfo.commands.pr.handle_create,
     ("pr", "view"): gfo.commands.pr.handle_view,

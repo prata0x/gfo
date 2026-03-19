@@ -337,6 +337,81 @@ class TestHandleStatus:
         assert "default *" in captured.out
 
 
+class TestHandleLogout:
+    """handle_logout のテスト。"""
+
+    def test_logout_with_host(self, capsys):
+        """--host 指定 → remove_token(host, account=None) + 成功メッセージ。"""
+        args = make_args(host="github.com", account=None)
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.remove_token") as mock_remove:
+            auth_cmd.handle_logout(args, fmt="table")
+
+        mock_remove.assert_called_once_with("github.com", account=None)
+        captured = capsys.readouterr()
+        assert "Logged out from github.com" in captured.out
+
+    def test_logout_without_host_uses_detect(self, capsys):
+        """--host なし → detect_service().host を使用。"""
+        args = make_args(host=None, account=None)
+
+        with (
+            patch(
+                "gfo.commands.auth_cmd.gfo.detect.detect_service",
+                return_value=_make_detect_result("github.com"),
+            ),
+            patch("gfo.commands.auth_cmd.gfo.auth.remove_token") as mock_remove,
+        ):
+            auth_cmd.handle_logout(args, fmt="table")
+
+        mock_remove.assert_called_once_with("github.com", account=None)
+
+    def test_logout_detect_failure(self):
+        """--host なし + detect 失敗 → ConfigError。"""
+        args = make_args(host=None, account=None)
+
+        with patch(
+            "gfo.commands.auth_cmd.gfo.detect.detect_service",
+            side_effect=DetectionError("no remote"),
+        ):
+            with pytest.raises(ConfigError, match="--host"):
+                auth_cmd.handle_logout(args, fmt="table")
+
+    def test_logout_with_account(self, capsys):
+        """--account 指定 → remove_token(host, account="work") + アカウント名含むメッセージ。"""
+        args = make_args(host="github.com", account="work")
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.remove_token") as mock_remove:
+            auth_cmd.handle_logout(args, fmt="table")
+
+        mock_remove.assert_called_once_with("github.com", account="work")
+        captured = capsys.readouterr()
+        assert "work" in captured.out
+        assert "github.com" in captured.out
+
+    def test_logout_propagates_config_error(self):
+        """ホスト未登録 → ConfigError 伝搬。"""
+        args = make_args(host="unknown.host", account=None)
+
+        with patch(
+            "gfo.commands.auth_cmd.gfo.auth.remove_token",
+            side_effect=ConfigError("Host 'unknown.host' not found"),
+        ):
+            with pytest.raises(ConfigError, match="unknown.host"):
+                auth_cmd.handle_logout(args, fmt="table")
+
+    def test_logout_unknown_account(self):
+        """アカウント未登録 → ConfigError 伝搬。"""
+        args = make_args(host="github.com", account="nonexistent")
+
+        with patch(
+            "gfo.commands.auth_cmd.gfo.auth.remove_token",
+            side_effect=ConfigError("Account 'nonexistent' not found"),
+        ):
+            with pytest.raises(ConfigError, match="nonexistent"):
+                auth_cmd.handle_logout(args, fmt="table")
+
+
 # ── get_adapter / get_adapter_with_config ──
 
 

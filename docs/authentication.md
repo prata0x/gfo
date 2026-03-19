@@ -49,6 +49,13 @@ Switch the active account:
 gfo auth switch work --host github.com
 ```
 
+Remove a saved token:
+
+```bash
+gfo auth logout --host github.com
+gfo auth logout --host github.com --account work
+```
+
 Use a specific account for a single command:
 
 ```bash

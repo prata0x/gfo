@@ -110,6 +110,27 @@ gfo auth switch work
 gfo auth switch work --host github.com
 ```
 
+### gfo auth logout
+
+Remove a saved token.
+
+```
+gfo auth logout [--host HOST] [--account ACCOUNT]
+```
+
+| Option | Description |
+|---|---|
+| `--host HOST` | Host to logout from (auto-resolved if omitted) |
+| `--account ACCOUNT` | Account name to remove (removes all accounts for host if omitted) |
+
+**Examples:**
+
+```bash
+gfo auth logout
+gfo auth logout --host github.com
+gfo auth logout --host github.com --account work
+```
+
 ---
 
 ## gfo pr
