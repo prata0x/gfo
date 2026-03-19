@@ -31,9 +31,24 @@ paths:
 
 ## トークン解決の優先度
 
-1. `~/.config/gfo/credentials.toml`
-2. サービス別環境変数（例: `GITHUB_TOKEN`）
-3. `GFO_TOKEN`（汎用フォールバック）
+1. **アカウント名の解決**（上から順に最初に見つかった値を使用）:
+   1. `--account` グローバルオプション（ContextVar `cli_account` 経由）
+   2. `.git/config` の `gfo.account`
+   3. `config.toml` の `hosts.{host}.account`
+   4. `credentials.toml` の `tokens.{host}._default`
+   5. フォールバック: `"default"`
+2. `credentials.toml` の `tokens.{host}.{account}`
+3. サービス別環境変数（例: `GITHUB_TOKEN`）
+4. `GFO_TOKEN`（汎用フォールバック）
+
+## プラットフォーム別パス
+
+| プラットフォーム | 設定ディレクトリ |
+|---|---|
+| Linux / macOS | `~/.config/gfo/` |
+| Windows | `%APPDATA%/gfo/` |
+
+Windows では `icacls` で現在のユーザーのみにフルコントロール（`:F`）を付与（ベストエフォート）。
 
 ## `--jq` 空文字列チェック
 

@@ -68,6 +68,12 @@ GitServiceAdapter (ABC, adapter/base.py)
 - **Organization.url**: API URL ではなく Web URL を返すこと
 - **削除/書き込みハンドラ**: 成功メッセージを `print()` すること（既存の label/release/issue に倣う）
 
+## HTTP タイムアウト・リトライ
+
+- **タイムアウト**: 全リクエストに `timeout=30` を指定（`requests` のデフォルトは None＝無制限）
+- **リトライ**: 429（レート制限）のみ自動リトライ（最大 1 回）。`Retry-After` ヘッダ尊重、未指定時は 60 秒待機
+- **その他の HTTP エラー**: リトライなし
+
 ## 防御的コーディング
 
 - フィールド存在を無条件に前提しない → `data.get("field") or default`
