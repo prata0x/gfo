@@ -511,8 +511,8 @@ def test_parser_org_repos():
 # ── _DISPATCH テーブルのテスト ──
 
 
-def test_dispatch_table_has_68_entries():
-    assert len(_DISPATCH) == 145  # auth logout 追加
+def test_dispatch_table_entry_count():
+    assert len(_DISPATCH) == 145
 
 
 def test_dispatch_table_all_keys():

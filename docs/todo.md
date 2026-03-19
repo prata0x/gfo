@@ -48,9 +48,9 @@
 **対象**: #16, #17, #37
 **ファイル**: `test_cli.py`, `test_auth_cmd.py` 他
 
-- [ ] #16 `test_dispatch_table_has_68_entries` → `test_dispatch_table_entry_count` にリネーム
-- [ ] #17 auth logout/switch/status の `fmt="json"` テストを追加
-- [ ] #37 `--web + --format json` と `resolve_token` fallback 失敗パスのテストを追加
+- [x] #16 `test_dispatch_table_has_68_entries` → `test_dispatch_table_entry_count` にリネーム
+- [x] #17 auth logout/switch/status の `fmt="json"` テストを追加
+- [x] #37 `--web + --format json` と `resolve_token` fallback 失敗パスのテストを追加
 
 ---
 

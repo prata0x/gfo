@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -438,3 +439,91 @@ def test_get_adapter_with_config_returns_tuple():
         adapter, config = get_adapter_with_config()
     assert adapter is mock_adapter
     assert config is mock_config
+
+
+# ── fmt="json" テスト (#17) ──
+
+
+class TestHandleLogoutJson:
+    """handle_logout の fmt="json" テスト。"""
+
+    def test_logout_json_output(self, capsys):
+        """fmt="json" でも print 出力される。"""
+        args = make_args(host="github.com", account=None)
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.remove_token"):
+            auth_cmd.handle_logout(args, fmt="json")
+
+        captured = capsys.readouterr()
+        assert "Logged out from github.com" in captured.out
+
+    def test_logout_with_account_json_output(self, capsys):
+        """fmt="json" + --account 指定でアカウント名が出力される。"""
+        args = make_args(host="github.com", account="work")
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.remove_token"):
+            auth_cmd.handle_logout(args, fmt="json")
+
+        captured = capsys.readouterr()
+        assert "work" in captured.out
+        assert "github.com" in captured.out
+
+
+class TestHandleSwitchJson:
+    """handle_switch の fmt="json" テスト。"""
+
+    def test_switch_json_output(self, capsys):
+        """fmt="json" でも print 出力される。"""
+        args = make_args(host="github.com", account="work")
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.switch_account"):
+            auth_cmd.handle_switch(args, fmt="json")
+
+        captured = capsys.readouterr()
+        assert "work" in captured.out
+        assert "github.com" in captured.out
+
+
+class TestHandleStatusJson:
+    """handle_status の fmt="json" テスト。"""
+
+    def test_status_json_multiple_accounts(self, capsys):
+        """複数アカウント時に JSON 配列を出力する。"""
+        entries = [
+            {
+                "host": "github.com",
+                "status": "configured",
+                "source": "credentials.toml",
+                "account": "default",
+                "active": "*",
+            },
+            {
+                "host": "github.com",
+                "status": "configured",
+                "source": "credentials.toml",
+                "account": "work",
+                "active": "",
+            },
+        ]
+        args = make_args()
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.get_auth_status", return_value=entries):
+            auth_cmd.handle_status(args, fmt="json")
+
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        assert len(data) == 2
+        assert data[0]["host"] == "github.com"
+        assert data[0]["account"] == "default"
+        assert data[1]["account"] == "work"
+
+    def test_status_json_empty(self, capsys):
+        """トークンなし時に空 JSON 配列を出力する。"""
+        args = make_args()
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.get_auth_status", return_value=[]):
+            auth_cmd.handle_status(args, fmt="json")
+
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        assert data == []

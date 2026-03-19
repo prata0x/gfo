@@ -632,3 +632,33 @@ class TestHandleViewWeb:
         ):
             pr_cmd.handle_view(args, fmt="table")
         mock_adapter.get_pull_request.assert_not_called()
+
+
+class TestWebWithJsonFormat:
+    """--web + --format json の組み合わせテスト（#37）。"""
+
+    def test_list_web_json_opens_browser_no_json_output(self, sample_config, mock_adapter, capsys):
+        """--web 時は fmt="json" でもブラウザを開き、JSON 出力しない。"""
+        args = make_args(state="open", limit=30, web=True)
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            pr_cmd.handle_list(args, fmt="json")
+        mock_open.assert_called_once()
+        mock_adapter.list_pull_requests.assert_not_called()
+        captured = capsys.readouterr()
+        assert captured.out == ""
+
+    def test_view_web_json_opens_browser_no_json_output(self, sample_config, mock_adapter, capsys):
+        """--web + fmt="json" で PR view もブラウザ表示のみ。"""
+        args = make_args(number=42, web=True)
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            pr_cmd.handle_view(args, fmt="json")
+        mock_open.assert_called_once()
+        mock_adapter.get_pull_request.assert_not_called()
+        captured = capsys.readouterr()
+        assert captured.out == ""

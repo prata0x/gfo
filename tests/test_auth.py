@@ -147,6 +147,25 @@ def test_resolve_token_git_config_account(tmp_path, monkeypatch):
     assert resolve_token("github.com", "github") == "tok-ci"
 
 
+def test_resolve_token_git_config_exception_fallback(tmp_path, monkeypatch):
+    """git_config_get が例外を投げた場合、次の優先度にフォールバックする（#37）。"""
+    creds = tmp_path / "credentials.toml"
+    creds.write_text(
+        '[tokens."github.com"]\n_default = "default"\ndefault = "tok-default"\nci = "tok-ci"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+
+    def _raise_oserror(key, cwd=None):
+        raise OSError("git not available")
+
+    monkeypatch.setattr("gfo.git_util.git_config_get", _raise_oserror)
+    monkeypatch.setattr("gfo.config.get_host_config", lambda host: None)
+
+    # git config が例外 → _default ("default") にフォールバック
+    assert resolve_token("github.com", "github") == "tok-default"
+
+
 def test_resolve_token_config_toml_account(tmp_path, monkeypatch):
     """config.toml の hosts.{host}.account でアカウントを解決する。"""
     creds = tmp_path / "credentials.toml"

@@ -41,7 +41,16 @@ def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     entries = gfo.auth.get_auth_status()
 
     if not entries:
-        print(_("No tokens configured."))
+        if fmt == "json":
+            print("[]")
+        else:
+            print(_("No tokens configured."))
+        return
+
+    if fmt == "json":
+        import json
+
+        print(json.dumps(entries, ensure_ascii=False, indent=2))
         return
 
     col_widths = {
