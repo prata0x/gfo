@@ -454,6 +454,33 @@ class TestHandleAsset:
             with pytest.raises(ConfigError, match="--asset-id or --pattern"):
                 release_cmd.handle_asset(args, fmt="table")
 
+    def test_asset_edit(self, sample_config, capsys):
+        self.adapter.update_release_asset.return_value = self.asset
+        args = make_args(asset_action="edit", tag="v1.0.0", asset_id="1", name="renamed.zip")
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_asset(args, fmt="json")
+
+        self.adapter.update_release_asset.assert_called_once_with(
+            tag="v1.0.0",
+            asset_id="1",
+            name="renamed.zip",
+        )
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data[0]["name"] == "app-v1.0.0.zip"
+
+    def test_asset_edit_no_name(self, sample_config):
+        self.adapter.update_release_asset.return_value = self.asset
+        args = make_args(asset_action="edit", tag="v1.0.0", asset_id="1", name=None)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_asset(args, fmt="table")
+
+        self.adapter.update_release_asset.assert_called_once_with(
+            tag="v1.0.0",
+            asset_id="1",
+            name=None,
+        )
+
     def test_asset_delete(self, sample_config, capsys):
         args = make_args(asset_action="delete", tag="v1.0.0", asset_id="1")
         with _patch_all(sample_config, self.adapter):

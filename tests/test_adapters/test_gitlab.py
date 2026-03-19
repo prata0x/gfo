@@ -1008,6 +1008,24 @@ class TestUpdateRelease:
         assert "upcoming_release" not in req_body
 
 
+class TestUpdateReleaseAsset:
+    def test_update_name(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/releases/v1.0.0/assets/links/1",
+            json={
+                "id": 1,
+                "name": "renamed.zip",
+                "url": "https://example.com/renamed.zip",
+            },
+            status=200,
+        )
+        asset = gitlab_adapter.update_release_asset(tag="v1.0.0", asset_id=1, name="renamed.zip")
+        assert asset.name == "renamed.zip"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["name"] == "renamed.zip"
+
+
 # --- Label 系 ---
 
 
@@ -2047,6 +2065,59 @@ class TestTestWebhook:
         assert mock_responses.calls[0].request.method == "POST"
 
 
+class TestUpdateWebhook:
+    def test_update_url(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/hooks/100",
+            json={
+                "id": 100,
+                "url": "https://new.example.com/hook",
+                "push_events": True,
+                "issues_events": False,
+                "merge_requests_events": False,
+                "tag_push_events": False,
+                "note_events": False,
+                "confidential_note_events": False,
+                "job_events": False,
+                "pipeline_events": False,
+                "wiki_page_events": False,
+                "releases_events": False,
+            },
+            status=200,
+        )
+        webhook = gitlab_adapter.update_webhook(100, url="https://new.example.com/hook")
+        assert webhook.url == "https://new.example.com/hook"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["url"] == "https://new.example.com/hook"
+
+    def test_update_events(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/hooks/100",
+            json={
+                "id": 100,
+                "url": "https://example.com/hook",
+                "push_events": True,
+                "issues_events": True,
+                "merge_requests_events": False,
+                "tag_push_events": False,
+                "note_events": False,
+                "confidential_note_events": False,
+                "job_events": False,
+                "pipeline_events": False,
+                "wiki_page_events": False,
+                "releases_events": False,
+            },
+            status=200,
+        )
+        webhook = gitlab_adapter.update_webhook(100, events=["push", "issues"])
+        assert "push" in webhook.events
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["push_events"] is True
+        assert req_body["issues_events"] is True
+
+
 # --- DeployKey 系 ---
 
 
@@ -3047,3 +3118,38 @@ class TestMigrateRepositoryTokenMask:
                 auth_token="super-secret-token",
             )
         assert "super-secret-token" not in str(exc_info.value)
+
+
+class TestUpdateOrganization:
+    def test_update_display_name(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            "https://gitlab.com/api/v4/groups/my-org",
+            json={
+                "path": "my-org",
+                "full_name": "New Name",
+                "name": "New Name",
+                "description": "desc",
+                "web_url": "https://gitlab.com/groups/my-org",
+            },
+            status=200,
+        )
+        org = gitlab_adapter.update_organization("my-org", display_name="New Name")
+        assert org.display_name == "New Name"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["name"] == "New Name"
+
+    def test_update_description(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            "https://gitlab.com/api/v4/groups/my-org",
+            json={
+                "path": "my-org",
+                "name": "My Org",
+                "description": "New description",
+                "web_url": "https://gitlab.com/groups/my-org",
+            },
+            status=200,
+        )
+        org = gitlab_adapter.update_organization("my-org", description="New description")
+        assert org.description == "New description"

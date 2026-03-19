@@ -101,10 +101,12 @@ def handle_asset(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
         _handle_asset_upload(args, fmt=fmt, jq=jq)
     elif action == "download":
         _handle_asset_download(args, fmt=fmt, jq=jq)
+    elif action == "edit":
+        _handle_asset_edit(args, fmt=fmt, jq=jq)
     elif action == "delete":
         _handle_asset_delete(args, fmt=fmt, jq=jq)
     else:
-        raise ConfigError(_("Specify a subcommand: list, upload, download, delete"))
+        raise ConfigError(_("Specify a subcommand: list, upload, download, edit, delete"))
 
 
 def _handle_asset_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -152,6 +154,16 @@ def _handle_asset_download(args: argparse.Namespace, *, fmt: str, jq: str | None
             print(_("Downloaded: {path}").format(path=path))
     else:
         raise ConfigError(_("Specify --asset-id or --pattern."))
+
+
+def _handle_asset_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    adapter = get_adapter()
+    asset = adapter.update_release_asset(
+        tag=args.tag,
+        asset_id=args.asset_id,
+        name=getattr(args, "name", None),
+    )
+    output(asset, fmt=fmt, jq=jq)
 
 
 def _handle_asset_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

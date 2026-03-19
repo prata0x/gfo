@@ -419,6 +419,15 @@ class GogsAdapter(GiteaAdapter):
     def delete_tag_protection(self, protection_id: int | str) -> None:
         raise NotSupportedError("Gogs", "tag-protect operations")
 
+    def update_tag_protection(
+        self,
+        protection_id: int | str,
+        *,
+        pattern: str | None = None,
+        create_access_level: str | None = None,
+    ) -> TagProtection:
+        raise NotSupportedError("Gogs", "tag-protect operations")
+
     # --- BranchProtection（Gogs 0.13 未対応）---
 
     def list_branch_protections(self, *, limit: int = 30) -> list[BranchProtection]:

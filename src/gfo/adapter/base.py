@@ -915,6 +915,11 @@ class GitServiceAdapter(ABC):
     def delete_release_asset(self, *, tag: str, asset_id: int | str) -> None:
         raise NotSupportedError(self.service_name, "release asset delete")
 
+    def update_release_asset(
+        self, *, tag: str, asset_id: int | str, name: str | None = None
+    ) -> ReleaseAsset:
+        raise NotSupportedError(self.service_name, "release asset edit")
+
     # --- Label ---
     @abstractmethod
     def list_labels(self, *, limit: int = 0) -> list[Label]: ...
@@ -1101,6 +1106,17 @@ class GitServiceAdapter(ABC):
     def test_webhook(self, *, hook_id: int) -> None:
         raise NotSupportedError(self.service_name, "webhook test")
 
+    def update_webhook(
+        self,
+        hook_id: int,
+        *,
+        url: str | None = None,
+        events: list[str] | None = None,
+        secret: str | None = None,
+        active: bool | None = None,
+    ) -> Webhook:
+        raise NotSupportedError(self.service_name, "webhook edit")
+
     # --- DeployKey ---
     def list_deploy_keys(self, *, limit: int = 30) -> list[DeployKey]:
         raise NotSupportedError(self.service_name, "deploy-key list")
@@ -1213,6 +1229,15 @@ class GitServiceAdapter(ABC):
     def delete_tag_protection(self, protection_id: int | str) -> None:
         raise NotSupportedError(self.service_name, "tag-protect delete")
 
+    def update_tag_protection(
+        self,
+        protection_id: int | str,
+        *,
+        pattern: str | None = None,
+        create_access_level: str | None = None,
+    ) -> TagProtection:
+        raise NotSupportedError(self.service_name, "tag-protect edit")
+
     # --- Notification ---
     def list_notifications(
         self, *, unread_only: bool = False, limit: int = 30
@@ -1246,6 +1271,15 @@ class GitServiceAdapter(ABC):
 
     def delete_organization(self, name: str) -> None:
         raise NotSupportedError(self.service_name, "org delete")
+
+    def update_organization(
+        self,
+        name: str,
+        *,
+        display_name: str | None = None,
+        description: str | None = None,
+    ) -> Organization:
+        raise NotSupportedError(self.service_name, "org edit")
 
     # --- SSH Key ---
     def list_ssh_keys(self, *, limit: int = 30) -> list[SshKey]:

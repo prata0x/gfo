@@ -527,6 +527,13 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def delete_release_asset(self, *, tag, asset_id):
         self._client.delete(f"{self._repos_path()}/releases/assets/{asset_id}")
 
+    def update_release_asset(self, *, tag, asset_id, name=None):
+        payload: dict = {}
+        if name is not None:
+            payload["name"] = name
+        resp = self._client.patch(f"{self._repos_path()}/releases/assets/{asset_id}", json=payload)
+        return self._to_release_asset(resp.json())
+
     # --- Label ---
 
     def list_labels(self, *, limit: int = 0) -> list[Label]:
@@ -1081,6 +1088,31 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def test_webhook(self, *, hook_id: int) -> None:
         self._client.post(f"{self._repos_path()}/hooks/{hook_id}/tests")
 
+    def update_webhook(
+        self,
+        hook_id: int,
+        *,
+        url: str | None = None,
+        events: list[str] | None = None,
+        secret: str | None = None,
+        active: bool | None = None,
+    ) -> Webhook:
+        payload: dict = {}
+        if url is not None or secret is not None:
+            config: dict = {}
+            if url is not None:
+                config["url"] = url
+            config["content_type"] = "json"
+            if secret is not None:
+                config["secret"] = secret
+            payload["config"] = config
+        if events is not None:
+            payload["events"] = events
+        if active is not None:
+            payload["active"] = active
+        resp = self._client.patch(f"{self._repos_path()}/hooks/{hook_id}", json=payload)
+        return self._to_webhook(resp.json())
+
     # --- DeployKey ---
 
     def get_deploy_key(self, key_id: int) -> DeployKey:
@@ -1566,6 +1598,21 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def delete_organization(self, name: str) -> None:
         self._client.delete(f"/orgs/{quote(name, safe='')}")
+
+    def update_organization(
+        self,
+        name: str,
+        *,
+        display_name: str | None = None,
+        description: str | None = None,
+    ) -> Organization:
+        payload: dict = {}
+        if display_name is not None:
+            payload["name"] = display_name
+        if description is not None:
+            payload["description"] = description
+        resp = self._client.patch(f"/orgs/{quote(name, safe='')}", json=payload)
+        return self._to_organization(resp.json())
 
     # --- SSH Key ---
 

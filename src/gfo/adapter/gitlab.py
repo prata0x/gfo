@@ -654,6 +654,23 @@ class GitLabAdapter(GitServiceAdapter):
             f"{self._project_path()}/releases/{quote(tag, safe='')}/assets/links/{asset_id}"
         )
 
+    def update_release_asset(self, *, tag, asset_id, name=None):
+        payload: dict = {}
+        if name is not None:
+            payload["name"] = name
+        resp = self._client.put(
+            f"{self._project_path()}/releases/{quote(tag, safe='')}/assets/links/{asset_id}",
+            json=payload,
+        )
+        data = resp.json()
+        return ReleaseAsset(
+            id=data["id"],
+            name=data.get("name") or "",
+            size=0,
+            download_url=data.get("url") or data.get("direct_asset_url") or "",
+            created_at="",
+        )
+
     # --- Label ---
 
     def list_labels(self, *, limit: int = 0) -> list[Label]:
@@ -1431,6 +1448,38 @@ class GitLabAdapter(GitServiceAdapter):
     def test_webhook(self, *, hook_id: int) -> None:
         self._client.post(f"{self._project_path()}/hooks/{hook_id}/test/push_events")
 
+    def update_webhook(
+        self,
+        hook_id: int,
+        *,
+        url: str | None = None,
+        events: list[str] | None = None,
+        secret: str | None = None,
+        active: bool | None = None,
+    ) -> Webhook:
+        payload: dict = {}
+        if url is not None:
+            payload["url"] = url
+        if events is not None:
+            event_map = {
+                "push": "push_events",
+                "issues": "issues_events",
+                "merge_requests": "merge_requests_events",
+                "tag_push": "tag_push_events",
+                "note": "note_events",
+                "pipeline": "pipeline_events",
+                "job": "job_events",
+            }
+            for event in events:
+                key = event_map.get(event, f"{event}_events")
+                payload[key] = True
+        if secret is not None:
+            payload["token"] = secret
+        if active is not None:
+            payload["enable_ssl_verification"] = active
+        resp = self._client.put(f"{self._project_path()}/hooks/{hook_id}", json=payload)
+        return self._to_webhook(resp.json())
+
     # --- DeployKey ---
 
     def get_deploy_key(self, key_id: int) -> DeployKey:
@@ -1732,6 +1781,21 @@ class GitLabAdapter(GitServiceAdapter):
 
     def delete_organization(self, name: str) -> None:
         self._client.delete(f"/groups/{quote(name, safe='')}")
+
+    def update_organization(
+        self,
+        name: str,
+        *,
+        display_name: str | None = None,
+        description: str | None = None,
+    ) -> Organization:
+        payload: dict = {}
+        if display_name is not None:
+            payload["name"] = display_name
+        if description is not None:
+            payload["description"] = description
+        resp = self._client.put(f"/groups/{quote(name, safe='')}", json=payload)
+        return self._to_organization(resp.json())
 
     # --- SSH Key ---
 

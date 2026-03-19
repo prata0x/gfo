@@ -516,6 +516,17 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         release_id = resp.json()["id"]
         self._client.delete(f"{self._repos_path()}/releases/{release_id}/assets/{asset_id}")
 
+    def update_release_asset(self, *, tag, asset_id, name=None):
+        resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
+        release_id = resp.json()["id"]
+        payload: dict = {}
+        if name is not None:
+            payload["name"] = name
+        resp = self._client.patch(
+            f"{self._repos_path()}/releases/{release_id}/assets/{asset_id}", json=payload
+        )
+        return self._to_release_asset(resp.json())
+
     # --- Label ---
 
     def list_labels(self, *, limit: int = 0) -> list[Label]:
@@ -1021,6 +1032,31 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def test_webhook(self, *, hook_id: int) -> None:
         self._client.post(f"{self._repos_path()}/hooks/{hook_id}/tests")
 
+    def update_webhook(
+        self,
+        hook_id: int,
+        *,
+        url: str | None = None,
+        events: list[str] | None = None,
+        secret: str | None = None,
+        active: bool | None = None,
+    ) -> Webhook:
+        payload: dict = {}
+        if url is not None or secret is not None:
+            config: dict = {}
+            if url is not None:
+                config["url"] = url
+            config["content_type"] = "json"
+            if secret is not None:
+                config["secret"] = secret
+            payload["config"] = config
+        if events is not None:
+            payload["events"] = events
+        if active is not None:
+            payload["active"] = active
+        resp = self._client.patch(f"{self._repos_path()}/hooks/{hook_id}", json=payload)
+        return self._to_webhook(resp.json())
+
     # --- DeployKey ---
 
     def get_deploy_key(self, key_id: int) -> DeployKey:
@@ -1374,6 +1410,21 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def delete_organization(self, name: str) -> None:
         self._client.delete(f"/orgs/{quote(name, safe='')}")
 
+    def update_organization(
+        self,
+        name: str,
+        *,
+        display_name: str | None = None,
+        description: str | None = None,
+    ) -> Organization:
+        payload: dict = {}
+        if display_name is not None:
+            payload["full_name"] = display_name
+        if description is not None:
+            payload["description"] = description
+        resp = self._client.patch(f"/orgs/{quote(name, safe='')}", json=payload)
+        return self._to_organization(resp.json())
+
     # --- SSH Key ---
 
     def get_ssh_key(self, key_id: int | str) -> SshKey:
@@ -1465,6 +1516,28 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def delete_tag_protection(self, protection_id: int | str) -> None:
         self._client.delete(f"/repos/{self._owner}/{self._repo}/tag_protections/{protection_id}")
+
+    def update_tag_protection(
+        self,
+        protection_id: int | str,
+        *,
+        pattern: str | None = None,
+        create_access_level: str | None = None,
+    ) -> TagProtection:
+        payload: dict = {}
+        if pattern is not None:
+            payload["name_pattern"] = pattern
+        if create_access_level is not None:
+            payload["whitelist_teams"] = create_access_level
+        resp = self._client.patch(
+            f"/repos/{self._owner}/{self._repo}/tag_protections/{protection_id}", json=payload
+        )
+        data = resp.json()
+        return TagProtection(
+            id=data["id"],
+            pattern=data.get("name_pattern") or "",
+            create_access_level=data.get("whitelist_teams") or "",
+        )
 
     # --- Browse ---
 

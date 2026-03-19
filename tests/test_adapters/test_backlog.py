@@ -1537,6 +1537,24 @@ class TestDeleteWebhook:
         assert mock_responses.calls[0].request.method == "DELETE"
 
 
+class TestUpdateWebhook:
+    def test_update_url(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/projects/TEST/webhooks/100",
+            json={
+                "id": 100,
+                "hookUrl": "https://new.example.com/hook",
+                "events": [],
+            },
+            status=200,
+        )
+        webhook = backlog_adapter.update_webhook(100, url="https://new.example.com/hook")
+        assert webhook.url == "https://new.example.com/hook"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["hookUrl"] == "https://new.example.com/hook"
+
+
 # --- Collaborator 系 ---
 
 

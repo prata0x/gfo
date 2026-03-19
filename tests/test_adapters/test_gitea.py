@@ -2061,6 +2061,57 @@ class TestTestWebhook:
         assert mock_responses.calls[0].request.method == "POST"
 
 
+class TestUpdateWebhook:
+    def test_update_url(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/hooks/100",
+            json={
+                "id": 100,
+                "config": {"url": "https://new.example.com/hook", "content_type": "json"},
+                "events": ["push"],
+                "active": True,
+            },
+            status=200,
+        )
+        webhook = gitea_adapter.update_webhook(100, url="https://new.example.com/hook")
+        assert webhook.url == "https://new.example.com/hook"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["config"]["url"] == "https://new.example.com/hook"
+
+    def test_update_events(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/hooks/100",
+            json={
+                "id": 100,
+                "config": {"url": "https://example.com/hook", "content_type": "json"},
+                "events": ["push", "issues"],
+                "active": True,
+            },
+            status=200,
+        )
+        webhook = gitea_adapter.update_webhook(100, events=["push", "issues"])
+        assert "push" in webhook.events
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["events"] == ["push", "issues"]
+
+    def test_update_active(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/hooks/100",
+            json={
+                "id": 100,
+                "config": {"url": "https://example.com/hook", "content_type": "json"},
+                "events": ["push"],
+                "active": False,
+            },
+            status=200,
+        )
+        webhook = gitea_adapter.update_webhook(100, active=False)
+        assert webhook.active is False
+
+
 # --- DeployKey 系 ---
 
 
@@ -2715,6 +2766,38 @@ class TestReleaseAssetsGitea:
         gitea_adapter.delete_release_asset(tag="v1.0.0", asset_id=1)
 
 
+class TestUpdateReleaseAsset:
+    def test_update_name(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json={
+                "id": 42,
+                "tag_name": "v1.0.0",
+                "name": "v1.0.0",
+                "body": "",
+                "draft": False,
+                "prerelease": False,
+                "created_at": "2025-01-01T00:00:00Z",
+            },
+            status=200,
+        )
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/releases/42/assets/1",
+            json={
+                "id": 1,
+                "name": "renamed.zip",
+                "size": 1024,
+                "browser_download_url": "https://gitea.example.com/renamed.zip",
+                "created_at": "2025-01-01T00:00:00Z",
+            },
+            status=200,
+        )
+        asset = gitea_adapter.update_release_asset(tag="v1.0.0", asset_id=1, name="renamed.zip")
+        assert asset.name == "renamed.zip"
+
+
 class TestListIssueTemplatesGitea:
     @responses.activate
     def test_list_templates(self, gitea_adapter):
@@ -2844,3 +2927,35 @@ class TestDownloadReleaseAssetPathTraversal:
 
         assert os.path.basename(result) == "malicious.bin"
         assert os.path.dirname(os.path.realpath(result)) == os.path.realpath(str(tmp_path))
+
+
+class TestUpdateOrganization:
+    def test_update_display_name(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            "https://gitea.example.com/api/v1/orgs/my-org",
+            json={
+                "username": "my-org",
+                "full_name": "New Name",
+                "description": "desc",
+            },
+            status=200,
+        )
+        org = gitea_adapter.update_organization("my-org", display_name="New Name")
+        assert org.display_name == "New Name"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["full_name"] == "New Name"
+
+    def test_update_description(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            "https://gitea.example.com/api/v1/orgs/my-org",
+            json={
+                "username": "my-org",
+                "full_name": "My Org",
+                "description": "New description",
+            },
+            status=200,
+        )
+        org = gitea_adapter.update_organization("my-org", description="New description")
+        assert org.description == "New description"

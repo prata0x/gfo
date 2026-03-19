@@ -56,6 +56,17 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     output(org, fmt=fmt, jq=jq)
 
 
+def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo org edit のハンドラ。"""
+    adapter = get_adapter()
+    org = adapter.update_organization(
+        args.name,
+        display_name=getattr(args, "display_name", None),
+        description=getattr(args, "description", None),
+    )
+    output(org, fmt=fmt, jq=jq)
+
+
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo org delete のハンドラ。"""
     from gfo.i18n import _

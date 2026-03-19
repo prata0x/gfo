@@ -2162,6 +2162,57 @@ class TestTestWebhook:
         assert mock_responses.calls[0].request.method == "POST"
 
 
+class TestUpdateWebhook:
+    def test_update_url(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/hooks/100",
+            json={
+                "id": 100,
+                "config": {"url": "https://new.example.com/hook", "content_type": "json"},
+                "events": ["push"],
+                "active": True,
+            },
+            status=200,
+        )
+        webhook = github_adapter.update_webhook(100, url="https://new.example.com/hook")
+        assert webhook.url == "https://new.example.com/hook"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["config"]["url"] == "https://new.example.com/hook"
+
+    def test_update_events(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/hooks/100",
+            json={
+                "id": 100,
+                "config": {"url": "https://example.com/hook", "content_type": "json"},
+                "events": ["push", "issues"],
+                "active": True,
+            },
+            status=200,
+        )
+        webhook = github_adapter.update_webhook(100, events=["push", "issues"])
+        assert "push" in webhook.events
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["events"] == ["push", "issues"]
+
+    def test_update_active(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/hooks/100",
+            json={
+                "id": 100,
+                "config": {"url": "https://example.com/hook", "content_type": "json"},
+                "events": ["push"],
+                "active": False,
+            },
+            status=200,
+        )
+        webhook = github_adapter.update_webhook(100, active=False)
+        assert webhook.active is False
+
+
 # --- DeployKey 系 ---
 
 
@@ -2771,6 +2822,26 @@ class TestReleaseAssets:
         github_adapter.delete_release_asset(tag="v1.0.0", asset_id=1)
 
 
+class TestUpdateReleaseAsset:
+    def test_update_name(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/releases/assets/1",
+            json={
+                "id": 1,
+                "name": "renamed.zip",
+                "size": 1024,
+                "browser_download_url": "https://example.com/renamed.zip",
+                "created_at": "2025-01-01T00:00:00Z",
+            },
+            status=200,
+        )
+        asset = github_adapter.update_release_asset(tag="v1.0.0", asset_id=1, name="renamed.zip")
+        assert asset.name == "renamed.zip"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["name"] == "renamed.zip"
+
+
 class TestListIssueTemplates:
     @responses.activate
     def test_list_templates(self, github_adapter):
@@ -3178,6 +3249,40 @@ class TestUploadReleaseAssetUrl:
         assert result.name == "asset.zip"
         # アップロード先が uploads.github.com であることを検証
         assert "uploads.github.com" in responses.calls[1].request.url
+
+
+class TestUpdateOrganization:
+    def test_update_display_name(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            "https://api.github.com/orgs/my-org",
+            json={
+                "login": "my-org",
+                "name": "New Name",
+                "description": "desc",
+                "html_url": "https://github.com/my-org",
+            },
+            status=200,
+        )
+        org = github_adapter.update_organization("my-org", display_name="New Name")
+        assert org.display_name == "New Name"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["name"] == "New Name"
+
+    def test_update_description(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            "https://api.github.com/orgs/my-org",
+            json={
+                "login": "my-org",
+                "name": "My Org",
+                "description": "New description",
+                "html_url": "https://github.com/my-org",
+            },
+            status=200,
+        )
+        org = github_adapter.update_organization("my-org", description="New description")
+        assert org.description == "New description"
 
 
 # --- SSH Key 系 ---

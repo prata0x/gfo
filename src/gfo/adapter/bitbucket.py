@@ -963,6 +963,27 @@ class BitbucketAdapter(GitServiceAdapter):
     def delete_webhook(self, *, hook_id: int) -> None:
         self._client.delete(f"{self._repos_path()}/hooks/{hook_id}")
 
+    def update_webhook(
+        self,
+        hook_id: int,
+        *,
+        url: str | None = None,
+        events: list[str] | None = None,
+        secret: str | None = None,
+        active: bool | None = None,
+    ) -> Webhook:
+        payload: dict = {}
+        if url is not None:
+            payload["url"] = url
+        if events is not None:
+            payload["events"] = events
+        if active is not None:
+            payload["active"] = active
+        if secret is not None:
+            payload["secret"] = secret
+        resp = self._client.put(f"{self._repos_path()}/hooks/{hook_id}", json=payload)
+        return self._to_webhook(resp.json())
+
     # --- DeployKey ---
 
     def get_deploy_key(self, key_id: int) -> DeployKey:

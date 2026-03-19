@@ -32,3 +32,19 @@ def handle_test(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     """gfo webhook test <id> のハンドラ。"""
     adapter = get_adapter()
     adapter.test_webhook(hook_id=args.id)
+
+
+def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo webhook edit <id> のハンドラ。"""
+    adapter = get_adapter()
+    active = getattr(args, "active", None)
+    if getattr(args, "inactive", False):
+        active = False
+    webhook = adapter.update_webhook(
+        args.id,
+        url=getattr(args, "url", None),
+        events=getattr(args, "event", None),
+        secret=getattr(args, "secret", None),
+        active=active,
+    )
+    output(webhook, fmt=fmt, jq=jq)

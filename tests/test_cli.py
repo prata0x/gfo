@@ -512,7 +512,7 @@ def test_parser_org_repos():
 
 
 def test_dispatch_table_entry_count():
-    assert len(_DISPATCH) == 150
+    assert len(_DISPATCH) == 153
 
 
 def test_dispatch_table_all_keys():
@@ -594,6 +594,7 @@ def test_dispatch_table_all_keys():
         ("webhook", "create"),
         ("webhook", "delete"),
         ("webhook", "test"),
+        ("webhook", "edit"),
         ("deploy-key", "view"),
         ("deploy-key", "list"),
         ("deploy-key", "create"),
@@ -643,6 +644,7 @@ def test_dispatch_table_all_keys():
         ("org", "members"),
         ("org", "repos"),
         ("org", "create"),
+        ("org", "edit"),
         ("org", "delete"),
         ("secret", "list"),
         ("secret", "set"),
@@ -661,6 +663,7 @@ def test_dispatch_table_all_keys():
         ("gpg-key", "delete"),
         ("tag-protect", "list"),
         ("tag-protect", "create"),
+        ("tag-protect", "edit"),
         ("tag-protect", "delete"),
         ("browse", None),
         ("api", None),

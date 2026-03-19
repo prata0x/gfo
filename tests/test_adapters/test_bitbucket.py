@@ -1382,6 +1382,40 @@ class TestDeleteWebhook:
         assert mock_responses.calls[0].request.method == "DELETE"
 
 
+class TestUpdateWebhook:
+    def test_update_url(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/hooks/abc-123",
+            json={
+                "uuid": "{abc-123}",
+                "url": "https://new.example.com/hook",
+                "events": ["repo:push"],
+                "active": True,
+            },
+            status=200,
+        )
+        webhook = bitbucket_adapter.update_webhook("abc-123", url="https://new.example.com/hook")
+        assert webhook.url == "https://new.example.com/hook"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["url"] == "https://new.example.com/hook"
+
+    def test_update_active(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/hooks/abc-123",
+            json={
+                "uuid": "{abc-123}",
+                "url": "https://example.com/hook",
+                "events": ["repo:push"],
+                "active": False,
+            },
+            status=200,
+        )
+        webhook = bitbucket_adapter.update_webhook("abc-123", active=False)
+        assert webhook.active is False
+
+
 # --- DeployKey 系 ---
 
 

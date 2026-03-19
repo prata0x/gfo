@@ -455,6 +455,10 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     asset_download.add_argument("--pattern", help=_("Download pattern"))
     asset_download.add_argument("--dir", default=".", help=_("Download directory"))
     asset_download.add_argument("--asset-id", dest="asset_id", help=_("Asset ID"))
+    asset_edit = release_asset_sub.add_parser("edit", help=_("Edit asset"))
+    asset_edit.add_argument("--tag", required=True, help=_("Tag name"))
+    asset_edit.add_argument("asset_id", help=_("Asset ID"))
+    asset_edit.add_argument("--name", help=_("Asset name"))
     asset_delete = release_asset_sub.add_parser("delete", help=_("Delete asset"))
     asset_delete.add_argument("--tag", required=True, help=_("Tag name"))
     asset_delete.add_argument("asset_id", help=_("Asset ID"))
@@ -637,6 +641,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     webhook_delete.add_argument("id", type=int, help=_("Webhook ID"))
     webhook_test = webhook_sub.add_parser("test", help=_("Test webhook"))
     webhook_test.add_argument("id", type=int, help=_("Webhook ID"))
+    webhook_edit = webhook_sub.add_parser("edit", help=_("Edit webhook"))
+    webhook_edit.add_argument("id", type=int, help=_("Webhook ID"))
+    webhook_edit.add_argument("--url", help=_("Webhook URL"))
+    webhook_edit.add_argument("--event", action="append", help=_("Event type"))
+    webhook_edit.add_argument("--secret", help=_("Webhook secret"))
+    webhook_edit.add_argument("--active", action="store_true", default=None, help=_("Activate"))
+    webhook_edit.add_argument("--inactive", action="store_true", help=_("Deactivate"))
 
     # gfo deploy-key → サブサブコマンド
     deploy_key_parser = subparser_map["deploy-key"] = subparsers.add_parser(
@@ -934,6 +945,10 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     tp_create = tp_sub.add_parser("create", help=_("Create tag protection rule"))
     tp_create.add_argument("pattern", help=_("Tag pattern"))
     tp_create.add_argument("--access-level", dest="access_level", help=_("Access level"))
+    tp_edit = tp_sub.add_parser("edit", help=_("Edit tag protection rule"))
+    tp_edit.add_argument("id", help=_("Rule ID"))
+    tp_edit.add_argument("--pattern", help=_("Tag pattern"))
+    tp_edit.add_argument("--access-level", dest="access_level", help=_("Access level"))
     tp_delete = tp_sub.add_parser("delete", help=_("Delete tag protection rule"))
     tp_delete.add_argument("id", help=_("Rule ID"))
 
@@ -976,6 +991,10 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     org_create.add_argument("name", help=_("Organization name"))
     org_create.add_argument("--display-name", dest="display_name", help=_("Display name"))
     org_create.add_argument("--description", help=_("Description"))
+    org_edit = org_sub.add_parser("edit", help=_("Edit organization"))
+    org_edit.add_argument("name", help=_("Organization name"))
+    org_edit.add_argument("--display-name", dest="display_name", help=_("Display name"))
+    org_edit.add_argument("--description", help=_("Description"))
     org_delete = org_sub.add_parser("delete", help=_("Delete organization"))
     org_delete.add_argument("name", help=_("Organization name"))
     org_delete.add_argument("--yes", "-y", action="store_true", help=_("Skip confirmation prompt"))
@@ -1184,6 +1203,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("webhook", "create"): gfo.commands.webhook.handle_create,
     ("webhook", "delete"): gfo.commands.webhook.handle_delete,
     ("webhook", "test"): gfo.commands.webhook.handle_test,
+    ("webhook", "edit"): gfo.commands.webhook.handle_edit,
     ("deploy-key", "view"): gfo.commands.deploy_key.handle_view,
     ("deploy-key", "list"): gfo.commands.deploy_key.handle_list,
     ("deploy-key", "create"): gfo.commands.deploy_key.handle_create,
@@ -1229,6 +1249,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("branch-protect", "remove"): gfo.commands.branch_protect.handle_remove,
     ("tag-protect", "list"): gfo.commands.tag_protect.handle_list,
     ("tag-protect", "create"): gfo.commands.tag_protect.handle_create,
+    ("tag-protect", "edit"): gfo.commands.tag_protect.handle_edit,
     ("tag-protect", "delete"): gfo.commands.tag_protect.handle_delete,
     ("notification", "list"): gfo.commands.notification.handle_list,
     ("notification", "read"): gfo.commands.notification.handle_read,
@@ -1237,6 +1258,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("org", "members"): gfo.commands.org.handle_members,
     ("org", "repos"): gfo.commands.org.handle_repos,
     ("org", "create"): gfo.commands.org.handle_create,
+    ("org", "edit"): gfo.commands.org.handle_edit,
     ("org", "delete"): gfo.commands.org.handle_delete,
     ("secret", "list"): gfo.commands.secret.handle_list,
     ("secret", "set"): gfo.commands.secret.handle_set,

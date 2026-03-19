@@ -71,6 +71,59 @@ class TestHandleCreate:
                 tp_cmd.handle_create(args, fmt="table")
 
 
+class TestHandleEdit:
+    def test_calls_update_tag_protection(self, capsys):
+        with patch_adapter("gfo.commands.tag_protect") as adapter:
+            adapter.update_tag_protection.return_value = SAMPLE_TP
+            args = make_args(id=1, pattern="release-*", access_level=None)
+            tp_cmd.handle_edit(args, fmt="table")
+        adapter.update_tag_protection.assert_called_once_with(
+            1,
+            pattern="release-*",
+            create_access_level=None,
+        )
+        out = capsys.readouterr().out
+        assert "v*" in out
+
+    def test_with_access_level(self):
+        with patch_adapter("gfo.commands.tag_protect") as adapter:
+            adapter.update_tag_protection.return_value = SAMPLE_TP
+            args = make_args(id=1, pattern=None, access_level="developer")
+            tp_cmd.handle_edit(args, fmt="table")
+        adapter.update_tag_protection.assert_called_once_with(
+            1,
+            pattern=None,
+            create_access_level="developer",
+        )
+
+    def test_with_none_fields(self):
+        with patch_adapter("gfo.commands.tag_protect") as adapter:
+            adapter.update_tag_protection.return_value = SAMPLE_TP
+            args = make_args(id=1, pattern=None, access_level=None)
+            tp_cmd.handle_edit(args, fmt="table")
+        adapter.update_tag_protection.assert_called_once_with(
+            1,
+            pattern=None,
+            create_access_level=None,
+        )
+
+    def test_json_format(self, capsys):
+        with patch_adapter("gfo.commands.tag_protect") as adapter:
+            adapter.update_tag_protection.return_value = SAMPLE_TP
+            args = make_args(id=1, pattern=None, access_level=None)
+            tp_cmd.handle_edit(args, fmt="json")
+        out = capsys.readouterr().out
+        parsed = json.loads(out)
+        assert parsed[0]["pattern"] == "v*"
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.tag_protect") as adapter:
+            adapter.update_tag_protection.side_effect = HttpError(404, "Not found")
+            args = make_args(id=999, pattern=None, access_level=None)
+            with pytest.raises(HttpError):
+                tp_cmd.handle_edit(args, fmt="table")
+
+
 class TestHandleDelete:
     def test_calls_delete(self, capsys):
         with patch_adapter("gfo.commands.tag_protect") as adapter:

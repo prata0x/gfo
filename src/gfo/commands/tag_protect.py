@@ -25,6 +25,17 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     output(protection, fmt=fmt, jq=jq)
 
 
+def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo tag-protect edit <id> のハンドラ。"""
+    adapter = get_adapter()
+    protection = adapter.update_tag_protection(
+        args.id,
+        pattern=getattr(args, "pattern", None),
+        create_access_level=getattr(args, "access_level", None),
+    )
+    output(protection, fmt=fmt, jq=jq)
+
+
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo tag-protect delete <id> のハンドラ。"""
     adapter = get_adapter()

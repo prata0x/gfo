@@ -718,6 +718,23 @@ class BacklogAdapter(GitServiceAdapter):
     def delete_webhook(self, *, hook_id: int) -> None:
         self._client.delete(f"/projects/{self._project_key}/webhooks/{hook_id}")
 
+    def update_webhook(
+        self,
+        hook_id: int,
+        *,
+        url: str | None = None,
+        events: list[str] | None = None,
+        secret: str | None = None,
+        active: bool | None = None,
+    ) -> Webhook:
+        payload: dict = {}
+        if url is not None:
+            payload["hookUrl"] = url
+        if events is not None:
+            payload["events"] = [{"type": e} for e in events]
+        resp = self._client.patch(f"/projects/{self._project_key}/webhooks/{hook_id}", json=payload)
+        return self._to_webhook(resp.json())
+
     # --- Collaborator ---
 
     def list_collaborators(self, *, limit: int = 30) -> list[str]:

@@ -229,6 +229,32 @@ class TestGiteaTagProtect:
             gitea_adapter.delete_tag_protection(1)
 
 
+class TestGiteaTagProtectEdit:
+    @responses.activate
+    def test_update_pattern(self, gitea_adapter):
+        responses.add(
+            responses.PATCH,
+            "https://gitea.example.com/api/v1/repos/test-owner/test-repo/tag_protections/1",
+            json={"id": 1, "name_pattern": "release-*", "whitelist_teams": ""},
+            status=200,
+        )
+        tp = gitea_adapter.update_tag_protection(1, pattern="release-*")
+        assert tp.pattern == "release-*"
+        req_body = json.loads(responses.calls[0].request.body)
+        assert req_body["name_pattern"] == "release-*"
+
+    @responses.activate
+    def test_update_access_level(self, gitea_adapter):
+        responses.add(
+            responses.PATCH,
+            "https://gitea.example.com/api/v1/repos/test-owner/test-repo/tag_protections/1",
+            json={"id": 1, "name_pattern": "v*", "whitelist_teams": "developers"},
+            status=200,
+        )
+        tp = gitea_adapter.update_tag_protection(1, create_access_level="developers")
+        assert tp.create_access_level == "developers"
+
+
 # --- Forgejo ---
 
 
@@ -284,6 +310,19 @@ class TestForgejoTagProtect:
         )
         with pytest.raises(NotFoundError):
             forgejo_adapter.list_tag_protections()
+
+
+class TestForgejoTagProtectEdit:
+    @responses.activate
+    def test_update_pattern(self, forgejo_adapter):
+        responses.add(
+            responses.PATCH,
+            "https://forgejo.example.com/api/v1/repos/test-owner/test-repo/tag_protections/1",
+            json={"id": 1, "name_pattern": "release-*", "whitelist_teams": ""},
+            status=200,
+        )
+        tp = forgejo_adapter.update_tag_protection(1, pattern="release-*")
+        assert tp.pattern == "release-*"
 
 
 # --- NotSupported ---
@@ -349,3 +388,31 @@ class TestTagProtectNotSupported:
     def test_backlog_delete(self, backlog_adapter):
         with pytest.raises(NotSupportedError):
             backlog_adapter.delete_tag_protection(1)
+
+    def test_github_edit(self, github_adapter):
+        with pytest.raises(NotSupportedError):
+            github_adapter.update_tag_protection(1, pattern="v*")
+
+    def test_gitlab_edit(self, gitlab_adapter):
+        with pytest.raises(NotSupportedError):
+            gitlab_adapter.update_tag_protection("v*", pattern="release-*")
+
+    def test_azure_devops_edit(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.update_tag_protection(1, pattern="v*")
+
+    def test_bitbucket_edit(self, bitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.update_tag_protection(1, pattern="v*")
+
+    def test_gogs_edit(self, gogs_adapter):
+        with pytest.raises(NotSupportedError):
+            gogs_adapter.update_tag_protection(1, pattern="v*")
+
+    def test_gitbucket_edit(self, gitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.update_tag_protection(1, pattern="v*")
+
+    def test_backlog_edit(self, backlog_adapter):
+        with pytest.raises(NotSupportedError):
+            backlog_adapter.update_tag_protection(1, pattern="v*")
