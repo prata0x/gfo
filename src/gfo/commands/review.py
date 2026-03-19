@@ -53,4 +53,4 @@ def handle_review(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     elif action == "dismiss":
         handle_dismiss(args, fmt=fmt, jq=jq)
     else:
-        raise SystemExit(_("review action required: list, create, dismiss"))
+        raise ConfigError(_("review action required: list, create, dismiss"))

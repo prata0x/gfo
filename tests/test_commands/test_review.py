@@ -128,7 +128,7 @@ class TestHandleReview:
 
     def test_no_action_raises(self):
         args = make_args(review_action=None)
-        with pytest.raises(SystemExit):
+        with pytest.raises(ConfigError):
             review_cmd.handle_review(args, fmt="table")
 
 

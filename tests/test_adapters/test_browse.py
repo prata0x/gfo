@@ -261,7 +261,7 @@ class TestGiteaBrowse:
     def test_milestone(self, gitea_adapter):
         assert (
             gitea_adapter.get_web_url("milestone", 3)
-            == "https://gitea.example.com/test-owner/test-repo/milestone/3"
+            == "https://gitea.example.com/test-owner/test-repo/milestones/3"
         )
 
     def test_milestone_list(self, gitea_adapter):
@@ -320,7 +320,7 @@ class TestForgejoBrowse:
     def test_milestone(self, forgejo_adapter):
         assert (
             forgejo_adapter.get_web_url("milestone", 3)
-            == "https://forgejo.example.com/test-owner/test-repo/milestone/3"
+            == "https://forgejo.example.com/test-owner/test-repo/milestones/3"
         )
 
     def test_milestone_list(self, forgejo_adapter):
@@ -378,7 +378,7 @@ class TestGogsBrowse:
     def test_milestone(self, gogs_adapter):
         assert (
             gogs_adapter.get_web_url("milestone", 3)
-            == "https://gogs.example.com/test-owner/test-repo/milestone/3"
+            == "https://gogs.example.com/test-owner/test-repo/milestones/3"
         )
 
     def test_milestone_list(self, gogs_adapter):

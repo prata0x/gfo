@@ -1019,3 +1019,14 @@ class TestHandleViewWeb:
         ):
             repo_cmd.handle_view(args, fmt="table")
         mock_adapter.get_repository.assert_not_called()
+
+    def test_opens_browser_with_repo_arg(self, sample_config, mock_adapter):
+        """--web + repo arg で指定リポジトリの URL を開く（#7）。"""
+        args = make_args(repo="other-owner/other-repo", web=True)
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            repo_cmd.handle_view(args, fmt="table")
+        mock_adapter.get_repository.assert_called_once_with("other-owner", "other-repo")
+        mock_open.assert_called_once_with(mock_adapter.get_repository.return_value.url)

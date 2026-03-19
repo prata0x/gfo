@@ -74,9 +74,11 @@ def handle_close(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     """gfo milestone close のハンドラ。"""
     adapter = get_adapter()
     adapter.update_milestone(args.number, state="closed")
+    print(_("Closed milestone '{number}'.").format(number=args.number))
 
 
 def handle_reopen(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo milestone reopen のハンドラ。"""
     adapter = get_adapter()
     adapter.update_milestone(args.number, state="open")
+    print(_("Reopened milestone '{number}'.").format(number=args.number))

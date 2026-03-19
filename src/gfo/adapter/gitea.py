@@ -1359,7 +1359,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         if resource == "release":
             return f"{base}/releases" if number is None else f"{base}/releases/tag/{number}"
         if resource == "milestone":
-            return f"{base}/milestones" if number is None else f"{base}/milestone/{number}"
+            return f"{base}/milestones" if number is None else f"{base}/milestones/{number}"
         if resource == "settings":
             return f"{base}/settings"
         return base

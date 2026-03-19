@@ -161,19 +161,23 @@ def handle_clone(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo view のハンドラ。"""
+    repo_arg = getattr(args, "repo", None)
+    owner: str | None = None
+    name: str | None = None
+    if repo_arg:
+        owner, name = _parse_repo_arg(repo_arg)
+
     if getattr(args, "web", False):
         import webbrowser
 
         adapter = get_adapter()
-        webbrowser.open(adapter.get_web_url("repo"))
+        if owner and name:
+            repo = adapter.get_repository(owner, name)
+            webbrowser.open(repo.url)
+        else:
+            webbrowser.open(adapter.get_web_url("repo"))
         return
     adapter = get_adapter()
-
-    repo_arg = getattr(args, "repo", None)
-    if repo_arg:
-        owner, name = _parse_repo_arg(repo_arg)
-    else:
-        owner, name = None, None
 
     repo = adapter.get_repository(owner, name)
     output(repo, fmt=fmt, jq=jq)

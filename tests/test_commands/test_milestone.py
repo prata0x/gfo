@@ -303,6 +303,13 @@ class TestHandleClose:
 
         self.adapter.update_milestone.assert_called_once_with(3, state="closed")
 
+    def test_close_prints_success_message(self, sample_config, capsys):
+        args = make_args(number=3)
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_close(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "3" in out
+
 
 class TestHandleReopen:
     def setup_method(self):
@@ -315,6 +322,13 @@ class TestHandleReopen:
             milestone_cmd.handle_reopen(args, fmt="table")
 
         self.adapter.update_milestone.assert_called_once_with(3, state="open")
+
+    def test_reopen_prints_success_message(self, sample_config, capsys):
+        args = make_args(number=3)
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_reopen(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "3" in out
 
 
 class TestHandleListWeb:

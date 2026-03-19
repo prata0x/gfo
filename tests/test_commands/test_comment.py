@@ -6,6 +6,7 @@ import pytest
 
 from gfo.adapter.base import Comment
 from gfo.commands import comment as comment_cmd
+from gfo.exceptions import ConfigError
 from tests.test_commands.conftest import make_args, patch_adapter
 
 SAMPLE_COMMENT = Comment(
@@ -61,11 +62,28 @@ class TestHandlePrComment:
             comment_cmd.handle_pr_comment(args, fmt="table")
         adapter.delete_comment.assert_called_once_with("pr", 42)
 
+    def test_delete_prints_success_message(self, capsys):
+        with patch_adapter("gfo.commands.comment") as adapter:
+            args = make_args(comment_action="delete", comment_id=42)
+            comment_cmd.handle_pr_comment(args, fmt="table")
+        adapter.delete_comment.assert_called_once_with("pr", 42)
+        out = capsys.readouterr().out
+        assert "42" in out
+
     def test_no_action_raises(self):
-        with patch_adapter("gfo.commands.comment"):
-            args = make_args(comment_action=None)
-            with pytest.raises(SystemExit):
+        args = make_args(comment_action=None)
+        with pytest.raises(ConfigError):
+            comment_cmd.handle_pr_comment(args, fmt="table")
+
+    def test_no_action_does_not_initialize_adapter(self):
+        """action=None の場合、get_adapter() が呼ばれないことを確認（#11）。"""
+        from unittest.mock import patch
+
+        args = make_args(comment_action=None)
+        with patch("gfo.commands.comment.get_adapter") as mock_get:
+            with pytest.raises(ConfigError):
                 comment_cmd.handle_pr_comment(args, fmt="table")
+        mock_get.assert_not_called()
 
 
 class TestHandleIssueComment:
@@ -105,7 +123,6 @@ class TestHandleIssueComment:
         adapter.delete_comment.assert_called_once_with("issue", 10)
 
     def test_no_action_raises(self):
-        with patch_adapter("gfo.commands.comment"):
-            args = make_args(comment_action=None)
-            with pytest.raises(SystemExit):
-                comment_cmd.handle_issue_comment(args, fmt="table")
+        args = make_args(comment_action=None)
+        with pytest.raises(ConfigError):
+            comment_cmd.handle_issue_comment(args, fmt="table")

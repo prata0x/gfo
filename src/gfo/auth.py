@@ -56,6 +56,13 @@ def resolve_token(host: str, service_type: str) -> str:
         token_val = host_accounts.get(account_name, "")
         if token_val and token_val.strip():
             return token_val
+        # アカウントが host_accounts に存在しない場合、明確なエラーを返す
+        if account_name not in host_accounts:
+            raise AuthError(
+                host,
+                f"Account '{account_name}' not found for host: {host}. "
+                f"Available accounts: {', '.join(k for k in host_accounts if k != '_default')}",
+            )
 
     # 2. サービス別環境変数
     env_var = _SERVICE_ENV_MAP.get(service_type)

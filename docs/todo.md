@@ -23,13 +23,13 @@
 **対象**: #7, #9, #10, #11, #12, #21, #26
 **ファイル**: `comment.py`, `review.py`, `repo.py`, `gitea.py`, `milestone.py`, `auth.py`（微修正）
 
-- [ ] #9 `comment.py:28` と `review.py:56` の `SystemExit` → `ConfigError`
-- [ ] #10 `comment.py` の delete 後に成功メッセージを追加
-- [ ] #11 `comment.py` `_dispatch()` で action=None チェックを `get_adapter()` の前に移動
-- [ ] #7 `repo.py` `handle_view` の `--web` パスで `args.repo` を解釈
-- [ ] #12 `gitea.py:1362` の `/milestone/` → `/milestones/`（Forgejo/Gogs も確認）
-- [ ] #21 `auth.py` `resolve_token` で未登録アカウント名を含むエラーメッセージに改善
-- [ ] #26 `milestone.py` `handle_close`/`handle_reopen` に成功メッセージを追加
+- [x] #9 `comment.py:28` と `review.py:56` の `SystemExit` → `ConfigError`
+- [x] #10 `comment.py` の delete 後に成功メッセージを追加
+- [x] #11 `comment.py` `_dispatch()` で action=None チェックを `get_adapter()` の前に移動
+- [x] #7 `repo.py` `handle_view` の `--web` パスで `args.repo` を解釈
+- [x] #12 `gitea.py:1362` の `/milestone/` → `/milestones/`（Forgejo/Gogs も確認）
+- [x] #21 `auth.py` `resolve_token` で未登録アカウント名を含むエラーメッセージに改善
+- [x] #26 `milestone.py` `handle_close`/`handle_reopen` に成功メッセージを追加
 
 ---
 
