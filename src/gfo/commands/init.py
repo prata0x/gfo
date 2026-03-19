@@ -12,7 +12,7 @@ from gfo.config import (
 )
 from gfo.detect import DetectResult, detect_from_url, detect_service
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
-from gfo.git_util import get_remote_url
+from gfo.git_util import get_remote_url, git_config_set
 from gfo.i18n import _
 
 _VALID_SERVICE_TYPES = frozenset(
@@ -88,6 +88,9 @@ def _handle_non_interactive(args: argparse.Namespace) -> None:
         project_key=project_key,
     )
     save_project_config(config)
+    account = getattr(args, "account", None)
+    if account:
+        git_config_set("gfo.account", account)
     print(_("Initialized: {service_type} at {host}").format(service_type=service_type, host=host))
 
 
@@ -202,4 +205,7 @@ def _handle_interactive(args: argparse.Namespace) -> None:
         project_key=project_key,
     )
     save_project_config(config)
+    account = getattr(args, "account", None)
+    if account:
+        git_config_set("gfo.account", account)
     print(_("Initialized: {service_type} at {host}").format(service_type=service_type, host=host))

@@ -34,6 +34,40 @@ gfo auth login --host github.com --token ghp_xxxx
 gfo auth status
 ```
 
+### ホストごとの複数アカウント
+
+アカウント名を指定して、1 つのホストに複数のトークンを保存できます:
+
+```bash
+gfo auth login --host github.com --account personal
+gfo auth login --host github.com --account work
+```
+
+アクティブアカウントの切り替え:
+
+```bash
+gfo auth switch work --host github.com
+```
+
+単一コマンドで特定アカウントを使用:
+
+```bash
+gfo --account work pr list
+```
+
+リポジトリごとのデフォルトアカウントを設定:
+
+```bash
+gfo init --account work
+```
+
+アカウント解決の優先順位:
+1. `--account` CLI オプション（ContextVar）
+2. `git config gfo.account`（リポジトリ単位）
+3. `config.toml` のホスト設定（`account` キー）
+4. `credentials.toml` の `_default` キー
+5. フォールバック: `"default"`
+
 ### 方法 2: credentials.toml を手動編集
 
 **ファイルパス:**
@@ -41,13 +75,29 @@ gfo auth status
 - Linux / macOS: `~/.config/gfo/credentials.toml`
 
 ```toml
-[tokens]
-"github.com" = "ghp_xxxxxxxxxxxxxxxxxxxx"
-"gitlab.com" = "glpat-xxxxxxxxxxxxxxxxxxxx"
-"bitbucket.org" = "user@example.com:app-password"
-"dev.azure.com" = "azure-pat-string"
-"gitea.example.com" = "xxxxxxxxxxxxxxxxxxxxxxxx"
-"myspace.backlog.com" = "backlog-api-key"
+[tokens."github.com"]
+_default = "default"
+default = "ghp_xxxxxxxxxxxxxxxxxxxx"
+
+[tokens."gitlab.com"]
+_default = "default"
+default = "glpat-xxxxxxxxxxxxxxxxxxxx"
+
+[tokens."bitbucket.org"]
+_default = "default"
+default = "user@example.com:app-password"
+
+[tokens."dev.azure.com"]
+_default = "default"
+default = "azure-pat-string"
+
+[tokens."gitea.example.com"]
+_default = "default"
+default = "xxxxxxxxxxxxxxxxxxxxxxxx"
+
+[tokens."myspace.backlog.com"]
+_default = "default"
+default = "backlog-api-key"
 ```
 
 ### 方法 3: 環境変数

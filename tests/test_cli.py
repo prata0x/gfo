@@ -512,7 +512,7 @@ def test_parser_org_repos():
 
 
 def test_dispatch_table_has_68_entries():
-    assert len(_DISPATCH) == 143  # comment 4→2, review 3→1
+    assert len(_DISPATCH) == 144  # auth switch 追加
 
 
 def test_dispatch_table_all_keys():
@@ -520,6 +520,7 @@ def test_dispatch_table_all_keys():
         ("init", None),
         ("auth", "login"),
         ("auth", "status"),
+        ("auth", "switch"),
         ("pr", "list"),
         ("pr", "create"),
         ("pr", "view"),
@@ -1191,3 +1192,83 @@ def test_main_repo_and_remote_mutually_exclusive(capsys):
     captured = capsys.readouterr()
     assert "--repo" in captured.err
     assert "--remote" in captured.err
+
+
+# ── --account グローバルオプションのテスト ──
+
+
+def test_parser_account_option():
+    parser, _ = create_parser()
+    args = parser.parse_args(["--account", "work", "pr", "list"])
+    assert args.global_account == "work"
+
+
+def test_parser_no_account_defaults():
+    """--account 未指定時のデフォルトは None。"""
+    parser, _ = create_parser()
+    args = parser.parse_args(["pr", "list"])
+    assert args.global_account is None
+
+
+def test_main_sets_context_var_account():
+    """main() が --account で cli_account ContextVar を設定する。"""
+    from gfo._context import cli_account
+
+    captured_value = None
+
+    def capture_handler(args, *, fmt, jq=None):
+        nonlocal captured_value
+        captured_value = cli_account.get()
+
+    with patch.dict(_DISPATCH, {("pr", "list"): capture_handler}):
+        main(["--account", "work", "pr", "list"])
+
+    assert captured_value == "work"
+    # main() 終了後はリセットされている
+    assert cli_account.get() is None
+
+
+def test_main_resets_context_var_account_on_error():
+    """main() でエラーが発生しても cli_account ContextVar はリセットされる。"""
+    from gfo._context import cli_account
+
+    def raise_handler(args, *, fmt, jq=None):
+        raise GfoError("test error")
+
+    with patch.dict(_DISPATCH, {("pr", "list"): raise_handler}):
+        main(["--account", "work", "pr", "list"])
+
+    assert cli_account.get() is None
+
+
+# ── auth switch パーサーのテスト ──
+
+
+def test_parser_auth_switch():
+    parser, _ = create_parser()
+    args = parser.parse_args(["auth", "switch", "work"])
+    assert args.command == "auth"
+    assert args.subcommand == "switch"
+    assert args.account == "work"
+
+
+def test_parser_auth_switch_with_host():
+    parser, _ = create_parser()
+    args = parser.parse_args(["auth", "switch", "work", "--host", "github.com"])
+    assert args.account == "work"
+    assert args.host == "github.com"
+
+
+# ── auth login --account パーサーのテスト ──
+
+
+def test_parser_auth_login_account():
+    parser, _ = create_parser()
+    args = parser.parse_args(["auth", "login", "--host", "github.com", "--account", "work"])
+    assert args.account == "work"
+
+
+def test_parser_auth_login_account_default():
+    parser, _ = create_parser()
+    args = parser.parse_args(["auth", "login", "--host", "github.com"])
+    assert args.account == "default"

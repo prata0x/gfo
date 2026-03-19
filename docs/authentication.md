@@ -34,6 +34,40 @@ Check configured tokens:
 gfo auth status
 ```
 
+### Multiple Accounts per Host
+
+You can store multiple tokens per host by specifying an account name:
+
+```bash
+gfo auth login --host github.com --account personal
+gfo auth login --host github.com --account work
+```
+
+Switch the active account:
+
+```bash
+gfo auth switch work --host github.com
+```
+
+Use a specific account for a single command:
+
+```bash
+gfo --account work pr list
+```
+
+Or set a per-repository default account:
+
+```bash
+gfo init --account work
+```
+
+Token resolution order for accounts:
+1. `--account` CLI option (ContextVar)
+2. `git config gfo.account` (per-repository)
+3. `config.toml` host configuration (`account` key)
+4. `_default` key in `credentials.toml`
+5. Fallback: `"default"`
+
 ### Method 2: Manually edit credentials.toml
 
 **File paths:**
@@ -41,13 +75,29 @@ gfo auth status
 - Linux / macOS: `~/.config/gfo/credentials.toml`
 
 ```toml
-[tokens]
-"github.com" = "ghp_xxxxxxxxxxxxxxxxxxxx"
-"gitlab.com" = "glpat-xxxxxxxxxxxxxxxxxxxx"
-"bitbucket.org" = "user@example.com:app-password"
-"dev.azure.com" = "azure-pat-string"
-"gitea.example.com" = "xxxxxxxxxxxxxxxxxxxxxxxx"
-"myspace.backlog.com" = "backlog-api-key"
+[tokens."github.com"]
+_default = "default"
+default = "ghp_xxxxxxxxxxxxxxxxxxxx"
+
+[tokens."gitlab.com"]
+_default = "default"
+default = "glpat-xxxxxxxxxxxxxxxxxxxx"
+
+[tokens."bitbucket.org"]
+_default = "default"
+default = "user@example.com:app-password"
+
+[tokens."dev.azure.com"]
+_default = "default"
+default = "azure-pat-string"
+
+[tokens."gitea.example.com"]
+_default = "default"
+default = "xxxxxxxxxxxxxxxxxxxxxxxx"
+
+[tokens."myspace.backlog.com"]
+_default = "default"
+default = "backlog-api-key"
 ```
 
 ### Method 3: Environment Variables

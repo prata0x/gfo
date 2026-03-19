@@ -64,13 +64,14 @@ gfo init --non-interactive --type backlog --host myspace.backlog.com --project-k
 トークンをインタラクティブに入力し `credentials.toml` に保存します。
 
 ```
-gfo auth login [--host HOST] [--token TOKEN]
+gfo auth login [--host HOST] [--token TOKEN] [--account ACCOUNT]
 ```
 
 | オプション | 説明 |
 |---|---|
 | `--host HOST` | ホスト名（省略時は `gfo init` の設定から自動解決） |
 | `--token TOKEN` | トークンを直接指定（省略時は対話入力） |
+| `--account ACCOUNT` | アカウント名（デフォルト: `default`）。ホストごとに複数トークンを管理する場合に使用。 |
 
 **例:**
 
@@ -78,14 +79,35 @@ gfo auth login [--host HOST] [--token TOKEN]
 gfo auth login
 gfo auth login --host github.com
 gfo auth login --host gitea.example.com --token mytoken123
+gfo auth login --host github.com --account work --token ghp_work_token
 ```
 
 ### gfo auth status
 
-設定済みのトークン一覧を表示します（トークン値は非表示）。
+設定済みのトークン一覧を表示します（トークン値は非表示）。各ホストのアクティブアカウントは `*` で表示されます。
 
 ```
 gfo auth status
+```
+
+### gfo auth switch
+
+ホストのアクティブアカウントを切り替えます。
+
+```
+gfo auth switch ACCOUNT [--host HOST]
+```
+
+| オプション | 説明 |
+|---|---|
+| `ACCOUNT` | 切り替え先のアカウント名 |
+| `--host HOST` | ホスト名（省略時は自動解決） |
+
+**例:**
+
+```bash
+gfo auth switch work
+gfo auth switch work --host github.com
 ```
 
 ---

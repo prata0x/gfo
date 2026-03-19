@@ -44,7 +44,7 @@ import gfo.commands.variable
 import gfo.commands.webhook
 import gfo.commands.wiki
 from gfo import __version__
-from gfo._context import cli_remote, cli_repo
+from gfo._context import cli_account, cli_remote, cli_repo
 from gfo.config import get_configured_output_format
 from gfo.exceptions import ConfigError, GfoError, NotSupportedError
 from gfo.i18n import _
@@ -100,6 +100,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         metavar="REPO",
         help=_("Specify target repository (URL or HOST/OWNER/REPO)"),
     )
+    parser.add_argument(
+        "--account",
+        dest="global_account",
+        default=None,
+        metavar="ACCOUNT",
+        help=_("Use specified account name for token resolution"),
+    )
 
     subparsers = parser.add_subparsers(dest="command")
     subparser_map: dict[str, argparse.ArgumentParser] = {}
@@ -115,6 +122,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     init_parser.add_argument("--host", help=_("Host URL"))
     init_parser.add_argument("--api-url", help=_("API base URL"))
     init_parser.add_argument("--project-key", help=_("Project key"))
+    init_parser.add_argument("--account", help=_("Account name to associate"))
 
     # gfo auth → サブサブコマンド
     auth_parser = subparser_map["auth"] = subparsers.add_parser(
@@ -124,7 +132,11 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     login_parser = auth_sub.add_parser("login", help=_("Login to service"))
     login_parser.add_argument("--host", help=_("Host URL"))
     login_parser.add_argument("--token", help=_("Authentication token"))
+    login_parser.add_argument("--account", default="default", help=_("Account name"))
     auth_sub.add_parser("status", help=_("Show authentication status"))
+    auth_switch = auth_sub.add_parser("switch", help=_("Switch active account"))
+    auth_switch.add_argument("account", help=_("Account name"))
+    auth_switch.add_argument("--host", help=_("Host"))
 
     # gfo pr → サブサブコマンド
     pr_parser = subparser_map["pr"] = subparsers.add_parser("pr", help=_("Manage pull requests"))
@@ -1043,6 +1055,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("init", None): gfo.commands.init.handle,
     ("auth", "login"): gfo.commands.auth_cmd.handle_login,
     ("auth", "status"): gfo.commands.auth_cmd.handle_status,
+    ("auth", "switch"): gfo.commands.auth_cmd.handle_switch,
     ("pr", "list"): gfo.commands.pr.handle_list,
     ("pr", "create"): gfo.commands.pr.handle_create,
     ("pr", "view"): gfo.commands.pr.handle_view,
@@ -1256,9 +1269,13 @@ def main(argv: list[str] | None = None) -> int:
             print(str(excl_err), file=sys.stderr)
         return excl_err.exit_code
 
-    # --remote / --repo の ContextVar 設定
+    # --account の ContextVar 設定
+    account_value = getattr(args, "global_account", None)
+
+    # --remote / --repo / --account の ContextVar 設定
     remote_token = cli_remote.set(remote_value)
     repo_token = cli_repo.set(repo_value)
+    account_token = cli_account.set(account_value)
 
     try:
         jq_expr = args.jq
@@ -1293,3 +1310,4 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         cli_remote.reset(remote_token)
         cli_repo.reset(repo_token)
+        cli_account.reset(account_token)

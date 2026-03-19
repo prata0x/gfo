@@ -504,3 +504,66 @@ class TestHandleNonInteractive:
         assert "--owner" not in str(exc_info.value)
         assert "--repo" not in str(exc_info.value)
         assert "origin remote" in str(exc_info.value)
+
+
+class TestAccountOption:
+    """--account オプションのテスト。"""
+
+    def test_account_sets_git_config(self):
+        """--account 指定時に git_config_set が呼ばれる。"""
+        args = make_args(
+            non_interactive=True,
+            type="github",
+            host="github.com",
+            api_url=None,
+            project_key=None,
+            account="work",
+        )
+
+        with (
+            patch(
+                "gfo.commands.init.get_remote_url", return_value="https://github.com/owner/repo.git"
+            ),
+            patch("gfo.commands.init.save_project_config"),
+            patch("gfo.commands.init.git_config_set") as mock_set,
+        ):
+            init_cmd.handle(args, fmt="table")
+
+        mock_set.assert_called_once_with("gfo.account", "work")
+
+    def test_no_account_does_not_set_git_config(self):
+        """--account 未指定時に git_config_set が呼ばれない。"""
+        args = make_args(
+            non_interactive=True,
+            type="github",
+            host="github.com",
+            api_url=None,
+            project_key=None,
+            account=None,
+        )
+
+        with (
+            patch(
+                "gfo.commands.init.get_remote_url", return_value="https://github.com/owner/repo.git"
+            ),
+            patch("gfo.commands.init.save_project_config"),
+            patch("gfo.commands.init.git_config_set") as mock_set,
+        ):
+            init_cmd.handle(args, fmt="table")
+
+        mock_set.assert_not_called()
+
+    def test_account_interactive_mode(self):
+        """対話モードでも --account が有効。"""
+        detect_result = _make_detect_result()
+        args = make_args(non_interactive=False, account="ci")
+
+        with (
+            patch("gfo.commands.init.detect_service", return_value=detect_result),
+            patch("gfo.commands.init.save_project_config"),
+            patch("gfo.commands.init.git_config_set") as mock_set,
+            patch("builtins.input", return_value="y"),
+        ):
+            init_cmd.handle(args, fmt="table")
+
+        mock_set.assert_called_once_with("gfo.account", "ci")

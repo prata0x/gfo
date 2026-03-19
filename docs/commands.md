@@ -64,13 +64,14 @@ Manage authentication tokens.
 Enter a token interactively and save it to `credentials.toml`.
 
 ```
-gfo auth login [--host HOST] [--token TOKEN]
+gfo auth login [--host HOST] [--token TOKEN] [--account ACCOUNT]
 ```
 
 | Option | Description |
 |---|---|
 | `--host HOST` | Hostname (auto-resolved from `gfo init` config if omitted) |
 | `--token TOKEN` | Specify token directly (interactive input if omitted) |
+| `--account ACCOUNT` | Account name (default: `default`). Use to manage multiple tokens per host. |
 
 **Examples:**
 
@@ -78,14 +79,35 @@ gfo auth login [--host HOST] [--token TOKEN]
 gfo auth login
 gfo auth login --host github.com
 gfo auth login --host gitea.example.com --token mytoken123
+gfo auth login --host github.com --account work --token ghp_work_token
 ```
 
 ### gfo auth status
 
-Show a list of configured tokens (token values are hidden).
+Show a list of configured tokens (token values are hidden). The active account for each host is marked with `*`.
 
 ```
 gfo auth status
+```
+
+### gfo auth switch
+
+Switch the active account for a host.
+
+```
+gfo auth switch ACCOUNT [--host HOST]
+```
+
+| Option | Description |
+|---|---|
+| `ACCOUNT` | Account name to switch to |
+| `--host HOST` | Hostname (auto-resolved if omitted) |
+
+**Examples:**
+
+```bash
+gfo auth switch work
+gfo auth switch work --host github.com
 ```
 
 ---

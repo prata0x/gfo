@@ -26,19 +26,20 @@ class TestHandleLogin:
 
     def test_host_and_token_specified(self, capsys):
         """--host と --token 両方指定 → 警告表示 + save_token 呼び出し。"""
-        args = make_args(host="github.com", token="my-token")
+        args = make_args(host="github.com", token="my-token", account="default")
 
         with patch("gfo.commands.auth_cmd.gfo.auth.save_token") as mock_save:
             auth_cmd.handle_login(args, fmt="table")
 
-        mock_save.assert_called_once_with("github.com", "my-token")
+        mock_save.assert_called_once_with("github.com", "my-token", account="default")
         captured = capsys.readouterr()
         assert "Token saved for github.com" in captured.out
+        assert "account: default" in captured.out
         assert "Warning" in captured.err
 
     def test_host_specified_token_from_getpass(self, capsys):
         """--host 指定、--token なし → getpass 呼び出し + save_token。"""
-        args = make_args(host="gitlab.com", token=None)
+        args = make_args(host="gitlab.com", token=None, account="default")
 
         with (
             patch("gfo.commands.auth_cmd.gfo.auth.save_token") as mock_save,
@@ -47,14 +48,14 @@ class TestHandleLogin:
             auth_cmd.handle_login(args, fmt="table")
 
         mock_gp.assert_called_once_with("Token: ")
-        mock_save.assert_called_once_with("gitlab.com", "secret")
+        mock_save.assert_called_once_with("gitlab.com", "secret", account="default")
         captured = capsys.readouterr()
         assert "Token saved for gitlab.com" in captured.out
         assert captured.err == ""
 
     def test_no_host_uses_detect_service(self, capsys):
         """--host なし → detect_service().host を使用。"""
-        args = make_args(host=None, token="tok")
+        args = make_args(host=None, token="tok", account="default")
 
         with (
             patch(
@@ -65,11 +66,11 @@ class TestHandleLogin:
         ):
             auth_cmd.handle_login(args, fmt="table")
 
-        mock_save.assert_called_once_with("github.com", "tok")
+        mock_save.assert_called_once_with("github.com", "tok", account="default")
 
     def test_no_host_detect_service_raises(self):
         """--host なし + detect_service が DetectionError → ConfigError に変換して raise。"""
-        args = make_args(host=None, token="tok")
+        args = make_args(host=None, token="tok", account="default")
 
         with patch(
             "gfo.commands.auth_cmd.gfo.detect.detect_service",
@@ -78,13 +79,24 @@ class TestHandleLogin:
             with pytest.raises(ConfigError, match="--host"):
                 auth_cmd.handle_login(args, fmt="table")
 
+    def test_login_with_custom_account(self, capsys):
+        """--account 指定でアカウント名がモック呼び出しに渡る。"""
+        args = make_args(host="github.com", token="tok", account="work")
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.save_token") as mock_save:
+            auth_cmd.handle_login(args, fmt="table")
+
+        mock_save.assert_called_once_with("github.com", "tok", account="work")
+        captured = capsys.readouterr()
+        assert "account: work" in captured.out
+
 
 class TestHandleLogin_ErrorCases:
     """handle_login のエラー・境界ケースのテスト。"""
 
     def test_token_warning_message_content(self, capsys):
         """--token 指定時の警告メッセージが stderr に出力される。"""
-        args = make_args(host="github.com", token="secret")
+        args = make_args(host="github.com", token="secret", account="default")
 
         with patch("gfo.commands.auth_cmd.gfo.auth.save_token"):
             auth_cmd.handle_login(args, fmt="table")
@@ -95,7 +107,7 @@ class TestHandleLogin_ErrorCases:
 
     def test_no_token_option_no_warning(self, capsys):
         """--token なし（getpass 経由）では stderr への警告が出ない。"""
-        args = make_args(host="github.com", token=None)
+        args = make_args(host="github.com", token=None, account="default")
 
         with (
             patch("gfo.commands.auth_cmd.gfo.auth.save_token"),
@@ -108,7 +120,7 @@ class TestHandleLogin_ErrorCases:
 
     def test_empty_token_delegates_to_save_token(self):
         """handle_login はトークン検証を save_token に委譲する（空文字チェックは save_token 側）。"""
-        args = make_args(host="github.com", token=None)
+        args = make_args(host="github.com", token=None, account="default")
 
         with (
             patch("gfo.commands.auth_cmd.gfo.auth.save_token") as mock_save,
@@ -116,11 +128,11 @@ class TestHandleLogin_ErrorCases:
         ):
             auth_cmd.handle_login(args, fmt="table")
 
-        mock_save.assert_called_once_with("github.com", "")
+        mock_save.assert_called_once_with("github.com", "", account="default")
 
     def test_save_token_propagates_exception(self):
         """save_token が例外を送出した場合、そのまま再 raise される。"""
-        args = make_args(host="invalid-host", token="tok")
+        args = make_args(host="invalid-host", token="tok", account="default")
 
         with patch(
             "gfo.commands.auth_cmd.gfo.auth.save_token", side_effect=OSError("permission denied")
@@ -130,7 +142,7 @@ class TestHandleLogin_ErrorCases:
 
     def test_no_host_getpass_called(self):
         """--host なし・--token なし → getpass が呼ばれる。"""
-        args = make_args(host=None, token=None)
+        args = make_args(host=None, token=None, account="default")
 
         with (
             patch(
@@ -145,13 +157,61 @@ class TestHandleLogin_ErrorCases:
         mock_gp.assert_called_once_with("Token: ")
 
 
+class TestHandleSwitch:
+    """handle_switch のテスト。"""
+
+    def test_switch_with_host(self, capsys):
+        """--host 指定あり → switch_account 呼び出し。"""
+        args = make_args(host="github.com", account="work")
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.switch_account") as mock_switch:
+            auth_cmd.handle_switch(args, fmt="table")
+
+        mock_switch.assert_called_once_with("github.com", "work")
+        captured = capsys.readouterr()
+        assert "work" in captured.out
+        assert "github.com" in captured.out
+
+    def test_switch_without_host_uses_detect(self, capsys):
+        """--host なし → detect_service().host を使用。"""
+        args = make_args(host=None, account="ci")
+
+        with (
+            patch(
+                "gfo.commands.auth_cmd.gfo.detect.detect_service",
+                return_value=_make_detect_result("github.com"),
+            ),
+            patch("gfo.commands.auth_cmd.gfo.auth.switch_account") as mock_switch,
+        ):
+            auth_cmd.handle_switch(args, fmt="table")
+
+        mock_switch.assert_called_once_with("github.com", "ci")
+
+    def test_switch_detect_failure(self):
+        """--host なし + detect 失敗 → ConfigError。"""
+        args = make_args(host=None, account="work")
+
+        with patch(
+            "gfo.commands.auth_cmd.gfo.detect.detect_service",
+            side_effect=DetectionError("no remote"),
+        ):
+            with pytest.raises(ConfigError, match="--host"):
+                auth_cmd.handle_switch(args, fmt="table")
+
+
 class TestHandleStatus:
     """handle_status のテスト。"""
 
     def test_tokens_configured_shows_table(self, capsys):
         """トークンあり → テーブル表示。"""
         entries = [
-            {"host": "github.com", "status": "configured", "source": "credentials.toml"},
+            {
+                "host": "github.com",
+                "status": "configured",
+                "source": "credentials.toml",
+                "account": "default",
+                "active": "*",
+            },
         ]
         args = make_args()
 
@@ -176,9 +236,27 @@ class TestHandleStatus:
     def test_multiple_entries_all_shown(self, capsys):
         """複数エントリ → すべてのホストが表示される。"""
         entries = [
-            {"host": "github.com", "status": "configured", "source": "credentials.toml"},
-            {"host": "gitlab.com", "status": "configured", "source": "credentials.toml"},
-            {"host": "gitea", "status": "configured", "source": "env:GITEA_TOKEN"},
+            {
+                "host": "github.com",
+                "status": "configured",
+                "source": "credentials.toml",
+                "account": "default",
+                "active": "*",
+            },
+            {
+                "host": "gitlab.com",
+                "status": "configured",
+                "source": "credentials.toml",
+                "account": "default",
+                "active": "*",
+            },
+            {
+                "host": "gitea",
+                "status": "configured",
+                "source": "env:GITEA_TOKEN",
+                "account": "",
+                "active": "",
+            },
         ]
         args = make_args()
 
@@ -194,7 +272,13 @@ class TestHandleStatus:
     def test_env_source_shown(self, capsys):
         """環境変数経由トークン → source が "env:..." 形式で表示される。"""
         entries = [
-            {"host": "github", "status": "configured", "source": "env:GITHUB_TOKEN"},
+            {
+                "host": "github",
+                "status": "configured",
+                "source": "env:GITHUB_TOKEN",
+                "account": "",
+                "active": "",
+            },
         ]
         args = make_args()
 
@@ -205,9 +289,15 @@ class TestHandleStatus:
         assert "env:GITHUB_TOKEN" in captured.out
 
     def test_table_has_header_columns(self, capsys):
-        """テーブルヘッダーに HOST / STATUS / SOURCE の列が含まれる。"""
+        """テーブルヘッダーに HOST / ACCOUNT / STATUS / SOURCE の列が含まれる。"""
         entries = [
-            {"host": "github.com", "status": "configured", "source": "credentials.toml"},
+            {
+                "host": "github.com",
+                "status": "configured",
+                "source": "credentials.toml",
+                "account": "default",
+                "active": "*",
+            },
         ]
         args = make_args()
 
@@ -216,8 +306,35 @@ class TestHandleStatus:
 
         captured = capsys.readouterr()
         assert "HOST" in captured.out
+        assert "ACCOUNT" in captured.out
         assert "STATUS" in captured.out
         assert "SOURCE" in captured.out
+
+    def test_active_account_shown_with_asterisk(self, capsys):
+        """アクティブアカウントは * 付きで表示される。"""
+        entries = [
+            {
+                "host": "github.com",
+                "status": "configured",
+                "source": "credentials.toml",
+                "account": "default",
+                "active": "*",
+            },
+            {
+                "host": "github.com",
+                "status": "configured",
+                "source": "credentials.toml",
+                "account": "work",
+                "active": "",
+            },
+        ]
+        args = make_args()
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.get_auth_status", return_value=entries):
+            auth_cmd.handle_status(args, fmt="table")
+
+        captured = capsys.readouterr()
+        assert "default *" in captured.out
 
 
 # ── get_adapter / get_adapter_with_config ──
