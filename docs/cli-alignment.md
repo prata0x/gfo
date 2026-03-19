@@ -153,4 +153,5 @@ gfo のコマンド/サブコマンド/オプション名を他ツール（gh, g
 | 5 | `--web` / `-w` オプション追加 | pr view, issue view 等の各コマンド |
 | 6 | `pr create` に `--reviewer/--assignee/--label/--milestone/--fill` 追加 (完了済み) | pr create |
 | 7 | `release create --target` 追加 (完了済み) | release create |
-| 8 | `auth logout` 追加 | auth |
+| 8 | `auth multi-account`（同一ホスト複数アカウント対応） | auth |
+| 9 | `auth logout` 追加 | auth |
