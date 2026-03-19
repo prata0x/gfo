@@ -676,6 +676,18 @@ class TestMergePullRequest:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["Do"] == "squash"
 
+    def test_merge_with_commit_message(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pulls/1/merge",
+            json={"merged": True},
+            status=200,
+        )
+        gitea_adapter.merge_pull_request(1, title="Custom title", message="Custom body")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["MergeTitleField"] == "Custom title"
+        assert req_body["MergeMessageField"] == "Custom body"
+
 
 class TestClosePullRequest:
     def test_close(self, mock_responses, gitea_adapter):

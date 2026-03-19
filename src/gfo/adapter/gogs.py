@@ -98,7 +98,14 @@ class GogsAdapter(GiteaAdapter):
             "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
         )
 
-    def merge_pull_request(self, number: int, *, method: str = "merge") -> None:
+    def merge_pull_request(
+        self,
+        number: int,
+        *,
+        method: str = "merge",
+        title: str | None = None,
+        message: str | None = None,
+    ) -> None:
         raise NotSupportedError(
             "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
         )

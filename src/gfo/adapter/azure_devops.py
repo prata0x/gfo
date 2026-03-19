@@ -220,7 +220,14 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         resp = self._client.get(f"{self._git_path()}/pullrequests/{number}")
         return self._to_pull_request(resp.json())
 
-    def merge_pull_request(self, number: int, *, method: str = "merge") -> None:
+    def merge_pull_request(
+        self,
+        number: int,
+        *,
+        method: str = "merge",
+        title: str | None = None,
+        message: str | None = None,
+    ) -> None:
         strategy_map = {
             "merge": "noFastForward",
             "squash": "squash",
@@ -237,10 +244,14 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 f"Cannot merge pull request #{number}: lastMergeSourceCommit not found. "
                 "The pull request may have no commits or may be in an invalid state."
             )
+        completion_options: dict = {"mergeStrategy": strategy}
+        if title is not None or message is not None:
+            parts = [p for p in (title, message) if p is not None]
+            completion_options["mergeCommitMessage"] = "\n\n".join(parts)
         payload = {
             "status": "completed",
             "lastMergeSourceCommit": last_merge_commit,
-            "completionOptions": {"mergeStrategy": strategy},
+            "completionOptions": completion_options,
         }
         self._client.patch(f"{self._git_path()}/pullrequests/{number}", json=payload)
 

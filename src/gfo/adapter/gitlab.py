@@ -251,7 +251,14 @@ class GitLabAdapter(GitServiceAdapter):
         resp = self._client.get(f"{self._project_path()}/merge_requests/{number}")
         return self._to_pull_request(resp.json())
 
-    def merge_pull_request(self, number: int, *, method: str = "merge") -> None:
+    def merge_pull_request(
+        self,
+        number: int,
+        *,
+        method: str = "merge",
+        title: str | None = None,
+        message: str | None = None,
+    ) -> None:
         allowed_methods = {"merge", "squash", "rebase"}
         if method not in allowed_methods:
             raise GfoError(f"method must be one of {sorted(allowed_methods)}, got {method!r}")
@@ -262,10 +269,19 @@ class GitLabAdapter(GitServiceAdapter):
                 json={},
             )
             return
+        commit_msg = None
+        if title is not None or message is not None:
+            parts = [p for p in (title, message) if p is not None]
+            commit_msg = "\n\n".join(parts)
         payload: dict = {}
         if method == "squash":
             payload["squash"] = True
-        # method == "merge" はデフォルト動作（追加 payload なし）
+            if commit_msg is not None:
+                payload["squash_commit_message"] = commit_msg
+        else:
+            # method == "merge"
+            if commit_msg is not None:
+                payload["merge_commit_message"] = commit_msg
         self._client.put(
             f"{self._project_path()}/merge_requests/{number}/merge",
             json=payload,

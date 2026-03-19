@@ -294,6 +294,18 @@ class TestMergePullRequest:
         req_body = json_mod.loads(mock_responses.calls[0].request.body)
         assert req_body["merge_method"] == "merge"
 
+    def test_merge_with_commit_message(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/pulls/1/merge",
+            json={"merged": True},
+            status=200,
+        )
+        gitbucket_adapter.merge_pull_request(1, title="Custom title", message="Custom body")
+        req_body = json_mod.loads(mock_responses.calls[0].request.body)
+        assert req_body["commit_title"] == "Custom title"
+        assert req_body["commit_message"] == "Custom body"
+
 
 class TestClosePullRequest:
     def test_close(self, mock_responses, gitbucket_adapter):

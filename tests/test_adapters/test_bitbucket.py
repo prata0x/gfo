@@ -429,6 +429,17 @@ class TestMergePullRequest:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["merge_strategy"] == "fast_forward"
 
+    def test_merge_with_commit_message(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pullrequests/1/merge",
+            json={"state": "MERGED"},
+            status=200,
+        )
+        bitbucket_adapter.merge_pull_request(1, title="Custom title", message="Custom body")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["message"] == "Custom title\n\nCustom body"
+
 
 class TestClosePullRequest:
     def test_close(self, mock_responses, bitbucket_adapter):

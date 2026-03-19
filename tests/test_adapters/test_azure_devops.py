@@ -566,6 +566,23 @@ class TestMergePullRequest:
         with pytest.raises(GfoError, match="Unexpected API response from pullrequests"):
             azure_devops_adapter.merge_pull_request(1)
 
+    def test_merge_with_commit_message(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests/1",
+            json=_pr_data(),
+            status=200,
+        )
+        mock_responses.add(
+            responses.PATCH,
+            f"{GIT}/pullrequests/1",
+            json=_pr_data(status="completed"),
+            status=200,
+        )
+        azure_devops_adapter.merge_pull_request(1, title="Custom title", message="Custom body")
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["completionOptions"]["mergeCommitMessage"] == "Custom title\n\nCustom body"
+
 
 class TestClosePullRequest:
     def test_close(self, mock_responses, azure_devops_adapter):

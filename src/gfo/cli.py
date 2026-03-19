@@ -197,6 +197,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         action="store_true",
         help=_("Delete branch after merge"),
     )
+    pr_merge.add_argument("--subject", help=_("Merge commit title"))
+    pr_merge.add_argument("--body", help=_("Merge commit body"))
     pr_merge.add_argument("--auto", action="store_true", help=_("Enable auto-merge"))
     pr_close = pr_sub.add_parser("close", help=_("Close pull request"))
     pr_close.add_argument("number", type=int, help=_("PR number"))

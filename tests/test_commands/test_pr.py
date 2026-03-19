@@ -381,28 +381,36 @@ class TestHandleMerge:
         with _patch_all(sample_config, mock_adapter):
             pr_cmd.handle_merge(args, fmt="table")
 
-        mock_adapter.merge_pull_request.assert_called_once_with(1, method="merge")
+        mock_adapter.merge_pull_request.assert_called_once_with(
+            1, method="merge", title=None, message=None
+        )
 
     def test_squash_method(self, sample_config, mock_adapter):
         args = make_args(number=2, squash=True)
         with _patch_all(sample_config, mock_adapter):
             pr_cmd.handle_merge(args, fmt="table")
 
-        mock_adapter.merge_pull_request.assert_called_once_with(2, method="squash")
+        mock_adapter.merge_pull_request.assert_called_once_with(
+            2, method="squash", title=None, message=None
+        )
 
     def test_rebase_method(self, sample_config, mock_adapter):
         args = make_args(number=3, rebase=True)
         with _patch_all(sample_config, mock_adapter):
             pr_cmd.handle_merge(args, fmt="table")
 
-        mock_adapter.merge_pull_request.assert_called_once_with(3, method="rebase")
+        mock_adapter.merge_pull_request.assert_called_once_with(
+            3, method="rebase", title=None, message=None
+        )
 
     def test_delete_branch_after_merge(self, sample_config, mock_adapter):
         args = make_args(number=1, merge=False, squash=False, rebase=False, delete_branch=True)
         with _patch_all(sample_config, mock_adapter):
             pr_cmd.handle_merge(args, fmt="table")
 
-        mock_adapter.merge_pull_request.assert_called_once_with(1, method="merge")
+        mock_adapter.merge_pull_request.assert_called_once_with(
+            1, method="merge", title=None, message=None
+        )
         mock_adapter.get_pull_request.assert_called_once_with(1)
         mock_adapter.delete_branch.assert_called_once_with(name="feature/test")
 
@@ -412,6 +420,31 @@ class TestHandleMerge:
             pr_cmd.handle_merge(args, fmt="table")
 
         mock_adapter.delete_branch.assert_not_called()
+
+    def test_subject_and_body(self, sample_config, mock_adapter):
+        args = make_args(
+            number=1,
+            merge=False,
+            squash=False,
+            rebase=False,
+            subject="Custom title",
+            body="Custom body",
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_merge(args, fmt="table")
+
+        mock_adapter.merge_pull_request.assert_called_once_with(
+            1, method="merge", title="Custom title", message="Custom body"
+        )
+
+    def test_subject_only(self, sample_config, mock_adapter):
+        args = make_args(number=1, merge=False, squash=False, rebase=False, subject="Title only")
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_merge(args, fmt="table")
+
+        mock_adapter.merge_pull_request.assert_called_once_with(
+            1, method="merge", title="Title only", message=None
+        )
 
 
 class TestHandleClose:

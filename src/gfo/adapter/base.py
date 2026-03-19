@@ -684,7 +684,14 @@ class GitServiceAdapter(ABC):
     def get_pull_request(self, number: int) -> PullRequest: ...
 
     @abstractmethod
-    def merge_pull_request(self, number: int, *, method: str = "merge") -> None: ...
+    def merge_pull_request(
+        self,
+        number: int,
+        *,
+        method: str = "merge",
+        title: str | None = None,
+        message: str | None = None,
+    ) -> None: ...
 
     @abstractmethod
     def close_pull_request(self, number: int) -> None: ...

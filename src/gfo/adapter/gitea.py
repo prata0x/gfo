@@ -152,10 +152,22 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.get(f"{self._repos_path()}/pulls/{number}")
         return self._to_pull_request(resp.json())
 
-    def merge_pull_request(self, number: int, *, method: str = "merge") -> None:
+    def merge_pull_request(
+        self,
+        number: int,
+        *,
+        method: str = "merge",
+        title: str | None = None,
+        message: str | None = None,
+    ) -> None:
+        payload: dict = {"Do": method}
+        if title is not None:
+            payload["MergeTitleField"] = title
+        if message is not None:
+            payload["MergeMessageField"] = message
         self._client.post(
             f"{self._repos_path()}/pulls/{number}/merge",
-            json={"Do": method},
+            json=payload,
         )
 
     def close_pull_request(self, number: int) -> None:

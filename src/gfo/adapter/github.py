@@ -152,10 +152,22 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.get(f"{self._repos_path()}/pulls/{number}")
         return self._to_pull_request(resp.json())
 
-    def merge_pull_request(self, number: int, *, method: str = "merge") -> None:
+    def merge_pull_request(
+        self,
+        number: int,
+        *,
+        method: str = "merge",
+        title: str | None = None,
+        message: str | None = None,
+    ) -> None:
+        payload: dict = {"merge_method": method}
+        if title is not None:
+            payload["commit_title"] = title
+        if message is not None:
+            payload["commit_message"] = message
         self._client.put(
             f"{self._repos_path()}/pulls/{number}/merge",
-            json={"merge_method": method},
+            json=payload,
         )
 
     def close_pull_request(self, number: int) -> None:

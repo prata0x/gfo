@@ -636,6 +636,29 @@ class TestMergePullRequest:
         with pytest.raises(GfoError, match="method must be one of"):
             gitlab_adapter.merge_pull_request(1, method="fast-forward")
 
+    def test_merge_with_commit_message(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1/merge",
+            json={"state": "merged"},
+            status=200,
+        )
+        gitlab_adapter.merge_pull_request(1, title="Custom title", message="Custom body")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["merge_commit_message"] == "Custom title\n\nCustom body"
+
+    def test_squash_with_commit_message(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1/merge",
+            json={"state": "merged"},
+            status=200,
+        )
+        gitlab_adapter.merge_pull_request(1, method="squash", title="Squash title")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["squash"] is True
+        assert req_body["squash_commit_message"] == "Squash title"
+
 
 class TestClosePullRequest:
     def test_close(self, mock_responses, gitlab_adapter):

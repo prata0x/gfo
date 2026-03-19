@@ -51,7 +51,7 @@ class StubAdapter(GitServiceAdapter):
     def get_pull_request(self, number):
         return None  # type: ignore[return-value]
 
-    def merge_pull_request(self, number, *, method="merge"):
+    def merge_pull_request(self, number, *, method="merge", title=None, message=None):
         return None
 
     def close_pull_request(self, number):

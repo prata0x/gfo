@@ -86,7 +86,12 @@ def handle_merge(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
         adapter.enable_auto_merge(args.number, merge_method=method)
         print(_("Enabled auto-merge for PR #{number}.").format(number=args.number))
     else:
-        adapter.merge_pull_request(args.number, method=method)
+        adapter.merge_pull_request(
+            args.number,
+            method=method,
+            title=getattr(args, "subject", None),
+            message=getattr(args, "body", None),
+        )
         print(_("Merged PR #{number}.").format(number=args.number))
     if getattr(args, "delete_branch", False):
         pr = adapter.get_pull_request(args.number)

@@ -223,7 +223,14 @@ class BacklogAdapter(GitServiceAdapter):
         resp = self._client.get(f"{self._pr_path()}/{number}")
         return self._to_pull_request(resp.json(), self._resolve_merged_status_id())
 
-    def merge_pull_request(self, number: int, *, method: str = "merge") -> None:
+    def merge_pull_request(
+        self,
+        number: int,
+        *,
+        method: str = "merge",
+        title: str | None = None,
+        message: str | None = None,
+    ) -> None:
         hostname = urllib.parse.urlparse(self._client.base_url).hostname
         raise NotSupportedError(
             "Backlog",

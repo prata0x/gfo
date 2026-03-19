@@ -267,6 +267,18 @@ class TestMergePullRequest:
         assert req_body["Do"] == "merge"
         assert mock_responses.calls[0].request.method == "POST"
 
+    def test_merge_with_commit_message(self, mock_responses, forgejo_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pulls/1/merge",
+            json={"merged": True},
+            status=200,
+        )
+        forgejo_adapter.merge_pull_request(1, title="Custom title", message="Custom body")
+        req_body = json_mod.loads(mock_responses.calls[0].request.body)
+        assert req_body["MergeTitleField"] == "Custom title"
+        assert req_body["MergeMessageField"] == "Custom body"
+
 
 class TestClosePullRequest:
     def test_close(self, mock_responses, forgejo_adapter):
