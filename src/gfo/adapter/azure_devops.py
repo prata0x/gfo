@@ -402,7 +402,13 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         assignee: str | None = None,
         label: str | None = None,
         limit: int = 30,
+        author: str | None = None,
+        milestone: str | None = None,
+        search: str | None = None,
     ) -> list[Issue]:
+        self._warn_unsupported_params(
+            "issue list", author=author, milestone=milestone, search=search
+        )
         conditions = [f"[System.TeamProject] = '{_wiql_escape(self._project)}'"]
         if state == "open":
             conditions.append("[System.State] NOT IN ('Closed', 'Done', 'Removed')")
@@ -458,9 +464,11 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         body: str = "",
         assignee: str | None = None,
         label: str | None = None,
+        milestone: str | None = None,
         work_item_type: str = "Task",
         **kwargs,
     ) -> Issue:
+        self._warn_unsupported_params("issue create", milestone=milestone)
         patch_ops = [
             {"op": "add", "path": "/fields/System.Title", "value": title},
         ]

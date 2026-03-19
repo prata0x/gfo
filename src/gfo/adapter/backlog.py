@@ -251,7 +251,11 @@ class BacklogAdapter(GitServiceAdapter):
         assignee: str | None = None,
         label: str | None = None,
         limit: int = 30,
+        author: str | None = None,
+        milestone: str | None = None,
+        search: str | None = None,
     ) -> list[Issue]:
+        self._warn_unsupported_params("issue list", author=author, milestone=milestone)
         project_id = self._ensure_project_id()
         params: dict = {"projectId[]": project_id}
         if state == "open":
@@ -260,7 +264,9 @@ class BacklogAdapter(GitServiceAdapter):
             params["statusId[]"] = [_STATUS_CLOSED_ID]
         if assignee:
             params["assigneeUserId[]"] = assignee
-        if label:
+        if search:
+            params["keyword"] = search
+        elif label:
             params["keyword"] = label
         results = paginate_offset(self._client, "/issues", params=params, limit=limit)
         return [self._to_issue(r) for r in results]
@@ -272,10 +278,12 @@ class BacklogAdapter(GitServiceAdapter):
         body: str = "",
         assignee: str | None = None,
         label: str | None = None,
+        milestone: str | None = None,
         issue_type: int | None = None,
         priority: int | None = None,
         **kwargs,
     ) -> Issue:
+        self._warn_unsupported_params("issue create", milestone=milestone)
         project_id = self._ensure_project_id()
 
         if issue_type is None:

@@ -39,6 +39,9 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         assignee=args.assignee,
         label=args.label,
         limit=args.limit,
+        author=getattr(args, "author", None),
+        milestone=getattr(args, "milestone", None),
+        search=getattr(args, "search", None),
     )
     output(issues, fmt=fmt, fields=["number", "title", "state", "author"], jq=jq)
 
@@ -64,11 +67,13 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
                 )
     if args.priority is not None and config.service_type == "backlog":
         kwargs["priority"] = args.priority
+    milestone = getattr(args, "milestone", None)
     issue = adapter.create_issue(
         title=title,
         body=args.body or "",
         assignee=args.assignee,
         label=args.label,
+        milestone=milestone,
         **kwargs,
     )
     output(issue, fmt=fmt, jq=jq)

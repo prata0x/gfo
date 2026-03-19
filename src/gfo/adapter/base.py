@@ -742,6 +742,9 @@ class GitServiceAdapter(ABC):
         assignee: str | None = None,
         label: str | None = None,
         limit: int = 30,
+        author: str | None = None,
+        milestone: str | None = None,
+        search: str | None = None,
     ) -> list[Issue]: ...
 
     @abstractmethod
@@ -752,6 +755,7 @@ class GitServiceAdapter(ABC):
         body: str = "",
         assignee: str | None = None,
         label: str | None = None,
+        milestone: str | None = None,
         **kwargs,
     ) -> Issue: ...
 

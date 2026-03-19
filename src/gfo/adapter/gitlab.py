@@ -295,12 +295,21 @@ class GitLabAdapter(GitServiceAdapter):
         assignee: str | None = None,
         label: str | None = None,
         limit: int = 30,
+        author: str | None = None,
+        milestone: str | None = None,
+        search: str | None = None,
     ) -> list[Issue]:
         params: dict = {"state": "opened" if state == "open" else state}
         if assignee is not None:
             params["assignee_username"] = assignee
         if label is not None:
             params["labels"] = label
+        if author is not None:
+            params["author_username"] = author
+        if milestone is not None:
+            params["milestone"] = milestone
+        if search is not None:
+            params["search"] = search
         results = paginate_page_param(
             self._client,
             f"{self._project_path()}/issues",
@@ -316,6 +325,7 @@ class GitLabAdapter(GitServiceAdapter):
         body: str = "",
         assignee: str | None = None,
         label: str | None = None,
+        milestone: str | None = None,
         **kwargs,
     ) -> Issue:
         payload: dict = {"title": title, "description": body}
@@ -323,6 +333,8 @@ class GitLabAdapter(GitServiceAdapter):
             payload["assignee_username"] = assignee
         if label is not None:
             payload["labels"] = label
+        if milestone is not None:
+            payload["milestone_id"] = self._resolve_milestone_id_by_title(milestone)
         resp = self._client.post(f"{self._project_path()}/issues", json=payload)
         return self._to_issue(resp.json())
 

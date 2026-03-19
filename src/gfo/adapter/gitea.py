@@ -182,12 +182,21 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         assignee: str | None = None,
         label: str | None = None,
         limit: int = 30,
+        author: str | None = None,
+        milestone: str | None = None,
+        search: str | None = None,
     ) -> list[Issue]:
         params: dict = {"state": state, "type": "issues"}
         if assignee is not None:
             params["assignee"] = assignee
         if label is not None:
             params["labels"] = label
+        if author is not None:
+            params["created_by"] = author
+        if milestone is not None:
+            params["milestones"] = milestone
+        if search is not None:
+            params["q"] = search
         results = paginate_link_header(
             self._client,
             f"{self._repos_path()}/issues",
@@ -204,6 +213,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         body: str = "",
         assignee: str | None = None,
         label: str | None = None,
+        milestone: str | None = None,
         **kwargs,
     ) -> Issue:
         payload: dict = {"title": title, "body": body}
@@ -211,6 +221,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["assignees"] = [assignee]
         if label is not None:
             payload["labels"] = [label]
+        if milestone is not None:
+            payload["milestone"] = self._resolve_milestone_id_by_title(milestone)
         resp = self._client.post(f"{self._repos_path()}/issues", json=payload)
         return self._to_issue(resp.json())
 

@@ -182,19 +182,35 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         assignee: str | None = None,
         label: str | None = None,
         limit: int = 30,
+        author: str | None = None,
+        milestone: str | None = None,
+        search: str | None = None,
     ) -> list[Issue]:
         params: dict = {"state": state}
         if assignee is not None:
             params["assignee"] = assignee
         if label is not None:
             params["labels"] = label
+        if author is not None:
+            params["creator"] = author
+        if milestone is not None:
+            params["milestone"] = self._resolve_milestone_number(milestone)
         results = paginate_link_header(
             self._client,
             f"{self._repos_path()}/issues",
             params=params,
             limit=limit,
         )
-        return [self._to_issue(r) for r in results if "pull_request" not in r]
+        items = [r for r in results if "pull_request" not in r]
+        if search:
+            search_lower = search.lower()
+            items = [
+                r
+                for r in items
+                if search_lower in (r.get("title") or "").lower()
+                or search_lower in (r.get("body") or "").lower()
+            ]
+        return [self._to_issue(r) for r in items]
 
     def create_issue(
         self,
@@ -203,14 +219,16 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         body: str = "",
         assignee: str | None = None,
         label: str | None = None,
+        milestone: str | None = None,
         **kwargs,
     ) -> Issue:
-        # **kwargs は base.py の抽象メソッドに合わせて受け取るが、GitHub では使用しない
         payload: dict = {"title": title, "body": body}
         if assignee is not None:
             payload["assignees"] = [assignee]
         if label is not None:
             payload["labels"] = [label]
+        if milestone is not None:
+            payload["milestone"] = self._resolve_milestone_number(milestone)
         resp = self._client.post(f"{self._repos_path()}/issues", json=payload)
         return self._to_issue(resp.json())
 

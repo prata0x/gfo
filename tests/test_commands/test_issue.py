@@ -68,7 +68,13 @@ class TestHandleList:
             issue_cmd.handle_list(args, fmt="table")
 
         self.adapter.list_issues.assert_called_once_with(
-            state="open", assignee=None, label=None, limit=30
+            state="open",
+            assignee=None,
+            label=None,
+            limit=30,
+            author=None,
+            milestone=None,
+            search=None,
         )
 
     def test_outputs_results(self, capsys):
@@ -86,7 +92,36 @@ class TestHandleList:
             issue_cmd.handle_list(args, fmt="table")
 
         self.adapter.list_issues.assert_called_once_with(
-            state="closed", assignee="alice", label="bug", limit=10
+            state="closed",
+            assignee="alice",
+            label="bug",
+            limit=10,
+            author=None,
+            milestone=None,
+            search=None,
+        )
+
+    def test_with_new_filters(self):
+        args = make_args(
+            state="open",
+            assignee=None,
+            label=None,
+            limit=30,
+            author="bob",
+            milestone="v1.0",
+            search="bug fix",
+        )
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_list(args, fmt="table")
+
+        self.adapter.list_issues.assert_called_once_with(
+            state="open",
+            assignee=None,
+            label=None,
+            limit=30,
+            author="bob",
+            milestone="v1.0",
+            search="bug fix",
         )
 
     def test_json_format(self, capsys):
@@ -122,6 +157,7 @@ class TestHandleCreate:
             body="Description",
             assignee=None,
             label=None,
+            milestone=None,
             type=None,
             priority=None,
         )
@@ -133,6 +169,30 @@ class TestHandleCreate:
             body="Description",
             assignee=None,
             label=None,
+            milestone=None,
+        )
+
+    def test_create_with_milestone(self):
+        config = _make_config("github")
+        adapter = _make_adapter(self.issue)
+        args = make_args(
+            title="New Issue",
+            body="",
+            assignee=None,
+            label=None,
+            milestone="v1.0",
+            type=None,
+            priority=None,
+        )
+        with _patch_all(config, adapter):
+            issue_cmd.handle_create(args, fmt="table")
+
+        adapter.create_issue.assert_called_once_with(
+            title="New Issue",
+            body="",
+            assignee=None,
+            label=None,
+            milestone="v1.0",
         )
 
     def test_azure_devops_work_item_type(self):
@@ -143,6 +203,7 @@ class TestHandleCreate:
             body="",
             assignee=None,
             label=None,
+            milestone=None,
             type="Bug",
             priority=None,
         )
@@ -161,6 +222,7 @@ class TestHandleCreate:
             body="",
             assignee=None,
             label=None,
+            milestone=None,
             type="42",  # CLI からは常に文字列で渡される
             priority=2,
         )
@@ -181,6 +243,7 @@ class TestHandleCreate:
             body="",
             assignee=None,
             label=None,
+            milestone=None,
             type="Bug",  # 非数値
             priority=None,
         )
@@ -196,6 +259,7 @@ class TestHandleCreate:
             body="",
             assignee=None,
             label=None,
+            milestone=None,
             type="42",  # CLI からは常に文字列で渡される
             priority=None,
         )
@@ -213,6 +277,7 @@ class TestHandleCreate:
             body="",
             assignee=None,
             label=None,
+            milestone=None,
             type="enhancement",
             priority=None,
         )
@@ -231,6 +296,7 @@ class TestHandleCreate:
             body=None,
             assignee=None,
             label=None,
+            milestone=None,
             type=None,
             priority=None,
         )
@@ -249,6 +315,7 @@ class TestHandleCreate:
             body="",
             assignee=None,
             label=None,
+            milestone=None,
             type=None,
             priority=None,
         )
@@ -264,7 +331,15 @@ class TestHandleCreateTitleValidation:
         """title=None は ConfigError を送出する。"""
         config = _make_config("github")
         adapter = _make_adapter(_make_issue())
-        args = make_args(title=None, body=None, assignee=None, label=None, type=None, priority=None)
+        args = make_args(
+            title=None,
+            body=None,
+            assignee=None,
+            label=None,
+            milestone=None,
+            type=None,
+            priority=None,
+        )
         with (
             _patch_all(config, adapter),
             pytest.raises(ConfigError, match="--title must not be empty"),
@@ -275,7 +350,9 @@ class TestHandleCreateTitleValidation:
         """title="" は ConfigError を送出する。"""
         config = _make_config("github")
         adapter = _make_adapter(_make_issue())
-        args = make_args(title="", body=None, assignee=None, label=None, type=None, priority=None)
+        args = make_args(
+            title="", body=None, assignee=None, label=None, milestone=None, type=None, priority=None
+        )
         with (
             _patch_all(config, adapter),
             pytest.raises(ConfigError, match="--title must not be empty"),
@@ -287,7 +364,13 @@ class TestHandleCreateTitleValidation:
         config = _make_config("github")
         adapter = _make_adapter(_make_issue())
         args = make_args(
-            title="   ", body=None, assignee=None, label=None, type=None, priority=None
+            title="   ",
+            body=None,
+            assignee=None,
+            label=None,
+            milestone=None,
+            type=None,
+            priority=None,
         )
         with (
             _patch_all(config, adapter),
@@ -393,7 +476,15 @@ class TestErrorPropagation:
 
     def test_list_http_error(self):
         self.adapter.list_issues.side_effect = HttpError(500, "Server error")
-        args = make_args(state="open", assignee=None, label=None, limit=30)
+        args = make_args(
+            state="open",
+            assignee=None,
+            label=None,
+            limit=30,
+            author=None,
+            milestone=None,
+            search=None,
+        )
         with _patch_all(self.config, self.adapter):
             with pytest.raises(HttpError):
                 issue_cmd.handle_list(args, fmt="table")

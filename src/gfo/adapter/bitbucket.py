@@ -239,7 +239,11 @@ class BitbucketAdapter(GitServiceAdapter):
         assignee: str | None = None,
         label: str | None = None,
         limit: int = 30,
+        author: str | None = None,
+        milestone: str | None = None,
+        search: str | None = None,
     ) -> list[Issue]:
+        self._warn_unsupported_params("issue list", milestone=milestone)
         conditions: list[str] = []
         if state == "open":
             conditions.append('(state="new" OR state="open")')
@@ -255,6 +259,9 @@ class BitbucketAdapter(GitServiceAdapter):
         if label is not None:
             escaped_label = label.replace('"', '\\"')
             conditions.append(f'component.name="{escaped_label}"')
+        if search is not None:
+            escaped_search = search.replace('"', '\\"')
+            conditions.append(f'title ~ "{escaped_search}"')
         params: dict = {}
         if conditions:
             params["q"] = " AND ".join(conditions)
@@ -273,8 +280,10 @@ class BitbucketAdapter(GitServiceAdapter):
         body: str = "",
         assignee: str | None = None,
         label: str | None = None,
+        milestone: str | None = None,
         **kwargs,
     ) -> Issue:
+        self._warn_unsupported_params("issue create", milestone=milestone)
         payload: dict = {"title": title, "content": {"raw": body}}
         if assignee is not None:
             payload["assignee"] = {"nickname": assignee}
