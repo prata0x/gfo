@@ -205,8 +205,8 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | スカッシュ | `--squash` | `--squash` | `--squash` | `--style squash` | `--method squash` |
 | リベース | `--rebase` | `--rebase` | `--rebase` | `--style rebase` | `--method rebase` / `rebase-merge` |
 | 自動マージ | `--auto` | `--auto` | `--auto-merge` | `---` | `---` |
-| ブランチ削除 | `---` | `--delete-branch` | `--remove-source-branch` | `--delete-branch` | `--delete` / `-d` |
-| コミットメッセージ | `---` | `--subject` / `--body` | `--message` / `--squash-message` | `---` | `--title` / `--message` |
+| ブランチ削除 | `---` | `--delete-branch` | `--remove-source-branch` | `---` | `--delete` / `-d` |
+| コミットメッセージ | `---` | `--subject` / `--body` | `--message` / `--squash-message` | `--title` / `--message` | `--title` / `--message` |
 | 管理者権限 | `---` | `--admin` | `---` | `---` | `---` |
 | 自動マージ解除 | `---` | `--disable-auto` | `---` | `---` | `---` |
 | 手動マージ | `---` | `---` | `---` | `---` | `--method manual` |
@@ -272,9 +272,9 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | オプション | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
 | 状態 | `--state` | `--state` | `--state` | `--state` | `--state` / `-s` |
-| 担当者 | `--assignee` | `--assignee` | `--assignee` | `---` | `--assignee` / `-a` |
-| ラベル | `--label` | `--label` | `--label` | `--label` | `--labels` / `-l` |
-| 作者 | `---` | `--author` | `--author` | `---` | `--creator` / `-c` |
+| 担当者 | `--assignee` | `--assignee` | `--assignee` | `--assigned-to` / `-a` | `--assignee` / `-a` |
+| ラベル | `--label` | `--label` | `--label` | `--labels` / `-L` | `--labels` / `-l` |
+| 作者 | `---` | `--author` | `--author` | `--author` / `-A` | `--creator` / `-c` |
 | マイルストーン | `---` | `--milestone` | `--milestone` | `--milestone` | `---` |
 | 件数上限 | `--limit` | `--limit` | `--per-page` / `--page` | `--limit` | `---` |
 | 検索クエリ | `---` | `--search` | `--search` / `--in` | `--keyword` | 位置引数 (query) |
@@ -341,8 +341,8 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 |---|---|---|---|---|---|
 | list | `repo list` | `repo list` | `repo list` | `repo list` | `---` |
 | create | `repo create` | `repo create` | `repo create` | `repo create` | `repo create` |
-| view | `repo view` | `repo view` | `repo view` | `---` | `repo view` / `repo readme` |
-| edit | `repo edit` | `repo edit` | `repo update` | `---` | `---` (org edit のみ) |
+| view | `repo view` | `repo view` | `repo view` | 位置引数で表示 | `repo view` / `repo readme` |
+| edit | `repo edit` | `repo edit` | `repo update` | `repo edit` | `---` (org edit のみ) |
 | clone | `repo clone` | `repo clone` | `repo clone` | `repo clone` | `repo clone` |
 | fork | `repo fork` | `repo fork` | `repo fork` | `repo fork` | `repo fork` |
 | delete | `repo delete` | `repo delete` | `repo delete` | `repo delete` | `repo delete` |
@@ -350,10 +350,10 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | languages | `repo languages` | `---` | `---` | `---` | `---` |
 | topics | `repo topics` (list/add/remove/set) | `---` | `---` | `---` | `---` |
 | compare | `repo compare` | `---` | `---` | `---` | `---` |
-| migrate | `repo migrate` | `---` | `---` | `---` | `repo migrate` |
+| migrate | `repo migrate` | `---` | `---` | `repo migrate` | `repo migrate` |
 | mirror | `repo mirror` (list/add/remove/sync) | `---` | `repo mirror` | `---` | `---` |
 | transfer | `repo transfer` | `---` | `repo transfer` | `---` | `---` |
-| search | `---` | `---` | `repo search` | `---` | `---` |
+| search | `---` | `---` | `repo search` | `repo search` | `---` |
 | contributors | `---` | `---` | `repo contributors` | `---` | `---` |
 | star / unstar | `repo star` / `repo unstar` | `---` | `---` | `---` | `repo star` / `repo unstar` |
 | browse | `---` | `---` | `---` | `---` | `repo browse` |
@@ -435,9 +435,9 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | edit | `release edit` | `release edit` | `---` | `release edit` | `release edit` |
 | delete | `release delete` | `release delete` | `release delete` | `release delete` | `release delete` |
 | asset upload | `release asset upload` | `release upload` | `release upload` | `release attachments create` | `release asset create` |
-| asset download | `release asset download` | `release download` | `release download` | `release attachments download` | `release asset download` |
+| asset download | `release asset download` | `release download` | `release download` | `---` | `release asset download` |
 | asset list | `release asset list` | `---` | `---` | `release attachments list` | `---` |
-| asset delete | `release asset delete` | `release delete-asset` | `---` | `---` | `release asset delete` |
+| asset delete | `release asset delete` | `release delete-asset` | `---` | `release attachments delete` | `release asset delete` |
 | browse | `---` | `---` | `---` | `---` | `release browse` |
 | verify | `---` | `release verify` / `verify-asset` | `---` | `---` | `---` |
 
@@ -637,14 +637,14 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 
 | サブコマンド | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
-| list | `ci list` | `run list` | `ci list` | `---` | `actions tasks` |
-| view | `ci view` | `run view` | `ci view` | `---` | `---` |
+| list | `ci list` | `run list` | `ci list` | `actions runs list` | `actions tasks` |
+| view | `ci view` | `run view` | `ci view` | `actions runs view` | `---` |
 | trigger | `ci trigger` | `workflow run` | `ci trigger` | `---` | `actions dispatch` |
 | retry | `ci retry` | `run rerun` | `ci retry` | `---` | `---` |
 | cancel | `ci cancel` | `run cancel` | `ci cancel` | `---` | `---` |
-| logs | `ci logs` | `run view --log` | `ci trace` | `---` | `---` |
+| logs | `ci logs` | `run view --log` | `ci trace` | `actions runs logs` | `---` |
 | download | `---` | `run download` | `---` | `---` | `---` |
-| delete | `---` | `run delete` | `---` | `---` | `---` |
+| delete | `---` | `run delete` | `---` | `actions runs delete` | `---` |
 | watch | `---` | `run watch` | `---` | `---` | `---` |
 | workflow list | `---` | `workflow list` | `---` | `actions workflows` | `---` |
 | workflow enable/disable | `---` | `workflow enable` / `disable` | `---` | `---` | `---` |
@@ -866,6 +866,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 |---|---|---|---|---|---|
 | list | `webhook list` | `---` | `---` | `webhooks list` | `---` |
 | create | `webhook create` | `---` | `---` | `webhooks create` | `---` |
+| edit | `---` | `---` | `---` | `webhooks update` | `---` |
 | delete | `webhook delete` | `---` | `---` | `webhooks delete` | `---` |
 | test | `webhook test` | `---` | `---` | `---` | `---` |
 
@@ -977,7 +978,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | gfo | `api METHOD PATH` | `--data` / `--header` オプション |
 | gh | `api PATH` | `--method` / `--field` / `--header` / `--paginate` / `--jq` / `--template` / `--cache` オプション |
 | glab | `api METHOD PATH` | `--method` / `--field` / `--header` / `--paginate` / `--input` オプション |
-| tea | `---` | `---` |
+| tea | `api METHOD PATH` | `--method` / `--field` / `--header` / `--data` / `--include` オプション |
 | fj | `---` | `---` |
 
 #### Batch

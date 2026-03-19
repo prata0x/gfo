@@ -18,8 +18,8 @@
 
 | # | 機能 | 対応ツール | 実装難易度 | 備考 |
 |---|---|---|---|---|
-| B1-1 | `pr merge --delete-branch` | gh/glab/tea/fj **(4/4)** | 低 | マージ後に `delete_branch` API を呼ぶ。アダプターに `delete_branch()` メソッドあり |
-| B1-2 | `pr merge` コミットメッセージ指定 | gh/glab/fj **(3/4)** | 中 | `merge_pull_request()` のシグネチャに `message`/`title` を追加。GitHub/GitLab/Gitea 系 API は対応 |
+| B1-1 | `pr merge --delete-branch` | gh/glab/fj **(3/4)** | 低 | マージ後に `delete_branch` API を呼ぶ。アダプターに `delete_branch()` メソッドあり。tea は未対応 |
+| B1-2 | `pr merge` コミットメッセージ指定 | gh/glab/tea/fj **(4/4)** | 中 | `merge_pull_request()` のシグネチャに `message`/`title` を追加。GitHub/GitLab/Gitea 系 API は対応 |
 
 ### B2. pr edit / issue edit のメタデータ変更
 
@@ -73,7 +73,7 @@
 | # | 課題 | 対応ツール |
 |---|---|---|
 | B4-1 | `release create --notes-file` | gh/glab (2/4) |
-| B1-1 | `pr merge --delete-branch` | gh/glab/tea/fj (4/4) |
+| B1-1 | `pr merge --delete-branch` | gh/glab/fj (3/4) |
 | A1 | `label edit --name` エイリアス追加 | gh/tea/fj (3/4) |
 
 B4-1 はファイル読み込み→`--notes` に渡すだけ。B1-1 は `delete_branch()` が既にあるのでコマンド側のみ。A1 は `--new-name` を残しつつ `--name` を追加。
