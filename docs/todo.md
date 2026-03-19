@@ -59,7 +59,7 @@
 **対象**: #14, #15, #33, #34, #35
 **ファイル**: `spec.md`, `cli-comparison.md`, `cli-alignment.md`, `roadmap/` 2ファイル
 
-- [ ] #14+#34 `spec.md` を実装に合わせて一括更新（6箇所 + 「edit 将来対応」注記削除）
-- [ ] #15 `cli-comparison.md:386` の記述を修正
-- [ ] #33 `cli-alignment.md` のサマリーテーブル・セクション見出し・「現状」テキストを更新
-- [ ] #35 `roadmap/8-auth-multi-account.md` と `9-auth-logout.md` の先頭にステータスを追加
+- [x] #14+#34 `spec.md` を実装に合わせて一括更新（6箇所 + 「edit 将来対応」注記削除）
+- [x] #15 `cli-comparison.md:386` の記述を修正
+- [x] #33 `cli-alignment.md` のサマリーテーブル・セクション見出し・「現状」テキストを更新
+- [x] #35 `roadmap/8-auth-multi-account.md` と `9-auth-logout.md` の先頭にステータスを追加

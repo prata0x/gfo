@@ -87,17 +87,18 @@ gfo init [--non-interactive] [--type TYPE] [--host HOST] [--api-url URL] [--proj
 トークンを `credentials.toml` に保存する。
 
 ```
-gfo auth login [--host HOST] [--token TOKEN]
+gfo auth login [--host HOST] [--token TOKEN] [--account ACCOUNT]
 ```
 
 | オプション | 説明 |
 |-----------|------|
 | `--host HOST` | 対象ホスト。省略時は現在のリポジトリの git remote URL から自動検出する。リポジトリ外で省略した場合はエラー |
 | `--token TOKEN` | トークン文字列。省略時はインタラクティブに入力を求める（`getpass` 使用、エコーバックなし） |
+| `--account ACCOUNT` | アカウント名。省略時は `"default"` |
 
 `--token` を指定した場合、シェル履歴にトークンが残る可能性がある旨を注意表示する。
 
-v1 ではトークンの妥当性検証は行わず、そのまま保存する。不正なトークンは API 呼び出し時に 401/403 エラーとなる。
+トークンの妥当性検証は行わず、そのまま保存する。不正なトークンは API 呼び出し時に 401/403 エラーとなる。
 
 #### gfo auth status
 
@@ -109,10 +110,37 @@ gfo auth status
 
 出力例:
 ```
-HOST                   STATUS       SOURCE
-github.com             configured   credentials.toml
-gitlab.example.com     configured   GITLAB_TOKEN
+HOST                   ACCOUNT      STATUS       SOURCE
+github.com             default *    configured   credentials.toml
+github.com             work         configured   credentials.toml
+gitlab.example.com     default *    configured   GITLAB_TOKEN
 ```
+
+#### gfo auth switch
+
+アクティブアカウントを切り替える。
+
+```
+gfo auth switch <account> [--host HOST]
+```
+
+| 引数/オプション | 説明 |
+|---------------|------|
+| `<account>` | 切り替え先のアカウント名（必須） |
+| `--host HOST` | 対象ホスト。省略時は git remote URL から自動検出 |
+
+#### gfo auth logout
+
+保存済みトークンを削除する。
+
+```
+gfo auth logout [--host HOST] [--account ACCOUNT]
+```
+
+| オプション | 説明 |
+|-----------|------|
+| `--host HOST` | 対象ホスト。省略時は git remote URL から自動検出 |
+| `--account ACCOUNT` | 削除するアカウント名。省略時はホスト全体のトークンを削除 |
 
 ### 2.4 gfo pr
 
@@ -132,7 +160,7 @@ gfo pr list [--state open|closed|merged|all] [--limit N]
 #### gfo pr create
 
 ```
-gfo pr create [--title T] [--body B] [--base BRANCH] [--head BRANCH] [--draft]
+gfo pr create [--title T] [--body B] [--base BRANCH] [--head BRANCH] [--draft] [--reviewer USER] [--assignee USER] [--label L] [--milestone M] [--fill]
 ```
 
 | オプション | デフォルト | 説明 |
@@ -142,6 +170,11 @@ gfo pr create [--title T] [--body B] [--base BRANCH] [--head BRANCH] [--draft]
 | `--base` | リポジトリのデフォルトブランチ | マージ先ブランチ |
 | `--head` | 現在のブランチ | マージ元ブランチ |
 | `--draft` | `false` | ドラフト PR として作成 |
+| `--reviewer` | なし | レビュアーのユーザー名（複数指定可、`--reviewer` を繰り返し使用） |
+| `--assignee` | なし | アサイニーのユーザー名（複数指定可、`--assignee` を繰り返し使用） |
+| `--label` | なし | ラベル名（複数指定可、`--label` を繰り返し使用） |
+| `--milestone` | なし | マイルストーン名 |
+| `--fill` | `false` | コミット情報からタイトルと本文を自動入力 |
 
 #### gfo pr view
 
@@ -154,12 +187,17 @@ gfo pr view <number>
 #### gfo pr merge
 
 ```
-gfo pr merge <number> [--method merge|squash|rebase]
+gfo pr merge <number> [--merge | --squash | --rebase] [--auto]
 ```
 
 | オプション | デフォルト | 説明 |
 |-----------|-----------|------|
-| `--method` | `merge` | マージ戦略 |
+| `--merge` | デフォルト | 通常マージ（マージコミット作成） |
+| `--squash` | — | スカッシュマージ |
+| `--rebase` | — | リベースマージ |
+| `--auto` | — | CI 成功後に自動マージを有効化 |
+
+`--merge`、`--squash`、`--rebase` は相互排他。未指定時は `--merge` と同等。
 
 #### gfo pr close
 
@@ -312,8 +350,6 @@ gfo release create <tag> [--title T] [--notes N] [--draft] [--prerelease] [--tar
 | `--prerelease` | `false` | プレリリースとしてマーク |
 | `--target` | — | ターゲットブランチまたはコミット SHA |
 
-**注記**: release / label / milestone は edit を将来バージョンで対応予定。
-
 #### gfo release delete
 
 ```
@@ -444,15 +480,29 @@ api_url = "https://myteam.backlog.com/api/v2"
 
 ### 3.4 認証情報
 
-ホスト名をキーにトークンを保存する。ファイルパーミッションは 600 に設定する。
+ホスト名とアカウント名をキーにトークンを保存する。ファイルパーミッションは 600 に設定する。
 
 ```toml
-[tokens]
-"github.com" = "ghp_xxxx"
-"gitlab.example.com" = "glpat-xxxx"
-"bitbucket.org" = "email@example.com:ATATT-xxxx"   # email:api-token 形式（スコープ付き API Token）
-"myteam.backlog.com" = "backlog-api-key-xxxx"
+# 単一アカウント
+[tokens."github.com"]
+_default = "default"
+default = "ghp_xxxx"
+
+# 複数アカウント
+[tokens."gitlab.example.com"]
+_default = "personal"
+personal = "glpat-xxxx"
+work = "glpat-yyyy"
+
+[tokens."bitbucket.org"]
+_default = "default"
+default = "email@example.com:ATATT-xxxx"
 ```
+
+- すべてのホストが `[tokens."{host}"]` テーブル
+- アカウント名をキー、トークンを値
+- `_default` でアクティブアカウントを指定
+- `--account` 省略時は `"default"` をアカウント名として使用
 
 Bitbucket Cloud のスコープ付き API Token は `email:api-token` の形式で格納する。`auth.py` がコロンで分割し Basic Auth に渡す。必要スコープ: `repository`, `pullrequest:write`, `issue:write`。
 
@@ -466,12 +516,18 @@ git config --local gfo.* (プロジェクト固有)
 git remote URL からの自動検出 (detect.py)
 ```
 
-### 3.6 環境変数フォールバック（トークン）
+### 3.6 トークン解決順序
 
-トークンの解決順序:
+トークンは以下の順序で解決する:
 
-1. `credentials.toml` のホスト別トークン
-2. サービス固有の環境変数:
+1. **アカウント名の解決**（上から順に、最初に見つかった値を使用）:
+   1. `--account` グローバルオプション（ContextVar 経由）
+   2. `.git/config` の `gfo.account`
+   3. `config.toml` の `hosts.{host}.account`
+   4. `credentials.toml` の `tokens.{host}._default`
+   5. フォールバック: `"default"`
+2. `credentials.toml` の `tokens.{host}.{account}` トークン
+3. サービス固有の環境変数:
    | サービス | 環境変数 |
    |---------|---------|
    | GitHub | `GITHUB_TOKEN` |
@@ -481,7 +537,7 @@ git remote URL からの自動検出 (detect.py)
    | Bitbucket Cloud | `BITBUCKET_TOKEN` |
    | Backlog | `BACKLOG_API_KEY` |
    | Azure DevOps | `AZURE_DEVOPS_PAT` |
-3. `GFO_TOKEN`（汎用フォールバック）
+4. `GFO_TOKEN`（汎用フォールバック）
 
 ### 3.7 プラットフォーム別パス
 
@@ -860,7 +916,7 @@ gfo/
 │       ├── release.py       # gfo release create/list
 │       ├── label.py         # gfo label create/list
 │       ├── milestone.py     # gfo milestone create/list
-│       └── auth_cmd.py      # gfo auth login/status
+│       └── auth_cmd.py      # gfo auth login/status/switch/logout
 └── tests/
     ├── conftest.py
     ├── test_detect.py

@@ -5,9 +5,9 @@ gfo のコマンド/サブコマンド/オプション名を他ツール（gh, g
 
 ---
 
-## 1. サブコマンド名: `update` → `edit`
+## 1. サブコマンド名: `update` → `edit` ✅
 
-**現状**: gfo は全リソースで `update` を使用。
+~~**現状**: gfo は全リソースで `update` を使用。~~
 
 | リソース | gh | glab | tea | fj | gfo (現在) |
 |---|---|---|---|---|---|
@@ -25,11 +25,13 @@ gfo のコマンド/サブコマンド/オプション名を他ツール（gh, g
 - gh / tea / fj の 3 ツールが `edit` で一致。`update` は glab のみ。
 - 対象: pr, issue, repo, release, label, milestone, comment, wiki
 
+**完了**: 全リソースで `edit` に変更済み。
+
 ---
 
-## 2. `comment` / `review` の配置: 独立コマンド → pr/issue サブコマンド化
+## 2. `comment` / `review` の配置: 独立コマンド → pr/issue サブコマンド化 ✅
 
-**現状**: gfo は `comment`, `review` を独立トップレベルコマンドとして提供。
+~~**現状**: gfo は `comment`, `review` を独立トップレベルコマンドとして提供。~~
 
 | 機能 | gh | glab | tea | fj | gfo (現在) |
 |---|---|---|---|---|---|
@@ -43,6 +45,8 @@ gfo のコマンド/サブコマンド/オプション名を他ツール（gh, g
 - `gfo pr comment list/create/edit/delete` + `gfo issue comment list/create/edit/delete`
 - `gfo pr review list/create/dismiss`
 - 独立コマンド `gfo comment` / `gfo review` は廃止
+
+**完了**: `comment` を pr/issue サブコマンドに、`review` を pr サブコマンドに移動済み。
 
 ---
 
@@ -60,9 +64,9 @@ gfo のコマンド/サブコマンド/オプション名を他ツール（gh, g
 
 ---
 
-## 4. `--web` オプション追加
+## 4. `--web` オプション追加 ✅
 
-**現状**: gfo は `browse` 独立コマンドのみ。
+~~**現状**: gfo は `browse` 独立コマンドのみ。~~
 
 | ツール | 実装方式 |
 |---|---|
@@ -75,6 +79,8 @@ gfo のコマンド/サブコマンド/オプション名を他ツール（gh, g
 
 - gh / glab が `--web` で一致。
 - 既存の `browse` コマンドはそのまま維持し、`--web` を併設。
+
+**完了**: `--web` / `-w` オプションを主要コマンドに追加済み。
 
 ---
 
@@ -94,9 +100,9 @@ gfo のコマンド/サブコマンド/オプション名を他ツール（gh, g
 
 ---
 
-## 6. `release create --target` 追加
+## 6. `release create --target` 追加 ✅
 
-**現状**: gfo の `release create` に `--target` (参照先 ref) がない。
+~~**現状**: gfo の `release create` に `--target` (参照先 ref) がない。~~
 
 | オプション | gh | glab | tea | fj | gfo (現在) |
 |---|---|---|---|---|---|
@@ -105,6 +111,8 @@ gfo のコマンド/サブコマンド/オプション名を他ツール（gh, g
 **判定: `--target` として追加**
 
 - gh / tea が `--target`、glab が `--ref`。多数派の `--target` を採用。
+
+**完了**: `--target` オプションを追加済み。
 
 ---
 
@@ -145,14 +153,14 @@ gfo のコマンド/サブコマンド/オプション名を他ツール（gh, g
 | 1 | `update` → `edit` (完了済み) | pr, issue, repo, release, label, milestone, comment, wiki |
 | 2 | `comment` を pr/issue サブコマンドに移動 (完了済み) | comment コマンド廃止、pr/issue に統合 |
 | 3 | `review` を pr サブコマンドに移動 (完了済み) | review コマンド廃止、pr に統合 |
-| 4 | `merge --method` → `--merge/--squash/--rebase` | pr merge |
+| 4 | `merge --method` → `--merge/--squash/--rebase` (完了済み) | pr merge |
 
 ### 機能追加
 
 | # | 変更内容 | 影響範囲 |
 |---|---|---|
-| 5 | `--web` / `-w` オプション追加 | pr view, issue view 等の各コマンド |
+| 5 | `--web` / `-w` オプション追加 (完了済み) | pr view, issue view 等の各コマンド |
 | 6 | `pr create` に `--reviewer/--assignee/--label/--milestone/--fill` 追加 (完了済み) | pr create |
 | 7 | `release create --target` 追加 (完了済み) | release create |
-| 8 | `auth multi-account`（同一ホスト複数アカウント対応） | auth |
-| 9 | `auth logout` 追加 | auth |
+| 8 | `auth multi-account`（同一ホスト複数アカウント対応）(完了済み) | auth |
+| 9 | `auth logout` 追加 (完了済み) | auth |
