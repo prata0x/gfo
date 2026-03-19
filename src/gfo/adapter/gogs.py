@@ -510,7 +510,7 @@ class GogsAdapter(GiteaAdapter):
     # --- Repo update/archive/languages/topics/compare（Gogs 0.13 未対応）---
 
     def update_repository(
-        self, *, description=None, private=None, default_branch=None
+        self, *, name=None, description=None, private=None, default_branch=None
     ) -> Repository:
         raise NotSupportedError("Gogs", "repo update")
 

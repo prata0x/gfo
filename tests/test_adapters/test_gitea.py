@@ -2682,6 +2682,12 @@ class TestUpdateRepositoryGitea:
         assert json.loads(responses.calls[0].request.body)["description"] == "new desc"
 
     @responses.activate
+    def test_update_name(self, gitea_adapter):
+        responses.add(responses.PATCH, f"{REPOS}", json=_repo_data(), status=200)
+        gitea_adapter.update_repository(name="new-name")
+        assert json.loads(responses.calls[0].request.body)["name"] == "new-name"
+
+    @responses.activate
     def test_update_private(self, gitea_adapter):
         responses.add(responses.PATCH, f"{REPOS}", json=_repo_data(), status=200)
         gitea_adapter.update_repository(private=True)

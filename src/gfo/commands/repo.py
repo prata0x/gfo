@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 
 from gfo.adapter.registry import create_http_client, get_adapter_class
 from gfo.auth import resolve_token
@@ -211,11 +212,17 @@ def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     """gfo repo edit のハンドラ。"""
     adapter = get_adapter()
     repo = adapter.update_repository(
+        name=getattr(args, "name", None),
         description=getattr(args, "description", None),
         private=getattr(args, "private", None),
         default_branch=getattr(args, "default_branch", None),
     )
     output(repo, fmt=fmt, jq=jq)
+    if getattr(args, "name", None):
+        print(
+            _("Warning: repository renamed. The git remote URL may have changed."),
+            file=sys.stderr,
+        )
 
 
 def handle_archive(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

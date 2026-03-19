@@ -579,11 +579,14 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     def update_repository(
         self,
         *,
+        name: str | None = None,
         description: str | None = None,
         private: bool | None = None,
         default_branch: str | None = None,
     ) -> Repository:
         payload = {}
+        if name is not None:
+            payload["name"] = name
         if default_branch is not None:
             payload["defaultBranch"] = _add_refs_prefix(default_branch)
         resp = self._client.patch(self._git_path(), json=payload)

@@ -2875,6 +2875,12 @@ class TestUpdateRepositoryGitLab:
         assert json.loads(responses.calls[0].request.body)["description"] == "new desc"
 
     @responses.activate
+    def test_update_name(self, gitlab_adapter):
+        responses.add(responses.PUT, f"{PROJECT}", json=_repo_data(), status=200)
+        gitlab_adapter.update_repository(name="new-name")
+        assert json.loads(responses.calls[0].request.body)["name"] == "new-name"
+
+    @responses.activate
     def test_update_private(self, gitlab_adapter):
         responses.add(responses.PUT, f"{PROJECT}", json=_repo_data(), status=200)
         gitlab_adapter.update_repository(private=True)

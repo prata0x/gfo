@@ -698,11 +698,12 @@ class TestHandleEdit:
     def test_calls_update_repository(self, sample_config, sample_repo, capsys):
         adapter = MagicMock()
         adapter.update_repository.return_value = sample_repo
-        args = make_args(description="new desc", private=True, default_branch="develop")
+        args = make_args(name=None, description="new desc", private=True, default_branch="develop")
         with patch("gfo.commands.repo.get_adapter", return_value=adapter):
             repo_cmd.handle_edit(args, fmt="table")
 
         adapter.update_repository.assert_called_once_with(
+            name=None,
             description="new desc",
             private=True,
             default_branch="develop",
@@ -711,7 +712,7 @@ class TestHandleEdit:
     def test_json_format(self, sample_config, sample_repo, capsys):
         adapter = MagicMock()
         adapter.update_repository.return_value = sample_repo
-        args = make_args(description=None, private=None, default_branch=None)
+        args = make_args(name=None, description=None, private=None, default_branch=None)
         with patch("gfo.commands.repo.get_adapter", return_value=adapter):
             repo_cmd.handle_edit(args, fmt="json")
 
@@ -722,15 +723,42 @@ class TestHandleEdit:
     def test_passes_none_for_unset_args(self, sample_config, sample_repo):
         adapter = MagicMock()
         adapter.update_repository.return_value = sample_repo
-        args = make_args(description=None, private=None, default_branch=None)
+        args = make_args(name=None, description=None, private=None, default_branch=None)
         with patch("gfo.commands.repo.get_adapter", return_value=adapter):
             repo_cmd.handle_edit(args, fmt="table")
 
         adapter.update_repository.assert_called_once_with(
+            name=None,
             description=None,
             private=None,
             default_branch=None,
         )
+
+    def test_rename_shows_warning(self, sample_config, sample_repo, capsys):
+        adapter = MagicMock()
+        adapter.update_repository.return_value = sample_repo
+        args = make_args(name="new-name", description=None, private=None, default_branch=None)
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_edit(args, fmt="table")
+
+        adapter.update_repository.assert_called_once_with(
+            name="new-name",
+            description=None,
+            private=None,
+            default_branch=None,
+        )
+        err = capsys.readouterr().err
+        assert "remote" in err.lower() or "renamed" in err.lower()
+
+    def test_no_warning_without_name(self, sample_config, sample_repo, capsys):
+        adapter = MagicMock()
+        adapter.update_repository.return_value = sample_repo
+        args = make_args(name=None, description="desc", private=None, default_branch=None)
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_edit(args, fmt="table")
+
+        err = capsys.readouterr().err
+        assert err == ""
 
 
 class TestHandleArchive:

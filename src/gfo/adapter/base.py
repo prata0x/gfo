@@ -830,6 +830,7 @@ class GitServiceAdapter(ABC):
     def update_repository(
         self,
         *,
+        name: str | None = None,
         description: str | None = None,
         private: bool | None = None,
         default_branch: str | None = None,

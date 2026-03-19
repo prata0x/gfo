@@ -370,6 +370,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
 
     # gfo repo edit
     repo_edit = repo_sub.add_parser("edit", help=_("Edit repository settings"))
+    repo_edit.add_argument("--name", help=_("Rename repository"))
     repo_edit.add_argument("--description", help=_("Description"))
     _repo_private_group = repo_edit.add_mutually_exclusive_group()
     _repo_private_group.add_argument(

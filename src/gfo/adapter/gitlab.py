@@ -435,11 +435,14 @@ class GitLabAdapter(GitServiceAdapter):
     def update_repository(
         self,
         *,
+        name: str | None = None,
         description: str | None = None,
         private: bool | None = None,
         default_branch: str | None = None,
     ) -> Repository:
         payload = {}
+        if name is not None:
+            payload["name"] = name
         if description is not None:
             payload["description"] = description
         if private is not None:
