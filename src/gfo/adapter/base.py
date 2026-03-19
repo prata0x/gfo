@@ -651,7 +651,19 @@ class GitServiceAdapter(ABC):
 
     # --- PR ---
     @abstractmethod
-    def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]: ...
+    def list_pull_requests(
+        self,
+        *,
+        state: str = "open",
+        limit: int = 30,
+        author: str | None = None,
+        label: str | None = None,
+        assignee: str | None = None,
+        search: str | None = None,
+        base: str | None = None,
+        head: str | None = None,
+        draft: bool | None = None,
+    ) -> list[PullRequest]: ...
 
     @abstractmethod
     def create_pull_request(

@@ -134,11 +134,35 @@ class BitbucketAdapter(GitServiceAdapter):
 
     # --- PR ---
 
-    def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]:
+    def list_pull_requests(
+        self,
+        *,
+        state: str = "open",
+        limit: int = 30,
+        author: str | None = None,
+        label: str | None = None,
+        assignee: str | None = None,
+        search: str | None = None,
+        base: str | None = None,
+        head: str | None = None,
+        draft: bool | None = None,
+    ) -> list[PullRequest]:
+        self._warn_unsupported_params("pr list", label=label, assignee=assignee, draft=draft)
         state_map = {"open": "OPEN", "closed": "DECLINED", "merged": "MERGED"}
         params: dict = {}
         if state != "all":
             params["state"] = state_map.get(state, state.upper())
+        q_parts: list[str] = []
+        if author:
+            q_parts.append(f'author.username="{author}"')
+        if base:
+            q_parts.append(f'destination.branch.name="{base}"')
+        if head:
+            q_parts.append(f'source.branch.name="{head}"')
+        if search:
+            q_parts.append(f'title~"{search}"')
+        if q_parts:
+            params["q"] = " AND ".join(q_parts)
         results = paginate_response_body(
             self._client,
             f"{self._repos_path()}/pullrequests",

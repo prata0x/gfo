@@ -40,7 +40,58 @@ class TestHandleList:
         with _patch_all(sample_config, mock_adapter):
             pr_cmd.handle_list(args, fmt="table")
 
-        mock_adapter.list_pull_requests.assert_called_once_with(state="open", limit=30)
+        mock_adapter.list_pull_requests.assert_called_once_with(
+            state="open",
+            limit=30,
+            author=None,
+            label=None,
+            assignee=None,
+            search=None,
+            base=None,
+            head=None,
+            draft=None,
+        )
+
+    def test_passes_filter_params(self, sample_config, mock_adapter, capsys):
+        args = make_args(
+            state="open",
+            limit=30,
+            author="alice",
+            label="bug",
+            assignee="bob",
+            search="fix",
+            base="main",
+            head="feature",
+            draft=True,
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_list(args, fmt="table")
+
+        mock_adapter.list_pull_requests.assert_called_once_with(
+            state="open",
+            limit=30,
+            author="alice",
+            label="bug",
+            assignee="bob",
+            search="fix",
+            base="main",
+            head="feature",
+            draft=True,
+        )
+
+    def test_default_filter_params_are_none(self, sample_config, mock_adapter, capsys):
+        args = make_args(state="open", limit=30)
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_list(args, fmt="table")
+
+        call_kwargs = mock_adapter.list_pull_requests.call_args.kwargs
+        assert call_kwargs["author"] is None
+        assert call_kwargs["label"] is None
+        assert call_kwargs["assignee"] is None
+        assert call_kwargs["search"] is None
+        assert call_kwargs["base"] is None
+        assert call_kwargs["head"] is None
+        assert call_kwargs["draft"] is None
 
     def test_outputs_results(self, sample_config, mock_adapter, capsys):
         args = make_args(state="open", limit=30)
@@ -678,3 +729,30 @@ class TestWebWithJsonFormat:
         mock_adapter.get_pull_request.assert_not_called()
         captured = capsys.readouterr()
         assert captured.out == ""
+
+
+class TestPrListArgParsing:
+    """pr list の CLI 引数パースのテスト。"""
+
+    def test_filter_args_parsed(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["pr", "list", "--author", "alice", "--label", "bug", "--draft"])
+        assert ns.author == "alice"
+        assert ns.label == "bug"
+        assert ns.draft is True
+
+    def test_no_draft_flag(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["pr", "list", "--no-draft"])
+        assert ns.draft is False
+
+    def test_default_draft_is_none(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["pr", "list"])
+        assert ns.draft is None

@@ -36,8 +36,8 @@ REPOS = f"{BASE}/repos/test-owner/test-repo"
 # --- サンプルデータ ---
 
 
-def _pr_data(*, number=1, state="open", merged_at=None, draft=False):
-    return {
+def _pr_data(*, number=1, state="open", merged_at=None, draft=False, labels=None, assignees=None):
+    data = {
         "number": number,
         "title": f"PR #{number}",
         "body": "description",
@@ -51,6 +51,11 @@ def _pr_data(*, number=1, state="open", merged_at=None, draft=False):
         "created_at": "2025-01-01T00:00:00Z",
         "updated_at": "2025-01-02T00:00:00Z",
     }
+    if labels is not None:
+        data["labels"] = labels
+    if assignees is not None:
+        data["assignees"] = assignees
+    return data
 
 
 def _issue_data(*, number=1, state="open", has_pr=False):
@@ -409,6 +414,103 @@ class TestListPullRequests:
         )
         prs = github_adapter.list_pull_requests(limit=10)
         assert len(prs) == 2
+
+    def test_base_filter(self, mock_responses, github_adapter):
+        """base パラメータがクエリパラメータとして送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[_pr_data()],
+            status=200,
+        )
+        github_adapter.list_pull_requests(base="main")
+        assert "base=main" in mock_responses.calls[0].request.url
+
+    def test_head_filter(self, mock_responses, github_adapter):
+        """head パラメータがクエリパラメータとして送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[_pr_data()],
+            status=200,
+        )
+        github_adapter.list_pull_requests(head="feature")
+        assert "head=feature" in mock_responses.calls[0].request.url
+
+    def test_author_client_filter(self, mock_responses, github_adapter):
+        """author フィルタがクライアント側で適用されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[
+                _pr_data(number=1),  # user.login = "author1"
+                {**_pr_data(number=2), "user": {"login": "author2"}},
+            ],
+            status=200,
+        )
+        prs = github_adapter.list_pull_requests(author="author1")
+        assert len(prs) == 1
+        assert prs[0].number == 1
+
+    def test_label_client_filter(self, mock_responses, github_adapter):
+        """label フィルタがクライアント側で適用されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[
+                _pr_data(number=1, labels=[{"name": "bug"}, {"name": "urgent"}]),
+                _pr_data(number=2, labels=[{"name": "feature"}]),
+            ],
+            status=200,
+        )
+        prs = github_adapter.list_pull_requests(label="bug")
+        assert len(prs) == 1
+        assert prs[0].number == 1
+
+    def test_assignee_client_filter(self, mock_responses, github_adapter):
+        """assignee フィルタがクライアント側で適用されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[
+                _pr_data(number=1, assignees=[{"login": "dev1"}]),
+                _pr_data(number=2, assignees=[{"login": "dev2"}]),
+            ],
+            status=200,
+        )
+        prs = github_adapter.list_pull_requests(assignee="dev1")
+        assert len(prs) == 1
+        assert prs[0].number == 1
+
+    def test_draft_client_filter(self, mock_responses, github_adapter):
+        """draft フィルタがクライアント側で適用されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[
+                _pr_data(number=1, draft=True),
+                _pr_data(number=2, draft=False),
+            ],
+            status=200,
+        )
+        prs = github_adapter.list_pull_requests(draft=True)
+        assert len(prs) == 1
+        assert prs[0].number == 1
+
+    def test_search_client_filter(self, mock_responses, github_adapter):
+        """search フィルタがタイトル部分一致でクライアント側フィルタされることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[
+                {**_pr_data(number=1), "title": "Fix login bug"},
+                {**_pr_data(number=2), "title": "Add feature"},
+            ],
+            status=200,
+        )
+        prs = github_adapter.list_pull_requests(search="login")
+        assert len(prs) == 1
+        assert prs[0].number == 1
 
 
 class TestCreatePullRequest:

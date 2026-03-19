@@ -62,9 +62,34 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- PR ---
 
-    def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]:
+    def list_pull_requests(
+        self,
+        *,
+        state: str = "open",
+        limit: int = 30,
+        author: str | None = None,
+        label: str | None = None,
+        assignee: str | None = None,
+        search: str | None = None,
+        base: str | None = None,
+        head: str | None = None,
+        draft: bool | None = None,
+    ) -> list[PullRequest]:
+        self._warn_unsupported_params("pr list", draft=draft)
         api_state = "closed" if state == "merged" else state
-        params = {"state": api_state}
+        params: dict = {"state": api_state}
+        if author:
+            params["poster"] = author
+        if label:
+            params["labels"] = label
+        if assignee:
+            params["assignee"] = assignee
+        if search:
+            params["q"] = search
+        if base:
+            params["base"] = base
+        if head:
+            params["head"] = head
         results = paginate_link_header(
             self._client,
             f"{self._repos_path()}/pulls",

@@ -67,6 +67,31 @@ class GitBucketAdapter(GitHubAdapter):
 
     # --- PR ---
 
+    def list_pull_requests(
+        self,
+        *,
+        state: str = "open",
+        limit: int = 30,
+        author: str | None = None,
+        label: str | None = None,
+        assignee: str | None = None,
+        search: str | None = None,
+        base: str | None = None,
+        head: str | None = None,
+        draft: bool | None = None,
+    ) -> list[PullRequest]:
+        self._warn_unsupported_params(
+            "pr list",
+            author=author,
+            label=label,
+            assignee=assignee,
+            search=search,
+            base=base,
+            head=head,
+            draft=draft,
+        )
+        return super().list_pull_requests(state=state, limit=limit)
+
     def create_pull_request(
         self,
         *,

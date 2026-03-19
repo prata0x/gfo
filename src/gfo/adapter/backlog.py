@@ -151,7 +151,29 @@ class BacklogAdapter(GitServiceAdapter):
 
     # --- PR ---
 
-    def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]:
+    def list_pull_requests(
+        self,
+        *,
+        state: str = "open",
+        limit: int = 30,
+        author: str | None = None,
+        label: str | None = None,
+        assignee: str | None = None,
+        search: str | None = None,
+        base: str | None = None,
+        head: str | None = None,
+        draft: bool | None = None,
+    ) -> list[PullRequest]:
+        self._warn_unsupported_params(
+            "pr list",
+            author=author,
+            label=label,
+            assignee=assignee,
+            search=search,
+            base=base,
+            head=head,
+            draft=draft,
+        )
         params: dict = {}
         merged_id: int | None = None
         if state == "merged":

@@ -153,10 +153,27 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     # --- PR ---
 
-    def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]:
+    def list_pull_requests(
+        self,
+        *,
+        state: str = "open",
+        limit: int = 30,
+        author: str | None = None,
+        label: str | None = None,
+        assignee: str | None = None,
+        search: str | None = None,
+        base: str | None = None,
+        head: str | None = None,
+        draft: bool | None = None,
+    ) -> list[PullRequest]:
+        self._warn_unsupported_params("pr list", label=label, assignee=assignee, search=search)
         params: dict = {}
         if state != "all":
             params["searchCriteria.status"] = _PR_STATE_TO_API.get(state, "active")
+        if base:
+            params["searchCriteria.targetRefName"] = f"refs/heads/{base}"
+        if head:
+            params["searchCriteria.sourceRefName"] = f"refs/heads/{head}"
         results = paginate_top_skip(
             self._client,
             f"{self._git_path()}/pullrequests",
@@ -164,6 +181,10 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             limit=limit,
             result_key="value",
         )
+        if author:
+            results = [r for r in results if (r.get("createdBy") or {}).get("uniqueName") == author]
+        if draft is not None:
+            results = [r for r in results if r.get("isDraft", False) == draft]
         return [self._to_pull_request(r) for r in results]
 
     def create_pull_request(

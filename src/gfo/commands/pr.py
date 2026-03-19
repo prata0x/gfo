@@ -20,7 +20,17 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         webbrowser.open(adapter.get_web_url("pr"))
         return
     adapter = get_adapter()
-    prs = adapter.list_pull_requests(state=args.state, limit=args.limit)
+    prs = adapter.list_pull_requests(
+        state=args.state,
+        limit=args.limit,
+        author=getattr(args, "author", None),
+        label=getattr(args, "label", None),
+        assignee=getattr(args, "assignee", None),
+        search=getattr(args, "search", None),
+        base=getattr(args, "base", None),
+        head=getattr(args, "head", None),
+        draft=getattr(args, "draft", None),
+    )
     output(prs, fmt=fmt, fields=["number", "title", "state", "author"], jq=jq)
 
 

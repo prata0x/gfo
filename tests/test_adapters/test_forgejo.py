@@ -160,6 +160,20 @@ class TestListPullRequests:
         assert prs[0].state == "open"
         assert prs[0].number == 1
 
+    def test_filter_params(self, mock_responses, forgejo_adapter):
+        """Gitea 継承: author/label/base パラメータがクエリパラメータに送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[_pr_data()],
+            status=200,
+        )
+        forgejo_adapter.list_pull_requests(author="alice", label="bug", base="main")
+        req_url = mock_responses.calls[0].request.url
+        assert "poster=alice" in req_url
+        assert "labels=bug" in req_url
+        assert "base=main" in req_url
+
     def test_merged_filter(self, mock_responses, forgejo_adapter):
         mock_responses.add(
             responses.GET,

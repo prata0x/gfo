@@ -57,17 +57,54 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- PR ---
 
-    def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]:
+    def list_pull_requests(
+        self,
+        *,
+        state: str = "open",
+        limit: int = 30,
+        author: str | None = None,
+        label: str | None = None,
+        assignee: str | None = None,
+        search: str | None = None,
+        base: str | None = None,
+        head: str | None = None,
+        draft: bool | None = None,
+    ) -> list[PullRequest]:
         api_state = (
             "closed" if state == "merged" else state
         )  # GitHub API に merged パラメータはなく closed で代用
-        params = {"state": api_state}
+        params: dict = {"state": api_state}
+        if base:
+            params["base"] = base
+        if head:
+            params["head"] = head
         results = paginate_link_header(
             self._client,
             f"{self._repos_path()}/pulls",
             params=params,
             limit=limit,
         )
+        # GitHub PR API は author/label/assignee/draft/search をネイティブ非対応のためクライアント側フィルタ
+        if author:
+            results = [r for r in results if (r.get("user") or {}).get("login") == author]
+        if label:
+            results = [
+                r for r in results if label in [lb["name"] for lb in (r.get("labels") or [])]
+            ]
+        if assignee:
+            results = [
+                r for r in results if assignee in [a["login"] for a in (r.get("assignees") or [])]
+            ]
+        if draft is not None:
+            results = [r for r in results if r.get("draft", False) == draft]
+        if search:
+            search_lower = search.lower()
+            results = [
+                r
+                for r in results
+                if search_lower in (r.get("title") or "").lower()
+                or search_lower in (r.get("body") or "").lower()
+            ]
         prs = [self._to_pull_request(r) for r in results]
         if state == "merged":
             prs = [pr for pr in prs if pr.state == "merged"]

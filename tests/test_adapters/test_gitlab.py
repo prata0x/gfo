@@ -396,6 +396,90 @@ class TestListPullRequests:
         req = mock_responses.calls[0].request
         assert "state=all" in req.url
 
+    def test_author_filter(self, mock_responses, gitlab_adapter):
+        """author を指定すると author_username パラメータが URL に含まれる。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests",
+            json=[_mr_data()],
+            status=200,
+        )
+        gitlab_adapter.list_pull_requests(author="alice")
+        req = mock_responses.calls[0].request
+        assert "author_username=alice" in req.url
+
+    def test_label_filter(self, mock_responses, gitlab_adapter):
+        """label を指定すると labels パラメータが URL に含まれる。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests",
+            json=[_mr_data()],
+            status=200,
+        )
+        gitlab_adapter.list_pull_requests(label="bug")
+        req = mock_responses.calls[0].request
+        assert "labels=bug" in req.url
+
+    def test_assignee_filter(self, mock_responses, gitlab_adapter):
+        """assignee を指定すると assignee_username パラメータが URL に含まれる。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests",
+            json=[_mr_data()],
+            status=200,
+        )
+        gitlab_adapter.list_pull_requests(assignee="dev")
+        req = mock_responses.calls[0].request
+        assert "assignee_username=dev" in req.url
+
+    def test_search_filter(self, mock_responses, gitlab_adapter):
+        """search を指定すると search パラメータが URL に含まれる。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests",
+            json=[_mr_data()],
+            status=200,
+        )
+        gitlab_adapter.list_pull_requests(search="keyword")
+        req = mock_responses.calls[0].request
+        assert "search=keyword" in req.url
+
+    def test_base_filter(self, mock_responses, gitlab_adapter):
+        """base を指定すると target_branch パラメータが URL に含まれる。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests",
+            json=[_mr_data()],
+            status=200,
+        )
+        gitlab_adapter.list_pull_requests(base="main")
+        req = mock_responses.calls[0].request
+        assert "target_branch=main" in req.url
+
+    def test_head_filter(self, mock_responses, gitlab_adapter):
+        """head を指定すると source_branch パラメータが URL に含まれる。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests",
+            json=[_mr_data()],
+            status=200,
+        )
+        gitlab_adapter.list_pull_requests(head="feature")
+        req = mock_responses.calls[0].request
+        assert "source_branch=feature" in req.url
+
+    def test_draft_filter(self, mock_responses, gitlab_adapter):
+        """draft=True を指定すると wip=yes パラメータが URL に含まれる。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests",
+            json=[_mr_data(draft=True)],
+            status=200,
+        )
+        gitlab_adapter.list_pull_requests(draft=True)
+        req = mock_responses.calls[0].request
+        assert "wip=yes" in req.url
+
 
 class TestCreatePullRequest:
     def test_create(self, mock_responses, gitlab_adapter):

@@ -285,6 +285,84 @@ class TestListPullRequests:
         req = mock_responses.calls[0].request
         assert "searchCriteria.status=completed" in req.url
 
+    def test_base_filter(self, mock_responses, azure_devops_adapter):
+        """base を指定すると searchCriteria.targetRefName パラメータが URL に含まれる。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests",
+            json={"value": [_pr_data()], "count": 1},
+            status=200,
+        )
+        azure_devops_adapter.list_pull_requests(base="main")
+        req = mock_responses.calls[0].request
+        decoded_url = req.url.replace("%2F", "/")
+        assert "searchCriteria.targetRefName=refs/heads/main" in decoded_url
+
+    def test_head_filter(self, mock_responses, azure_devops_adapter):
+        """head を指定すると searchCriteria.sourceRefName パラメータが URL に含まれる。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests",
+            json={"value": [_pr_data()], "count": 1},
+            status=200,
+        )
+        azure_devops_adapter.list_pull_requests(head="feature")
+        req = mock_responses.calls[0].request
+        decoded_url = req.url.replace("%2F", "/")
+        assert "searchCriteria.sourceRefName=refs/heads/feature" in decoded_url
+
+    def test_author_client_filter(self, mock_responses, azure_devops_adapter):
+        """author を指定するとクライアント側フィルタで一致する PR のみ返る。"""
+        pr_alice = _pr_data(pull_request_id=1)
+        pr_alice["createdBy"]["uniqueName"] = "alice@example.com"
+        pr_bob = _pr_data(pull_request_id=2)
+        pr_bob["createdBy"]["uniqueName"] = "bob@example.com"
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests",
+            json={"value": [pr_alice, pr_bob], "count": 2},
+            status=200,
+        )
+        prs = azure_devops_adapter.list_pull_requests(author="alice@example.com")
+        assert len(prs) == 1
+        assert prs[0].author == "alice@example.com"
+
+    def test_draft_client_filter(self, mock_responses, azure_devops_adapter):
+        """draft を指定するとクライアント側フィルタで draft PR のみ返る。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests",
+            json={
+                "value": [
+                    _pr_data(pull_request_id=1, is_draft=True),
+                    _pr_data(pull_request_id=2, is_draft=False),
+                ],
+                "count": 2,
+            },
+            status=200,
+        )
+        prs = azure_devops_adapter.list_pull_requests(draft=True)
+        assert len(prs) == 1
+        assert prs[0].draft is True
+
+    def test_unsupported_params_warn(self, mock_responses, azure_devops_adapter):
+        """label, assignee, search を渡すと警告が出る。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests",
+            json={"value": [], "count": 0},
+            status=200,
+        )
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            azure_devops_adapter.list_pull_requests(label="bug", assignee="dev", search="keyword")
+        messages = [str(x.message) for x in w]
+        assert any("label" in m for m in messages)
+        assert any("assignee" in m for m in messages)
+        assert any("search" in m for m in messages)
+
     def test_pagination(self, mock_responses, azure_devops_adapter):
         """$top/$skip ベースのページネーションで2ページ取得。"""
         mock_responses.add(

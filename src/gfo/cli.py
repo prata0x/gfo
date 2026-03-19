@@ -154,6 +154,19 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_list.add_argument(
         "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
     )
+    pr_list.add_argument("--author", help=_("Filter by author"))
+    pr_list.add_argument("--label", "-l", help=_("Filter by label"))
+    pr_list.add_argument("--assignee", "-a", help=_("Filter by assignee"))
+    pr_list.add_argument("--search", "-S", help=_("Filter by title/description"))
+    pr_list.add_argument("--base", "-B", help=_("Filter by base branch"))
+    pr_list.add_argument("--head", "-H", help=_("Filter by head branch"))
+    _pr_list_draft = pr_list.add_mutually_exclusive_group()
+    _pr_list_draft.add_argument(
+        "--draft", dest="draft", action="store_true", default=None, help=_("Filter draft PRs only")
+    )
+    _pr_list_draft.add_argument(
+        "--no-draft", dest="draft", action="store_false", help=_("Filter non-draft PRs only")
+    )
     pr_list.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     pr_create = pr_sub.add_parser("create", help=_("Create pull request"))
     pr_create.add_argument("--title", help=_("Title"))

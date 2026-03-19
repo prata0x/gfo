@@ -158,6 +158,28 @@ class TestListPullRequests:
         assert prs[0].state == "open"
         assert prs[0].number == 1
 
+    def test_unsupported_params_warn(self, mock_responses, gitbucket_adapter):
+        """フィルタパラメータを渡すと警告が出て、API にはそれらが含まれない。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[_pr_data()],
+            status=200,
+        )
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            gitbucket_adapter.list_pull_requests(author="alice", label="bug", search="keyword")
+        messages = [str(x.message) for x in w]
+        assert any("author" in m for m in messages)
+        assert any("label" in m for m in messages)
+        assert any("search" in m for m in messages)
+        # API リクエストにフィルタパラメータが含まれていないことを確認
+        req_url = mock_responses.calls[0].request.url
+        assert "author" not in req_url.split("?")[-1] if "?" in req_url else True
+        assert "label" not in req_url.split("?")[-1] if "?" in req_url else True
+
     def test_merged_filter(self, mock_responses, gitbucket_adapter):
         mock_responses.add(
             responses.GET,

@@ -172,8 +172,34 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- PR (Merge Request) ---
 
-    def list_pull_requests(self, *, state: str = "open", limit: int = 30) -> list[PullRequest]:
+    def list_pull_requests(
+        self,
+        *,
+        state: str = "open",
+        limit: int = 30,
+        author: str | None = None,
+        label: str | None = None,
+        assignee: str | None = None,
+        search: str | None = None,
+        base: str | None = None,
+        head: str | None = None,
+        draft: bool | None = None,
+    ) -> list[PullRequest]:
         params: dict = {"state": "opened" if state == "open" else state}
+        if author:
+            params["author_username"] = author
+        if label:
+            params["labels"] = label
+        if assignee:
+            params["assignee_username"] = assignee
+        if search:
+            params["search"] = search
+        if base:
+            params["target_branch"] = base
+        if head:
+            params["source_branch"] = head
+        if draft is not None:
+            params["wip"] = "yes" if draft else "no"
         results = paginate_page_param(
             self._client,
             f"{self._project_path()}/merge_requests",

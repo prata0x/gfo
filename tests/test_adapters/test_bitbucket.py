@@ -234,6 +234,64 @@ class TestListPullRequests:
         prs = bitbucket_adapter.list_pull_requests(limit=10)
         assert len(prs) == 2
 
+    def test_author_filter(self, mock_responses, bitbucket_adapter):
+        """author を指定すると q に author.username フィルタが追加される。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [_pr_data()], "next": None},
+            status=200,
+        )
+        bitbucket_adapter.list_pull_requests(author="alice")
+        req = mock_responses.calls[0].request
+        decoded_url = unquote(req.url)
+        assert 'author.username="alice"' in decoded_url
+
+    def test_base_head_filter(self, mock_responses, bitbucket_adapter):
+        """base と head を指定すると q に destination/source ブランチフィルタが追加される。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [_pr_data()], "next": None},
+            status=200,
+        )
+        bitbucket_adapter.list_pull_requests(base="main", head="feature")
+        req = mock_responses.calls[0].request
+        decoded_url = unquote(req.url)
+        assert 'destination.branch.name="main"' in decoded_url
+        assert 'source.branch.name="feature"' in decoded_url
+
+    def test_search_filter(self, mock_responses, bitbucket_adapter):
+        """search を指定すると q に title~ フィルタが追加される。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [_pr_data()], "next": None},
+            status=200,
+        )
+        bitbucket_adapter.list_pull_requests(search="keyword")
+        req = mock_responses.calls[0].request
+        decoded_url = unquote(req.url)
+        assert 'title~"keyword"' in decoded_url
+
+    def test_unsupported_params_warn(self, mock_responses, bitbucket_adapter):
+        """label, assignee, draft を渡すと警告が出る。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [], "next": None},
+            status=200,
+        )
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            bitbucket_adapter.list_pull_requests(label="bug", assignee="dev", draft=True)
+        messages = [str(x.message) for x in w]
+        assert any("label" in m for m in messages)
+        assert any("assignee" in m for m in messages)
+        assert any("draft" in m for m in messages)
+
     def test_pagination_stops_on_different_origin(self, mock_responses, bitbucket_adapter):
         """next URL が別オリジンを指す場合はページネーションを中断する（SSRF 防止）。"""
         other_origin_url = "https://evil.example.com/api/pullrequests?page=2"

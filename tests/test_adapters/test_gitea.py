@@ -446,6 +446,83 @@ class TestListPullRequests:
         assert "limit=" in req.url
         assert "per_page=" not in req.url
 
+    def test_author_filter(self, mock_responses, gitea_adapter):
+        """author パラメータが poster としてクエリパラメータに送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[_pr_data()],
+            status=200,
+        )
+        gitea_adapter.list_pull_requests(author="alice")
+        assert "poster=alice" in mock_responses.calls[0].request.url
+
+    def test_label_filter(self, mock_responses, gitea_adapter):
+        """label パラメータが labels としてクエリパラメータに送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[_pr_data()],
+            status=200,
+        )
+        gitea_adapter.list_pull_requests(label="bug")
+        assert "labels=bug" in mock_responses.calls[0].request.url
+
+    def test_assignee_filter(self, mock_responses, gitea_adapter):
+        """assignee パラメータがクエリパラメータに送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[_pr_data()],
+            status=200,
+        )
+        gitea_adapter.list_pull_requests(assignee="dev")
+        assert "assignee=dev" in mock_responses.calls[0].request.url
+
+    def test_search_filter(self, mock_responses, gitea_adapter):
+        """search パラメータが q としてクエリパラメータに送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[_pr_data()],
+            status=200,
+        )
+        gitea_adapter.list_pull_requests(search="keyword")
+        assert "q=keyword" in mock_responses.calls[0].request.url
+
+    def test_base_filter(self, mock_responses, gitea_adapter):
+        """base パラメータがクエリパラメータに送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[_pr_data()],
+            status=200,
+        )
+        gitea_adapter.list_pull_requests(base="main")
+        assert "base=main" in mock_responses.calls[0].request.url
+
+    def test_head_filter(self, mock_responses, gitea_adapter):
+        """head パラメータがクエリパラメータに送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[_pr_data()],
+            status=200,
+        )
+        gitea_adapter.list_pull_requests(head="feature")
+        assert "head=feature" in mock_responses.calls[0].request.url
+
+    def test_draft_warns(self, mock_responses, gitea_adapter):
+        """draft パラメータが未対応の警告を出すことを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[_pr_data()],
+            status=200,
+        )
+        with pytest.warns(UserWarning, match="does not support draft"):
+            gitea_adapter.list_pull_requests(draft=True)
+
 
 class TestCreatePullRequest:
     def test_create(self, mock_responses, gitea_adapter):

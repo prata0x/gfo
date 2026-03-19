@@ -290,6 +290,22 @@ class TestListPullRequests:
         prs = backlog_adapter.list_pull_requests(state="merged")
         assert prs == []
 
+    def test_unsupported_params_warn(self, mock_responses, backlog_adapter):
+        """フィルタパラメータを渡すと警告が出る。"""
+        mock_responses.add(
+            responses.GET,
+            PR_PATH,
+            json=[_pr_data()],
+            status=200,
+        )
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            backlog_adapter.list_pull_requests(author="alice")
+        messages = [str(x.message) for x in w]
+        assert any("author" in m for m in messages)
+
     def test_pagination(self, mock_responses, backlog_adapter):
         """offset ベースのページネーションで2ページ取得。"""
         mock_responses.add(
