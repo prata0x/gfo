@@ -21,3 +21,9 @@ paths:
   - レスポンスが list であることを検証
   - KeyError はスキップして次の要素を試みる
 - **`list_pull_requests`**: `params["statusId[]"] = [merged_id]`（リスト形式で渡す）
+- **Issue statusId 固定**: 1〜4 の固定値。`statusId == 4` のみ closed、それ以外は open
+
+## Issue 作成の自動解決
+
+- **issueTypeId**: `/projects/{projectKey}/issueTypes` の先頭要素を使用。空なら `GfoError`
+- **priorityId**: `/priorities` から `"中"` or `"normal"` を含む要素を優先、なければ先頭要素

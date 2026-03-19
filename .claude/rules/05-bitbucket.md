@@ -32,6 +32,14 @@ paths:
 - **`set_variable` / `set_secret`**: upsert パターン必須（GET で存在チェック → PUT/POST 使い分け）
   - 過去バグ: POST のみだと既存変数で API エラー
 
+## PR checkout
+
+- **refspec はブランチ名**: GitHub の `refs/pull/{number}/head` とは異なり、ソースブランチ名をそのまま返す
+
+## ファイル操作
+
+- **multipart/form-data**: `create_or_update_file` は JSON ではなく `multipart/form-data` で送信
+
 ## 非対応機能
 
 `NotSupportedError` でオーバーライド: `releases`, `labels`, `milestones`, コメント更新/削除

@@ -26,14 +26,16 @@ paths:
 
 - `html_url` フィールドなし → `data.get("html_url") or ""`
 - リリース API 未サポート → `NotSupportedError` でオーバーライド
+- deploy key API 未サポート → `NotSupportedError`（`list/create/delete_deploy_key`）
 - リポジトリ作成: `auto_init: True` に加えて `readme: "Default"` が必要
 - `create_or_update_file`: `NotSupportedError`
 
 ## GitBucket 固有
 
 - **継承元**: `GitHubAdapter` のサブクラス（`GiteaAdapter` ではない）
-- **JSON 二重エンコード**: PR create / release create のレスポンスが JSON 文字列 → `_parse_response()` でパース
+- **JSON 二重エンコード**: PR create / release create のレスポンスが JSON 文字列 → `_parse_response()` でパース（create 系のみ発生、list/get は正常）
 - **close_issue**: PATCH /issues/{number} 未実装 → Web UI `POST /{owner}/{repo}/issue_comments/state` 経由
 - **ブランチ作成**: POST /git/refs が 500 → git clone + push で代替
 - **デフォルトブランチ**: `master`（GitHub の `main` とは異なる）
 - **`_to_release()` オーバーライド**: `created_at` / `html_url` なし対応
+- **deploy key API**: エンドポイント未実装（HTTP 500）→ `NotSupportedError`

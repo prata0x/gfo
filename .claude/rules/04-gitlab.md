@@ -16,3 +16,6 @@ paths:
 - **merge_pull_request**: `method="rebase"` の場合は `/rebase` エンドポイントを使用
 - **create_or_update_file**: `None` を返す（GitLab files API は SHA を返さない）
 - **認証**: `PRIVATE-TOKEN: {token}` ヘッダ
+- **プロジェクト ID の URL エンコード**: `owner/repo` を `%2F` エンコード（`urllib.parse.quote(path, safe='')`）。サブグループ `group/sub/repo` も同様に処理される
+- **ページネーション**: `X-Next-Page` ヘッダが空文字 = 最終ページ。`per_page` デフォルト 20、最大 100
+- **URL エンコード必須のパス**: Release タグ名・ラベル名の DELETE でタグ名/ラベル名を URL エンコードすること

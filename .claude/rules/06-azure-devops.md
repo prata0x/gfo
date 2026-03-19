@@ -31,6 +31,16 @@ paths:
   - 過去バグ: API URL を返していた
 - **`org members`**: `NotSupportedError`（Azure DevOps はチームベースのメンバー管理で組織メンバー一覧 API がない）
 
+## PR マージ
+
+- **lastMergeSourceCommit 必須**: マージ前に必ず GET で PR を取得し、`lastMergeSourceCommit` を PATCH に含めること
+
+## Issue (Work Items)
+
+- **state 判定**: open は「NOT in closed states」で判定する。state 名はプロセステンプレート（Agile/Scrum/Basic）で異なるため固定値で比較不可
+- **デフォルト Work Item Type**: `Task`（`Bug` ではない）
+- **`--state all`**: `searchCriteria.status` パラメータを省略する（catch-all 値は存在しない）
+
 ## コマンド側の注意
 
 - `commands/repo.py` の `handle_create`: `organization` / `project_key` が `None` のチェック必須
