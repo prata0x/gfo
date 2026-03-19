@@ -7,13 +7,15 @@ import os
 import re
 import subprocess  # nosec B404
 import sys
+import tempfile
 import tomllib
 import warnings
+from contextlib import suppress
 from pathlib import Path
 
 from gfo._context import cli_account
 from gfo.config import get_config_dir, get_credentials_path
-from gfo.exceptions import AuthError, ConfigError
+from gfo.exceptions import AuthError, ConfigError, GitCommandError
 
 _SERVICE_ENV_MAP: dict[str, str] = {
     "github": "GITHUB_TOKEN",
@@ -73,6 +75,8 @@ def resolve_token(host: str, service_type: str) -> str:
 
 def save_token(host: str, token: str, account: str = "default") -> None:
     """credentials.toml にトークンを保存する。"""
+    if account == "_default":
+        raise ConfigError("'_default' is a reserved key and cannot be used as an account name.")
     if not token.strip():
         raise AuthError(host, "Token must not be empty.")
     host = host.lower()
@@ -94,6 +98,8 @@ def save_token(host: str, token: str, account: str = "default") -> None:
 
 def switch_account(host: str, account: str) -> None:
     """アクティブアカウントを切り替える。"""
+    if account == "_default":
+        raise ConfigError("'_default' is a reserved key and cannot be used as an account name.")
     host = host.lower()
     tokens = load_tokens()
     host_accounts = tokens.get(host)
@@ -119,6 +125,8 @@ def list_accounts(host: str) -> list[str]:
 
 def remove_token(host: str, account: str | None = None) -> None:
     """トークンを削除する。account 指定時はそのアカウントのみ、None 時はホスト全体を削除。"""
+    if account == "_default":
+        raise ConfigError("'_default' is a reserved key and cannot be used as an account name.")
     host = host.lower()
     tokens = load_tokens()
     if host not in tokens:
@@ -161,6 +169,14 @@ def load_tokens() -> dict[str, dict[str, str]]:
     except OSError as e:
         raise ConfigError(f"Failed to read credentials file {path}: {e}") from e
     tokens = data.get("tokens", {})
+    old_format_hosts = [str(k) for k, v in tokens.items() if isinstance(v, str)]
+    if old_format_hosts:
+        warnings.warn(
+            "credentials.toml contains old format entries for: "
+            f"{', '.join(old_format_hosts)}. "
+            "Run 'gfo auth login' to re-register.",
+            stacklevel=2,
+        )
     return {
         str(k): {str(ak): str(av) for ak, av in v.items()}
         for k, v in tokens.items()
@@ -290,9 +306,24 @@ def _write_credentials_toml(path: Path, tokens: dict[str, dict[str, str]]) -> No
     for host, accounts in tokens.items():
         lines.append(f'[tokens."{host}"]')
         for key, value in accounts.items():
-            lines.append(f'{key} = "{_escape_toml_value(value)}"')
+            lines.append(f'"{key}" = "{_escape_toml_value(value)}"')
         lines.append("")
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    content = "\n".join(lines) + "\n"
+    try:
+        fd, tmp_path = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp", prefix=".credentials_")
+        try:
+            os.write(fd, content.encode("utf-8"))
+            os.close(fd)
+            fd = -1
+            os.replace(tmp_path, path)
+        except BaseException:
+            if fd != -1:
+                os.close(fd)
+            with suppress(OSError):
+                os.unlink(tmp_path)
+            raise
+    except OSError as e:
+        raise ConfigError(f"Failed to write credentials file {path}: {e}") from e
 
 
 def _resolve_account_name(host: str, host_accounts: dict[str, str]) -> str:
@@ -317,7 +348,7 @@ def _resolve_account_name(host: str, host_accounts: dict[str, str]) -> str:
         git_account = gfo.git_util.git_config_get("gfo.account")
         if git_account:
             return git_account
-    except Exception:  # nosec B110 - best effort: git config 取得失敗時はフォールバック
+    except (GitCommandError, OSError):
         pass
 
     # 3. config.toml
@@ -327,7 +358,7 @@ def _resolve_account_name(host: str, host_accounts: dict[str, str]) -> str:
         host_cfg = gfo.config.get_host_config(host)
         if host_cfg and "account" in host_cfg:
             return str(host_cfg["account"])
-    except Exception:  # nosec B110 - best effort: config 取得失敗時はフォールバック
+    except (ConfigError, OSError):
         pass
 
     # 4. _default

@@ -9,12 +9,12 @@
 **対象**: #1, #2, #3, #5, #6, #13
 **ファイル**: `src/gfo/auth.py`
 
-- [ ] #1 `_write_credentials_toml()` でアカウントキーをダブルクォートして書き出す
-- [ ] #2 `save_token`・`switch_account`・`remove_token` で `_default` アカウント名を拒否
-- [ ] #3 `_resolve_account_name` の `except Exception` を具体的な例外に限定
-- [ ] #5 `load_tokens()` で旧形式エントリ検出時に `warnings.warn()` で通知
-- [ ] #6 `_write_credentials_toml()` を `tempfile` + `os.replace()` でアトミック化
-- [ ] #13 `_write_credentials_toml()` の書き込みを `try/except OSError` → `ConfigError` でラップ
+- [x] #1 `_write_credentials_toml()` でアカウントキーをダブルクォートして書き出す
+- [x] #2 `save_token`・`switch_account`・`remove_token` で `_default` アカウント名を拒否
+- [x] #3 `_resolve_account_name` の `except Exception` を具体的な例外に限定
+- [x] #5 `load_tokens()` で旧形式エントリ検出時に `warnings.warn()` で通知
+- [x] #6 `_write_credentials_toml()` を `tempfile` + `os.replace()` でアトミック化
+- [x] #13 `_write_credentials_toml()` の書き込みを `try/except OSError` → `ConfigError` でラップ
 
 ---
 

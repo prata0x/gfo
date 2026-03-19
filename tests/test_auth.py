@@ -423,14 +423,21 @@ def test_load_tokens_success(tmp_path, monkeypatch):
     assert tokens["gitlab.com"]["default"] == "glpat_xyz"
 
 
-def test_load_tokens_ignores_flat_values(tmp_path, monkeypatch):
-    """旧形式のフラット値（文字列）は無視される。"""
+def test_load_tokens_ignores_flat_values_with_warning(tmp_path, monkeypatch):
+    """旧形式のフラット値（文字列）は無視され、警告が出る。"""
+    import warnings as _warnings
+
     creds = tmp_path / "credentials.toml"
     creds.write_text('[tokens]\n"github.com" = "ghp_old_format"\n', encoding="utf-8")
     monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
 
-    tokens = load_tokens()
+    with _warnings.catch_warnings(record=True) as w:
+        _warnings.simplefilter("always")
+        tokens = load_tokens()
+
     assert tokens == {}
+    assert any("old format" in str(warning.message) for warning in w)
+    assert any("github.com" in str(warning.message) for warning in w)
 
 
 # ── switch_account ──
@@ -774,6 +781,95 @@ def test_escape_toml_value():
     assert _escape_toml_value('has"quote') == 'has\\"quote'
     assert _escape_toml_value("has\\backslash") == "has\\\\backslash"
     assert _escape_toml_value("has\nnewline") == "has\\nnewline"
+
+
+# ── _default 予約キー拒否 (#2) ──
+
+
+def test_save_token_rejects_reserved_default(tmp_path, monkeypatch):
+    """save_token で _default アカウント名を拒否する。"""
+    config_dir = tmp_path / "config"
+    monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml")
+
+    with pytest.raises(ConfigError, match="_default.*reserved"):
+        save_token("github.com", "tok", account="_default")
+
+
+def test_switch_account_rejects_reserved_default(tmp_path, monkeypatch):
+    """switch_account で _default アカウント名を拒否する。"""
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    creds = config_dir / "credentials.toml"
+    creds.write_text(_new_format_toml("github.com", "tok"), encoding="utf-8")
+    monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+
+    with pytest.raises(ConfigError, match="_default.*reserved"):
+        switch_account("github.com", "_default")
+
+
+def test_remove_token_rejects_reserved_default(tmp_path, monkeypatch):
+    """remove_token で _default アカウント名を拒否する。"""
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    creds = config_dir / "credentials.toml"
+    creds.write_text(_new_format_toml("github.com", "tok"), encoding="utf-8")
+    monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+
+    with pytest.raises(ConfigError, match="_default.*reserved"):
+        remove_token("github.com", "_default")
+
+
+# ── アカウントキーのクォート (#1) ──
+
+
+def test_write_credentials_toml_quotes_account_keys(tmp_path):
+    """アカウントキーがダブルクォートされ、特殊文字を含む名前でも壊れない。"""
+    import tomllib
+
+    path = tmp_path / "credentials.toml"
+    tokens = {"example.com": {"_default": "me@example.com", "me@example.com": "tok123"}}
+    _write_credentials_toml(path, tokens)
+
+    content = path.read_text(encoding="utf-8")
+    assert '"me@example.com"' in content
+
+    with open(path, "rb") as f:
+        data = tomllib.load(f)
+    assert data["tokens"]["example.com"]["me@example.com"] == "tok123"
+
+
+# ── アトミック書き込み + OSError ラップ (#6, #13) ──
+
+
+def test_write_credentials_toml_oserror_raises_config_error(tmp_path, monkeypatch):
+    """書き込み失敗時に OSError → ConfigError でラップされる。"""
+    path = tmp_path / "nonexistent_dir" / "credentials.toml"
+
+    with pytest.raises(ConfigError, match="Failed to write credentials file"):
+        _write_credentials_toml(path, {"example.com": {"default": "tok"}})
+
+
+def test_write_credentials_toml_atomic_no_partial_file(tmp_path, monkeypatch):
+    """書き込み途中のエラーで部分ファイルが残らない。"""
+    path = tmp_path / "credentials.toml"
+    path.write_text("original content", encoding="utf-8")
+
+    original_write = os.write
+
+    def failing_write(fd, data):
+        original_write(fd, data[:5])
+        raise OSError("disk full")
+
+    monkeypatch.setattr("gfo.auth.os.write", failing_write)
+
+    with pytest.raises(ConfigError, match="Failed to write credentials file"):
+        _write_credentials_toml(path, {"example.com": {"default": "tok"}})
+
+    # 元のファイルが保持されている
+    assert path.read_text(encoding="utf-8") == "original content"
 
 
 # ── ヘルパー ──
