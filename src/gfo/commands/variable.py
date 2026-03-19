@@ -12,14 +12,18 @@ from gfo.output import output
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo variable list のハンドラ。"""
     adapter = get_adapter()
-    variables = adapter.list_variables(limit=args.limit)
+    scope = getattr(args, "org", None)
+    variables = adapter.list_variables(scope=scope, limit=args.limit)
     output(variables, fmt=fmt, fields=["name", "value", "updated_at"], jq=jq)
 
 
 def handle_set(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo variable set <name> --value VALUE のハンドラ。"""
     adapter = get_adapter()
-    variable = adapter.set_variable(args.name, args.value, masked=getattr(args, "masked", False))
+    scope = getattr(args, "org", None)
+    variable = adapter.set_variable(
+        args.name, args.value, scope=scope, masked=getattr(args, "masked", False)
+    )
     output(variable, fmt=fmt, jq=jq)
 
 
@@ -36,5 +40,6 @@ def handle_get(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo variable delete <name> のハンドラ。"""
     adapter = get_adapter()
-    adapter.delete_variable(args.name)
+    scope = getattr(args, "org", None)
+    adapter.delete_variable(args.name, scope=scope)
     print(_("Deleted variable '{name}'.").format(name=args.name))

@@ -317,25 +317,27 @@ class GitBucketAdapter(GitHubAdapter):
 
     # --- Secret / Variable（GitBucket 未実装）---
 
-    def list_secrets(self, *, limit: int = 30) -> list[Secret]:
+    def list_secrets(self, *, scope: str | None = None, limit: int = 30) -> list[Secret]:
         raise NotSupportedError("GitBucket", "secret operations")
 
-    def set_secret(self, name: str, value: str) -> Secret:
+    def set_secret(self, name: str, value: str, *, scope: str | None = None) -> Secret:
         raise NotSupportedError("GitBucket", "secret operations")
 
-    def delete_secret(self, name: str) -> None:
+    def delete_secret(self, name: str, *, scope: str | None = None) -> None:
         raise NotSupportedError("GitBucket", "secret operations")
 
-    def list_variables(self, *, limit: int = 30) -> list[Variable]:
+    def list_variables(self, *, scope: str | None = None, limit: int = 30) -> list[Variable]:
         raise NotSupportedError("GitBucket", "variable operations")
 
-    def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
+    def set_variable(
+        self, name: str, value: str, *, scope: str | None = None, masked: bool = False
+    ) -> Variable:
         raise NotSupportedError("GitBucket", "variable operations")
 
     def get_variable(self, name: str) -> Variable:
         raise NotSupportedError("GitBucket", "variable operations")
 
-    def delete_variable(self, name: str) -> None:
+    def delete_variable(self, name: str, *, scope: str | None = None) -> None:
         raise NotSupportedError("GitBucket", "variable operations")
 
     # --- BranchProtection（GitBucket 未実装）---

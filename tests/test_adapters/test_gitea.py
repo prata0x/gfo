@@ -3112,3 +3112,75 @@ class TestDownloadRunLogs:
 
         assert os.path.basename(result) == "logs-300.zip"
         assert os.path.exists(result)
+
+
+class TestIssueSubscribe:
+    def test_subscribe_issue(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/user",
+            json={"login": "testuser"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/issues/1/subscriptions/testuser",
+            status=204,
+        )
+        gitea_adapter.subscribe_issue(1)
+
+    def test_unsubscribe_issue(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/user",
+            json={"login": "testuser"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/issues/1/subscriptions/testuser",
+            status=204,
+        )
+        gitea_adapter.unsubscribe_issue(1)
+
+
+class TestOrgSecrets:
+    def test_list_org_secrets(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/orgs/test-org/actions/secrets",
+            json=[{"name": "ORG_SECRET", "created_at": "2024-01-01"}],
+            status=200,
+        )
+        secrets = gitea_adapter.list_secrets(scope="test-org")
+        assert len(secrets) == 1
+        assert secrets[0].name == "ORG_SECRET"
+
+    def test_delete_org_secret(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{BASE}/orgs/test-org/actions/secrets/ORG_SECRET",
+            status=204,
+        )
+        gitea_adapter.delete_secret("ORG_SECRET", scope="test-org")
+
+
+class TestOrgVariables:
+    def test_list_org_variables(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/orgs/test-org/actions/variables",
+            json=[{"name": "ORG_VAR", "value": "val"}],
+            status=200,
+        )
+        variables = gitea_adapter.list_variables(scope="test-org")
+        assert len(variables) == 1
+        assert variables[0].name == "ORG_VAR"
+
+    def test_delete_org_variable(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{BASE}/orgs/test-org/actions/variables/ORG_VAR",
+            status=204,
+        )
+        gitea_adapter.delete_variable("ORG_VAR", scope="test-org")

@@ -1281,10 +1281,16 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- Secret ---
 
-    def list_secrets(self, *, limit: int = 30) -> list[Secret]:
+    def _secrets_base_path(self, scope: str | None) -> str:
+        if scope:
+            return f"/orgs/{quote(scope, safe='')}/actions/secrets"
+        return f"{self._repos_path()}/actions/secrets"
+
+    def list_secrets(self, *, scope: str | None = None, limit: int = 30) -> list[Secret]:
+        base = self._secrets_base_path(scope)
         results = paginate_link_header(
             self._client,
-            f"{self._repos_path()}/actions/secrets",
+            base,
             limit=limit,
             per_page_key="limit",
         )
@@ -1293,22 +1299,30 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             for d in results
         ]
 
-    def set_secret(self, name: str, value: str) -> Secret:
+    def set_secret(self, name: str, value: str, *, scope: str | None = None) -> Secret:
+        base = self._secrets_base_path(scope)
         self._client.put(
-            f"{self._repos_path()}/actions/secrets/{quote(name, safe='')}",
+            f"{base}/{quote(name, safe='')}",
             json={"data": value},
         )
         return Secret(name=name, created_at="", updated_at="")
 
-    def delete_secret(self, name: str) -> None:
-        self._client.delete(f"{self._repos_path()}/actions/secrets/{quote(name, safe='')}")
+    def delete_secret(self, name: str, *, scope: str | None = None) -> None:
+        base = self._secrets_base_path(scope)
+        self._client.delete(f"{base}/{quote(name, safe='')}")
 
     # --- Variable ---
 
-    def list_variables(self, *, limit: int = 30) -> list[Variable]:
+    def _variables_base_path(self, scope: str | None) -> str:
+        if scope:
+            return f"/orgs/{quote(scope, safe='')}/actions/variables"
+        return f"{self._repos_path()}/actions/variables"
+
+    def list_variables(self, *, scope: str | None = None, limit: int = 30) -> list[Variable]:
+        base = self._variables_base_path(scope)
         results = paginate_link_header(
             self._client,
-            f"{self._repos_path()}/actions/variables",
+            base,
             limit=limit,
             per_page_key="limit",
         )
@@ -1322,18 +1336,21 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             for d in results
         ]
 
-    def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
+    def set_variable(
+        self, name: str, value: str, *, scope: str | None = None, masked: bool = False
+    ) -> Variable:
         from gfo.exceptions import NotFoundError
 
+        base = self._variables_base_path(scope)
         try:
-            self._client.get(f"{self._repos_path()}/actions/variables/{quote(name, safe='')}")
+            self._client.get(f"{base}/{quote(name, safe='')}")
             self._client.put(
-                f"{self._repos_path()}/actions/variables/{quote(name, safe='')}",
+                f"{base}/{quote(name, safe='')}",
                 json={"name": name, "value": value},
             )
         except NotFoundError:
             self._client.post(
-                f"{self._repos_path()}/actions/variables",
+                base,
                 json={"name": name, "value": value},
             )
         return Variable(name=name, value=value, created_at="", updated_at="")
@@ -1348,8 +1365,9 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             updated_at="",
         )
 
-    def delete_variable(self, name: str) -> None:
-        self._client.delete(f"{self._repos_path()}/actions/variables/{quote(name, safe='')}")
+    def delete_variable(self, name: str, *, scope: str | None = None) -> None:
+        base = self._variables_base_path(scope)
+        self._client.delete(f"{base}/{quote(name, safe='')}")
 
     # --- BranchProtection ---
 
@@ -1858,6 +1876,23 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def unlock_issue(self, number: int) -> None:
         self._client.delete(f"{self._repos_path()}/issues/{number}/lock")
+
+    # --- Issue Subscribe ---
+
+    def subscribe_issue(self, number: int) -> None:
+        user = self.get_current_user()
+        username = user["login"]
+        self._client.put(
+            f"{self._repos_path()}/issues/{number}/subscriptions/{quote(username, safe='')}",
+            json={},
+        )
+
+    def unsubscribe_issue(self, number: int) -> None:
+        user = self.get_current_user()
+        username = user["login"]
+        self._client.delete(
+            f"{self._repos_path()}/issues/{number}/subscriptions/{quote(username, safe='')}",
+        )
 
     # --- Issue Pin ---
 

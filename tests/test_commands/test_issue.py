@@ -813,3 +813,19 @@ class TestHandleViewWeb:
         ):
             issue_cmd.handle_view(args, fmt="table")
         self.adapter.get_issue.assert_not_called()
+
+
+class TestHandleSubscribe:
+    def test_subscribe_issue(self, capsys):
+        with patch_adapter("gfo.commands.issue") as adapter:
+            args = make_args(number=1)
+            issue_cmd.handle_subscribe(args, fmt="table")
+        adapter.subscribe_issue.assert_called_once_with(1)
+        out = capsys.readouterr().out
+        assert "#1" in out
+
+    def test_unsubscribe_issue(self, capsys):
+        with patch_adapter("gfo.commands.issue") as adapter:
+            args = make_args(number=1)
+            issue_cmd.handle_unsubscribe(args, fmt="table")
+        adapter.unsubscribe_issue.assert_called_once_with(1)

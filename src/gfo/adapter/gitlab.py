@@ -1605,26 +1605,29 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- Secret (masked Variable) ---
 
-    def list_secrets(self, *, limit: int = 30) -> list[Secret]:
-        results = paginate_page_param(
-            self._client, f"{self._project_path()}/variables", limit=limit
-        )
+    def _variables_base_path(self, scope: str | None) -> str:
+        if scope:
+            return f"/groups/{quote(scope, safe='')}/variables"
+        return f"{self._project_path()}/variables"
+
+    def list_secrets(self, *, scope: str | None = None, limit: int = 30) -> list[Secret]:
+        base = self._variables_base_path(scope)
+        results = paginate_page_param(self._client, base, limit=limit)
         masked = [d for d in results if d.get("masked")]
         return [Secret(name=d["key"], created_at="", updated_at="") for d in masked]
 
-    def set_secret(self, name: str, value: str) -> Secret:
-        var = self.set_variable(name, value, masked=True)
+    def set_secret(self, name: str, value: str, *, scope: str | None = None) -> Secret:
+        var = self.set_variable(name, value, scope=scope, masked=True)
         return Secret(name=var.name, created_at=var.created_at, updated_at=var.updated_at)
 
-    def delete_secret(self, name: str) -> None:
-        self.delete_variable(name)
+    def delete_secret(self, name: str, *, scope: str | None = None) -> None:
+        self.delete_variable(name, scope=scope)
 
     # --- Variable ---
 
-    def list_variables(self, *, limit: int = 30) -> list[Variable]:
-        results = paginate_page_param(
-            self._client, f"{self._project_path()}/variables", limit=limit
-        )
+    def list_variables(self, *, scope: str | None = None, limit: int = 30) -> list[Variable]:
+        base = self._variables_base_path(scope)
+        results = paginate_page_param(self._client, base, limit=limit)
         return [
             Variable(
                 name=d["key"],
@@ -1635,16 +1638,16 @@ class GitLabAdapter(GitServiceAdapter):
             for d in results
         ]
 
-    def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
+    def set_variable(
+        self, name: str, value: str, *, scope: str | None = None, masked: bool = False
+    ) -> Variable:
+        base = self._variables_base_path(scope)
         payload: dict = {"key": name, "value": value, "masked": masked}
         try:
-            self._client.get(f"{self._project_path()}/variables/{quote(name, safe='')}")
-            self._client.put(
-                f"{self._project_path()}/variables/{quote(name, safe='')}",
-                json=payload,
-            )
+            self._client.get(f"{base}/{quote(name, safe='')}")
+            self._client.put(f"{base}/{quote(name, safe='')}", json=payload)
         except NotFoundError:
-            self._client.post(f"{self._project_path()}/variables", json=payload)
+            self._client.post(base, json=payload)
         return Variable(name=name, value=value, created_at="", updated_at="")
 
     def get_variable(self, name: str) -> Variable:
@@ -1657,8 +1660,9 @@ class GitLabAdapter(GitServiceAdapter):
             updated_at="",
         )
 
-    def delete_variable(self, name: str) -> None:
-        self._client.delete(f"{self._project_path()}/variables/{quote(name, safe='')}")
+    def delete_variable(self, name: str, *, scope: str | None = None) -> None:
+        base = self._variables_base_path(scope)
+        self._client.delete(f"{base}/{quote(name, safe='')}")
 
     # --- BranchProtection ---
 
@@ -2135,6 +2139,14 @@ class GitLabAdapter(GitServiceAdapter):
             f"{self._project_path()}/issues/{number}",
             json={"discussion_locked": False},
         )
+
+    # --- Issue Subscribe ---
+
+    def subscribe_issue(self, number: int) -> None:
+        self._client.post(f"{self._project_path()}/issues/{number}/subscribe", json={})
+
+    def unsubscribe_issue(self, number: int) -> None:
+        self._client.post(f"{self._project_path()}/issues/{number}/unsubscribe", json={})
 
     # --- Search PRs ---
 

@@ -1397,13 +1397,19 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- Secret ---
 
-    def list_secrets(self, *, limit: int = 30) -> list[Secret]:
+    def _secrets_base_path(self, scope: str | None) -> str:
+        if scope:
+            return f"/orgs/{quote(scope, safe='')}/actions/secrets"
+        return f"{self._repos_path()}/actions/secrets"
+
+    def list_secrets(self, *, scope: str | None = None, limit: int = 30) -> list[Secret]:
+        base = self._secrets_base_path(scope)
         results: list[dict] = []
         per_page = min(limit, 30) if limit > 0 else 30
         page = 1
         while True:
             resp = self._client.get(
-                f"{self._repos_path()}/actions/secrets",
+                base,
                 params={"per_page": per_page, "page": page},
             )
             body = resp.json()
@@ -1426,15 +1432,16 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             for d in results
         ]
 
-    def set_secret(self, name: str, value: str) -> Secret:
-        resp = self._client.get(f"{self._repos_path()}/actions/secrets/public-key")
+    def set_secret(self, name: str, value: str, *, scope: str | None = None) -> Secret:
+        base = self._secrets_base_path(scope)
+        resp = self._client.get(f"{base}/public-key")
         pub_key_data = resp.json()
         encrypted = self._encrypt_secret(pub_key_data["key"], value)
         self._client.put(
-            f"{self._repos_path()}/actions/secrets/{quote(name, safe='')}",
+            f"{base}/{quote(name, safe='')}",
             json={"encrypted_value": encrypted, "key_id": pub_key_data["key_id"]},
         )
-        resp = self._client.get(f"{self._repos_path()}/actions/secrets/{quote(name, safe='')}")
+        resp = self._client.get(f"{base}/{quote(name, safe='')}")
         data = resp.json()
         return Secret(
             name=data["name"],
@@ -1442,8 +1449,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             updated_at=data.get("updated_at") or "",
         )
 
-    def delete_secret(self, name: str) -> None:
-        self._client.delete(f"{self._repos_path()}/actions/secrets/{quote(name, safe='')}")
+    def delete_secret(self, name: str, *, scope: str | None = None) -> None:
+        base = self._secrets_base_path(scope)
+        self._client.delete(f"{base}/{quote(name, safe='')}")
 
     @staticmethod
     def _encrypt_secret(public_key: str, secret_value: str) -> str:
@@ -1460,13 +1468,19 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- Variable ---
 
-    def list_variables(self, *, limit: int = 30) -> list[Variable]:
+    def _variables_base_path(self, scope: str | None) -> str:
+        if scope:
+            return f"/orgs/{quote(scope, safe='')}/actions/variables"
+        return f"{self._repos_path()}/actions/variables"
+
+    def list_variables(self, *, scope: str | None = None, limit: int = 30) -> list[Variable]:
+        base = self._variables_base_path(scope)
         results: list[dict] = []
         per_page = min(limit, 30) if limit > 0 else 30
         page = 1
         while True:
             resp = self._client.get(
-                f"{self._repos_path()}/actions/variables",
+                base,
                 params={"per_page": per_page, "page": page},
             )
             body = resp.json()
@@ -1490,18 +1504,21 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             for d in results
         ]
 
-    def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
+    def set_variable(
+        self, name: str, value: str, *, scope: str | None = None, masked: bool = False
+    ) -> Variable:
         from gfo.exceptions import NotFoundError
 
+        base = self._variables_base_path(scope)
         try:
-            self._client.get(f"{self._repos_path()}/actions/variables/{quote(name, safe='')}")
+            self._client.get(f"{base}/{quote(name, safe='')}")
             self._client.patch(
-                f"{self._repos_path()}/actions/variables/{quote(name, safe='')}",
+                f"{base}/{quote(name, safe='')}",
                 json={"name": name, "value": value},
             )
         except NotFoundError:
             self._client.post(
-                f"{self._repos_path()}/actions/variables",
+                base,
                 json={"name": name, "value": value},
             )
         return Variable(name=name, value=value, created_at="", updated_at="")
@@ -1516,8 +1533,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             updated_at=data.get("updated_at") or "",
         )
 
-    def delete_variable(self, name: str) -> None:
-        self._client.delete(f"{self._repos_path()}/actions/variables/{quote(name, safe='')}")
+    def delete_variable(self, name: str, *, scope: str | None = None) -> None:
+        base = self._variables_base_path(scope)
+        self._client.delete(f"{base}/{quote(name, safe='')}")
 
     # --- BranchProtection ---
 
@@ -1957,6 +1975,20 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def unlock_issue(self, number: int) -> None:
         self._client.delete(f"{self._repos_path()}/issues/{number}/lock")
+
+    # --- Issue Subscribe ---
+
+    def subscribe_issue(self, number: int) -> None:
+        self._client.put(
+            f"{self._repos_path()}/issues/{number}/subscription",
+            json={"subscribed": True},
+        )
+
+    def unsubscribe_issue(self, number: int) -> None:
+        self._client.put(
+            f"{self._repos_path()}/issues/{number}/subscription",
+            json={"subscribed": False},
+        )
 
     # --- Issue Pin ---
 

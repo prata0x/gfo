@@ -1218,26 +1218,28 @@ class GitServiceAdapter(ABC):
         raise NotSupportedError(self.service_name, "search issues")
 
     # --- Secret ---
-    def list_secrets(self, *, limit: int = 30) -> list[Secret]:
+    def list_secrets(self, *, scope: str | None = None, limit: int = 30) -> list[Secret]:
         raise NotSupportedError(self.service_name, "secret list")
 
-    def set_secret(self, name: str, value: str) -> Secret:
+    def set_secret(self, name: str, value: str, *, scope: str | None = None) -> Secret:
         raise NotSupportedError(self.service_name, "secret set")
 
-    def delete_secret(self, name: str) -> None:
+    def delete_secret(self, name: str, *, scope: str | None = None) -> None:
         raise NotSupportedError(self.service_name, "secret delete")
 
     # --- Variable ---
-    def list_variables(self, *, limit: int = 30) -> list[Variable]:
+    def list_variables(self, *, scope: str | None = None, limit: int = 30) -> list[Variable]:
         raise NotSupportedError(self.service_name, "variable list")
 
-    def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
+    def set_variable(
+        self, name: str, value: str, *, scope: str | None = None, masked: bool = False
+    ) -> Variable:
         raise NotSupportedError(self.service_name, "variable set")
 
     def get_variable(self, name: str) -> Variable:
         raise NotSupportedError(self.service_name, "variable get")
 
-    def delete_variable(self, name: str) -> None:
+    def delete_variable(self, name: str, *, scope: str | None = None) -> None:
         raise NotSupportedError(self.service_name, "variable delete")
 
     # --- BranchProtection ---
@@ -1421,6 +1423,13 @@ class GitServiceAdapter(ABC):
 
     def unlock_issue(self, number: int) -> None:
         raise NotSupportedError(self.service_name, "issue unlock")
+
+    # --- Issue Subscribe ---
+    def subscribe_issue(self, number: int) -> None:
+        raise NotSupportedError(self.service_name, "issue subscribe")
+
+    def unsubscribe_issue(self, number: int) -> None:
+        raise NotSupportedError(self.service_name, "issue unsubscribe")
 
     # --- Issue Pin ---
     def pin_issue(self, number: int) -> None:

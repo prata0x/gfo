@@ -20,7 +20,7 @@ class TestHandleList:
             adapter.list_secrets.return_value = [SAMPLE_SECRET]
             args = make_args(limit=30)
             secret_cmd.handle_list(args, fmt="table")
-        adapter.list_secrets.assert_called_once_with(limit=30)
+        adapter.list_secrets.assert_called_once_with(scope=None, limit=30)
         out = capsys.readouterr().out
         assert "MY_SECRET" in out
 
@@ -48,7 +48,7 @@ class TestHandleSet:
             adapter.set_secret.return_value = SAMPLE_SECRET
             args = make_args(name="MY_SECRET", value="secret", env_var=None, file=None)
             secret_cmd.handle_set(args, fmt="table")
-        adapter.set_secret.assert_called_once_with("MY_SECRET", "secret")
+        adapter.set_secret.assert_called_once_with("MY_SECRET", "secret", scope=None)
 
     def test_set_from_env_var(self, monkeypatch):
         monkeypatch.setenv("MY_ENV", "envvalue")
@@ -56,7 +56,7 @@ class TestHandleSet:
             adapter.set_secret.return_value = SAMPLE_SECRET
             args = make_args(name="MY_SECRET", value=None, env_var="MY_ENV", file=None)
             secret_cmd.handle_set(args, fmt="table")
-        adapter.set_secret.assert_called_once_with("MY_SECRET", "envvalue")
+        adapter.set_secret.assert_called_once_with("MY_SECRET", "envvalue", scope=None)
 
     def test_set_from_env_var_missing(self, monkeypatch):
         monkeypatch.delenv("NONEXISTENT_VAR", raising=False)
@@ -72,7 +72,7 @@ class TestHandleSet:
             adapter.set_secret.return_value = SAMPLE_SECRET
             args = make_args(name="MY_SECRET", value=None, env_var=None, file=str(f))
             secret_cmd.handle_set(args, fmt="table")
-        adapter.set_secret.assert_called_once_with("MY_SECRET", "filevalue")
+        adapter.set_secret.assert_called_once_with("MY_SECRET", "filevalue", scope=None)
 
     def test_set_from_file_strips_trailing_newline(self, tmp_path):
         """ファイル内容の末尾改行が strip される。"""
@@ -82,7 +82,7 @@ class TestHandleSet:
             adapter.set_secret.return_value = SAMPLE_SECRET
             args = make_args(name="MY_SECRET", value=None, env_var=None, file=str(f))
             secret_cmd.handle_set(args, fmt="table")
-        adapter.set_secret.assert_called_once_with("MY_SECRET", "filevalue")
+        adapter.set_secret.assert_called_once_with("MY_SECRET", "filevalue", scope=None)
 
     def test_set_from_file_not_found(self):
         """存在しないファイルを指定した場合 GfoError。"""
@@ -113,7 +113,7 @@ class TestHandleDelete:
         with patch_adapter("gfo.commands.secret") as adapter:
             args = make_args(name="MY_SECRET")
             secret_cmd.handle_delete(args, fmt="table")
-        adapter.delete_secret.assert_called_once_with("MY_SECRET")
+        adapter.delete_secret.assert_called_once_with("MY_SECRET", scope=None)
 
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.secret") as adapter:
@@ -121,3 +121,27 @@ class TestHandleDelete:
             args = make_args(name="MY_SECRET")
             with pytest.raises(HttpError):
                 secret_cmd.handle_delete(args, fmt="table")
+
+
+class TestOrgScope:
+    def test_list_org_secrets(self, capsys):
+        with patch_adapter("gfo.commands.secret") as adapter:
+            adapter.list_secrets.return_value = [SAMPLE_SECRET]
+            args = make_args(limit=30, org="my-org")
+            secret_cmd.handle_list(args, fmt="table")
+        adapter.list_secrets.assert_called_once_with(scope="my-org", limit=30)
+
+    def test_set_org_secret(self):
+        with patch_adapter("gfo.commands.secret") as adapter:
+            adapter.set_secret.return_value = SAMPLE_SECRET
+            args = make_args(
+                name="ORG_SECRET", value="secret", env_var=None, file=None, org="my-org"
+            )
+            secret_cmd.handle_set(args, fmt="table")
+        adapter.set_secret.assert_called_once_with("ORG_SECRET", "secret", scope="my-org")
+
+    def test_delete_org_secret(self):
+        with patch_adapter("gfo.commands.secret") as adapter:
+            args = make_args(name="ORG_SECRET", org="my-org")
+            secret_cmd.handle_delete(args, fmt="table")
+        adapter.delete_secret.assert_called_once_with("ORG_SECRET", scope="my-org")

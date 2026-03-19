@@ -21,7 +21,7 @@ class TestHandleList:
             adapter.list_variables.return_value = [SAMPLE_VAR]
             args = make_args(limit=30)
             variable_cmd.handle_list(args, fmt="table")
-        adapter.list_variables.assert_called_once_with(limit=30)
+        adapter.list_variables.assert_called_once_with(scope=None, limit=30)
         out = capsys.readouterr().out
         assert "MY_VAR" in out
 
@@ -49,7 +49,7 @@ class TestHandleSet:
             adapter.set_variable.return_value = SAMPLE_VAR
             args = make_args(name="MY_VAR", value="val", masked=False)
             variable_cmd.handle_set(args, fmt="table")
-        adapter.set_variable.assert_called_once_with("MY_VAR", "val", masked=False)
+        adapter.set_variable.assert_called_once_with("MY_VAR", "val", scope=None, masked=False)
 
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.variable") as adapter:
@@ -103,7 +103,7 @@ class TestHandleDelete:
         with patch_adapter("gfo.commands.variable") as adapter:
             args = make_args(name="MY_VAR")
             variable_cmd.handle_delete(args, fmt="table")
-        adapter.delete_variable.assert_called_once_with("MY_VAR")
+        adapter.delete_variable.assert_called_once_with("MY_VAR", scope=None)
 
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.variable") as adapter:
@@ -111,3 +111,25 @@ class TestHandleDelete:
             args = make_args(name="MY_VAR")
             with pytest.raises(GfoError, match="not found"):
                 variable_cmd.handle_delete(args, fmt="table")
+
+
+class TestOrgScope:
+    def test_list_org_variables(self, capsys):
+        with patch_adapter("gfo.commands.variable") as adapter:
+            adapter.list_variables.return_value = [SAMPLE_VAR]
+            args = make_args(limit=30, org="my-org")
+            variable_cmd.handle_list(args, fmt="table")
+        adapter.list_variables.assert_called_once_with(scope="my-org", limit=30)
+
+    def test_set_org_variable(self):
+        with patch_adapter("gfo.commands.variable") as adapter:
+            adapter.set_variable.return_value = SAMPLE_VAR
+            args = make_args(name="ORG_VAR", value="val", masked=False, org="my-org")
+            variable_cmd.handle_set(args, fmt="table")
+        adapter.set_variable.assert_called_once_with("ORG_VAR", "val", scope="my-org", masked=False)
+
+    def test_delete_org_variable(self):
+        with patch_adapter("gfo.commands.variable") as adapter:
+            args = make_args(name="ORG_VAR", org="my-org")
+            variable_cmd.handle_delete(args, fmt="table")
+        adapter.delete_variable.assert_called_once_with("ORG_VAR", scope="my-org")

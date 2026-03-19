@@ -3201,3 +3201,67 @@ class TestUpdateOrganization:
         )
         org = gitlab_adapter.update_organization("my-org", description="New description")
         assert org.description == "New description"
+
+
+class TestIssueSubscribe:
+    def test_subscribe_issue(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/issues/1/subscribe",
+            json={},
+            status=201,
+        )
+        gitlab_adapter.subscribe_issue(1)
+
+    def test_unsubscribe_issue(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/issues/1/unsubscribe",
+            json={},
+            status=201,
+        )
+        gitlab_adapter.unsubscribe_issue(1)
+
+
+class TestOrgSecrets:
+    def test_list_org_secrets(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/groups/my-group/variables",
+            json=[{"key": "GROUP_SECRET", "value": "***", "masked": True}],
+            status=200,
+        )
+        secrets = gitlab_adapter.list_secrets(scope="my-group")
+        assert len(secrets) == 1
+        assert secrets[0].name == "GROUP_SECRET"
+
+    def test_delete_org_secret(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{BASE}/groups/my-group/variables/GROUP_SECRET",
+            status=204,
+        )
+        gitlab_adapter.delete_secret("GROUP_SECRET", scope="my-group")
+
+
+class TestOrgVariables:
+    def test_list_org_variables(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/groups/my-group/variables",
+            json=[
+                {"key": "GROUP_VAR", "value": "val", "masked": False},
+            ],
+            status=200,
+        )
+        variables = gitlab_adapter.list_variables(scope="my-group")
+        assert len(variables) == 1
+        assert variables[0].name == "GROUP_VAR"
+
+    def test_delete_org_variable(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{BASE}/groups/my-group/variables/GROUP_VAR",
+            status=204,
+        )
+        gitlab_adapter.delete_variable("GROUP_VAR", scope="my-group")

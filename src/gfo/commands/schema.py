@@ -162,6 +162,8 @@ _OUTPUT_MAP: dict[tuple[str, str | None], type | None] = {
     ("issue", "reaction"): list[Reaction],
     ("issue", "depends"): list[Issue],
     ("issue", "timeline"): list[TimelineEvent],
+    ("issue", "subscribe"): None,
+    ("issue", "unsubscribe"): None,
     ("issue", "pin"): None,
     ("issue", "unpin"): None,
     ("issue", "time"): list[TimeEntry],

@@ -3569,3 +3569,81 @@ class TestDownloadRunLogs:
         assert os.path.exists(result)
         with open(result) as f:
             assert "log line 1" in f.read()
+
+
+class TestIssueSubscribe:
+    @responses.activate
+    def test_subscribe_issue(self, github_adapter):
+        responses.add(
+            responses.PUT,
+            f"{REPOS}/issues/1/subscription",
+            status=200,
+        )
+        github_adapter.subscribe_issue(1)
+        req_body = json.loads(responses.calls[0].request.body)
+        assert req_body["subscribed"] is True
+
+    @responses.activate
+    def test_unsubscribe_issue(self, github_adapter):
+        responses.add(
+            responses.PUT,
+            f"{REPOS}/issues/1/subscription",
+            status=200,
+        )
+        github_adapter.unsubscribe_issue(1)
+        req_body = json.loads(responses.calls[0].request.body)
+        assert req_body["subscribed"] is False
+
+
+class TestOrgSecrets:
+    @responses.activate
+    def test_list_org_secrets(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{BASE}/orgs/test-org/actions/secrets",
+            json={
+                "secrets": [
+                    {"name": "ORG_SECRET", "created_at": "2024-01-01", "updated_at": "2024-01-02"}
+                ]
+            },
+            status=200,
+        )
+        secrets = github_adapter.list_secrets(scope="test-org")
+        assert len(secrets) == 1
+        assert secrets[0].name == "ORG_SECRET"
+
+    @responses.activate
+    def test_delete_org_secret(self, github_adapter):
+        responses.add(
+            responses.DELETE,
+            f"{BASE}/orgs/test-org/actions/secrets/ORG_SECRET",
+            status=204,
+        )
+        github_adapter.delete_secret("ORG_SECRET", scope="test-org")
+
+
+class TestOrgVariables:
+    @responses.activate
+    def test_list_org_variables(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{BASE}/orgs/test-org/actions/variables",
+            json={
+                "variables": [
+                    {"name": "ORG_VAR", "value": "val", "created_at": "", "updated_at": ""}
+                ]
+            },
+            status=200,
+        )
+        variables = github_adapter.list_variables(scope="test-org")
+        assert len(variables) == 1
+        assert variables[0].name == "ORG_VAR"
+
+    @responses.activate
+    def test_delete_org_variable(self, github_adapter):
+        responses.add(
+            responses.DELETE,
+            f"{BASE}/orgs/test-org/actions/variables/ORG_VAR",
+            status=204,
+        )
+        github_adapter.delete_variable("ORG_VAR", scope="test-org")

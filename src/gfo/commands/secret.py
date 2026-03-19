@@ -14,7 +14,8 @@ from gfo.output import output
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo secret list のハンドラ。"""
     adapter = get_adapter()
-    secrets = adapter.list_secrets(limit=args.limit)
+    scope = getattr(args, "org", None)
+    secrets = adapter.list_secrets(scope=scope, limit=args.limit)
     output(secrets, fmt=fmt, fields=["name", "updated_at"], jq=jq)
 
 
@@ -40,12 +41,14 @@ def handle_set(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
             raise GfoError(_("File not found: {file}").format(file=args.file))
         except PermissionError:
             raise GfoError(_("Permission denied: {file}").format(file=args.file))
-    secret = adapter.set_secret(args.name, value)
+    scope = getattr(args, "org", None)
+    secret = adapter.set_secret(args.name, value, scope=scope)
     output(secret, fmt=fmt, jq=jq)
 
 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo secret delete <name> のハンドラ。"""
     adapter = get_adapter()
-    adapter.delete_secret(args.name)
+    scope = getattr(args, "org", None)
+    adapter.delete_secret(args.name, scope=scope)
     print(_("Deleted secret '{name}'.").format(name=args.name))

@@ -1111,7 +1111,8 @@ class BitbucketAdapter(GitServiceAdapter):
 
     # --- Secret (Pipelines secured variables) ---
 
-    def list_secrets(self, *, limit: int = 30) -> list[Secret]:
+    def list_secrets(self, *, scope: str | None = None, limit: int = 30) -> list[Secret]:
+        self._warn_unsupported_params("secret list", scope=scope)
         results = paginate_response_body(
             self._client,
             f"{self._repos_path()}/pipelines_config/variables/",
@@ -1120,7 +1121,8 @@ class BitbucketAdapter(GitServiceAdapter):
         secured = [d for d in results if d.get("secured")]
         return [Secret(name=d["key"], created_at="", updated_at="") for d in secured]
 
-    def set_secret(self, name: str, value: str) -> Secret:
+    def set_secret(self, name: str, value: str, *, scope: str | None = None) -> Secret:
+        self._warn_unsupported_params("secret set", scope=scope)
         try:
             uuid = self._find_pipeline_variable_uuid(name)
             resp = self._client.put(
@@ -1135,7 +1137,8 @@ class BitbucketAdapter(GitServiceAdapter):
         data = resp.json()
         return Secret(name=data.get("key", name), created_at="", updated_at="")
 
-    def delete_secret(self, name: str) -> None:
+    def delete_secret(self, name: str, *, scope: str | None = None) -> None:
+        self._warn_unsupported_params("secret delete", scope=scope)
         uuid = self._find_pipeline_variable_uuid(name)
         self._client.delete(f"{self._repos_path()}/pipelines_config/variables/{uuid}")
 
@@ -1153,7 +1156,8 @@ class BitbucketAdapter(GitServiceAdapter):
 
     # --- Variable (Pipelines unsecured variables) ---
 
-    def list_variables(self, *, limit: int = 30) -> list[Variable]:
+    def list_variables(self, *, scope: str | None = None, limit: int = 30) -> list[Variable]:
+        self._warn_unsupported_params("variable list", scope=scope)
         results = paginate_response_body(
             self._client,
             f"{self._repos_path()}/pipelines_config/variables/",
@@ -1165,7 +1169,10 @@ class BitbucketAdapter(GitServiceAdapter):
             for d in unsecured
         ]
 
-    def set_variable(self, name: str, value: str, *, masked: bool = False) -> Variable:
+    def set_variable(
+        self, name: str, value: str, *, scope: str | None = None, masked: bool = False
+    ) -> Variable:
+        self._warn_unsupported_params("variable set", scope=scope)
         try:
             uuid = self._find_pipeline_variable_uuid(name)
             resp = self._client.put(
@@ -1190,7 +1197,8 @@ class BitbucketAdapter(GitServiceAdapter):
             name=data["key"], value=data.get("value") or "", created_at="", updated_at=""
         )
 
-    def delete_variable(self, name: str) -> None:
+    def delete_variable(self, name: str, *, scope: str | None = None) -> None:
+        self._warn_unsupported_params("variable delete", scope=scope)
         uuid = self._find_pipeline_variable_uuid(name)
         self._client.delete(f"{self._repos_path()}/pipelines_config/variables/{uuid}")
 

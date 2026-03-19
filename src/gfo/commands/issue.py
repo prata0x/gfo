@@ -198,6 +198,20 @@ def handle_unlock(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     print(_("Unlocked issue #{number}.").format(number=args.number))
 
 
+def handle_subscribe(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo issue subscribe <number> のハンドラ。"""
+    adapter = get_adapter()
+    adapter.subscribe_issue(args.number)
+    print(_("Subscribed to issue #{number}.").format(number=args.number))
+
+
+def handle_unsubscribe(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo issue unsubscribe <number> のハンドラ。"""
+    adapter = get_adapter()
+    adapter.unsubscribe_issue(args.number)
+    print(_("Unsubscribed from issue #{number}.").format(number=args.number))
+
+
 def handle_pin(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue pin <number> のハンドラ。"""
     adapter = get_adapter()

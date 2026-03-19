@@ -309,6 +309,12 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_lock.add_argument("--reason", help=_("Lock reason"))
     issue_unlock = issue_sub.add_parser("unlock", help=_("Unlock issue conversation"))
     issue_unlock.add_argument("number", type=int, help=_("Issue number"))
+    issue_subscribe = issue_sub.add_parser("subscribe", help=_("Subscribe to issue notifications"))
+    issue_subscribe.add_argument("number", type=int, help=_("Issue number"))
+    issue_unsubscribe = issue_sub.add_parser(
+        "unsubscribe", help=_("Unsubscribe from issue notifications")
+    )
+    issue_unsubscribe.add_argument("number", type=int, help=_("Issue number"))
 
     issue_migrate = issue_sub.add_parser("migrate", help=_("Migrate issues between services"))
     issue_migrate.add_argument(
@@ -1084,8 +1090,10 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     secret_list.add_argument(
         "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
     )
+    secret_list.add_argument("--org", help=_("Organization scope"))
     secret_set = secret_sub.add_parser("set", help=_("Set secret"))
     secret_set.add_argument("name", help=_("Secret name"))
+    secret_set.add_argument("--org", help=_("Organization scope"))
     _secret_value_group = secret_set.add_mutually_exclusive_group(required=True)
     _secret_value_group.add_argument("--value", help=_("Secret value"))
     _secret_value_group.add_argument(
@@ -1094,6 +1102,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     _secret_value_group.add_argument("--file", help=_("File path"))
     secret_delete = secret_sub.add_parser("delete", help=_("Delete secret"))
     secret_delete.add_argument("name", help=_("Secret name"))
+    secret_delete.add_argument("--org", help=_("Organization scope"))
 
     # gfo variable → サブサブコマンド
     variable_parser = subparser_map["variable"] = subparsers.add_parser(
@@ -1104,14 +1113,17 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     variable_list.add_argument(
         "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
     )
+    variable_list.add_argument("--org", help=_("Organization scope"))
     variable_set = variable_sub.add_parser("set", help=_("Set variable"))
     variable_set.add_argument("name", help=_("Variable name"))
     variable_set.add_argument("--value", required=True, help=_("Value"))
     variable_set.add_argument("--masked", action="store_true", help=_("Mask variable in logs"))
+    variable_set.add_argument("--org", help=_("Organization scope"))
     variable_get = variable_sub.add_parser("get", help=_("Get variable"))
     variable_get.add_argument("name", help=_("Variable name"))
     variable_delete = variable_sub.add_parser("delete", help=_("Delete variable"))
     variable_delete.add_argument("name", help=_("Variable name"))
+    variable_delete.add_argument("--org", help=_("Organization scope"))
 
     # gfo browse（サブコマンドなし）
     browse_parser = subparser_map["browse"] = subparsers.add_parser(
@@ -1280,6 +1292,8 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("issue", "reaction"): gfo.commands.issue.handle_reaction,
     ("issue", "depends"): gfo.commands.issue.handle_depends,
     ("issue", "timeline"): gfo.commands.issue.handle_timeline,
+    ("issue", "subscribe"): gfo.commands.issue.handle_subscribe,
+    ("issue", "unsubscribe"): gfo.commands.issue.handle_unsubscribe,
     ("issue", "pin"): gfo.commands.issue.handle_pin,
     ("issue", "unpin"): gfo.commands.issue.handle_unpin,
     ("issue", "time"): gfo.commands.issue.handle_time,
