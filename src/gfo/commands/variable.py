@@ -30,7 +30,8 @@ def handle_set(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
 def handle_get(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo variable get <name> のハンドラ。"""
     adapter = get_adapter()
-    variable = adapter.get_variable(args.name)
+    scope = getattr(args, "org", None)
+    variable = adapter.get_variable(args.name, scope=scope)
     if fmt == "json" or jq is not None:
         output(variable, fmt="json", jq=jq)
     else:

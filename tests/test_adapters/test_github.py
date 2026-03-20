@@ -512,6 +512,16 @@ class TestListPullRequests:
         assert len(prs) == 1
         assert prs[0].number == 1
 
+    def test_client_filter_fetches_all_then_limits(self, mock_responses, github_adapter):
+        """クライアント側フィルタ使用時は全件取得後にlimitでスライスする。"""
+        prs = [_pr_data(number=i) for i in range(1, 6)]
+        mock_responses.add(responses.GET, f"{REPOS}/pulls", json=prs, status=200)
+        result = github_adapter.list_pull_requests(author="author1", limit=2)
+        assert len(result) == 2
+        # クライアント側フィルタ時は limit=0（全件取得）で fetch される
+        url = mock_responses.calls[0].request.url
+        assert "per_page=30" in url  # limit=0 時は per_page=30 (デフォルト)
+
 
 class TestCreatePullRequest:
     def test_create(self, mock_responses, github_adapter):
@@ -1624,6 +1634,7 @@ class TestUpdatePullRequest:
             status=200,
         )
         mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json={}, status=200)
+        mock_responses.add(responses.GET, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
         github_adapter.update_pull_request(1, add_labels=["new"])
         req_body = json.loads(mock_responses.calls[2].request.body)
         assert sorted(req_body["labels"]) == ["existing", "new"]
@@ -1637,6 +1648,7 @@ class TestUpdatePullRequest:
             status=200,
         )
         mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json={}, status=200)
+        mock_responses.add(responses.GET, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
         github_adapter.update_pull_request(1, remove_labels=["wontfix"])
         req_body = json.loads(mock_responses.calls[2].request.body)
         assert req_body["labels"] == ["bug"]
@@ -1650,6 +1662,7 @@ class TestUpdatePullRequest:
             status=200,
         )
         mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json={}, status=200)
+        mock_responses.add(responses.GET, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
         github_adapter.update_pull_request(1, add_assignees=["bob"])
         req_body = json.loads(mock_responses.calls[2].request.body)
         assert sorted(req_body["assignees"]) == ["alice", "bob"]
@@ -1663,6 +1676,7 @@ class TestUpdatePullRequest:
             status=200,
         )
         mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json={}, status=200)
+        mock_responses.add(responses.GET, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
         github_adapter.update_pull_request(1, remove_assignees=["bob"])
         req_body = json.loads(mock_responses.calls[2].request.body)
         assert req_body["assignees"] == ["alice"]
@@ -1684,6 +1698,7 @@ class TestUpdatePullRequest:
             status=200,
         )
         mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json={}, status=200)
+        mock_responses.add(responses.GET, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
         github_adapter.update_pull_request(1, milestone="v1.0")
         req_body = json.loads(mock_responses.calls[2].request.body)
         assert req_body["milestone"] == 5

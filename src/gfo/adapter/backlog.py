@@ -273,6 +273,13 @@ class BacklogAdapter(GitServiceAdapter):
             params["assigneeUserId[]"] = assignee
         if search:
             params["keyword"] = search
+            if label:
+                import warnings
+
+                warnings.warn(
+                    "Backlog does not support search and label simultaneously; label ignored",
+                    stacklevel=2,
+                )
         elif label:
             params["keyword"] = label
         results = paginate_offset(self._client, "/issues", params=params, limit=limit)
@@ -591,6 +598,14 @@ class BacklogAdapter(GitServiceAdapter):
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
     ) -> PullRequest:
+        self._warn_unsupported_params(
+            "pr edit",
+            add_labels=add_labels,
+            remove_labels=remove_labels,
+            add_assignees=add_assignees,
+            remove_assignees=remove_assignees,
+            milestone=milestone,
+        )
         payload: dict = {}
         if title is not None:
             payload["summary"] = title
@@ -617,6 +632,14 @@ class BacklogAdapter(GitServiceAdapter):
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
     ) -> Issue:
+        self._warn_unsupported_params(
+            "issue edit",
+            add_labels=add_labels,
+            remove_labels=remove_labels,
+            add_assignees=add_assignees,
+            remove_assignees=remove_assignees,
+            milestone=milestone,
+        )
         payload: dict = {}
         if title is not None:
             payload["summary"] = title

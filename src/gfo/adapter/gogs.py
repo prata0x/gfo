@@ -8,6 +8,7 @@ from urllib.parse import quote
 from gfo.exceptions import NotSupportedError
 
 from .base import (
+    Artifact,
     BranchProtection,
     CheckRun,
     Comment,
@@ -39,6 +40,7 @@ from .base import (
     Webhook,
     WikiPage,
     WikiRevision,
+    Workflow,
 )
 from .gitea import GiteaAdapter
 from .registry import register
@@ -293,22 +295,26 @@ class GogsAdapter(GiteaAdapter):
     def cancel_pipeline(self, pipeline_id: int | str) -> None:
         raise NotSupportedError("Gogs", "ci operations")
 
-    def list_workflows(self, *, limit: int = 30):
+    def list_workflows(self, *, limit: int = 30) -> list[Workflow]:
         raise NotSupportedError("Gogs", "ci operations")
 
-    def enable_workflow(self, workflow_id):
+    def enable_workflow(self, workflow_id: int | str) -> None:
         raise NotSupportedError("Gogs", "ci operations")
 
-    def disable_workflow(self, workflow_id):
+    def disable_workflow(self, workflow_id: int | str) -> None:
         raise NotSupportedError("Gogs", "ci operations")
 
-    def list_artifacts(self, run_id, *, limit: int = 30):
+    def list_artifacts(self, run_id: int | str, *, limit: int = 30) -> list[Artifact]:
         raise NotSupportedError("Gogs", "ci operations")
 
-    def download_artifact(self, run_id, artifact_id, *, output_dir: str = "."):
+    def download_artifact(
+        self, run_id: int | str, artifact_id: int | str, *, output_dir: str = "."
+    ) -> str:
         raise NotSupportedError("Gogs", "ci operations")
 
-    def download_run_logs(self, run_id, *, job_id=None, output_dir: str = "."):
+    def download_run_logs(
+        self, run_id: int | str, *, job_id: int | str | None = None, output_dir: str = "."
+    ) -> str:
         raise NotSupportedError("Gogs", "ci operations")
 
     # --- Tag（Gogs 0.13: create/delete 未対応）---
@@ -406,7 +412,7 @@ class GogsAdapter(GiteaAdapter):
     ) -> Variable:
         raise NotSupportedError("Gogs", "variable operations")
 
-    def get_variable(self, name: str) -> Variable:
+    def get_variable(self, name: str, *, scope: str | None = None) -> Variable:
         raise NotSupportedError("Gogs", "variable operations")
 
     def delete_variable(self, name: str, *, scope: str | None = None) -> None:
@@ -510,9 +516,17 @@ class GogsAdapter(GiteaAdapter):
     # --- Repo update/archive/languages/topics/compare（Gogs 0.13 未対応）---
 
     def update_repository(
-        self, *, name=None, description=None, private=None, default_branch=None
+        self,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        private: bool | None = None,
+        default_branch: str | None = None,
     ) -> Repository:
         raise NotSupportedError("Gogs", "repo update")
+
+    def sync_fork(self, *, branch: str | None = None) -> None:
+        raise NotSupportedError("Gogs", "repo sync")
 
     def archive_repository(self) -> None:
         raise NotSupportedError("Gogs", "repo archive")

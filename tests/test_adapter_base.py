@@ -336,3 +336,41 @@ class TestMilestone:
         ms = Milestone(number=1, title="v1.0", description=None, state="open", due_date=None)
         with pytest.raises(dataclasses.FrozenInstanceError):
             ms.state = "closed"  # type: ignore[misc]
+
+
+class TestGetCurrentUsername:
+    """get_current_username() の変換テスト。"""
+
+    def _make_adapter(self, user_data: dict):
+        """get_current_user を差し替えたアダプターを返す。"""
+        adapter = TestGitServiceAdapterDeleteDefaults()._make_adapter()
+        adapter.get_current_user = lambda: user_data
+        return adapter
+
+    def test_login_key(self):
+        adapter = self._make_adapter({"login": "alice"})
+        assert adapter.get_current_username() == "alice"
+
+    def test_username_key(self):
+        adapter = self._make_adapter({"username": "bob"})
+        assert adapter.get_current_username() == "bob"
+
+    def test_nickname_key(self):
+        adapter = self._make_adapter({"nickname": "charlie"})
+        assert adapter.get_current_username() == "charlie"
+
+    def test_userid_key(self):
+        adapter = self._make_adapter({"userId": "dave123"})
+        assert adapter.get_current_username() == "dave123"
+
+    def test_no_matching_key_raises(self):
+        from gfo.exceptions import GfoError
+
+        adapter = self._make_adapter({"id": 42})
+        with pytest.raises(GfoError, match="Cannot determine username"):
+            adapter.get_current_username()
+
+    def test_priority_order(self):
+        """login が最優先で、他のキーより先にチェックされることを確認。"""
+        adapter = self._make_adapter({"login": "first", "username": "second"})
+        assert adapter.get_current_username() == "first"

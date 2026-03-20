@@ -214,13 +214,9 @@ def handle_ready(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
 def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr status のハンドラ。"""
     adapter = get_adapter()
-    user = adapter.get_current_user()
-    username = user["login"]
+    username = adapter.get_current_username()
 
     created = adapter.list_pull_requests(state="open", author=username)
-    review_requested = adapter.list_pull_requests(
-        state="open", search=f"review-requested:{username}"
-    )
     assigned = adapter.list_pull_requests(state="open", assignee=username)
 
     fields = ["number", "title", "state", "author"]
@@ -230,7 +226,6 @@ def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 
         data = {
             "created": [dataclasses.asdict(pr) for pr in created],
-            "review_requested": [dataclasses.asdict(pr) for pr in review_requested],
             "assigned": [dataclasses.asdict(pr) for pr in assigned],
         }
         json_str = json.dumps(data, indent=2, ensure_ascii=False, default=str)
@@ -243,8 +238,6 @@ def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         return
 
     _print_section(_("Created by you"), created, fields)
-    print()
-    _print_section(_("Review requested"), review_requested, fields)
     print()
     _print_section(_("Assigned to you"), assigned, fields)
 

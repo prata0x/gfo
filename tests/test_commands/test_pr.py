@@ -820,7 +820,7 @@ class TestHandleStatus:
     @pytest.fixture
     def status_adapter(self, sample_pr):
         adapter = MagicMock()
-        adapter.get_current_user.return_value = {"login": "test-user"}
+        adapter.get_current_username.return_value = "test-user"
         adapter.list_pull_requests.return_value = [sample_pr]
         return adapter
 
@@ -829,15 +829,11 @@ class TestHandleStatus:
         with patch("gfo.commands.pr.get_adapter", return_value=status_adapter):
             pr_cmd.handle_status(args, fmt="table")
 
-        status_adapter.get_current_user.assert_called_once()
-        assert status_adapter.list_pull_requests.call_count == 3
+        status_adapter.get_current_username.assert_called_once()
+        assert status_adapter.list_pull_requests.call_count == 2
         calls = status_adapter.list_pull_requests.call_args_list
         assert calls[0].kwargs == {"state": "open", "author": "test-user"}
-        assert calls[1].kwargs == {
-            "state": "open",
-            "search": "review-requested:test-user",
-        }
-        assert calls[2].kwargs == {"state": "open", "assignee": "test-user"}
+        assert calls[1].kwargs == {"state": "open", "assignee": "test-user"}
 
     def test_table_output_has_sections(self, sample_config, status_adapter, capsys):
         args = make_args()
@@ -846,13 +842,12 @@ class TestHandleStatus:
 
         captured = capsys.readouterr().out
         assert "Created by you" in captured
-        assert "Review requested" in captured
         assert "Assigned to you" in captured
         assert "Test PR" in captured
 
     def test_empty_sections(self, sample_config, capsys):
         adapter = MagicMock()
-        adapter.get_current_user.return_value = {"login": "nobody"}
+        adapter.get_current_username.return_value = "nobody"
         adapter.list_pull_requests.return_value = []
         args = make_args()
         with patch("gfo.commands.pr.get_adapter", return_value=adapter):
@@ -871,14 +866,14 @@ class TestHandleStatus:
         captured = capsys.readouterr().out
         data = json.loads(captured)
         assert "created" in data
-        assert "review_requested" in data
         assert "assigned" in data
+        assert "review_requested" not in data
         assert len(data["created"]) == 1
         assert data["created"][0]["title"] == "Test PR"
 
     def test_error_propagates(self, sample_config):
         adapter = MagicMock()
-        adapter.get_current_user.side_effect = NotFoundError()
+        adapter.get_current_username.side_effect = NotFoundError()
         args = make_args()
         with (
             patch("gfo.commands.pr.get_adapter", return_value=adapter),

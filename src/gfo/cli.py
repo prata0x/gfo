@@ -1059,7 +1059,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     )
     ssh_key_sub = ssh_key_parser.add_subparsers(dest="subcommand")
     ssh_key_view = ssh_key_sub.add_parser("view", help=_("View SSH key details"))
-    ssh_key_view.add_argument("id", type=int, help=_("SSH key ID"))
+    ssh_key_view.add_argument("id", help=_("SSH key ID"))
     ssh_key_list = ssh_key_sub.add_parser("list", help=_("List SSH keys"))
     ssh_key_list.add_argument(
         "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
@@ -1076,7 +1076,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     )
     gpg_key_sub = gpg_key_parser.add_subparsers(dest="subcommand")
     gpg_key_view = gpg_key_sub.add_parser("view", help=_("View GPG key details"))
-    gpg_key_view.add_argument("id", type=int, help=_("GPG key ID"))
+    gpg_key_view.add_argument("id", help=_("GPG key ID"))
     gpg_key_list = gpg_key_sub.add_parser("list", help=_("List GPG keys"))
     gpg_key_list.add_argument(
         "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
@@ -1126,6 +1126,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     variable_set.add_argument("--org", help=_("Organization scope"))
     variable_get = variable_sub.add_parser("get", help=_("Get variable"))
     variable_get.add_argument("name", help=_("Variable name"))
+    variable_get.add_argument("--org", help=_("Organization scope"))
     variable_delete = variable_sub.add_parser("delete", help=_("Delete variable"))
     variable_delete.add_argument("name", help=_("Variable name"))
     variable_delete.add_argument("--org", help=_("Organization scope"))

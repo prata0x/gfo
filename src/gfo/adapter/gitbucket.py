@@ -334,7 +334,7 @@ class GitBucketAdapter(GitHubAdapter):
     ) -> Variable:
         raise NotSupportedError("GitBucket", "variable operations")
 
-    def get_variable(self, name: str) -> Variable:
+    def get_variable(self, name: str, *, scope: str | None = None) -> Variable:
         raise NotSupportedError("GitBucket", "variable operations")
 
     def delete_variable(self, name: str, *, scope: str | None = None) -> None:

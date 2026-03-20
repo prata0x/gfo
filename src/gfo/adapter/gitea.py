@@ -38,6 +38,7 @@ from .base import (
     PushMirror,
     Reaction,
     Release,
+    ReleaseAsset,
     Repository,
     Review,
     Secret,
@@ -527,7 +528,9 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         release_id = resp.json()["id"]
         self._client.delete(f"{self._repos_path()}/releases/{release_id}/assets/{asset_id}")
 
-    def update_release_asset(self, *, tag, asset_id, name=None):
+    def update_release_asset(
+        self, *, tag: str, asset_id: int | str, name: str | None = None
+    ) -> ReleaseAsset:
         resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
         release_id = resp.json()["id"]
         payload: dict = {}
@@ -1364,8 +1367,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             )
         return Variable(name=name, value=value, created_at="", updated_at="")
 
-    def get_variable(self, name: str) -> Variable:
-        resp = self._client.get(f"{self._repos_path()}/actions/variables/{quote(name, safe='')}")
+    def get_variable(self, name: str, *, scope: str | None = None) -> Variable:
+        resp = self._client.get(f"{self._variables_base_path(scope)}/{quote(name, safe='')}")
         data = resp.json()
         return Variable(
             name=data["name"],

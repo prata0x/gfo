@@ -903,6 +903,14 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
     ) -> PullRequest:
+        self._warn_unsupported_params(
+            "pr edit",
+            add_labels=add_labels,
+            remove_labels=remove_labels,
+            add_assignees=add_assignees,
+            remove_assignees=remove_assignees,
+            milestone=milestone,
+        )
         payload: dict = {}
         if title is not None:
             payload["title"] = title
@@ -929,6 +937,14 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
     ) -> Issue:
+        self._warn_unsupported_params(
+            "issue edit",
+            add_labels=add_labels,
+            remove_labels=remove_labels,
+            add_assignees=add_assignees,
+            remove_assignees=remove_assignees,
+            milestone=milestone,
+        )
         patch_ops = []
         if title is not None:
             patch_ops.append({"op": "replace", "path": "/fields/System.Title", "value": title})
@@ -990,6 +1006,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             params={"filter": f"heads/{name}"},
         )
         items = resp.json().get("value", [])
+        items = [i for i in items if i.get("name") == f"refs/heads/{name}"]
         if not items:
             from gfo.exceptions import NotFoundError
 
@@ -1044,6 +1061,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             params={"filter": f"tags/{name}"},
         )
         items = resp.json().get("value", [])
+        items = [i for i in items if i.get("name") == f"refs/tags/{name}"]
         if not items:
             from gfo.exceptions import NotFoundError
 

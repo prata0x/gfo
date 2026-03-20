@@ -1936,3 +1936,19 @@ class TestListRequestedReviewersBitbucket:
         )
         reviewers = bitbucket_adapter.list_requested_reviewers(1)
         assert reviewers == ["reviewer1", "reviewer2"]
+
+
+class TestListPullRequestsSearchEscape:
+    def test_double_quote_escaped(self, mock_responses, bitbucket_adapter):
+        """search にダブルクォートが含まれる場合にエスケープされる。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [], "next": None},
+            status=200,
+        )
+        bitbucket_adapter.list_pull_requests(search='test"value')
+        url = mock_responses.calls[0].request.url
+        decoded_url = unquote(url)
+        # エスケープされた \" が title~ フィルタ内に含まれることを確認
+        assert 'title~"test\\"value"' in decoded_url

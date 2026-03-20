@@ -113,11 +113,13 @@ def _handle_workflow_list(args: argparse.Namespace, *, fmt: str, jq: str | None 
 def _handle_workflow_enable(args: argparse.Namespace) -> None:
     adapter = get_adapter()
     adapter.enable_workflow(args.id)
+    print(_("Enabled workflow '{id}'.").format(id=args.id))
 
 
 def _handle_workflow_disable(args: argparse.Namespace) -> None:
     adapter = get_adapter()
     adapter.disable_workflow(args.id)
+    print(_("Disabled workflow '{id}'.").format(id=args.id))
 
 
 def handle_artifact(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

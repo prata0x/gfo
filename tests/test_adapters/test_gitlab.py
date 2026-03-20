@@ -3271,3 +3271,26 @@ class TestOrgVariables:
             status=204,
         )
         gitlab_adapter.delete_variable("GROUP_VAR", scope="my-group")
+
+
+class TestWebhookActiveField:
+    def test_to_webhook_always_active(self, gitlab_adapter):
+        """_to_webhook は常に active=True を返す。"""
+        data = {"id": 1, "url": "https://example.com/hook", "enable_ssl_verification": False}
+        webhook = GitLabAdapter._to_webhook(data)
+        assert webhook.active is True
+
+    def test_update_webhook_active_warns(self, mock_responses, gitlab_adapter):
+        """update_webhook に active を渡すと _warn_unsupported_params で警告する。"""
+        import warnings
+
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/hooks/1",
+            json={"id": 1, "url": "https://example.com/hook"},
+            status=200,
+        )
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            gitlab_adapter.update_webhook(1, active=True)
+            assert any("active" in str(warning.message) for warning in w)

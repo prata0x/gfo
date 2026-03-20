@@ -1262,6 +1262,21 @@ class TestUpdatePullRequest:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["targetRefName"] == "refs/heads/develop"
 
+    def test_warns_unsupported_params(self, mock_responses, azure_devops_adapter):
+        """add_labels を渡すと _warn_unsupported_params で警告する。"""
+        import warnings
+
+        mock_responses.add(
+            responses.PATCH,
+            f"{GIT}/pullrequests/1",
+            json=_pr_data(),
+            status=200,
+        )
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            azure_devops_adapter.update_pull_request(1, title="x", add_labels=["bug"])
+            assert any("add_labels" in str(warning.message) for warning in w)
+
 
 class TestUpdateIssue:
     def test_update_title(self, mock_responses, azure_devops_adapter):
@@ -1350,6 +1365,24 @@ class TestCreateBranch:
         )
         branch = azure_devops_adapter.create_branch(name="new-branch", ref="abc123")
         assert isinstance(branch, Branch)
+
+
+class TestGetBranchExactMatch:
+    def test_exact_match_filters_prefix(self, mock_responses, azure_devops_adapter):
+        """get_branch("main") が "main-v2" を返さないことを確認。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/refs",
+            json={
+                "value": [
+                    {"name": "refs/heads/main-v2", "objectId": "abc123"},
+                ],
+                "count": 1,
+            },
+            status=200,
+        )
+        with pytest.raises(NotFoundError):
+            azure_devops_adapter.get_branch("main")
 
 
 class TestDeleteBranch:

@@ -300,3 +300,9 @@ class TestDeleteInheritance:
     def test_migrate_repository_not_supported(self, gogs_adapter):
         with pytest.raises(NotSupportedError):
             gogs_adapter.migrate_repository("https://github.com/a/b.git", "c")
+
+
+class TestSyncFork:
+    def test_raises_not_supported(self, gogs_adapter):
+        with pytest.raises(NotSupportedError):
+            gogs_adapter.sync_fork()

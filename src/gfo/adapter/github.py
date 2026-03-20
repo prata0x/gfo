@@ -36,6 +36,7 @@ from .base import (
     PullRequestFile,
     Reaction,
     Release,
+    ReleaseAsset,
     Repository,
     Review,
     Secret,
@@ -80,11 +81,13 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             params["base"] = base
         if head:
             params["head"] = head
+        needs_client_filter = any([author, label, assignee, draft is not None, search])
+        fetch_limit = 0 if needs_client_filter else limit
         results = paginate_link_header(
             self._client,
             f"{self._repos_path()}/pulls",
             params=params,
-            limit=limit,
+            limit=fetch_limit,
         )
         # GitHub PR API は author/label/assignee/draft/search をネイティブ非対応のためクライアント側フィルタ
         if author:
@@ -110,6 +113,8 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         prs = [self._to_pull_request(r) for r in results]
         if state == "merged":
             prs = [pr for pr in prs if pr.state == "merged"]
+        if needs_client_filter and limit > 0:
+            prs = prs[:limit]
         return prs
 
     def create_pull_request(
@@ -538,7 +543,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def delete_release_asset(self, *, tag, asset_id):
         self._client.delete(f"{self._repos_path()}/releases/assets/{asset_id}")
 
-    def update_release_asset(self, *, tag, asset_id, name=None):
+    def update_release_asset(
+        self, *, tag: str, asset_id: int | str, name: str | None = None
+    ) -> ReleaseAsset:
         payload: dict = {}
         if name is not None:
             payload["name"] = name
@@ -709,6 +716,8 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             issue_payload["milestone"] = self._resolve_milestone_number(milestone)
         if issue_payload:
             self._client.patch(f"{self._repos_path()}/issues/{number}", json=issue_payload)
+            resp = self._client.get(f"{self._repos_path()}/pulls/{number}")
+            return self._to_pull_request(resp.json())
         return pr
 
     # --- PR diff / checks / files / commits / reviewers / update-branch / dismiss ---
@@ -849,7 +858,14 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["body"] = body
         if assignee is not None:
             payload["assignees"] = [assignee]
-        if label is not None:
+        if label is not None and (add_labels or remove_labels):
+            import warnings
+
+            warnings.warn(
+                "label は add_labels/remove_labels と同時指定できません。label を無視します",
+                stacklevel=2,
+            )
+        elif label is not None:
             payload["labels"] = [label]
         if add_labels or remove_labels or add_assignees or remove_assignees:
             issue_resp = self._client.get(f"{self._repos_path()}/issues/{number}")
@@ -1532,8 +1548,8 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             )
         return Variable(name=name, value=value, created_at="", updated_at="")
 
-    def get_variable(self, name: str) -> Variable:
-        resp = self._client.get(f"{self._repos_path()}/actions/variables/{quote(name, safe='')}")
+    def get_variable(self, name: str, *, scope: str | None = None) -> Variable:
+        resp = self._client.get(f"{self._variables_base_path(scope)}/{quote(name, safe='')}")
         data = resp.json()
         return Variable(
             name=data["name"],

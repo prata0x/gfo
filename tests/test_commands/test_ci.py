@@ -269,6 +269,20 @@ class TestHandleWorkflow:
             ci_cmd.handle_workflow(args, fmt="table")
         adapter.disable_workflow.assert_called_once_with("1")
 
+    def test_enable_prints_message(self, capsys):
+        with patch_adapter("gfo.commands.ci"):
+            args = make_args(workflow_action="enable", id="42")
+            ci_cmd.handle_workflow(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "42" in out
+
+    def test_disable_prints_message(self, capsys):
+        with patch_adapter("gfo.commands.ci"):
+            args = make_args(workflow_action="disable", id="42")
+            ci_cmd.handle_workflow(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "42" in out
+
     def test_no_action(self):
         with patch_adapter("gfo.commands.ci"):
             args = make_args(workflow_action=None)

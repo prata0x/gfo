@@ -669,7 +669,9 @@ class GitLabAdapter(GitServiceAdapter):
             f"{self._project_path()}/releases/{quote(tag, safe='')}/assets/links/{asset_id}"
         )
 
-    def update_release_asset(self, *, tag, asset_id, name=None):
+    def update_release_asset(
+        self, *, tag: str, asset_id: int | str, name: str | None = None
+    ) -> ReleaseAsset:
         payload: dict = {}
         if name is not None:
             payload["name"] = name
@@ -683,7 +685,7 @@ class GitLabAdapter(GitServiceAdapter):
             name=data.get("name") or "",
             size=0,
             download_url=data.get("url") or data.get("direct_asset_url") or "",
-            created_at="",
+            created_at=data.get("created_at") or "",
         )
 
     # --- Label ---
@@ -900,7 +902,7 @@ class GitLabAdapter(GitServiceAdapter):
                 id=data["id"],
                 url=data.get("url") or "",
                 events=events,
-                active=data.get("enable_ssl_verification", True),
+                active=True,  # GitLab hooks API に active/inactive トグルなし
             )
         except (KeyError, TypeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
@@ -1491,7 +1493,7 @@ class GitLabAdapter(GitServiceAdapter):
         if secret is not None:
             payload["token"] = secret
         if active is not None:
-            payload["enable_ssl_verification"] = active
+            self._warn_unsupported_params("webhook edit", active=active)
         resp = self._client.put(f"{self._project_path()}/hooks/{hook_id}", json=payload)
         return self._to_webhook(resp.json())
 
@@ -1653,8 +1655,8 @@ class GitLabAdapter(GitServiceAdapter):
             self._client.post(base, json=payload)
         return Variable(name=name, value=value, created_at="", updated_at="")
 
-    def get_variable(self, name: str) -> Variable:
-        resp = self._client.get(f"{self._project_path()}/variables/{quote(name, safe='')}")
+    def get_variable(self, name: str, *, scope: str | None = None) -> Variable:
+        resp = self._client.get(f"{self._variables_base_path(scope)}/{quote(name, safe='')}")
         data = resp.json()
         return Variable(
             name=data["key"],

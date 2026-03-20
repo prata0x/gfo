@@ -133,3 +133,23 @@ class TestOrgScope:
             args = make_args(name="ORG_VAR", org="my-org")
             variable_cmd.handle_delete(args, fmt="table")
         adapter.delete_variable.assert_called_once_with("ORG_VAR", scope="my-org")
+
+
+class TestHandleGetScope:
+    def test_scope_passed_to_adapter(self, capsys):
+        with patch_adapter("gfo.commands.variable") as adapter:
+            adapter.get_variable.return_value = Variable(
+                name="FOO", value="bar", created_at="", updated_at=""
+            )
+            args = make_args(name="FOO", org="my-org")
+            variable_cmd.handle_get(args, fmt="table")
+        adapter.get_variable.assert_called_once_with("FOO", scope="my-org")
+
+    def test_scope_none_by_default(self, capsys):
+        with patch_adapter("gfo.commands.variable") as adapter:
+            adapter.get_variable.return_value = Variable(
+                name="FOO", value="bar", created_at="", updated_at=""
+            )
+            args = make_args(name="FOO")
+            variable_cmd.handle_get(args, fmt="table")
+        adapter.get_variable.assert_called_once_with("FOO", scope=None)

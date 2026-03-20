@@ -1211,6 +1211,13 @@ class GitServiceAdapter(ABC):
     def get_current_user(self) -> dict:
         raise NotSupportedError(self.service_name, "user whoami")
 
+    def get_current_username(self) -> str:
+        user = self.get_current_user()
+        for key in ("login", "username", "nickname", "userId"):
+            if key in user and user[key]:
+                return str(user[key])
+        raise GfoError("Cannot determine username from current user response")
+
     # --- Search ---
     def search_repositories(self, query: str, *, limit: int = 30) -> list[Repository]:
         raise NotSupportedError(self.service_name, "search repos")
@@ -1237,7 +1244,7 @@ class GitServiceAdapter(ABC):
     ) -> Variable:
         raise NotSupportedError(self.service_name, "variable set")
 
-    def get_variable(self, name: str) -> Variable:
+    def get_variable(self, name: str, *, scope: str | None = None) -> Variable:
         raise NotSupportedError(self.service_name, "variable get")
 
     def delete_variable(self, name: str, *, scope: str | None = None) -> None:

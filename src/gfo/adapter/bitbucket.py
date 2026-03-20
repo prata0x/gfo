@@ -160,7 +160,7 @@ class BitbucketAdapter(GitServiceAdapter):
         if head:
             q_parts.append(f'source.branch.name="{head}"')
         if search:
-            q_parts.append(f'title~"{search}"')
+            q_parts.append(f'title~"{search.replace(chr(34), chr(92) + chr(34))}"')
         if q_parts:
             params["q"] = " AND ".join(q_parts)
         results = paginate_response_body(
@@ -254,7 +254,7 @@ class BitbucketAdapter(GitServiceAdapter):
         milestone: str | None = None,
         search: str | None = None,
     ) -> list[Issue]:
-        self._warn_unsupported_params("issue list", milestone=milestone)
+        self._warn_unsupported_params("issue list", author=author, milestone=milestone)
         conditions: list[str] = []
         if state == "open":
             conditions.append('(state="new" OR state="open")')
@@ -608,6 +608,14 @@ class BitbucketAdapter(GitServiceAdapter):
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
     ) -> PullRequest:
+        self._warn_unsupported_params(
+            "pr edit",
+            add_labels=add_labels,
+            remove_labels=remove_labels,
+            add_assignees=add_assignees,
+            remove_assignees=remove_assignees,
+            milestone=milestone,
+        )
         payload: dict = {}
         if title is not None:
             payload["title"] = title
@@ -634,6 +642,14 @@ class BitbucketAdapter(GitServiceAdapter):
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
     ) -> Issue:
+        self._warn_unsupported_params(
+            "issue edit",
+            add_labels=add_labels,
+            remove_labels=remove_labels,
+            add_assignees=add_assignees,
+            remove_assignees=remove_assignees,
+            milestone=milestone,
+        )
         payload: dict = {}
         if title is not None:
             payload["title"] = title
@@ -1192,7 +1208,8 @@ class BitbucketAdapter(GitServiceAdapter):
             name=data.get("key", name), value=data.get("value", value), created_at="", updated_at=""
         )
 
-    def get_variable(self, name: str) -> Variable:
+    def get_variable(self, name: str, *, scope: str | None = None) -> Variable:
+        self._warn_unsupported_params("variable get", scope=scope)
         uuid = self._find_pipeline_variable_uuid(name)
         resp = self._client.get(f"{self._repos_path()}/pipelines_config/variables/{uuid}")
         data = resp.json()

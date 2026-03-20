@@ -1293,3 +1293,19 @@ def test_parser_auth_login_account_default():
     parser, _ = create_parser()
     args = parser.parse_args(["auth", "login", "--host", "github.com"])
     assert args.account == "default"
+
+
+class TestSshKeyViewStringId:
+    def test_accepts_string_id(self):
+        """ssh-key view が文字列 ID を受け付けることを確認。"""
+        parser, _ = create_parser()
+        args = parser.parse_args(["ssh-key", "view", "abc123"])
+        assert args.id == "abc123"
+
+
+class TestGpgKeyViewStringId:
+    def test_accepts_string_id(self):
+        """gpg-key view が文字列 ID を受け付けることを確認。"""
+        parser, _ = create_parser()
+        args = parser.parse_args(["gpg-key", "view", "def456"])
+        assert args.id == "def456"
