@@ -142,17 +142,26 @@ Operate pull requests (Merge Requests).
 ### gfo pr list
 
 ```
-gfo pr list [--state {open,closed,merged,all}] [--limit N]
+gfo pr list [--state {open,closed,merged,all}] [--limit N] [--author USER] [--label LABEL] [--assignee USER] [--search QUERY] [--base BRANCH] [--head BRANCH] [--draft | --no-draft]
 ```
 
 | Option | Default | Description |
 |---|---|---|
 | `--state` | `open` | PR state to display |
 | `--limit` | `30` | Maximum number of results |
+| `--author` | — | Filter by author |
+| `--label`, `-l` | — | Filter by label |
+| `--assignee`, `-a` | — | Filter by assignee |
+| `--search`, `-S` | — | Filter by title/description |
+| `--base`, `-B` | — | Filter by base branch |
+| `--head`, `-H` | — | Filter by head branch |
+| `--draft` / `--no-draft` | — | Filter by draft status |
 
 ```bash
 gfo pr list
 gfo pr list --state all --limit 50
+gfo pr list --author alice --label bug
+gfo pr list --base main --draft
 ```
 
 ### gfo pr create
@@ -195,7 +204,7 @@ gfo pr view 42
 > Backlog does not support PR merge
 
 ```
-gfo pr merge NUMBER [--merge | --squash | --rebase] [--auto]
+gfo pr merge NUMBER [--merge | --squash | --rebase] [--delete-branch] [--subject TITLE] [--body BODY] [--auto]
 ```
 
 | Option | Description |
@@ -203,13 +212,17 @@ gfo pr merge NUMBER [--merge | --squash | --rebase] [--auto]
 | `--merge` | Create a merge commit (default) |
 | `--squash` | Squash and merge |
 | `--rebase` | Rebase and merge |
+| `--delete-branch`, `-d` | Delete branch after merge |
+| `--subject` | Merge commit title |
+| `--body` | Merge commit body |
 | `--auto` | Enable auto-merge (merges automatically when conditions are met) |
 
 > `--auto` supported services: GitLab, Azure DevOps, Gitea, Forgejo
 
 ```bash
 gfo pr merge 42
-gfo pr merge 42 --squash
+gfo pr merge 42 --squash --delete-branch
+gfo pr merge 42 --subject "feat: merge feature X" --body "Detailed description"
 gfo pr merge 42 --rebase --auto
 ```
 
@@ -247,15 +260,73 @@ Checks out the PR branch locally.
 gfo pr checkout 42
 ```
 
+### gfo pr status
+
+Show status of pull requests related to you (created, review requested, assigned).
+
+```
+gfo pr status
+```
+
+```bash
+gfo pr status
+```
+
+### gfo pr lock
+
+Lock pull request conversation.
+
+> **Supported services**: GitHub, GitLab, Gitea
+
+```
+gfo pr lock NUMBER [--reason REASON]
+```
+
+| Option | Description |
+|---|---|
+| `--reason` | Lock reason |
+
+```bash
+gfo pr lock 42
+gfo pr lock 42 --reason "resolved"
+```
+
+### gfo pr unlock
+
+Unlock pull request conversation.
+
+> **Supported services**: GitHub, GitLab, Gitea
+
+```
+gfo pr unlock NUMBER
+```
+
+```bash
+gfo pr unlock 42
+```
+
 ### gfo pr edit
 
 ```
-gfo pr edit NUMBER [--title TITLE] [--body BODY] [--base BRANCH]
+gfo pr edit NUMBER [--title TITLE] [--body BODY] [--base BRANCH] [--add-label LABEL] [--remove-label LABEL] [--add-assignee USER] [--remove-assignee USER] [--milestone NAME]
 ```
+
+| Option | Description |
+|---|---|
+| `--title` | Title |
+| `--body` | Body |
+| `--base` | Base branch |
+| `--add-label` | Add label (repeatable) |
+| `--remove-label` | Remove label (repeatable) |
+| `--add-assignee` | Add assignee (repeatable) |
+| `--remove-assignee` | Remove assignee (repeatable) |
+| `--milestone` | Milestone name |
 
 ```bash
 gfo pr edit 42 --title "Updated title"
 gfo pr edit 42 --base develop
+gfo pr edit 42 --add-label bug --add-label urgent --remove-label wip
+gfo pr edit 42 --add-assignee alice --milestone v1.0
 ```
 
 ### gfo pr diff
@@ -414,7 +485,7 @@ Operate issues.
 ### gfo issue list
 
 ```
-gfo issue list [--state {open,closed,all}] [--assignee USER] [--label LABEL] [--limit N]
+gfo issue list [--state {open,closed,all}] [--assignee USER] [--label LABEL] [--author USER] [--milestone NAME] [--search QUERY] [--limit N]
 ```
 
 | Option | Default | Description |
@@ -422,17 +493,22 @@ gfo issue list [--state {open,closed,all}] [--assignee USER] [--label LABEL] [--
 | `--state` | `open` | Issue state to display |
 | `--assignee` | — | Filter by assignee |
 | `--label` | — | Filter by label |
+| `--author` | — | Filter by author |
+| `--milestone` | — | Filter by milestone |
+| `--search`, `-S` | — | Filter by title/description |
 | `--limit` | `30` | Maximum number of results |
 
 ```bash
 gfo issue list
 gfo issue list --state all --assignee alice --limit 100
+gfo issue list --author bob --milestone v1.0
+gfo issue list --search "login bug"
 ```
 
 ### gfo issue create
 
 ```
-gfo issue create --title TITLE [--body BODY] [--assignee USER] [--label LABEL] [--type TYPE] [--priority N]
+gfo issue create --title TITLE [--body BODY] [--assignee USER] [--label LABEL] [--milestone NAME] [--type TYPE] [--priority N]
 ```
 
 | Option | Required | Description |
@@ -441,12 +517,13 @@ gfo issue create --title TITLE [--body BODY] [--assignee USER] [--label LABEL] [
 | `--body` | — | Issue body |
 | `--assignee` | — | Assignee |
 | `--label` | — | Label |
+| `--milestone` | — | Milestone name |
 | `--type` | — | Issue type (Azure DevOps: `Task`, `Bug`, etc.) |
 | `--priority` | — | Priority (for services that use numeric priority, e.g., Backlog) |
 
 ```bash
 gfo issue create --title "Bug: login fails"
-gfo issue create --title "Feature request" --body "Details..." --label enhancement
+gfo issue create --title "Feature request" --body "Details..." --label enhancement --milestone v1.0
 ```
 
 ### gfo issue view
@@ -495,16 +572,90 @@ gfo issue delete NUMBER
 gfo issue delete 10
 ```
 
+### gfo issue lock
+
+Lock issue conversation.
+
+> **Supported services**: GitHub, GitLab, Gitea
+
+```
+gfo issue lock NUMBER [--reason REASON]
+```
+
+| Option | Description |
+|---|---|
+| `--reason` | Lock reason |
+
+```bash
+gfo issue lock 10
+gfo issue lock 10 --reason "resolved"
+```
+
+### gfo issue unlock
+
+Unlock issue conversation.
+
+> **Supported services**: GitHub, GitLab, Gitea
+
+```
+gfo issue unlock NUMBER
+```
+
+```bash
+gfo issue unlock 10
+```
+
+### gfo issue subscribe
+
+Subscribe to issue notifications.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo issue subscribe NUMBER
+```
+
+```bash
+gfo issue subscribe 10
+```
+
+### gfo issue unsubscribe
+
+Unsubscribe from issue notifications.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo issue unsubscribe NUMBER
+```
+
+```bash
+gfo issue unsubscribe 10
+```
+
 ### gfo issue edit
 
 > GitBucket not supported
 
 ```
-gfo issue edit NUMBER [--title TITLE] [--body BODY] [--assignee USER] [--label LABEL]
+gfo issue edit NUMBER [--title TITLE] [--body BODY] [--assignee USER] [--label LABEL] [--add-label LABEL] [--remove-label LABEL] [--add-assignee USER] [--remove-assignee USER] [--milestone NAME]
 ```
+
+| Option | Description |
+|---|---|
+| `--title` | Title |
+| `--body` | Body |
+| `--assignee` | Assignee (replace) |
+| `--label` | Label (replace) |
+| `--add-label` | Add label (repeatable) |
+| `--remove-label` | Remove label (repeatable) |
+| `--add-assignee` | Add assignee (repeatable) |
+| `--remove-assignee` | Remove assignee (repeatable) |
+| `--milestone` | Milestone name |
 
 ```bash
 gfo issue edit 10 --title "New title" --assignee bob
+gfo issue edit 10 --add-label bug --remove-label wontfix --milestone v2.0
 ```
 
 ### gfo issue comment
@@ -762,15 +913,21 @@ Edit repository settings.
 > **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
 
 ```
-gfo repo edit [--description TEXT] [--private | --public] [--default-branch BRANCH]
+gfo repo edit [--name NAME] [--description TEXT] [--private | --public] [--default-branch BRANCH]
 ```
 
 | Option | Description |
 |---|---|
+| `--name NAME` | Rename repository |
 | `--description TEXT` | Repository description |
 | `--private` | Set repository as private |
 | `--public` | Set repository as public |
 | `--default-branch BRANCH` | Change default branch |
+
+```bash
+gfo repo edit --name new-repo-name
+gfo repo edit --description "Updated description" --private
+```
 
 ### gfo repo archive
 
@@ -890,6 +1047,25 @@ gfo repo transfer new-owner
 gfo repo transfer my-org --yes
 ```
 
+### gfo repo sync
+
+Sync fork with upstream.
+
+> **Supported services**: GitHub, Gitea, Forgejo
+
+```
+gfo repo sync [--branch BRANCH]
+```
+
+| Option | Description |
+|---|---|
+| `--branch`, `-b` | Branch to sync (default branch if omitted) |
+
+```bash
+gfo repo sync
+gfo repo sync --branch develop
+```
+
 ### gfo repo star / unstar
 
 Star or unstar a repository.
@@ -927,11 +1103,21 @@ gfo release list
 ### gfo release create
 
 ```
-gfo release create TAG [--title TITLE] [--notes NOTES] [--draft] [--prerelease] [--target TARGET]
+gfo release create TAG [--title TITLE] [--notes NOTES] [--notes-file FILE] [--draft] [--prerelease] [--target TARGET]
 ```
+
+| Option | Description |
+|---|---|
+| `--title` | Release title |
+| `--notes` | Release notes |
+| `--notes-file` | Read release notes from file |
+| `--draft` | Create as draft |
+| `--prerelease` | Mark as prerelease |
+| `--target` | Target branch or commit SHA |
 
 ```bash
 gfo release create v1.0.0 --title "Version 1.0.0" --notes "Release notes here"
+gfo release create v1.0.0 --notes-file CHANGELOG.md
 gfo release create v1.1.0-rc1 --prerelease
 gfo release create v2.0.0 --draft
 ```
@@ -995,6 +1181,7 @@ Manage release assets.
 gfo release asset list --tag TAG
 gfo release asset upload --tag TAG <file> [--name NAME]
 gfo release asset download --tag TAG [--asset-id ID | --pattern GLOB] [--dir DIR]
+gfo release asset edit --tag TAG <asset_id> [--name NAME]
 gfo release asset delete --tag TAG <asset_id>
 ```
 
@@ -1043,7 +1230,7 @@ gfo label edit NAME [--name NEW_NAME] [--color COLOR] [--description DESC]
 
 | Option | Description |
 |---|---|
-| `--name` | Rename the label |
+| `--name` | New name for the label |
 | `--color` | Color (`RRGGBB` format, without `#`) |
 | `--description` | Description |
 
@@ -1190,6 +1377,19 @@ gfo branch create feature/new-ui --ref main
 gfo branch create hotfix/v1 --ref abc123def456
 ```
 
+### gfo branch view
+
+View branch details.
+
+```
+gfo branch view NAME
+```
+
+```bash
+gfo branch view main
+gfo branch view feature/new-ui
+```
+
 ### gfo branch delete
 
 ```
@@ -1212,6 +1412,20 @@ Operate tags.
 
 ```
 gfo tag list [--limit N]
+```
+
+### gfo tag view
+
+View tag details.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo tag view NAME
+```
+
+```bash
+gfo tag view v1.0.0
 ```
 
 ### gfo tag create
@@ -1346,6 +1560,28 @@ gfo webhook delete ID
 gfo webhook delete 5
 ```
 
+### gfo webhook edit
+
+Edit webhook settings.
+
+```
+gfo webhook edit ID [--url URL] [--event EVENT ...] [--secret SECRET] [--active | --inactive]
+```
+
+| Option | Description |
+|---|---|
+| `--url` | Webhook URL |
+| `--event` | Event type (repeatable) |
+| `--secret` | Webhook secret |
+| `--active` | Activate webhook |
+| `--inactive` | Deactivate webhook |
+
+```bash
+gfo webhook edit 5 --url https://example.com/new-hook
+gfo webhook edit 5 --event push --event pull_request
+gfo webhook edit 5 --inactive
+```
+
 ### gfo webhook test
 
 > **Supported services**: GitHub, GitLab, Gitea, Forgejo, GitBucket
@@ -1370,6 +1606,18 @@ Manage deploy keys.
 
 ```
 gfo deploy-key list [--limit N]
+```
+
+### gfo deploy-key view
+
+View deploy key details.
+
+```
+gfo deploy-key view ID
+```
+
+```bash
+gfo deploy-key view 3
 ```
 
 ### gfo deploy-key create
@@ -1469,6 +1717,80 @@ gfo ci cancel ID
 
 ```bash
 gfo ci cancel 12345678
+```
+
+### gfo ci watch
+
+Watch pipeline status with live updates.
+
+```
+gfo ci watch ID [--interval N]
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--interval`, `-i` | `5` | Poll interval in seconds |
+
+```bash
+gfo ci watch 12345678
+gfo ci watch 12345678 --interval 10
+```
+
+### gfo ci download
+
+Download pipeline logs to a file.
+
+```
+gfo ci download ID [--job JOB] [--dir DIR]
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--job`, `-j` | — | Job name or ID |
+| `--dir` | `.` | Output directory |
+
+```bash
+gfo ci download 12345678
+gfo ci download 12345678 --job build --dir ./logs
+```
+
+### gfo ci workflow
+
+Manage CI workflows.
+
+> **Supported services**: GitHub, Gitea
+
+```
+gfo ci workflow list [--limit N]
+gfo ci workflow enable ID
+gfo ci workflow disable ID
+```
+
+```bash
+gfo ci workflow list
+gfo ci workflow enable ci.yml
+gfo ci workflow disable ci.yml
+```
+
+### gfo ci artifact
+
+Manage CI artifacts.
+
+> **Supported services**: GitHub, GitLab, Gitea
+
+```
+gfo ci artifact list RUN_ID [--limit N]
+gfo ci artifact download RUN_ID ARTIFACT_ID [--dir DIR]
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--limit` | `30` | Maximum number of results |
+| `--dir` | `.` | Output directory |
+
+```bash
+gfo ci artifact list 12345678
+gfo ci artifact download 12345678 1 --dir ./artifacts
 ```
 
 ---
@@ -1751,6 +2073,26 @@ gfo org list [--limit N]
 gfo org view NAME
 ```
 
+### gfo org edit
+
+Edit organization settings.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo, Gogs
+
+```
+gfo org edit NAME [--display-name NAME] [--description DESC]
+```
+
+| Option | Description |
+|---|---|
+| `--display-name` | Display name |
+| `--description` | Description |
+
+```bash
+gfo org edit my-org --display-name "My Organization"
+gfo org edit my-org --description "Updated description"
+```
+
 ### gfo org members
 
 > Azure DevOps does not support `org members` (use Teams for member management).
@@ -1787,6 +2129,18 @@ Manage user SSH public keys.
 gfo ssh-key list [--limit N]
 ```
 
+### gfo ssh-key view
+
+View SSH key details.
+
+```
+gfo ssh-key view ID
+```
+
+```bash
+gfo ssh-key view 12345
+```
+
 ### gfo ssh-key create
 
 ```
@@ -1818,13 +2172,17 @@ Manage CI/CD secrets (encrypted values, not readable).
 ### gfo secret list
 
 ```
-gfo secret list [--limit N]
+gfo secret list [--limit N] [--org ORG]
 ```
+
+| Option | Description |
+|---|---|
+| `--org` | Organization scope (list org-level secrets) |
 
 ### gfo secret set
 
 ```
-gfo secret set NAME {--value VALUE | --env-var ENV_VAR | --file FILE}
+gfo secret set NAME {--value VALUE | --env-var ENV_VAR | --file FILE} [--org ORG]
 ```
 
 | Option | Description |
@@ -1832,11 +2190,13 @@ gfo secret set NAME {--value VALUE | --env-var ENV_VAR | --file FILE}
 | `--value VALUE` | Secret value (passed in plaintext) |
 | `--env-var ENV_VAR` | Read value from environment variable |
 | `--file FILE` | Read value from file |
+| `--org ORG` | Organization scope |
 
 ```bash
 gfo secret set API_KEY --value "sk-xxxx"
 gfo secret set DB_PASSWORD --env-var MY_DB_PASS
 gfo secret set CERT --file ./cert.pem
+gfo secret set ORG_TOKEN --value "token" --org my-org
 ```
 
 > GitHub requires PyNaCl for encryption (`pip install PyNaCl`).
@@ -1844,8 +2204,12 @@ gfo secret set CERT --file ./cert.pem
 ### gfo secret delete
 
 ```
-gfo secret delete NAME
+gfo secret delete NAME [--org ORG]
 ```
+
+| Option | Description |
+|---|---|
+| `--org` | Organization scope |
 
 ---
 
@@ -1858,23 +2222,29 @@ Manage CI/CD variables (plaintext values, readable).
 ### gfo variable list
 
 ```
-gfo variable list [--limit N]
+gfo variable list [--limit N] [--org ORG]
 ```
+
+| Option | Description |
+|---|---|
+| `--org` | Organization scope (list org-level variables) |
 
 ### gfo variable set
 
 ```
-gfo variable set NAME --value VALUE [--masked]
+gfo variable set NAME --value VALUE [--masked] [--org ORG]
 ```
 
 | Option | Description |
 |---|---|
 | `--value VALUE` | Variable value (required) |
 | `--masked` | Set as masked variable (GitLab only) |
+| `--org ORG` | Organization scope |
 
 ```bash
 gfo variable set NODE_ENV --value "production"
 gfo variable set SECRET_KEY --value "abc" --masked   # GitLab only
+gfo variable set ORG_VAR --value "val" --org my-org
 ```
 
 ### gfo variable get
@@ -1890,8 +2260,12 @@ gfo variable get NODE_ENV
 ### gfo variable delete
 
 ```
-gfo variable delete NAME
+gfo variable delete NAME [--org ORG]
 ```
+
+| Option | Description |
+|---|---|
+| `--org` | Organization scope |
 
 ---
 
@@ -2000,6 +2374,18 @@ Manage GPG public keys for the user account.
 gfo gpg-key list [--limit N]
 ```
 
+### gfo gpg-key view
+
+View GPG key details.
+
+```
+gfo gpg-key view ID
+```
+
+```bash
+gfo gpg-key view 12345
+```
+
 ### gfo gpg-key create
 
 ```
@@ -2091,6 +2477,26 @@ Manage tag protection rules.
 
 ```
 gfo tag-protect list [--limit N]
+```
+
+### gfo tag-protect edit
+
+Edit tag protection rule.
+
+> **Supported services**: GitLab, Gitea, Forgejo
+
+```
+gfo tag-protect edit ID [--pattern PATTERN] [--access-level LEVEL]
+```
+
+| Option | Description |
+|---|---|
+| `--pattern` | Tag pattern |
+| `--access-level` | Access level |
+
+```bash
+gfo tag-protect edit 1 --pattern "v*"
+gfo tag-protect edit 1 --access-level maintainer
 ```
 
 ### gfo tag-protect create
