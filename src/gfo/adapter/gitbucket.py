@@ -273,6 +273,7 @@ class GitBucketAdapter(GitHubAdapter):
         add_assignees: list[str] | None = None,
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
+        due_date: str | None = None,
     ) -> Issue:
         raise NotSupportedError("GitBucket", "issue update")
 

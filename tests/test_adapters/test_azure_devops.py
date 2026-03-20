@@ -823,6 +823,20 @@ class TestCreateIssue:
         assert isinstance(issue, Issue)
         assert "$User%20Story" in mock_responses.calls[0].request.url
 
+    def test_create_with_due_date(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{WIT}/workitems/$Task",
+            json=_issue_data(),
+            status=200,
+        )
+        azure_devops_adapter.create_issue(title="Item", due_date="2026-04-01")
+        ops = json.loads(mock_responses.calls[0].request.body)
+        paths = [op["path"] for op in ops]
+        assert "/fields/Microsoft.VSTS.Scheduling.DueDate" in paths
+        due_op = next(op for op in ops if op["path"] == "/fields/Microsoft.VSTS.Scheduling.DueDate")
+        assert due_op["value"] == "2026-04-01"
+
 
 class TestGetIssue:
     def test_get(self, mock_responses, azure_devops_adapter):
@@ -1334,6 +1348,22 @@ class TestUpdateIssue:
         patch_op = next((op for op in req_body if op["path"] == "/fields/System.Title"), None)
         assert patch_op is not None
         assert patch_op["value"] == "New Title"
+
+    def test_update_due_date(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{WIT}/workitems/1",
+            json=_issue_data(),
+            status=200,
+        )
+        azure_devops_adapter.update_issue(1, due_date="2026-05-01")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        due_op = next(
+            (op for op in req_body if op["path"] == "/fields/Microsoft.VSTS.Scheduling.DueDate"),
+            None,
+        )
+        assert due_op is not None
+        assert due_op["value"] == "2026-05-01"
 
 
 # --- Review 系 ---

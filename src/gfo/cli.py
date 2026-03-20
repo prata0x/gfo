@@ -301,6 +301,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_create.add_argument("--milestone", help=_("Milestone name"))
     issue_create.add_argument("--type", help=_("Issue type"))
     issue_create.add_argument("--priority", type=int, help=_("Priority"))
+    issue_create.add_argument("--due-date", help=_("Due date (YYYY-MM-DD)"))
+    issue_create.add_argument("--template", help=_("Issue template name"))
     issue_view = issue_sub.add_parser("view", help=_("View issue details"))
     issue_view.add_argument("number", type=int, help=_("Issue number"))
     issue_view.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
@@ -321,6 +323,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "unsubscribe", help=_("Unsubscribe from issue notifications")
     )
     issue_unsubscribe.add_argument("number", type=int, help=_("Issue number"))
+
+    issue_sub.add_parser("status", help=_("Show issues related to you"))
+
+    issue_develop = issue_sub.add_parser("develop", help=_("Create a branch for an issue"))
+    issue_develop.add_argument("number", type=int, help=_("Issue number"))
+    issue_develop.add_argument("--name", help=_("Branch name (default: issue-{number}-{slug})"))
+    issue_develop.add_argument("--base", help=_("Base branch (default: default branch)"))
 
     issue_migrate = issue_sub.add_parser("migrate", help=_("Migrate issues between services"))
     issue_migrate.add_argument(
@@ -565,6 +574,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_edit.add_argument("--add-assignee", action="append", help=_("Add assignee"))
     issue_edit.add_argument("--remove-assignee", action="append", help=_("Remove assignee"))
     issue_edit.add_argument("--milestone", help=_("Milestone"))
+    issue_edit.add_argument("--due-date", help=_("Due date (YYYY-MM-DD)"))
 
     # gfo issue comment → サブサブコマンド
     issue_comment = issue_sub.add_parser("comment", help=_("Manage issue comments"))
@@ -1331,6 +1341,8 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("issue", "unpin"): gfo.commands.issue.handle_unpin,
     ("issue", "time"): gfo.commands.issue.handle_time,
     ("issue", "migrate"): gfo.commands.issue.handle_migrate,
+    ("issue", "status"): gfo.commands.issue.handle_status,
+    ("issue", "develop"): gfo.commands.issue.handle_develop,
     ("search", "prs"): gfo.commands.search.handle_prs,
     ("search", "commits"): gfo.commands.search.handle_commits,
     ("label", "clone"): gfo.commands.label.handle_clone,

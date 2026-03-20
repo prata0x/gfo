@@ -292,9 +292,10 @@ class BitbucketAdapter(GitServiceAdapter):
         assignee: str | None = None,
         label: str | None = None,
         milestone: str | None = None,
+        due_date: str | None = None,
         **kwargs,
     ) -> Issue:
-        self._warn_unsupported_params("issue create", milestone=milestone)
+        self._warn_unsupported_params("issue create", milestone=milestone, due_date=due_date)
         payload: dict = {"title": title, "content": {"raw": body}}
         if assignee is not None:
             payload["assignee"] = {"nickname": assignee}
@@ -647,6 +648,7 @@ class BitbucketAdapter(GitServiceAdapter):
         add_assignees: list[str] | None = None,
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
+        due_date: str | None = None,
     ) -> Issue:
         self._warn_unsupported_params(
             "issue edit",
@@ -655,6 +657,7 @@ class BitbucketAdapter(GitServiceAdapter):
             add_assignees=add_assignees,
             remove_assignees=remove_assignees,
             milestone=milestone,
+            due_date=due_date,
         )
         payload: dict = {}
         if title is not None:

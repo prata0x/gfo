@@ -847,6 +847,23 @@ class TestCreateIssue:
         req_body = json.loads(mock_responses.calls[1].request.body)
         assert req_body["assigneeUserId"] == "alice"
 
+    def test_create_with_due_date(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST",
+            json={"id": 100, "projectKey": "TEST"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            ISSUES_PATH,
+            json=_issue_data(),
+            status=201,
+        )
+        backlog_adapter.create_issue(title="Issue", issue_type=2, priority=3, due_date="2026-04-01")
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["dueDate"] == "2026-04-01"
+
 
 class TestGetIssue:
     def test_get(self, mock_responses, backlog_adapter):
@@ -1451,6 +1468,17 @@ class TestUpdateIssue:
         assert isinstance(issue, Issue)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["summary"] == "New Title"
+
+    def test_update_due_date(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/issues/TEST-1",
+            json=_issue_data(),
+            status=200,
+        )
+        backlog_adapter.update_issue(1, due_date="2026-05-01")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["dueDate"] == "2026-05-01"
 
     def test_warns_unsupported_metadata_params(self, mock_responses, backlog_adapter):
         """add_labels 等の未サポートパラメータで警告が出ることを確認する。"""

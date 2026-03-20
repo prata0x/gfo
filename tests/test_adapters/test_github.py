@@ -871,6 +871,23 @@ class TestCreateIssue:
         assert req_body["assignees"] == ["dev1"]
         assert req_body["labels"] == ["bug"]
 
+    def test_create_with_due_date_warns(self, mock_responses, github_adapter):
+        """GitHub は due_date 非対応のため警告を出す。"""
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/issues",
+            json=_issue_data(),
+            status=201,
+        )
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            github_adapter.create_issue(title="Issue", due_date="2026-04-01")
+            assert any("due_date" in str(warning.message) for warning in w)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "due_date" not in req_body
+
 
 class TestGetIssue:
     def test_get(self, mock_responses, github_adapter):

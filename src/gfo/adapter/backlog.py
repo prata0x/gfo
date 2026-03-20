@@ -293,6 +293,7 @@ class BacklogAdapter(GitServiceAdapter):
         assignee: str | None = None,
         label: str | None = None,
         milestone: str | None = None,
+        due_date: str | None = None,
         issue_type: int | None = None,
         priority: int | None = None,
         **kwargs,
@@ -350,6 +351,8 @@ class BacklogAdapter(GitServiceAdapter):
             payload["description"] = body
         if assignee:
             payload["assigneeUserId"] = assignee
+        if due_date:
+            payload["dueDate"] = due_date
 
         resp = self._client.post("/issues", json=payload)
         return self._to_issue(resp.json())
@@ -634,6 +637,7 @@ class BacklogAdapter(GitServiceAdapter):
         add_assignees: list[str] | None = None,
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
+        due_date: str | None = None,
     ) -> Issue:
         self._warn_unsupported_params(
             "issue edit",
@@ -650,6 +654,8 @@ class BacklogAdapter(GitServiceAdapter):
             payload["description"] = body
         if assignee is not None:
             payload["assigneeUserId"] = assignee
+        if due_date is not None:
+            payload["dueDate"] = due_date
         resp = self._client.patch(f"/issues/{self._project_key}-{number}", json=payload)
         return self._to_issue(resp.json())
 

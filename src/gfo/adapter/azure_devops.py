@@ -476,6 +476,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         assignee: str | None = None,
         label: str | None = None,
         milestone: str | None = None,
+        due_date: str | None = None,
         work_item_type: str = "Task",
         **kwargs,
     ) -> Issue:
@@ -489,6 +490,14 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             patch_ops.append({"op": "add", "path": "/fields/System.AssignedTo", "value": assignee})
         if label:
             patch_ops.append({"op": "add", "path": "/fields/System.Tags", "value": label})
+        if due_date:
+            patch_ops.append(
+                {
+                    "op": "add",
+                    "path": "/fields/Microsoft.VSTS.Scheduling.DueDate",
+                    "value": due_date,
+                }
+            )
 
         resp = self._client.post(
             f"{self._wit_path()}/workitems/${quote(work_item_type, safe='')}",
@@ -944,6 +953,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         add_assignees: list[str] | None = None,
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
+        due_date: str | None = None,
     ) -> Issue:
         self._warn_unsupported_params(
             "issue edit",
@@ -964,6 +974,14 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             )
         if label is not None:
             patch_ops.append({"op": "replace", "path": "/fields/System.Tags", "value": label})
+        if due_date is not None:
+            patch_ops.append(
+                {
+                    "op": "replace",
+                    "path": "/fields/Microsoft.VSTS.Scheduling.DueDate",
+                    "value": due_date,
+                }
+            )
         resp = self._client.patch(
             f"{self._wit_path()}/workitems/{number}",
             data=_json.dumps(patch_ops),

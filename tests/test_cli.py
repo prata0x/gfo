@@ -564,7 +564,7 @@ def test_parser_org_repos():
 
 
 def test_dispatch_table_entry_count():
-    assert len(_DISPATCH) == 166
+    assert len(_DISPATCH) == 168
 
 
 def test_dispatch_table_all_keys():
@@ -734,6 +734,8 @@ def test_dispatch_table_all_keys():
         ("api", None),
         ("schema", None),
         ("issue", "migrate"),
+        ("issue", "status"),
+        ("issue", "develop"),
         ("batch", "pr"),
     }
     assert set(_DISPATCH.keys()) == expected_keys

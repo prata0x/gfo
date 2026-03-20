@@ -40,6 +40,7 @@ class TestHandleEdit:
             add_assignees=None,
             remove_assignees=None,
             milestone=None,
+            due_date=None,
         )
 
     def test_calls_update_with_none_fields(self):
@@ -58,6 +59,7 @@ class TestHandleEdit:
             add_assignees=None,
             remove_assignees=None,
             milestone=None,
+            due_date=None,
         )
 
     def test_passes_add_labels(self):

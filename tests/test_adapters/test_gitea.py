@@ -856,6 +856,28 @@ class TestCreateIssue:
         assert req_body["assignees"] == ["dev1"]
         assert req_body["labels"] == ["bug"]
 
+    def test_create_with_due_date(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/issues",
+            json=_issue_data(),
+            status=201,
+        )
+        gitea_adapter.create_issue(title="Issue", due_date="2026-04-01")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["due_date"] == "2026-04-01"
+
+    def test_create_without_due_date(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/issues",
+            json=_issue_data(),
+            status=201,
+        )
+        gitea_adapter.create_issue(title="Issue")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "due_date" not in req_body
+
 
 class TestGetIssue:
     def test_get(self, mock_responses, gitea_adapter):
@@ -1797,6 +1819,17 @@ class TestUpdateIssue:
         assert isinstance(issue, Issue)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["title"] == "New Title"
+
+    def test_update_due_date(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/issues/1",
+            json=_issue_data(),
+            status=200,
+        )
+        gitea_adapter.update_issue(1, due_date="2026-05-01")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["due_date"] == "2026-05-01"
 
     def test_add_labels(self, mock_responses, gitea_adapter):
         mock_responses.add(

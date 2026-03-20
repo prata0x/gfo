@@ -169,6 +169,8 @@ _OUTPUT_MAP: dict[tuple[str, str | None], type | None] = {
     ("issue", "pin"): None,
     ("issue", "unpin"): None,
     ("issue", "time"): list[TimeEntry],
+    ("issue", "status"): None,
+    ("issue", "develop"): Branch,
     ("search", "prs"): list[PullRequest],
     ("search", "commits"): list[Commit],
     ("label", "clone"): None,

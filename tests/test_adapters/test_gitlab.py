@@ -833,6 +833,28 @@ class TestCreateIssue:
         assert req_body["assignee_username"] == "dev1"
         assert req_body["labels"] == "bug"
 
+    def test_create_with_due_date(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/issues",
+            json=_issue_data(),
+            status=201,
+        )
+        gitlab_adapter.create_issue(title="Issue", due_date="2026-04-01")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["due_date"] == "2026-04-01"
+
+    def test_create_without_due_date(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/issues",
+            json=_issue_data(),
+            status=201,
+        )
+        gitlab_adapter.create_issue(title="Issue")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "due_date" not in req_body
+
 
 class TestGetIssue:
     def test_get(self, mock_responses, gitlab_adapter):
@@ -1848,6 +1870,17 @@ class TestUpdateIssue:
         gitlab_adapter.update_issue(1, assignee="devuser")
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["assignee_username"] == "devuser"
+
+    def test_update_due_date(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/issues/1",
+            json=_issue_data(),
+            status=200,
+        )
+        gitlab_adapter.update_issue(1, due_date="2026-05-01")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["due_date"] == "2026-05-01"
 
     def test_add_labels(self, mock_responses, gitlab_adapter):
         mock_responses.add(

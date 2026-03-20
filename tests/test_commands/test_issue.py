@@ -170,6 +170,7 @@ class TestHandleCreate:
             assignee=None,
             label=None,
             milestone=None,
+            due_date=None,
         )
 
     def test_create_with_milestone(self):
@@ -193,6 +194,7 @@ class TestHandleCreate:
             assignee=None,
             label=None,
             milestone="v1.0",
+            due_date=None,
         )
 
     def test_azure_devops_work_item_type(self):
@@ -872,3 +874,347 @@ class TestHandleSubscribe:
             args = make_args(number=1)
             issue_cmd.handle_unsubscribe(args, fmt="table")
         adapter.unsubscribe_issue.assert_called_once_with(1)
+
+
+# --- 4a: --due-date ---
+
+
+class TestHandleCreateDueDate:
+    def setup_method(self):
+        self.issue = _make_issue()
+
+    def test_create_with_due_date(self):
+        config = _make_config("github")
+        adapter = _make_adapter(self.issue)
+        args = make_args(
+            title="Issue with due date",
+            body="",
+            assignee=None,
+            label=None,
+            milestone=None,
+            type=None,
+            priority=None,
+            due_date="2026-04-01",
+        )
+        with _patch_all(config, adapter):
+            issue_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = adapter.create_issue.call_args.kwargs
+        assert call_kwargs["due_date"] == "2026-04-01"
+
+    def test_create_without_due_date(self):
+        config = _make_config("github")
+        adapter = _make_adapter(self.issue)
+        args = make_args(
+            title="Issue no due date",
+            body="",
+            assignee=None,
+            label=None,
+            milestone=None,
+            type=None,
+            priority=None,
+        )
+        with _patch_all(config, adapter):
+            issue_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = adapter.create_issue.call_args.kwargs
+        assert call_kwargs["due_date"] is None
+
+
+class TestHandleEditDueDate:
+    def setup_method(self):
+        self.config = _make_config()
+        self.issue = _make_issue()
+        self.adapter = _make_adapter(self.issue)
+        self.adapter.update_issue.return_value = self.issue
+
+    def test_edit_with_due_date(self):
+        args = make_args(
+            number=1,
+            title=None,
+            body=None,
+            assignee=None,
+            label=None,
+            add_label=None,
+            remove_label=None,
+            add_assignee=None,
+            remove_assignee=None,
+            milestone=None,
+            due_date="2026-05-01",
+        )
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_edit(args, fmt="table")
+
+        call_kwargs = self.adapter.update_issue.call_args.kwargs
+        assert call_kwargs["due_date"] == "2026-05-01"
+
+    def test_edit_without_due_date(self):
+        args = make_args(
+            number=1,
+            title="New Title",
+            body=None,
+            assignee=None,
+            label=None,
+            add_label=None,
+            remove_label=None,
+            add_assignee=None,
+            remove_assignee=None,
+            milestone=None,
+        )
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_edit(args, fmt="table")
+
+        call_kwargs = self.adapter.update_issue.call_args.kwargs
+        assert call_kwargs["due_date"] is None
+
+
+# --- 4b: --template ---
+
+
+class TestHandleCreateTemplate:
+    def setup_method(self):
+        self.issue = _make_issue()
+
+    def test_template_sets_body(self):
+        from gfo.adapter.base import IssueTemplate
+
+        config = _make_config("github")
+        adapter = _make_adapter(self.issue)
+        adapter.list_issue_templates.return_value = [
+            IssueTemplate(
+                name="bug_report",
+                title="Bug: ",
+                body="## Steps to reproduce\n\n## Expected\n\n## Actual\n",
+                about="Report a bug",
+                labels=("bug",),
+            ),
+        ]
+        args = make_args(
+            title="My bug",
+            body="",
+            assignee=None,
+            label=None,
+            milestone=None,
+            type=None,
+            priority=None,
+            template="bug_report",
+        )
+        with _patch_all(config, adapter):
+            issue_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = adapter.create_issue.call_args.kwargs
+        assert "Steps to reproduce" in call_kwargs["body"]
+
+    def test_template_not_found_raises(self):
+        from gfo.adapter.base import IssueTemplate
+
+        config = _make_config("github")
+        adapter = _make_adapter(self.issue)
+        adapter.list_issue_templates.return_value = [
+            IssueTemplate(
+                name="bug_report",
+                title="",
+                body="template body",
+                about="",
+                labels=(),
+            ),
+        ]
+        args = make_args(
+            title="My issue",
+            body="",
+            assignee=None,
+            label=None,
+            milestone=None,
+            type=None,
+            priority=None,
+            template="nonexistent",
+        )
+        with _patch_all(config, adapter):
+            with pytest.raises(ConfigError, match="nonexistent"):
+                issue_cmd.handle_create(args, fmt="table")
+
+    def test_template_skipped_when_body_provided(self):
+        config = _make_config("github")
+        adapter = _make_adapter(self.issue)
+        args = make_args(
+            title="My issue",
+            body="My custom body",
+            assignee=None,
+            label=None,
+            milestone=None,
+            type=None,
+            priority=None,
+            template="bug_report",
+        )
+        with _patch_all(config, adapter):
+            issue_cmd.handle_create(args, fmt="table")
+
+        # body が既に指定されている場合、テンプレートは無視される
+        call_kwargs = adapter.create_issue.call_args.kwargs
+        assert call_kwargs["body"] == "My custom body"
+        adapter.list_issue_templates.assert_not_called()
+
+
+# --- 4c: issue status ---
+
+
+class TestHandleStatus:
+    def setup_method(self):
+        self.config = _make_config()
+        self.issue = _make_issue()
+        self.adapter = _make_adapter(self.issue)
+        self.adapter.get_current_username.return_value = "test-user"
+
+    def test_calls_list_issues_for_created_and_assigned(self):
+        args = make_args()
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_status(args, fmt="table")
+
+        calls = self.adapter.list_issues.call_args_list
+        assert len(calls) == 2
+        assert calls[0].kwargs == {"state": "open", "author": "test-user"}
+        assert calls[1].kwargs == {"state": "open", "assignee": "test-user"}
+
+    def test_outputs_sections(self, capsys):
+        args = make_args()
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_status(args, fmt="table")
+
+        out = capsys.readouterr().out
+        assert "Created by you" in out
+        assert "Assigned to you" in out
+        assert "Test Issue" in out
+
+    def test_empty_results(self, capsys):
+        self.adapter.list_issues.return_value = []
+        args = make_args()
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_status(args, fmt="table")
+
+        out = capsys.readouterr().out
+        assert "No issues found" in out
+
+    def test_json_format(self, capsys):
+        args = make_args()
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_status(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert "created" in data
+        assert "assigned" in data
+        assert len(data["created"]) == 1
+        assert data["created"][0]["title"] == "Test Issue"
+
+
+# --- 4d: issue develop ---
+
+
+class TestHandleDevelop:
+    def setup_method(self):
+        self.config = _make_config()
+        self.issue = _make_issue()
+        self.adapter = _make_adapter(self.issue)
+
+    def _make_branch(self, name="issue-1-test-issue"):
+        from gfo.adapter.base import Branch
+
+        return Branch(name=name, sha="abc123", protected=False, url="https://example.com")
+
+    def _make_repo(self, default_branch="main"):
+        from gfo.adapter.base import Repository
+
+        return Repository(
+            name="test-repo",
+            full_name="test-owner/test-repo",
+            description=None,
+            private=False,
+            default_branch=default_branch,
+            clone_url="https://github.com/test-owner/test-repo.git",
+            url="https://github.com/test-owner/test-repo",
+        )
+
+    def test_creates_branch_with_auto_name(self):
+        branch = self._make_branch()
+        self.adapter.create_branch.return_value = branch
+        self.adapter.get_repository.return_value = self._make_repo()
+        args = make_args(number=1)
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_develop(args, fmt="table")
+
+        call_kwargs = self.adapter.create_branch.call_args.kwargs
+        assert call_kwargs["name"] == "issue-1-test-issue"
+        assert call_kwargs["ref"] == "main"
+
+    def test_creates_branch_with_custom_name(self):
+        branch = self._make_branch(name="my-branch")
+        self.adapter.create_branch.return_value = branch
+        args = make_args(number=1, name="my-branch")
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_develop(args, fmt="table")
+
+        call_kwargs = self.adapter.create_branch.call_args.kwargs
+        assert call_kwargs["name"] == "my-branch"
+
+    def test_creates_branch_with_custom_base(self):
+        branch = self._make_branch()
+        self.adapter.create_branch.return_value = branch
+        args = make_args(number=1, base="develop")
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_develop(args, fmt="table")
+
+        call_kwargs = self.adapter.create_branch.call_args.kwargs
+        assert call_kwargs["ref"] == "develop"
+
+    def test_uses_default_branch_from_repo(self):
+        branch = self._make_branch()
+        self.adapter.create_branch.return_value = branch
+        self.adapter.get_repository.return_value = self._make_repo(default_branch="master")
+        args = make_args(number=1)
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_develop(args, fmt="table")
+
+        call_kwargs = self.adapter.create_branch.call_args.kwargs
+        assert call_kwargs["ref"] == "master"
+
+    def test_json_format(self, capsys):
+        branch = self._make_branch()
+        self.adapter.create_branch.return_value = branch
+        self.adapter.get_repository.return_value = self._make_repo()
+        args = make_args(number=1)
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_develop(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        # output() は単一オブジェクトもリストとしてシリアライズする
+        if isinstance(data, list):
+            assert data[0]["name"] == "issue-1-test-issue"
+        else:
+            assert data["name"] == "issue-1-test-issue"
+
+
+# --- _slugify ---
+
+
+class TestSlugify:
+    def test_simple_title(self):
+        assert issue_cmd._slugify("Fix login bug") == "fix-login-bug"
+
+    def test_special_characters(self):
+        assert issue_cmd._slugify("Add feature: user-auth!") == "add-feature-user-auth"
+
+    def test_unicode_title(self):
+        result = issue_cmd._slugify("ログインバグ修正")
+        assert result == "issue"  # 日本語は ASCII 変換で消えるのでフォールバック
+
+    def test_max_length(self):
+        result = issue_cmd._slugify("A" * 100, max_len=10)
+        assert len(result) <= 10
+
+    def test_empty_string(self):
+        assert issue_cmd._slugify("") == "issue"
+
+    def test_trailing_hyphens_stripped(self):
+        result = issue_cmd._slugify("test---", max_len=4)
+        assert not result.endswith("-")

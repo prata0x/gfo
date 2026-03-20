@@ -786,6 +786,7 @@ class GitServiceAdapter(ABC):
         assignee: str | None = None,
         label: str | None = None,
         milestone: str | None = None,
+        due_date: str | None = None,
         **kwargs,
     ) -> Issue: ...
 
@@ -1037,6 +1038,7 @@ class GitServiceAdapter(ABC):
         add_assignees: list[str] | None = None,
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
+        due_date: str | None = None,
     ) -> Issue: ...
 
     # --- Review ---

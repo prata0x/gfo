@@ -235,6 +235,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         assignee: str | None = None,
         label: str | None = None,
         milestone: str | None = None,
+        due_date: str | None = None,
         **kwargs,
     ) -> Issue:
         payload: dict = {"title": title, "body": body}
@@ -244,6 +245,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["labels"] = [label]
         if milestone is not None:
             payload["milestone"] = self._resolve_milestone_id_by_title(milestone)
+        if due_date is not None:
+            payload["due_date"] = due_date
         resp = self._client.post(f"{self._repos_path()}/issues", json=payload)
         return self._to_issue(resp.json())
 
@@ -818,6 +821,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         add_assignees: list[str] | None = None,
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
+        due_date: str | None = None,
     ) -> Issue:
         payload: dict = {}
         if title is not None:
@@ -848,6 +852,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 payload["assignees"] = sorted(current)
         if milestone is not None:
             payload["milestone"] = self._resolve_milestone_id_by_title(milestone)
+        if due_date is not None:
+            payload["due_date"] = due_date
         resp = self._client.patch(f"{self._repos_path()}/issues/{number}", json=payload)
         return self._to_issue(resp.json())
 

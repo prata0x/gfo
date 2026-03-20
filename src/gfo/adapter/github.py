@@ -245,8 +245,10 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         assignee: str | None = None,
         label: str | None = None,
         milestone: str | None = None,
+        due_date: str | None = None,
         **kwargs,
     ) -> Issue:
+        self._warn_unsupported_params("issue create", due_date=due_date)
         payload: dict = {"title": title, "body": body}
         if assignee is not None:
             payload["assignees"] = [assignee]
@@ -859,7 +861,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         add_assignees: list[str] | None = None,
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
+        due_date: str | None = None,
     ) -> Issue:
+        self._warn_unsupported_params("issue edit", due_date=due_date)
         payload: dict = {}
         if title is not None:
             payload["title"] = title

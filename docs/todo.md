@@ -4,35 +4,6 @@
 
 ---
 
-## 4. `issue` コマンド拡張
-
-**変更ファイル**: `cli.py`, `commands/issue.py`, `adapter/base.py`, 各アダプター (9 ファイル), テスト
-
-### 4a. `issue create/edit --due-date` (5 サービス対応)
-
-`create_issue()` / `update_issue()` に `due_date` パラメータを追加。
-
-### 4b. `issue create --template` (3 サービス対応)
-
-既存の `list_issue_templates()` を使ってテンプレート一覧を取得→選択→本文に反映。
-
-### 4c. `issue status` (7+ サービス対応)
-
-既存の `list_issues()` + `get_current_user()` の組み合わせ。新規アダプターメソッド不要。
-
-```python
-# commands/issue.py handle_status():
-user = adapter.get_current_user()
-created = adapter.list_issues(state="open", author=user.login)
-assigned = adapter.list_issues(state="open", assignee=user.login)
-```
-
-### 4d. `issue develop` (7 サービス対応、間接)
-
-既存の `create_branch()` を使用。ブランチ名を `issue-{number}-{slug}` 形式で自動生成。
-
----
-
 ## 5. `pr` コマンド拡張
 
 **変更ファイル**: `cli.py`, `commands/pr.py`, `adapter/base.py`, 各アダプター (9 ファイル), テスト

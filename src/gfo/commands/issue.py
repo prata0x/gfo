@@ -55,6 +55,23 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     if not title:
         raise ConfigError(_("--title must not be empty."))
     adapter, config = get_adapter_with_config()
+
+    # --template: テンプレート名が指定された場合、本文に反映
+    template_name = getattr(args, "template", None)
+    if template_name and not args.body:
+        templates = adapter.list_issue_templates()
+        matched = next((t for t in templates if t.name == template_name), None)
+        if matched is None:
+            names = ", ".join(t.name for t in templates) if templates else _("(none)")
+            raise ConfigError(
+                _("Template '{name}' not found. Available: {available}").format(
+                    name=template_name, available=names
+                )
+            )
+        args.body = matched.body
+        if matched.title and not title:
+            title = matched.title
+
     kwargs: dict = {}
     if args.type:
         if config.service_type == "azure-devops":
@@ -71,12 +88,14 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     if args.priority is not None and config.service_type == "backlog":
         kwargs["priority"] = args.priority
     milestone = getattr(args, "milestone", None)
+    due_date = getattr(args, "due_date", None)
     issue = adapter.create_issue(
         title=title,
         body=args.body or "",
         assignee=args.assignee,
         label=args.label,
         milestone=milestone,
+        due_date=due_date,
         **kwargs,
     )
     output(issue, fmt=fmt, jq=jq)
@@ -130,6 +149,7 @@ def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         add_assignees=getattr(args, "add_assignee", None),
         remove_assignees=getattr(args, "remove_assignee", None),
         milestone=getattr(args, "milestone", None),
+        due_date=getattr(args, "due_date", None),
     )
     output(issue, fmt=fmt, jq=jq)
 
@@ -273,6 +293,82 @@ def handle_time(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     elif action == "delete":
         adapter.delete_time_entry(args.number, args.entry_id)
         print(_("Deleted time entry '{entry_id}'.").format(entry_id=args.entry_id))
+
+
+def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo issue status のハンドラ。"""
+    import json
+
+    adapter = get_adapter()
+    username = adapter.get_current_username()
+
+    created = adapter.list_issues(state="open", author=username)
+    assigned = adapter.list_issues(state="open", assignee=username)
+
+    fields = ["number", "title", "state", "author"]
+
+    if fmt == "json":
+        import dataclasses
+
+        data = {
+            "created": [dataclasses.asdict(i) for i in created],
+            "assigned": [dataclasses.asdict(i) for i in assigned],
+        }
+        json_str = json.dumps(data, indent=2, ensure_ascii=False, default=str)
+        if jq:
+            from gfo.output import apply_jq_filter
+
+            print(apply_jq_filter(json_str, jq))
+        else:
+            print(json_str)
+        return
+
+    _print_status_section(_("Created by you"), created, fields)
+    print()
+    _print_status_section(_("Assigned to you"), assigned, fields)
+
+
+def _print_status_section(title: str, issues: list, fields: list[str]) -> None:
+    """issue status のセクションを出力するヘルパー。"""
+    from gfo.output import format_table
+
+    print(title)
+    if issues:
+        print(format_table(issues, fields))
+    else:
+        print(_("  No issues found."))
+
+
+def _slugify(text: str, max_len: int = 40) -> str:
+    """タイトル文字列をブランチ名用のスラッグに変換する。"""
+    import re
+    import unicodedata
+
+    text = unicodedata.normalize("NFKD", text)
+    text = text.encode("ascii", "ignore").decode("ascii").lower()
+    text = re.sub(r"[^a-z0-9]+", "-", text).strip("-")
+    return text[:max_len].rstrip("-") if text else "issue"
+
+
+def handle_develop(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo issue develop <number> のハンドラ。"""
+    adapter = get_adapter()
+    issue = adapter.get_issue(args.number)
+
+    # ブランチ名の決定
+    branch_name = getattr(args, "name", None)
+    if not branch_name:
+        slug = _slugify(issue.title)
+        branch_name = f"issue-{args.number}-{slug}"
+
+    # ベースブランチの決定
+    base = getattr(args, "base", None)
+    if not base:
+        repo = adapter.get_repository()
+        base = repo.default_branch or "main"
+
+    branch = adapter.create_branch(name=branch_name, ref=base)
+    output(branch, fmt=fmt, jq=jq)
 
 
 def _sync_labels(src, dst) -> set[str]:
