@@ -182,11 +182,32 @@ def test_parser_repo_list():
     assert args.limit == 10
 
 
-def test_parser_repo_create():
+def test_parser_repo_create_private():
     parser, _ = create_parser()
     args = parser.parse_args(["repo", "create", "my-repo", "--private"])
     assert args.name == "my-repo"
     assert args.private is True
+
+
+def test_parser_repo_create_public():
+    parser, _ = create_parser()
+    args = parser.parse_args(["repo", "create", "my-repo", "--public"])
+    assert args.name == "my-repo"
+    assert args.private is False
+
+
+def test_parser_repo_create_requires_visibility():
+    """--private / --public のどちらも指定しない場合はエラー。"""
+    parser, _ = create_parser()
+    with pytest.raises(ConfigError):
+        parser.parse_args(["repo", "create", "my-repo"])
+
+
+def test_parser_repo_create_rejects_both_visibility():
+    """--private と --public の同時指定はエラー。"""
+    parser, _ = create_parser()
+    with pytest.raises(ConfigError):
+        parser.parse_args(["repo", "create", "my-repo", "--private", "--public"])
 
 
 def test_parser_repo_clone_dest_repo():

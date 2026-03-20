@@ -4,23 +4,6 @@
 
 ---
 
-## 1. `repo create` 安全性改善
-
-**変更ファイル**: `cli.py`, `commands/repo.py`, テスト
-
-`--private` / `--public` のどちらかを必須にする。未指定時はエラー。
-
-```python
-# cli.py: 排他グループを必須に変更
-_repo_create_visibility = repo_create.add_mutually_exclusive_group(required=True)
-_repo_create_visibility.add_argument("--private", dest="private", action="store_true")
-_repo_create_visibility.add_argument("--public", dest="private", action="store_false")
-```
-
-**破壊的変更**: 既存の `repo create NAME --description ...` が `--private` または `--public` なしでエラーになる。
-
----
-
 ## 2. `--body-file` 共通対応
 
 **変更ファイル**: `cli.py`, `commands/pr.py`, `commands/issue.py`, テスト

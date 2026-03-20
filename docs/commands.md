@@ -842,12 +842,12 @@ gfo repo list --owner myorg --limit 50
 ### gfo repo create
 
 ```
-gfo repo create NAME [--private] [--description DESC] [--host HOST]
+gfo repo create NAME (--private | --public) [--description DESC] [--host HOST]
 ```
 
 ```bash
 gfo repo create my-new-repo --private --description "My project"
-gfo repo create my-new-repo --host gitea.example.com
+gfo repo create my-new-repo --public --host gitea.example.com
 ```
 
 > **Note**: Azure DevOps and Backlog require `gfo init` configuration beforehand.

@@ -119,7 +119,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     adapter = adapter_cls(client, "", "", **extra_kwargs)
     repo = adapter.create_repository(
         name=args.name,
-        private=getattr(args, "private", False),
+        private=args.private,
         description=getattr(args, "description", "") or "",
     )
     output(repo, fmt=fmt, jq=jq)
