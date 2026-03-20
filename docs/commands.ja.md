@@ -1724,16 +1724,18 @@ gfo ci cancel 12345678
 パイプラインのステータスをリアルタイムで監視します。
 
 ```
-gfo ci watch ID [--interval N]
+gfo ci watch ID [--interval N] [--timeout N]
 ```
 
 | オプション | デフォルト | 説明 |
 |---|---|---|
 | `--interval`, `-i` | `5` | ポーリング間隔（秒） |
+| `--timeout`, `-t` | `1800` | タイムアウト秒数（0 で無制限） |
 
 ```bash
 gfo ci watch 12345678
 gfo ci watch 12345678 --interval 10
+gfo ci watch 12345678 --timeout 0  # 無制限
 ```
 
 ### gfo ci download

@@ -1724,16 +1724,18 @@ gfo ci cancel 12345678
 Watch pipeline status with live updates.
 
 ```
-gfo ci watch ID [--interval N]
+gfo ci watch ID [--interval N] [--timeout N]
 ```
 
 | Option | Default | Description |
 |---|---|---|
 | `--interval`, `-i` | `5` | Poll interval in seconds |
+| `--timeout`, `-t` | `1800` | Timeout in seconds (0 for unlimited) |
 
 ```bash
 gfo ci watch 12345678
 gfo ci watch 12345678 --interval 10
+gfo ci watch 12345678 --timeout 0  # unlimited
 ```
 
 ### gfo ci download
