@@ -2688,3 +2688,82 @@ gfo batch pr create \
 # Dry run for validation
 gfo batch pr create --repos github:owner/repo1,github:owner/repo2 --title "Fix" --head hotfix --dry-run
 ```
+
+---
+
+## gfo config
+
+Manage local configuration (`config.toml`).
+
+### gfo config get
+
+Get a config value by key (dot-separated).
+
+```
+gfo config get KEY
+```
+
+| Argument | Description |
+|---|---|
+| `KEY` | Config key in dot notation (e.g. `defaults.output`) |
+
+**Examples:**
+
+```bash
+gfo config get defaults.output
+gfo config get defaults.host
+```
+
+### gfo config set
+
+Set a config value.
+
+```
+gfo config set KEY VALUE
+```
+
+| Argument | Description |
+|---|---|
+| `KEY` | Config key in dot notation (e.g. `defaults.output`) |
+| `VALUE` | Value to set |
+
+**Examples:**
+
+```bash
+gfo config set defaults.output json
+gfo config set defaults.host github.com
+```
+
+### gfo config list
+
+List all config values.
+
+```
+gfo config list
+```
+
+### gfo config unset
+
+Remove a config value.
+
+```
+gfo config unset KEY
+```
+
+| Argument | Description |
+|---|---|
+| `KEY` | Config key to remove (e.g. `defaults.output`) |
+
+**Examples:**
+
+```bash
+gfo config unset defaults.output
+```
+
+### gfo config path
+
+Show the path to the config file.
+
+```
+gfo config path
+```

@@ -564,7 +564,7 @@ def test_parser_org_repos():
 
 
 def test_dispatch_table_entry_count():
-    assert len(_DISPATCH) == 174
+    assert len(_DISPATCH) == 179
 
 
 def test_dispatch_table_all_keys():
@@ -576,6 +576,11 @@ def test_dispatch_table_all_keys():
         ("auth", "token"),
         ("auth", "logout"),
         ("completion", None),
+        ("config", "get"),
+        ("config", "set"),
+        ("config", "list"),
+        ("config", "unset"),
+        ("config", "path"),
         ("pr", "list"),
         ("pr", "create"),
         ("pr", "view"),

@@ -117,6 +117,163 @@ def get_hosts_config() -> dict[str, str]:
     return result
 
 
+# ── 設定値の取得・設定・削除 ──
+
+
+def get_config_value(key: str) -> Any:
+    """ドット区切りキーで config.toml の値を取得する。未設定なら None。
+
+    ドットを含む TOML キー（例: ``hosts."gitlab.example.com".type``）に対応するため、
+    キーの各位置で実際の dict キーへの最長一致を試みる。
+    """
+    cfg = load_user_config()
+    return _resolve_key(cfg, key.split("."))
+
+
+def _resolve_key(data: Any, parts: list[str]) -> Any:
+    """parts を消費しながら data を辿り、最長一致で値を返す。"""
+    if not parts:
+        return data
+    if not isinstance(data, dict):
+        return None
+    # 長いキー（ドットを含む可能性がある）から順に試す
+    for i in range(len(parts), 0, -1):
+        candidate = ".".join(parts[:i])
+        if candidate in data:
+            result = _resolve_key(data[candidate], parts[i:])
+            if result is not None:
+                return result
+    return None
+
+
+def set_config_value(key: str, value: str) -> None:
+    """ドット区切りキーで config.toml に値を設定する。
+
+    ドットを含む TOML キーに対応するため、既存の dict キーへの最長一致を試みる。
+    一致しない場合は最初のドットで分割して新しいテーブルを作成する。
+    """
+    if not key:
+        raise ConfigError("Key must not be empty.")
+    parts = key.split(".")
+    if len(parts) < 2:
+        raise ConfigError(f"Key must have at least two parts (e.g. defaults.output), got: {key}")
+
+    cfg = load_user_config()
+    _set_in_dict(cfg, parts, value, key)
+    _save_config(cfg)
+
+
+def _set_in_dict(data: dict, parts: list[str], value: str, original_key: str) -> None:
+    """parts を消費しながら data を辿り、末端に value を設定する。"""
+    if len(parts) == 1:
+        data[parts[0]] = value
+        return
+
+    # 既存キーに最長一致を試みる
+    for i in range(len(parts) - 1, 0, -1):
+        candidate = ".".join(parts[:i])
+        if candidate in data:
+            child = data[candidate]
+            if not isinstance(child, dict):
+                raise ConfigError(f"Cannot set '{original_key}': '{candidate}' is not a table.")
+            _set_in_dict(child, parts[i:], value, original_key)
+            return
+
+    # 一致なし → 最初のパートで新しいテーブルを作成
+    first = parts[0]
+    if first not in data:
+        data[first] = {}
+    child = data[first]
+    if not isinstance(child, dict):
+        raise ConfigError(f"Cannot set '{original_key}': '{first}' is not a table.")
+    _set_in_dict(child, parts[1:], value, original_key)
+
+
+def unset_config_value(key: str) -> bool:
+    """ドット区切りキーで config.toml の値を削除する。削除できたら True。"""
+    if not key:
+        raise ConfigError("Key must not be empty.")
+    parts = key.split(".")
+    if len(parts) < 2:
+        raise ConfigError(f"Key must have at least two parts (e.g. defaults.output), got: {key}")
+
+    cfg = load_user_config()
+    if not _unset_in_dict(cfg, parts):
+        return False
+    _save_config(cfg)
+    return True
+
+
+def _unset_in_dict(data: dict, parts: list[str]) -> bool:
+    """parts を消費しながら data を辿り、末端キーを削除する。空テーブルは自動削除。"""
+    # 最長一致を試みる
+    for i in range(len(parts), 0, -1):
+        candidate = ".".join(parts[:i])
+        if candidate in data:
+            remaining = parts[i:]
+            if not remaining:
+                # 末端キー → 削除
+                del data[candidate]
+                return True
+            child = data[candidate]
+            if not isinstance(child, dict):
+                continue
+            if _unset_in_dict(child, remaining):
+                # 子テーブルが空になったら親からも削除
+                if not child:
+                    del data[candidate]
+                return True
+    return False
+
+
+def _save_config(cfg: dict) -> None:
+    """dict を config.toml に TOML 形式で書き出す。"""
+    path = get_config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        _write_toml(f, cfg)
+
+
+def _write_toml(f: Any, data: dict, prefix: str = "") -> None:
+    """dict を TOML 形式で書き出す（シンプルな値 → テーブルの順）。"""
+    # まずスカラー値を書き出す
+    for key, value in data.items():
+        if not isinstance(value, dict):
+            f.write(f"{_toml_key(key)} = {_toml_value(value)}\n")
+    # 次にテーブルを書き出す
+    for key, value in data.items():
+        if isinstance(value, dict):
+            section = f"{prefix}{_toml_key(key)}" if prefix else _toml_key(key)
+            f.write(f"\n[{section}]\n")
+            _write_toml(f, value, prefix=f"{section}.")
+
+
+def _toml_key(key: str) -> str:
+    """TOML キーをエスケープする。英数字・ハイフン・アンダースコア以外を含む場合は引用符で囲む。"""
+    import re
+
+    if re.fullmatch(r"[A-Za-z0-9_-]+", key):
+        return key
+    escaped = key.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
+def _toml_value(value: Any) -> str:
+    """Python 値を TOML リテラルに変換する。"""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float):
+        return repr(value)
+    if isinstance(value, list):
+        items = ", ".join(_toml_value(v) for v in value)
+        return f"[{items}]"
+    # 文字列
+    escaped = str(value).replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
 # ── 設定解決 ──
 
 

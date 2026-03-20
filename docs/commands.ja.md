@@ -2688,3 +2688,82 @@ gfo batch pr create \
 # ドライランで事前確認
 gfo batch pr create --repos github:owner/repo1,github:owner/repo2 --title "Fix" --head hotfix --dry-run
 ```
+
+---
+
+## gfo config
+
+ローカル設定（`config.toml`）を管理します。
+
+### gfo config get
+
+ドット区切りのキーで設定値を取得します。
+
+```
+gfo config get KEY
+```
+
+| 引数 | 説明 |
+|---|---|
+| `KEY` | ドット記法の設定キー（例: `defaults.output`） |
+
+**例:**
+
+```bash
+gfo config get defaults.output
+gfo config get defaults.host
+```
+
+### gfo config set
+
+設定値を保存します。
+
+```
+gfo config set KEY VALUE
+```
+
+| 引数 | 説明 |
+|---|---|
+| `KEY` | ドット記法の設定キー（例: `defaults.output`） |
+| `VALUE` | 設定する値 |
+
+**例:**
+
+```bash
+gfo config set defaults.output json
+gfo config set defaults.host github.com
+```
+
+### gfo config list
+
+全設定値を一覧表示します。
+
+```
+gfo config list
+```
+
+### gfo config unset
+
+設定値を削除します。
+
+```
+gfo config unset KEY
+```
+
+| 引数 | 説明 |
+|---|---|
+| `KEY` | 削除する設定キー（例: `defaults.output`） |
+
+**例:**
+
+```bash
+gfo config unset defaults.output
+```
+
+### gfo config path
+
+設定ファイルのパスを表示します。
+
+```
+gfo config path
+```

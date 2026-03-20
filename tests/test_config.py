@@ -9,10 +9,13 @@ import pytest
 
 from gfo.config import (
     ProjectConfig,
+    _toml_key,
+    _toml_value,
     build_clone_url,
     build_default_api_url,
     get_config_dir,
     get_config_path,
+    get_config_value,
     get_configured_output_format,
     get_credentials_path,
     get_default_host,
@@ -22,6 +25,8 @@ from gfo.config import (
     load_user_config,
     resolve_project_config,
     save_project_config,
+    set_config_value,
+    unset_config_value,
 )
 from gfo.exceptions import ConfigError
 
@@ -839,3 +844,171 @@ def test_resolve_repo_override_skips_git_config_shortcut():
         assert cfg.host == "github.com"
     finally:
         cli_repo.reset(token)
+
+
+# ── get_config_value ──
+
+
+def test_get_config_value_simple():
+    """単純なキーの取得。"""
+    with patch("gfo.config.load_user_config", return_value={"defaults": {"output": "json"}}):
+        assert get_config_value("defaults.output") == "json"
+
+
+def test_get_config_value_nested():
+    """ネストされたキーの取得。"""
+    cfg = {"hosts": {"gitlab.com": {"type": "gitlab"}}}
+    with patch("gfo.config.load_user_config", return_value=cfg):
+        assert get_config_value("hosts.gitlab.com.type") == "gitlab"
+
+
+def test_get_config_value_missing():
+    """存在しないキー → None。"""
+    with patch("gfo.config.load_user_config", return_value={"defaults": {"output": "json"}}):
+        assert get_config_value("defaults.host") is None
+
+
+def test_get_config_value_missing_intermediate():
+    """中間キーが存在しない → None。"""
+    with patch("gfo.config.load_user_config", return_value={}):
+        assert get_config_value("defaults.output") is None
+
+
+def test_get_config_value_returns_dict():
+    """テーブルキーを指定すると dict が返る。"""
+    cfg = {"defaults": {"output": "json", "host": "github.com"}}
+    with patch("gfo.config.load_user_config", return_value=cfg):
+        result = get_config_value("defaults")
+        assert result == {"output": "json", "host": "github.com"}
+
+
+# ── set_config_value ──
+
+
+def test_set_config_value_new(tmp_path):
+    """新しいキーの設定。"""
+    d = tmp_path / "gfo_config"
+    d.mkdir()
+    with patch("gfo.config.get_config_dir", return_value=d):
+        set_config_value("defaults.output", "json")
+        assert get_config_value("defaults.output") == "json"
+
+
+def test_set_config_value_overwrite(tmp_path):
+    """既存キーの上書き。"""
+    d = tmp_path / "gfo_config"
+    d.mkdir()
+    (d / "config.toml").write_text('[defaults]\noutput = "table"\n', encoding="utf-8")
+    with patch("gfo.config.get_config_dir", return_value=d):
+        set_config_value("defaults.output", "json")
+        assert get_config_value("defaults.output") == "json"
+
+
+def test_set_config_value_empty_key():
+    """空キー → ConfigError。"""
+    with pytest.raises(ConfigError, match="must not be empty"):
+        set_config_value("", "value")
+
+
+def test_set_config_value_single_part_key():
+    """単一パートのキー → ConfigError。"""
+    with pytest.raises(ConfigError, match="at least two parts"):
+        set_config_value("output", "json")
+
+
+def test_set_config_value_conflict_with_scalar(tmp_path):
+    """スカラー値の上にテーブルを作れない → ConfigError。"""
+    d = tmp_path / "gfo_config"
+    d.mkdir()
+    (d / "config.toml").write_text('[defaults]\noutput = "table"\n', encoding="utf-8")
+    with patch("gfo.config.get_config_dir", return_value=d):
+        with pytest.raises(ConfigError, match="not a table"):
+            set_config_value("defaults.output.nested", "x")
+
+
+# ── unset_config_value ──
+
+
+def test_unset_config_value_existing(tmp_path):
+    """既存キーの削除。"""
+    d = tmp_path / "gfo_config"
+    d.mkdir()
+    (d / "config.toml").write_text(
+        '[defaults]\noutput = "json"\nhost = "github.com"\n', encoding="utf-8"
+    )
+    with patch("gfo.config.get_config_dir", return_value=d):
+        assert unset_config_value("defaults.output") is True
+        assert get_config_value("defaults.output") is None
+        assert get_config_value("defaults.host") == "github.com"
+
+
+def test_unset_config_value_removes_empty_parent(tmp_path):
+    """最後のキーを削除すると親テーブルも消える。"""
+    d = tmp_path / "gfo_config"
+    d.mkdir()
+    (d / "config.toml").write_text('[defaults]\noutput = "json"\n', encoding="utf-8")
+    with patch("gfo.config.get_config_dir", return_value=d):
+        assert unset_config_value("defaults.output") is True
+        cfg = load_user_config()
+        assert "defaults" not in cfg
+
+
+def test_unset_config_value_missing():
+    """存在しないキー → False。"""
+    with patch("gfo.config.load_user_config", return_value={}):
+        assert unset_config_value("defaults.output") is False
+
+
+def test_unset_config_value_empty_key():
+    """空キー → ConfigError。"""
+    with pytest.raises(ConfigError, match="must not be empty"):
+        unset_config_value("")
+
+
+def test_unset_config_value_single_part_key():
+    """単一パートのキー → ConfigError。"""
+    with pytest.raises(ConfigError, match="at least two parts"):
+        unset_config_value("output")
+
+
+# ── _toml_key ──
+
+
+def test_toml_key_simple():
+    assert _toml_key("output") == "output"
+
+
+def test_toml_key_with_hyphen():
+    assert _toml_key("api-url") == "api-url"
+
+
+def test_toml_key_with_dot():
+    assert _toml_key("gitlab.example.com") == '"gitlab.example.com"'
+
+
+def test_toml_key_with_space():
+    assert _toml_key("my key") == '"my key"'
+
+
+# ── _toml_value ──
+
+
+def test_toml_value_string():
+    assert _toml_value("hello") == '"hello"'
+
+
+def test_toml_value_string_with_quotes():
+    assert _toml_value('say "hi"') == '"say \\"hi\\""'
+
+
+def test_toml_value_bool():
+    assert _toml_value(True) == "true"
+    assert _toml_value(False) == "false"
+
+
+def test_toml_value_int():
+    assert _toml_value(42) == "42"
+
+
+def test_toml_value_list():
+    assert _toml_value(["a", "b"]) == '["a", "b"]'
