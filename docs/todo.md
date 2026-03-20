@@ -4,28 +4,6 @@
 
 ---
 
-## 9. 新コマンド: `auth token` / `completion`
-
-**変更ファイル**: `cli.py`, `commands/auth_cmd.py`, テスト
-
-### 9a. `auth token`
-
-現在の認証情報からトークンを取得して標準出力に出力。パイプ連携用。
-
-```python
-# commands/auth_cmd.py handle_token():
-token = resolve_token(host)
-print(token)
-```
-
-### 9b. `completion`
-
-**変更ファイル**: `cli.py` (新サブコマンド登録)
-
-argparse ベースでシェル補完スクリプトを生成。bash / zsh / fish 対応。
-
----
-
 ## 10. `--web` オプション共通追加
 
 **変更ファイル**: `cli.py`, `commands/pr.py`, `commands/issue.py`, `commands/release.py`, `commands/browse.py`, テスト

@@ -101,6 +101,30 @@ def handle_switch(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     print(_("Switched to account '{account}' for {host}").format(account=args.account, host=host))
 
 
+def handle_token(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo auth token のハンドラ。"""
+    if args.host:
+        host = args.host
+        # service_type は検出を試みるが、失敗しても空文字で続行
+        try:
+            result = gfo.detect.detect_service()
+            service_type = result.service_type or ""
+        except (DetectionError, GitCommandError):
+            service_type = ""
+    else:
+        try:
+            result = gfo.detect.detect_service()
+            host = result.host
+            service_type = result.service_type or ""
+        except (DetectionError, GitCommandError):
+            raise ConfigError(
+                _("Could not detect host. Use --host option: gfo auth token --host <host>")
+            )
+
+    token = gfo.auth.resolve_token(host, service_type)
+    print(token)
+
+
 def handle_logout(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo auth logout のハンドラ。"""
     if args.host:

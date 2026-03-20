@@ -17,6 +17,7 @@ import gfo.commands.browse
 import gfo.commands.ci
 import gfo.commands.collaborator
 import gfo.commands.comment
+import gfo.commands.completion
 import gfo.commands.deploy_key
 import gfo.commands.file
 import gfo.commands.gpg_key
@@ -137,9 +138,17 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     auth_switch = auth_sub.add_parser("switch", help=_("Switch active account"))
     auth_switch.add_argument("account", help=_("Account name"))
     auth_switch.add_argument("--host", help=_("Host"))
+    auth_token = auth_sub.add_parser("token", help=_("Print authentication token"))
+    auth_token.add_argument("--host", help=_("Host"))
     auth_logout = auth_sub.add_parser("logout", help=_("Remove saved token"))
     auth_logout.add_argument("--host", help=_("Host to logout from"))
     auth_logout.add_argument("--account", help=_("Account name to remove"))
+
+    # gfo completion
+    completion_parser = subparser_map["completion"] = subparsers.add_parser(
+        "completion", help=_("Generate shell completion script")
+    )
+    completion_parser.add_argument("shell", choices=["bash", "zsh", "fish"], help=_("Target shell"))
 
     # gfo pr → サブサブコマンド
     pr_parser = subparser_map["pr"] = subparsers.add_parser("pr", help=_("Manage pull requests"))
@@ -1255,7 +1264,9 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("auth", "login"): gfo.commands.auth_cmd.handle_login,
     ("auth", "status"): gfo.commands.auth_cmd.handle_status,
     ("auth", "switch"): gfo.commands.auth_cmd.handle_switch,
+    ("auth", "token"): gfo.commands.auth_cmd.handle_token,
     ("auth", "logout"): gfo.commands.auth_cmd.handle_logout,
+    ("completion", None): gfo.commands.completion.handle_completion,
     ("pr", "list"): gfo.commands.pr.handle_list,
     ("pr", "create"): gfo.commands.pr.handle_create,
     ("pr", "view"): gfo.commands.pr.handle_view,

@@ -338,6 +338,113 @@ class TestHandleStatus:
         assert "default *" in captured.out
 
 
+class TestHandleToken:
+    """handle_token のテスト。"""
+
+    def test_token_with_host_and_detection(self, capsys):
+        """--host 指定 + detect 成功 → service_type を使って resolve_token。"""
+        args = make_args(host="github.com")
+
+        with (
+            patch(
+                "gfo.commands.auth_cmd.gfo.detect.detect_service",
+                return_value=_make_detect_result("github.com"),
+            ),
+            patch(
+                "gfo.commands.auth_cmd.gfo.auth.resolve_token", return_value="ghp_test123"
+            ) as mock_resolve,
+        ):
+            auth_cmd.handle_token(args, fmt="table")
+
+        mock_resolve.assert_called_once_with("github.com", "github")
+        captured = capsys.readouterr()
+        assert captured.out.strip() == "ghp_test123"
+
+    def test_token_with_host_detection_fails(self, capsys):
+        """--host 指定 + detect 失敗 → service_type="" で resolve_token。"""
+        args = make_args(host="custom.host")
+
+        with (
+            patch(
+                "gfo.commands.auth_cmd.gfo.detect.detect_service",
+                side_effect=DetectionError("no remote"),
+            ),
+            patch(
+                "gfo.commands.auth_cmd.gfo.auth.resolve_token", return_value="tok123"
+            ) as mock_resolve,
+        ):
+            auth_cmd.handle_token(args, fmt="table")
+
+        mock_resolve.assert_called_once_with("custom.host", "")
+        captured = capsys.readouterr()
+        assert captured.out.strip() == "tok123"
+
+    def test_token_without_host_uses_detect(self, capsys):
+        """--host なし → detect_service() の host と service_type を使用。"""
+        args = make_args(host=None)
+
+        with (
+            patch(
+                "gfo.commands.auth_cmd.gfo.detect.detect_service",
+                return_value=_make_detect_result("github.com"),
+            ),
+            patch(
+                "gfo.commands.auth_cmd.gfo.auth.resolve_token", return_value="ghp_abc"
+            ) as mock_resolve,
+        ):
+            auth_cmd.handle_token(args, fmt="table")
+
+        mock_resolve.assert_called_once_with("github.com", "github")
+        captured = capsys.readouterr()
+        assert captured.out.strip() == "ghp_abc"
+
+    def test_token_without_host_detect_fails(self):
+        """--host なし + detect 失敗 → ConfigError。"""
+        args = make_args(host=None)
+
+        with patch(
+            "gfo.commands.auth_cmd.gfo.detect.detect_service",
+            side_effect=DetectionError("no remote"),
+        ):
+            with pytest.raises(ConfigError, match="--host"):
+                auth_cmd.handle_token(args, fmt="table")
+
+    def test_token_resolve_propagates_auth_error(self):
+        """resolve_token が AuthError → そのまま伝搬。"""
+        from gfo.exceptions import AuthError
+
+        args = make_args(host=None)
+
+        with (
+            patch(
+                "gfo.commands.auth_cmd.gfo.detect.detect_service",
+                return_value=_make_detect_result("github.com"),
+            ),
+            patch(
+                "gfo.commands.auth_cmd.gfo.auth.resolve_token",
+                side_effect=AuthError("github.com"),
+            ),
+        ):
+            with pytest.raises(AuthError):
+                auth_cmd.handle_token(args, fmt="table")
+
+    def test_token_json_format(self, capsys):
+        """fmt="json" でもトークンが出力される。"""
+        args = make_args(host="github.com")
+
+        with (
+            patch(
+                "gfo.commands.auth_cmd.gfo.detect.detect_service",
+                return_value=_make_detect_result("github.com"),
+            ),
+            patch("gfo.commands.auth_cmd.gfo.auth.resolve_token", return_value="ghp_json"),
+        ):
+            auth_cmd.handle_token(args, fmt="json")
+
+        captured = capsys.readouterr()
+        assert "ghp_json" in captured.out
+
+
 class TestHandleLogout:
     """handle_logout のテスト。"""
 

@@ -225,7 +225,9 @@ _OUTPUT_MAP: dict[tuple[str, str | None], type | None] = {
     ("auth", "login"): None,
     ("auth", "status"): None,
     ("auth", "switch"): None,
+    ("auth", "token"): None,
     ("auth", "logout"): None,
+    ("completion", None): None,
     ("issue", "migrate"): list,
     ("batch", "pr"): list,
 }
