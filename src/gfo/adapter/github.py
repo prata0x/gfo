@@ -1092,10 +1092,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return self._to_repository(resp.json())
 
     def sync_fork(self, *, branch: str | None = None) -> None:
-        payload: dict = {}
-        if branch is not None:
-            payload["branch"] = branch
-        self._client.post(f"{self._repos_path()}/merge-upstream", json=payload)
+        if branch is None:
+            branch = self.get_repository().default_branch
+        self._client.post(f"{self._repos_path()}/merge-upstream", json={"branch": branch})
 
     # --- Webhook ---
 
@@ -1363,7 +1362,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     @staticmethod
     def _to_workflow(data: dict) -> Workflow:
         try:
-            state = "active" if data.get("state") == "active" else "disabled"
+            state = data.get("state", "disabled")
             return Workflow(
                 id=data["id"],
                 name=data.get("name") or "",

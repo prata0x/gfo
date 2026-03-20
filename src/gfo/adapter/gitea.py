@@ -1022,10 +1022,9 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return self._to_repository(resp.json())
 
     def sync_fork(self, *, branch: str | None = None) -> None:
-        payload: dict = {}
-        if branch is not None:
-            payload["branch"] = branch
-        self._client.post(f"{self._repos_path()}/merge-upstream", json=payload)
+        if branch is None:
+            branch = self.get_repository().default_branch
+        self._client.post(f"{self._repos_path()}/merge-upstream", json={"branch": branch})
 
     # --- Webhook ---
 
@@ -1262,7 +1261,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     @staticmethod
     def _to_workflow_data(data: dict) -> Workflow:
         try:
-            state = "active" if data.get("state") == "active" else "disabled"
+            state = data.get("state", "disabled")
             return Workflow(
                 id=data["id"],
                 name=data.get("name") or "",
@@ -1883,7 +1882,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def lock_issue(self, number: int, *, reason: str | None = None) -> None:
         self._client.put(
             f"{self._repos_path()}/issues/{number}/lock",
-            json={},
+            json={"lock_reason": reason} if reason else {},
         )
 
     def unlock_issue(self, number: int) -> None:

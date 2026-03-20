@@ -703,6 +703,18 @@ class TestHandleMergeAuto:
         adapter.enable_auto_merge.assert_called_once_with(1, merge_method="squash")
         adapter.merge_pull_request.assert_not_called()
 
+    def test_auto_merge_warns_subject_body(self):
+        import warnings
+
+        with patch_adapter("gfo.commands.pr") as adapter:
+            args = make_args(number=1, squash=False, auto=True, subject="Title", body="Body")
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                pr_cmd.handle_merge(args, fmt="table")
+            assert len(w) == 1
+            assert "--subject/--body" in str(w[0].message)
+        adapter.enable_auto_merge.assert_called_once()
+
 
 def test_pr_list_config_error(capsys):
     """resolve_project_config が ConfigError を投げた場合に CLI で exit code 6 になる。"""

@@ -69,13 +69,19 @@ def handle_watch(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     import time
 
     adapter = get_adapter()
+    timeout = getattr(args, "timeout", 1800)
     terminal_statuses = {"success", "failure", "cancelled"}
+    start = time.monotonic()
     while True:
         pipeline = adapter.get_pipeline(args.id)
         sys.stderr.write(f"\r{pipeline.status}")
         sys.stderr.flush()
         if pipeline.status in terminal_statuses:
             sys.stderr.write("\n")
+            break
+        if timeout > 0 and (time.monotonic() - start) >= timeout:
+            sys.stderr.write("\n")
+            print(_("Timed out after {timeout} seconds.").format(timeout=timeout))
             break
         time.sleep(args.interval)
     output(pipeline, fmt=fmt, jq=jq)

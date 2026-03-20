@@ -65,7 +65,6 @@ class TestHandleEdit:
                 event=None,
                 secret=None,
                 active=None,
-                inactive=False,
             )
             webhook_cmd.handle_edit(args, fmt="table")
         adapter.update_webhook.assert_called_once_with(
@@ -85,7 +84,6 @@ class TestHandleEdit:
                 event=["push", "issues"],
                 secret=None,
                 active=None,
-                inactive=False,
             )
             webhook_cmd.handle_edit(args, fmt="table")
         adapter.update_webhook.assert_called_once_with(
@@ -99,7 +97,7 @@ class TestHandleEdit:
     def test_activate(self):
         with patch_adapter("gfo.commands.webhook") as adapter:
             adapter.update_webhook.return_value = SAMPLE_WEBHOOK
-            args = make_args(id=1, url=None, event=None, secret=None, active=True, inactive=False)
+            args = make_args(id=1, url=None, event=None, secret=None, active=True)
             webhook_cmd.handle_edit(args, fmt="table")
         adapter.update_webhook.assert_called_once_with(
             1,
@@ -112,7 +110,7 @@ class TestHandleEdit:
     def test_deactivate(self):
         with patch_adapter("gfo.commands.webhook") as adapter:
             adapter.update_webhook.return_value = SAMPLE_WEBHOOK
-            args = make_args(id=1, url=None, event=None, secret=None, active=None, inactive=True)
+            args = make_args(id=1, url=None, event=None, secret=None, active=False)
             webhook_cmd.handle_edit(args, fmt="table")
         adapter.update_webhook.assert_called_once_with(
             1,
@@ -125,7 +123,7 @@ class TestHandleEdit:
     def test_json_format(self, capsys):
         with patch_adapter("gfo.commands.webhook") as adapter:
             adapter.update_webhook.return_value = SAMPLE_WEBHOOK
-            args = make_args(id=1, url=None, event=None, secret=None, active=None, inactive=False)
+            args = make_args(id=1, url=None, event=None, secret=None, active=None)
             webhook_cmd.handle_edit(args, fmt="json")
         out = capsys.readouterr().out
         import json
@@ -140,6 +138,6 @@ class TestHandleEdit:
 
         with patch_adapter("gfo.commands.webhook") as adapter:
             adapter.update_webhook.side_effect = HttpError(404, "Not found")
-            args = make_args(id=999, url=None, event=None, secret=None, active=None, inactive=False)
+            args = make_args(id=999, url=None, event=None, secret=None, active=None)
             with pytest.raises(HttpError):
                 webhook_cmd.handle_edit(args, fmt="table")

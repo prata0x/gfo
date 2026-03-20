@@ -206,6 +206,22 @@ class TestHandleWatch:
         out = capsys.readouterr().out
         assert '"failure"' in out
 
+    def test_watch_timeout(self, capsys):
+        running_pipeline = Pipeline(
+            id=123,
+            status="running",
+            ref="main",
+            url="https://example.com/ci/123",
+            created_at="2024-01-01T00:00:00Z",
+        )
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.get_pipeline.return_value = running_pipeline
+            args = make_args(id="123", interval=0, timeout=1)
+            with patch("time.sleep"), patch("time.monotonic", side_effect=[0, 0, 2]):
+                ci_cmd.handle_watch(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "Timed out" in out
+
     def test_watch_error_propagation(self):
         with patch_adapter("gfo.commands.ci") as adapter:
             adapter.get_pipeline.side_effect = GfoError("watch failed")

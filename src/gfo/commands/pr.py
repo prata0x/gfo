@@ -76,6 +76,8 @@ def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 
 def handle_merge(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr merge <number> のハンドラ。"""
+    import warnings
+
     adapter = get_adapter()
     if getattr(args, "squash", False):
         method = "squash"
@@ -83,7 +85,14 @@ def handle_merge(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
         method = "rebase"
     else:
         method = "merge"
+    # --delete-branch 指定時はマージ前にブランチ名を取得
+    source_branch = None
+    if getattr(args, "delete_branch", False):
+        pr_info = adapter.get_pull_request(args.number)
+        source_branch = pr_info.source_branch
     if getattr(args, "auto", False):
+        if getattr(args, "subject", None) or getattr(args, "body", None):
+            warnings.warn(_("--subject/--body are ignored when --auto is used."), stacklevel=1)
         adapter.enable_auto_merge(args.number, merge_method=method)
         print(_("Enabled auto-merge for PR #{number}.").format(number=args.number))
     else:
@@ -94,10 +103,9 @@ def handle_merge(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
             message=getattr(args, "body", None),
         )
         print(_("Merged PR #{number}.").format(number=args.number))
-    if getattr(args, "delete_branch", False):
-        pr = adapter.get_pull_request(args.number)
-        adapter.delete_branch(name=pr.source_branch)
-        print(_("Deleted branch '{branch}'.").format(branch=pr.source_branch))
+    if source_branch:
+        adapter.delete_branch(name=source_branch)
+        print(_("Deleted branch '{branch}'.").format(branch=source_branch))
 
 
 def handle_close(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

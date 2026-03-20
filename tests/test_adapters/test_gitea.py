@@ -856,6 +856,18 @@ class TestLockIssue:
             status=204,
         )
         gitea_adapter.lock_issue(3)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body == {}
+
+    def test_lock_with_reason(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/issues/3/lock",
+            status=204,
+        )
+        gitea_adapter.lock_issue(3, reason="spam")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body == {"lock_reason": "spam"}
 
     def test_unlock(self, mock_responses, gitea_adapter):
         mock_responses.add(
@@ -2033,12 +2045,20 @@ class TestForkRepository:
 class TestSyncFork:
     def test_sync_fork(self, mock_responses, gitea_adapter):
         mock_responses.add(
+            responses.GET,
+            REPOS,
+            json=_repo_data(),
+            status=200,
+        )
+        mock_responses.add(
             responses.POST,
             f"{REPOS}/merge-upstream",
             json={},
             status=200,
         )
         gitea_adapter.sync_fork()
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["branch"] == "main"
 
     def test_sync_fork_with_branch(self, mock_responses, gitea_adapter):
         mock_responses.add(
@@ -3046,6 +3066,25 @@ class TestListWorkflows:
         assert len(workflows) == 1
         assert isinstance(workflows[0], Workflow)
         assert workflows[0].name == "CI"
+
+    def test_disabled_fork_state_preserved(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/workflows",
+            json={
+                "workflows": [
+                    {
+                        "id": 1,
+                        "name": "CI",
+                        "path": ".gitea/workflows/ci.yml",
+                        "state": "disabled_fork",
+                    }
+                ]
+            },
+            status=200,
+        )
+        workflows = gitea_adapter.list_workflows()
+        assert workflows[0].state == "disabled_fork"
 
     def test_empty(self, mock_responses, gitea_adapter):
         mock_responses.add(

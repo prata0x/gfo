@@ -2125,12 +2125,20 @@ class TestForkRepository:
 class TestSyncFork:
     def test_sync_fork(self, mock_responses, github_adapter):
         mock_responses.add(
+            responses.GET,
+            REPOS,
+            json=_repo_data(),
+            status=200,
+        )
+        mock_responses.add(
             responses.POST,
             f"{REPOS}/merge-upstream",
             json={"merge_type": "fast-forward", "base_branch": "main"},
             status=200,
         )
         github_adapter.sync_fork()
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["branch"] == "main"
 
     def test_sync_fork_with_branch(self, mock_responses, github_adapter):
         mock_responses.add(
@@ -3464,6 +3472,17 @@ class TestListWorkflows:
         assert isinstance(workflows[0], Workflow)
         assert workflows[0].name == "CI"
         assert workflows[0].state == "active"
+
+    @responses.activate
+    def test_disabled_fork_state_preserved(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/workflows",
+            json={"workflows": [_workflow_data(state="disabled_fork")], "total_count": 1},
+            status=200,
+        )
+        workflows = github_adapter.list_workflows()
+        assert workflows[0].state == "disabled_fork"
 
     @responses.activate
     def test_empty(self, github_adapter):

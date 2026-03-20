@@ -668,8 +668,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     webhook_edit.add_argument("--url", help=_("Webhook URL"))
     webhook_edit.add_argument("--event", action="append", help=_("Event type"))
     webhook_edit.add_argument("--secret", help=_("Webhook secret"))
-    webhook_edit.add_argument("--active", action="store_true", default=None, help=_("Activate"))
-    webhook_edit.add_argument("--inactive", action="store_true", help=_("Deactivate"))
+    webhook_edit_active = webhook_edit.add_mutually_exclusive_group()
+    webhook_edit_active.add_argument(
+        "--active", dest="active", action="store_true", default=None, help=_("Activate")
+    )
+    webhook_edit_active.add_argument(
+        "--inactive", dest="active", action="store_false", help=_("Deactivate")
+    )
 
     # gfo deploy-key → サブサブコマンド
     deploy_key_parser = subparser_map["deploy-key"] = subparsers.add_parser(
@@ -736,6 +741,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     ci_watch.add_argument("id", help=_("Pipeline ID"))
     ci_watch.add_argument(
         "--interval", "-i", type=int, default=5, help=_("Poll interval in seconds")
+    )
+    ci_watch.add_argument(
+        "--timeout", "-t", type=int, default=1800, help=_("Timeout in seconds (0 for unlimited)")
     )
     ci_download = ci_sub.add_parser("download", help=_("Download pipeline logs to file"))
     ci_download.add_argument("id", help=_("Pipeline ID"))
