@@ -30,6 +30,13 @@ def handle_cancel(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     adapter.cancel_pipeline(args.id)
 
 
+def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo ci delete <id> のハンドラ。"""
+    adapter = get_adapter()
+    adapter.delete_pipeline_run(args.id)
+    print(_("Deleted pipeline run '{id}'.").format(id=args.id))
+
+
 def handle_trigger(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo ci trigger --ref REF のハンドラ。"""
     adapter = get_adapter()

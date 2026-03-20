@@ -1616,6 +1616,9 @@ class GitLabAdapter(GitServiceAdapter):
     def cancel_pipeline(self, pipeline_id: int | str) -> None:
         self._client.post(f"{self._project_path()}/pipelines/{pipeline_id}/cancel", json={})
 
+    def delete_pipeline_run(self, run_id: int | str) -> None:
+        self._client.delete(f"{self._project_path()}/pipelines/{run_id}")
+
     def trigger_pipeline(
         self, ref: str, *, workflow: str | None = None, inputs: dict | None = None
     ) -> Pipeline:

@@ -1677,6 +1677,27 @@ class TestCancelPipeline:
         assert mock_responses.calls[0].request.method == "PATCH"
 
 
+class TestDeletePipelineRun:
+    def test_delete(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{BASE}/build/builds/300",
+            status=204,
+        )
+        azure_devops_adapter.delete_pipeline_run(300)
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+    def test_404(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{BASE}/build/builds/999",
+            status=404,
+            json={"message": "Not Found"},
+        )
+        with pytest.raises(NotFoundError):
+            azure_devops_adapter.delete_pipeline_run(999)
+
+
 class TestTriggerPipeline:
     def test_trigger(self, mock_responses, azure_devops_adapter):
         mock_responses.add(

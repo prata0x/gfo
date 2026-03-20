@@ -1337,6 +1337,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             headers={"Content-Type": "application/json-patch+json"},
         )
 
+    def delete_pipeline_run(self, run_id: int | str) -> None:
+        self._client.delete(f"/build/builds/{run_id}")
+
     def trigger_pipeline(
         self, ref: str, *, workflow: str | None = None, inputs: dict | None = None
     ) -> Pipeline:

@@ -148,6 +148,7 @@ _OUTPUT_MAP: dict[tuple[str, str | None], type | None] = {
     ("ci", "list"): list[Pipeline],
     ("ci", "view"): Pipeline,
     ("ci", "cancel"): None,
+    ("ci", "delete"): None,
     ("ci", "trigger"): Pipeline,
     ("ci", "retry"): Pipeline,
     ("ci", "logs"): None,

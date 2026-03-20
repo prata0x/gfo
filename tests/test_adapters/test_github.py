@@ -2505,6 +2505,27 @@ class TestCancelPipeline:
         assert mock_responses.calls[0].request.method == "POST"
 
 
+class TestDeletePipelineRun:
+    def test_delete(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/actions/runs/300",
+            status=204,
+        )
+        github_adapter.delete_pipeline_run(300)
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+    def test_404(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/actions/runs/999",
+            status=404,
+            json={"message": "Not Found"},
+        )
+        with pytest.raises(NotFoundError):
+            github_adapter.delete_pipeline_run(999)
+
+
 class TestTriggerPipeline:
     def test_trigger_with_workflow(self, mock_responses, github_adapter):
         mock_responses.add(

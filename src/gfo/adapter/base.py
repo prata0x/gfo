@@ -1213,6 +1213,9 @@ class GitServiceAdapter(ABC):
     ) -> str:
         raise NotSupportedError(self.service_name, "ci artifact download")
 
+    def delete_pipeline_run(self, run_id: int | str) -> None:
+        raise NotSupportedError(self.service_name, "ci delete")
+
     def download_run_logs(
         self, run_id: int | str, *, job_id: int | str | None = None, output_dir: str = "."
     ) -> str:

@@ -770,6 +770,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     ci_view.add_argument("id", help=_("Pipeline ID"))
     ci_cancel = ci_sub.add_parser("cancel", help=_("Cancel pipeline"))
     ci_cancel.add_argument("id", help=_("Pipeline ID"))
+    ci_delete = ci_sub.add_parser("delete", help=_("Delete pipeline run"))
+    ci_delete.add_argument("id", help=_("Pipeline ID"))
     ci_trigger = ci_sub.add_parser("trigger", help=_("Trigger pipeline"))
     ci_trigger.add_argument("--ref", required=True, help=_("Git ref"))
     ci_trigger.add_argument("--workflow", "-w", help=_("Workflow name or file"))
@@ -1334,6 +1336,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("ci", "list"): gfo.commands.ci.handle_list,
     ("ci", "view"): gfo.commands.ci.handle_view,
     ("ci", "cancel"): gfo.commands.ci.handle_cancel,
+    ("ci", "delete"): gfo.commands.ci.handle_delete,
     ("ci", "trigger"): gfo.commands.ci.handle_trigger,
     ("ci", "retry"): gfo.commands.ci.handle_retry,
     ("ci", "logs"): gfo.commands.ci.handle_logs,

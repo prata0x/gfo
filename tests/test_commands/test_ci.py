@@ -69,6 +69,28 @@ class TestHandleCancel:
         adapter.cancel_pipeline.assert_called_once_with("456")
 
 
+class TestHandleDelete:
+    def test_calls_delete_pipeline_run(self):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            args = make_args(id="456")
+            ci_cmd.handle_delete(args, fmt="table")
+        adapter.delete_pipeline_run.assert_called_once_with("456")
+
+    def test_prints_message(self, capsys):
+        with patch_adapter("gfo.commands.ci"):
+            args = make_args(id="789")
+            ci_cmd.handle_delete(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "789" in out
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.delete_pipeline_run.side_effect = GfoError("delete failed")
+            args = make_args(id="123")
+            with pytest.raises(GfoError, match="delete failed"):
+                ci_cmd.handle_delete(args, fmt="table")
+
+
 class TestHandleTrigger:
     def test_calls_trigger_pipeline(self, capsys):
         with patch_adapter("gfo.commands.ci") as adapter:

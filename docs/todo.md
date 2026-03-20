@@ -4,20 +4,6 @@
 
 ---
 
-## 6. `ci delete`
-
-**変更ファイル**: `cli.py`, `commands/ci.py`, `adapter/base.py`, 各アダプター (GitHub/GitLab/Azure DevOps), テスト
-
-`delete_pipeline_run()` を `adapter/base.py` に追加。3 サービス対応。
-
-```python
-# adapter/base.py
-def delete_pipeline_run(self, run_id: int) -> None:
-    raise NotSupportedError("ci delete")
-```
-
----
-
 ## 7. `search code`
 
 **変更ファイル**: `cli.py`, `commands/search.py`, `adapter/base.py`, 各アダプター (GitHub/GitLab/Bitbucket/Azure DevOps), テスト

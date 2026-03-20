@@ -1245,6 +1245,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def cancel_pipeline(self, pipeline_id: int | str) -> None:
         self._client.post(f"{self._repos_path()}/actions/runs/{pipeline_id}/cancel", json={})
 
+    def delete_pipeline_run(self, run_id: int | str) -> None:
+        self._client.delete(f"{self._repos_path()}/actions/runs/{run_id}")
+
     def trigger_pipeline(
         self, ref: str, *, workflow: str | None = None, inputs: dict | None = None
     ) -> Pipeline:
