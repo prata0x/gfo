@@ -1063,6 +1063,76 @@ class TestCreateRelease:
         req_body = json.loads(mock_responses.calls[1].request.body)
         assert req_body["upcoming_release"] is True
 
+    def test_create_with_generate_notes(self, mock_responses, gitlab_adapter):
+        """generate_notes=True のとき /repository/changelog から取得したノートを description に設定する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/repository/changelog",
+            json={"notes": "## Changelog\n\n- fix: bug fix"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}",
+            json=_repo_data(),
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/releases",
+            json=_release_data(),
+            status=201,
+        )
+        gitlab_adapter.create_release(tag="v1.0.0", generate_notes=True)
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert req_body["description"] == "## Changelog\n\n- fix: bug fix"
+
+    def test_create_with_generate_notes_and_existing_notes_uses_existing(
+        self, mock_responses, gitlab_adapter
+    ):
+        """notes が指定済みなら generate_notes=True でも changelog を取得しない。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}",
+            json=_repo_data(),
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/releases",
+            json=_release_data(),
+            status=201,
+        )
+        gitlab_adapter.create_release(tag="v1.0.0", notes="Existing notes", generate_notes=True)
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["description"] == "Existing notes"
+
+    def test_create_with_generate_notes_changelog_error_falls_back(
+        self, mock_responses, gitlab_adapter
+    ):
+        """changelog エンドポイントがエラーの場合、空ノートでフォールバックする。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/repository/changelog",
+            json={"message": "not found"},
+            status=404,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}",
+            json=_repo_data(),
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/releases",
+            json=_release_data(),
+            status=201,
+        )
+        gitlab_adapter.create_release(tag="v1.0.0", generate_notes=True)
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert req_body["description"] == ""
+
 
 class TestGetRelease:
     def test_get(self, mock_responses, gitlab_adapter):

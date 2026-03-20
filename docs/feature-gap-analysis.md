@@ -32,7 +32,7 @@
 | `issue create/edit --due-date` | x | O | x | O | O | O | x | x | O | **5** |
 | `pr list --milestone` | O | O | x | x | O | O | x | x | x | **4** |
 | `issue create --template` | O | x | x | x | O | O | x | x | x | **3** |
-| `release create --generate-notes` | O | O | x | x | x | x | x | x | x | **2** |
+| ~~`release create --generate-notes`~~ | ~~O~~ | ~~O~~ | ~~x~~ | ~~x~~ | ~~x~~ | ~~x~~ | ~~x~~ | ~~x~~ | ~~x~~ | ~~**2**~~ |
 | `--web` (pr/issue create 等) | ローカル実装 | ローカル実装 | ローカル実装 | ローカル実装 | ローカル実装 | ローカル実装 | ローカル実装 | ローカル実装 | ローカル実装 | **9** |
 
 ---

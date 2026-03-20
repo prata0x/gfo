@@ -477,6 +477,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         draft: bool = False,
         prerelease: bool = False,
         target: str | None = None,
+        generate_notes: bool = False,
     ) -> Release:
         payload = {
             "tag_name": tag,
@@ -487,6 +488,8 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         }
         if target:
             payload["target_commitish"] = target
+        if generate_notes:
+            payload["generate_release_notes"] = True
         resp = self._client.post(f"{self._repos_path()}/releases", json=payload)
         return self._to_release(resp.json())
 

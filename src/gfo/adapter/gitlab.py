@@ -574,7 +574,17 @@ class GitLabAdapter(GitServiceAdapter):
         draft: bool = False,
         prerelease: bool = False,
         target: str | None = None,
+        generate_notes: bool = False,
     ) -> Release:
+        if generate_notes and not notes:
+            try:
+                resp = self._client.get(
+                    f"{self._project_path()}/repository/changelog",
+                    params={"version": tag},
+                )
+                notes = resp.json().get("notes", "")
+            except GfoError:
+                pass
         payload: dict = {
             "tag_name": tag,
             "name": title,

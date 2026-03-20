@@ -36,6 +36,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         draft=args.draft,
         prerelease=args.prerelease,
         target=getattr(args, "target", None),
+        generate_notes=getattr(args, "generate_notes", False),
     )
     output(release, fmt=fmt, jq=jq)
 

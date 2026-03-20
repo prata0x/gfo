@@ -1106,7 +1106,7 @@ gfo release list
 ### gfo release create
 
 ```
-gfo release create TAG [--title TITLE] [--notes NOTES] [--notes-file FILE] [--draft] [--prerelease] [--target TARGET]
+gfo release create TAG [--title TITLE] [--notes NOTES] [--notes-file FILE] [--draft] [--prerelease] [--target TARGET] [--generate-notes]
 ```
 
 | オプション | 説明 |
@@ -1117,12 +1117,14 @@ gfo release create TAG [--title TITLE] [--notes NOTES] [--notes-file FILE] [--dr
 | `--draft` | ドラフトとして作成 |
 | `--prerelease` | プレリリースとしてマーク |
 | `--target` | ターゲットブランチまたはコミット SHA |
+| `--generate-notes` | リリースノートを自動生成（GitHub/GitLab） |
 
 ```bash
 gfo release create v1.0.0 --title "Version 1.0.0" --notes "Release notes here"
 gfo release create v1.0.0 --notes-file CHANGELOG.md
 gfo release create v1.1.0-rc1 --prerelease
 gfo release create v2.0.0 --draft
+gfo release create v1.0.0 --generate-notes
 ```
 
 ### gfo release delete

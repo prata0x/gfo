@@ -4,17 +4,6 @@
 
 ---
 
-## 8. `release create --generate-notes`
-
-**変更ファイル**: `cli.py`, `commands/release.py`, `adapter/base.py`, 各アダプター (GitHub/GitLab), テスト
-
-`create_release()` に `generate_notes` パラメータを追加。または事前に `generate_release_notes()` でノートを生成して `notes` に渡す。
-
-- GitHub: `generate_release_notes: true` パラメータ
-- GitLab: `/repository/changelog` エンドポイントで事前生成
-
----
-
 ## 9. 新コマンド: `auth token` / `completion`
 
 **変更ファイル**: `cli.py`, `commands/auth_cmd.py`, テスト

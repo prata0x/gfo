@@ -471,7 +471,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | ターゲット ref | `--target` | `--target` | `--ref` / `-r` | `--target` | `--branch` / `-B` |
 | マイルストーン | `---` | `---` | `--milestone` / `-m` | `---` | `---` |
 | ノートファイル | `--notes-file` | `--notes-file` / `-F` | `--notes-file` / `-F` | `--note-file` / `-f` | `---` |
-| 自動リリースノート | `---` | `--generate-notes` | `---` | `---` | `---` |
+| 自動リリースノート | `--generate-notes` | `--generate-notes` | `---` | `---` | `---` |
 | Latest 指定 | `---` | `--latest` | `---` | `---` | `---` |
 | Discussion カテゴリ | `---` | `--discussion-category` | `---` | `---` | `---` |
 | ファイル添付 | 別途 `asset upload` | 位置引数 | `--assets-links` | `--asset` | `--attach` / `-a` |

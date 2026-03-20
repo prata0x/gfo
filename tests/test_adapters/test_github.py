@@ -1062,6 +1062,28 @@ class TestCreateRelease:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert "target_commitish" not in req_body
 
+    def test_create_with_generate_notes(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/releases",
+            json=_release_data(),
+            status=201,
+        )
+        github_adapter.create_release(tag="v1.0.0", generate_notes=True)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["generate_release_notes"] is True
+
+    def test_create_without_generate_notes_omits_flag(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/releases",
+            json=_release_data(),
+            status=201,
+        )
+        github_adapter.create_release(tag="v1.0.0")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "generate_release_notes" not in req_body
+
 
 class TestGetRelease:
     def test_get(self, mock_responses, github_adapter):

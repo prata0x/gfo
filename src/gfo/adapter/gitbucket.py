@@ -216,7 +216,9 @@ class GitBucketAdapter(GitHubAdapter):
         draft: bool = False,
         prerelease: bool = False,
         target: str | None = None,
+        generate_notes: bool = False,
     ) -> Release:
+        self._warn_unsupported_params("release create", generate_notes=generate_notes)
         payload = {
             "tag_name": tag,
             "name": title,

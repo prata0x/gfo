@@ -113,6 +113,7 @@ class TestHandleCreate:
             draft=False,
             prerelease=False,
             target=None,
+            generate_notes=False,
         )
 
     def test_title_defaults_to_tag(self, sample_config):
@@ -209,6 +210,26 @@ class TestHandleCreate:
 
         call_kwargs = self.adapter.create_release.call_args.kwargs
         assert call_kwargs["notes"] == "Inline notes"
+
+    def test_generate_notes_passed_to_adapter(self, sample_config):
+        """--generate-notes フラグがアダプターに渡される。"""
+        args = make_args(
+            tag="v1.0.0", title=None, notes="", draft=False, prerelease=False, generate_notes=True
+        )
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = self.adapter.create_release.call_args.kwargs
+        assert call_kwargs["generate_notes"] is True
+
+    def test_generate_notes_false_by_default(self, sample_config):
+        """--generate-notes 未指定なら False が渡される。"""
+        args = make_args(tag="v1.0.0", title=None, notes="", draft=False, prerelease=False)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = self.adapter.create_release.call_args.kwargs
+        assert call_kwargs["generate_notes"] is False
 
     def test_empty_tag_raises_config_error_with_correct_message(self, sample_config):
         """空文字 tag では正しいエラーメッセージが表示される（R39-02）。"""
