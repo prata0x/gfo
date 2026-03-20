@@ -24,6 +24,7 @@ class TestHandleEdit:
             add_assignees=None,
             remove_assignees=None,
             milestone=None,
+            draft=None,
         )
 
     def test_calls_update_with_none_fields(self, sample_pr):
@@ -41,6 +42,7 @@ class TestHandleEdit:
             add_assignees=None,
             remove_assignees=None,
             milestone=None,
+            draft=None,
         )
 
     def test_passes_add_labels(self, sample_pr):
@@ -133,6 +135,42 @@ class TestHandleEdit:
         call_kwargs = adapter.update_pull_request.call_args.kwargs
         assert call_kwargs["milestone"] == "v1.0"
 
+    def test_passes_draft_true(self, sample_pr):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.update_pull_request.return_value = sample_pr
+            args = make_args(
+                number=1,
+                title=None,
+                body=None,
+                base=None,
+                draft=True,
+            )
+            pr_cmd.handle_edit(args, fmt="table")
+        call_kwargs = adapter.update_pull_request.call_args.kwargs
+        assert call_kwargs["draft"] is True
+
+    def test_passes_draft_false(self, sample_pr):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.update_pull_request.return_value = sample_pr
+            args = make_args(
+                number=1,
+                title=None,
+                body=None,
+                base=None,
+                draft=False,
+            )
+            pr_cmd.handle_edit(args, fmt="table")
+        call_kwargs = adapter.update_pull_request.call_args.kwargs
+        assert call_kwargs["draft"] is False
+
+    def test_draft_default_is_none(self, sample_pr):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.update_pull_request.return_value = sample_pr
+            args = make_args(number=1, title=None, body=None, base=None)
+            pr_cmd.handle_edit(args, fmt="table")
+        call_kwargs = adapter.update_pull_request.call_args.kwargs
+        assert call_kwargs["draft"] is None
+
 
 class TestPrEditArgParsing:
     """pr edit の CLI 引数パースのテスト。"""
@@ -171,3 +209,12 @@ class TestPrEditArgParsing:
         assert ns.add_assignee is None
         assert ns.remove_assignee is None
         assert ns.milestone is None
+        assert ns.draft is None
+
+    def test_draft_flag(self, parser):
+        ns = parser.parse_args(["pr", "edit", "1", "--draft"])
+        assert ns.draft is True
+
+    def test_ready_flag(self, parser):
+        ns = parser.parse_args(["pr", "edit", "1", "--ready"])
+        assert ns.draft is False

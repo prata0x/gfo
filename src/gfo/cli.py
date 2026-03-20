@@ -167,6 +167,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     _pr_list_draft.add_argument(
         "--no-draft", dest="draft", action="store_false", help=_("Filter non-draft PRs only")
     )
+    pr_list.add_argument("--milestone", "-m", help=_("Filter by milestone"))
     pr_list.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     pr_create = pr_sub.add_parser("create", help=_("Create pull request"))
     pr_create.add_argument("--title", help=_("Title"))
@@ -184,6 +185,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_create.add_argument(
         "--fill", action="store_true", help=_("Use commit info for title and body")
     )
+    pr_create.add_argument("--dry-run", action="store_true", help=_("Preview without creating"))
     pr_view = pr_sub.add_parser("view", help=_("View pull request details"))
     pr_view.add_argument("number", type=int, help=_("PR number"))
     pr_view.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
@@ -237,6 +239,12 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_ready = pr_sub.add_parser("ready", help=_("Mark as ready for review"))
     pr_ready.add_argument("number", type=int, help=_("PR number"))
     pr_sub.add_parser("status", help=_("Show status of pull requests related to you"))
+    pr_subscribe = pr_sub.add_parser("subscribe", help=_("Subscribe to pull request notifications"))
+    pr_subscribe.add_argument("number", type=int, help=_("PR number"))
+    pr_unsubscribe = pr_sub.add_parser(
+        "unsubscribe", help=_("Unsubscribe from pull request notifications")
+    )
+    pr_unsubscribe.add_argument("number", type=int, help=_("PR number"))
 
     # gfo pr review → サブサブコマンド
     pr_review = pr_sub.add_parser("review", help=_("Manage PR reviews"))
@@ -561,6 +569,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_edit.add_argument("--add-assignee", action="append", help=_("Add assignee"))
     pr_edit.add_argument("--remove-assignee", action="append", help=_("Remove assignee"))
     pr_edit.add_argument("--milestone", help=_("Milestone"))
+    _pr_edit_draft = pr_edit.add_mutually_exclusive_group()
+    _pr_edit_draft.add_argument(
+        "--draft", dest="draft", action="store_true", default=None, help=_("Convert to draft")
+    )
+    _pr_edit_draft.add_argument(
+        "--ready", dest="draft", action="store_false", help=_("Mark as ready for review")
+    )
 
     # gfo issue edit（既存 issue に追加）
     issue_edit = issue_sub.add_parser("edit", help=_("Edit issue"))
@@ -1245,6 +1260,8 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("pr", "update-branch"): gfo.commands.pr.handle_update_branch,
     ("pr", "ready"): gfo.commands.pr.handle_ready,
     ("pr", "status"): gfo.commands.pr.handle_status,
+    ("pr", "subscribe"): gfo.commands.pr.handle_subscribe,
+    ("pr", "unsubscribe"): gfo.commands.pr.handle_unsubscribe,
     ("issue", "list"): gfo.commands.issue.handle_list,
     ("issue", "create"): gfo.commands.issue.handle_create,
     ("issue", "view"): gfo.commands.issue.handle_view,

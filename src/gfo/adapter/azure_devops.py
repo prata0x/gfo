@@ -165,8 +165,11 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         base: str | None = None,
         head: str | None = None,
         draft: bool | None = None,
+        milestone: str | None = None,
     ) -> list[PullRequest]:
-        self._warn_unsupported_params("pr list", label=label, assignee=assignee, search=search)
+        self._warn_unsupported_params(
+            "pr list", label=label, assignee=assignee, search=search, milestone=milestone
+        )
         params: dict = {}
         if state != "all":
             params["searchCriteria.status"] = _PR_STATE_TO_API.get(state, "active")
@@ -919,6 +922,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         add_assignees: list[str] | None = None,
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
+        draft: bool | None = None,
     ) -> PullRequest:
         self._warn_unsupported_params(
             "pr edit",
@@ -935,6 +939,8 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             payload["description"] = body
         if base is not None:
             payload["targetRefName"] = _add_refs_prefix(base)
+        if draft is not None:
+            payload["isDraft"] = draft
         resp = self._client.patch(f"{self._git_path()}/pullrequests/{number}", json=payload)
         return self._to_pull_request(resp.json())
 

@@ -4,34 +4,6 @@
 
 ---
 
-## 5. `pr` コマンド拡張
-
-**変更ファイル**: `cli.py`, `commands/pr.py`, `adapter/base.py`, 各アダプター (9 ファイル), テスト
-
-### 5a. `pr edit --draft` / `--ready` (6 サービス対応)
-
-`update_pull_request()` に `draft` パラメータを追加。サービスごとに方式が異なる:
-- GitLab: タイトルの `Draft:` プレフィックス付与/除去
-- GitHub: REST で draft→ready は不可（GraphQL 必要）。作成時のみ対応
-- Azure DevOps / Gitea / Forgejo: `isDraft` / `draft` パラメータ
-
-### 5b. `pr list --milestone` (4 サービス対応)
-
-`list_pull_requests()` に `milestone` パラメータを追加。
-
-### 5c. `pr subscribe` / `unsubscribe` (4 サービス対応)
-
-`subscribe_pull_request()` / `unsubscribe_pull_request()` を `adapter/base.py` に追加。
-- GitHub: Notification Thread 経由（間接的）
-- GitLab: `POST /merge_requests/:iid/subscribe`
-- Gitea / Forgejo: `PUT /issues/:index/subscriptions/:user`
-
-### 5d. `pr create --dry-run`
-
-CLI 側のみ。API 呼出をスキップしてタイトル・本文・ブランチ差分をプレビュー表示。
-
----
-
 ## 6. `ci delete`
 
 **変更ファイル**: `cli.py`, `commands/ci.py`, `adapter/base.py`, 各アダプター (GitHub/GitLab/Azure DevOps), テスト

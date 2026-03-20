@@ -163,6 +163,7 @@ class BacklogAdapter(GitServiceAdapter):
         base: str | None = None,
         head: str | None = None,
         draft: bool | None = None,
+        milestone: str | None = None,
     ) -> list[PullRequest]:
         self._warn_unsupported_params(
             "pr list",
@@ -173,6 +174,7 @@ class BacklogAdapter(GitServiceAdapter):
             base=base,
             head=head,
             draft=draft,
+            milestone=milestone,
         )
         params: dict = {}
         merged_id: int | None = None
@@ -603,6 +605,7 @@ class BacklogAdapter(GitServiceAdapter):
         add_assignees: list[str] | None = None,
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
+        draft: bool | None = None,
     ) -> PullRequest:
         self._warn_unsupported_params(
             "pr edit",
@@ -611,6 +614,7 @@ class BacklogAdapter(GitServiceAdapter):
             add_assignees=add_assignees,
             remove_assignees=remove_assignees,
             milestone=milestone,
+            draft=draft,
         )
         payload: dict = {}
         if title is not None:

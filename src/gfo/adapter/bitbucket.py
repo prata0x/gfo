@@ -146,8 +146,11 @@ class BitbucketAdapter(GitServiceAdapter):
         base: str | None = None,
         head: str | None = None,
         draft: bool | None = None,
+        milestone: str | None = None,
     ) -> list[PullRequest]:
-        self._warn_unsupported_params("pr list", label=label, assignee=assignee, draft=draft)
+        self._warn_unsupported_params(
+            "pr list", label=label, assignee=assignee, draft=draft, milestone=milestone
+        )
         state_map = {"open": "OPEN", "closed": "DECLINED", "merged": "MERGED"}
         params: dict = {}
         if state != "all":
@@ -614,6 +617,7 @@ class BitbucketAdapter(GitServiceAdapter):
         add_assignees: list[str] | None = None,
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
+        draft: bool | None = None,
     ) -> PullRequest:
         self._warn_unsupported_params(
             "pr edit",
@@ -622,6 +626,7 @@ class BitbucketAdapter(GitServiceAdapter):
             add_assignees=add_assignees,
             remove_assignees=remove_assignees,
             milestone=milestone,
+            draft=draft,
         )
         payload: dict = {}
         if title is not None:

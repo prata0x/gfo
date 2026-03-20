@@ -77,6 +77,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         base: str | None = None,
         head: str | None = None,
         draft: bool | None = None,
+        milestone: str | None = None,
     ) -> list[PullRequest]:
         self._warn_unsupported_params("pr list", draft=draft)
         api_state = "closed" if state == "merged" else state
@@ -93,6 +94,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             params["base"] = base
         if head:
             params["head"] = head
+        if milestone:
+            params["milestones"] = milestone
         results = paginate_link_header(
             self._client,
             f"{self._repos_path()}/pulls",
@@ -702,6 +705,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         add_assignees: list[str] | None = None,
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
+        draft: bool | None = None,
     ) -> PullRequest:
         payload: dict = {}
         if title is not None:
@@ -732,6 +736,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 payload["assignees"] = sorted(current)
         if milestone is not None:
             payload["milestone"] = self._resolve_milestone_id_by_title(milestone)
+        if draft is not None:
+            payload["state"] = "open"
         resp = self._client.patch(f"{self._repos_path()}/pulls/{number}", json=payload)
         return self._to_pull_request(resp.json())
 
@@ -1919,6 +1925,15 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.delete(
             f"{self._repos_path()}/issues/{number}/subscriptions/{quote(username, safe='')}",
         )
+
+    # --- PR Subscribe ---
+
+    def subscribe_pull_request(self, number: int) -> None:
+        # Gitea では PR は Issue と同じ subscription API を使用
+        self.subscribe_issue(number)
+
+    def unsubscribe_pull_request(self, number: int) -> None:
+        self.unsubscribe_issue(number)
 
     # --- Issue Pin ---
 

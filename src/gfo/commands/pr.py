@@ -31,6 +31,7 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         base=getattr(args, "base", None),
         head=getattr(args, "head", None),
         draft=getattr(args, "draft", None),
+        milestone=getattr(args, "milestone", None),
     )
     output(prs, fmt=fmt, fields=["number", "title", "state", "author"], jq=jq)
 
@@ -50,6 +51,15 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         body = args.body or gfo.git_util.get_last_commit_body() or ""
     else:
         body = args.body or ""
+    if getattr(args, "dry_run", False):
+        print(_("Title: {title}").format(title=title))
+        print(_("Head:  {head} -> Base: {base}").format(head=head, base=base))
+        if args.draft:
+            print(_("Draft: yes"))
+        if body:
+            print(_("Body:"))
+            print(body)
+        return
     pr = adapter.create_pull_request(
         title=title,
         body=body,
@@ -161,6 +171,7 @@ def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         add_assignees=getattr(args, "add_assignee", None),
         remove_assignees=getattr(args, "remove_assignee", None),
         milestone=getattr(args, "milestone", None),
+        draft=getattr(args, "draft", None),
     )
     output(pr, fmt=fmt, jq=jq)
 
@@ -251,6 +262,20 @@ def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     _print_section(_("Created by you"), created, fields)
     print()
     _print_section(_("Assigned to you"), assigned, fields)
+
+
+def handle_subscribe(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo pr subscribe <number> のハンドラ。"""
+    adapter = get_adapter()
+    adapter.subscribe_pull_request(args.number)
+    print(_("Subscribed to PR #{number}.").format(number=args.number))
+
+
+def handle_unsubscribe(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo pr unsubscribe <number> のハンドラ。"""
+    adapter = get_adapter()
+    adapter.unsubscribe_pull_request(args.number)
+    print(_("Unsubscribed from PR #{number}.").format(number=args.number))
 
 
 def _print_section(title: str, prs: list, fields: list[str]) -> None:

@@ -79,6 +79,7 @@ class GitBucketAdapter(GitHubAdapter):
         base: str | None = None,
         head: str | None = None,
         draft: bool | None = None,
+        milestone: str | None = None,
     ) -> list[PullRequest]:
         self._warn_unsupported_params(
             "pr list",
@@ -89,6 +90,7 @@ class GitBucketAdapter(GitHubAdapter):
             base=base,
             head=head,
             draft=draft,
+            milestone=milestone,
         )
         return super().list_pull_requests(state=state, limit=limit)
 

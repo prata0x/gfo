@@ -50,6 +50,7 @@ class TestHandleList:
             base=None,
             head=None,
             draft=None,
+            milestone=None,
         )
 
     def test_passes_filter_params(self, sample_config, mock_adapter, capsys):
@@ -77,6 +78,7 @@ class TestHandleList:
             base="main",
             head="feature",
             draft=True,
+            milestone=None,
         )
 
     def test_default_filter_params_are_none(self, sample_config, mock_adapter, capsys):
@@ -92,6 +94,7 @@ class TestHandleList:
         assert call_kwargs["base"] is None
         assert call_kwargs["head"] is None
         assert call_kwargs["draft"] is None
+        assert call_kwargs["milestone"] is None
 
     def test_outputs_results(self, sample_config, mock_adapter, capsys):
         args = make_args(state="open", limit=30)
@@ -920,3 +923,211 @@ class TestHandleStatus:
             pytest.raises(NotFoundError),
         ):
             pr_cmd.handle_status(args, fmt="table")
+
+
+class TestHandleListMilestone:
+    """pr list --milestone のテスト。"""
+
+    def test_passes_milestone_to_adapter(self, sample_config, mock_adapter, capsys):
+        args = make_args(state="open", limit=30, milestone="v1.0")
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_list(args, fmt="table")
+        call_kwargs = mock_adapter.list_pull_requests.call_args.kwargs
+        assert call_kwargs["milestone"] == "v1.0"
+
+    def test_milestone_default_is_none(self, sample_config, mock_adapter, capsys):
+        args = make_args(state="open", limit=30)
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_list(args, fmt="table")
+        call_kwargs = mock_adapter.list_pull_requests.call_args.kwargs
+        assert call_kwargs["milestone"] is None
+
+
+class TestPrListMilestoneArgParsing:
+    """pr list --milestone の CLI 引数パースのテスト。"""
+
+    def test_milestone_parsed(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["pr", "list", "--milestone", "v2.0"])
+        assert ns.milestone == "v2.0"
+
+    def test_milestone_short_flag(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["pr", "list", "-m", "v2.0"])
+        assert ns.milestone == "v2.0"
+
+    def test_milestone_default_is_none(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["pr", "list"])
+        assert not hasattr(ns, "milestone") or ns.milestone is None
+
+
+class TestHandleSubscribe:
+    """pr subscribe / unsubscribe のテスト。"""
+
+    def test_subscribe_calls_adapter(self):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            args = make_args(number=42)
+            pr_cmd.handle_subscribe(args, fmt="table")
+        adapter.subscribe_pull_request.assert_called_once_with(42)
+
+    def test_unsubscribe_calls_adapter(self):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            args = make_args(number=42)
+            pr_cmd.handle_unsubscribe(args, fmt="table")
+        adapter.unsubscribe_pull_request.assert_called_once_with(42)
+
+    def test_subscribe_prints_message(self, capsys):
+        with patch_adapter("gfo.commands.pr"):
+            args = make_args(number=7)
+            pr_cmd.handle_subscribe(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "7" in out
+
+    def test_unsubscribe_prints_message(self, capsys):
+        with patch_adapter("gfo.commands.pr"):
+            args = make_args(number=7)
+            pr_cmd.handle_unsubscribe(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "7" in out
+
+    def test_subscribe_error_propagates(self):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.subscribe_pull_request.side_effect = NotFoundError("/pulls/999")
+            args = make_args(number=999)
+            with pytest.raises(NotFoundError):
+                pr_cmd.handle_subscribe(args, fmt="table")
+
+
+class TestPrSubscribeArgParsing:
+    """pr subscribe / unsubscribe の CLI 引数パースのテスト。"""
+
+    def test_subscribe_parsed(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["pr", "subscribe", "42"])
+        assert ns.subcommand == "subscribe"
+        assert ns.number == 42
+
+    def test_unsubscribe_parsed(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["pr", "unsubscribe", "42"])
+        assert ns.subcommand == "unsubscribe"
+        assert ns.number == 42
+
+
+class TestHandleCreateDryRun:
+    """pr create --dry-run のテスト。"""
+
+    def test_dry_run_does_not_call_api(self, sample_config, mock_adapter, capsys):
+        args = make_args(
+            head="feature/test",
+            base="main",
+            title="My PR",
+            body="Description",
+            draft=False,
+            dry_run=True,
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_create(args, fmt="table")
+        mock_adapter.create_pull_request.assert_not_called()
+
+    def test_dry_run_shows_title(self, sample_config, mock_adapter, capsys):
+        args = make_args(
+            head="feature/test",
+            base="main",
+            title="My PR",
+            body="",
+            draft=False,
+            dry_run=True,
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_create(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "My PR" in out
+
+    def test_dry_run_shows_branches(self, sample_config, mock_adapter, capsys):
+        args = make_args(
+            head="feature/test",
+            base="main",
+            title="My PR",
+            body="",
+            draft=False,
+            dry_run=True,
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_create(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "feature/test" in out
+        assert "main" in out
+
+    def test_dry_run_shows_body(self, sample_config, mock_adapter, capsys):
+        args = make_args(
+            head="feature/test",
+            base="main",
+            title="My PR",
+            body="Detailed description",
+            draft=False,
+            dry_run=True,
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_create(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "Detailed description" in out
+
+    def test_dry_run_shows_draft(self, sample_config, mock_adapter, capsys):
+        args = make_args(
+            head="feature/test",
+            base="main",
+            title="My PR",
+            body="",
+            draft=True,
+            dry_run=True,
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_create(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "Draft" in out
+
+    def test_dry_run_json_format_still_shows_preview(self, sample_config, mock_adapter, capsys):
+        """--dry-run + fmt=json でもプレビュー表示（JSON 出力にはならない）。"""
+        args = make_args(
+            head="feature/test",
+            base="main",
+            title="My PR",
+            body="",
+            draft=False,
+            dry_run=True,
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_create(args, fmt="json")
+        mock_adapter.create_pull_request.assert_not_called()
+        out = capsys.readouterr().out
+        assert "My PR" in out
+
+
+class TestPrCreateDryRunArgParsing:
+    """pr create --dry-run の CLI 引数パースのテスト。"""
+
+    def test_dry_run_flag_parsed(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["pr", "create", "--title", "Test", "--dry-run"])
+        assert ns.dry_run is True
+
+    def test_dry_run_default_is_false(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["pr", "create", "--title", "Test"])
+        assert ns.dry_run is False

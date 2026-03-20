@@ -680,6 +680,7 @@ class GitServiceAdapter(ABC):
         base: str | None = None,
         head: str | None = None,
         draft: bool | None = None,
+        milestone: str | None = None,
     ) -> list[PullRequest]: ...
 
     @abstractmethod
@@ -762,6 +763,12 @@ class GitServiceAdapter(ABC):
 
     def mark_pull_request_ready(self, number: int) -> None:
         raise NotSupportedError(self.service_name, "pr ready")
+
+    def subscribe_pull_request(self, number: int) -> None:
+        raise NotSupportedError(self.service_name, "pr subscribe")
+
+    def unsubscribe_pull_request(self, number: int) -> None:
+        raise NotSupportedError(self.service_name, "pr unsubscribe")
 
     # --- Issue ---
     @abstractmethod
@@ -1021,6 +1028,7 @@ class GitServiceAdapter(ABC):
         add_assignees: list[str] | None = None,
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
+        draft: bool | None = None,
     ) -> PullRequest: ...
 
     # --- Issue update ---

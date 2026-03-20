@@ -74,6 +74,8 @@ _OUTPUT_MAP: dict[tuple[str, str | None], type | None] = {
     ("pr", "update-branch"): None,
     ("pr", "ready"): None,
     ("pr", "status"): None,
+    ("pr", "subscribe"): None,
+    ("pr", "unsubscribe"): None,
     ("issue", "list"): list[Issue],
     ("issue", "create"): Issue,
     ("issue", "view"): Issue,

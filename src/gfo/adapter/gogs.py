@@ -77,6 +77,7 @@ class GogsAdapter(GiteaAdapter):
         base: str | None = None,
         head: str | None = None,
         draft: bool | None = None,
+        milestone: str | None = None,
     ) -> list[PullRequest]:
         raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
 
@@ -265,6 +266,7 @@ class GogsAdapter(GiteaAdapter):
         add_assignees: list[str] | None = None,
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
+        draft: bool | None = None,
     ) -> PullRequest:
         raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
 

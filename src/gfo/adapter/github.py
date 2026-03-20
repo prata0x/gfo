@@ -72,6 +72,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         base: str | None = None,
         head: str | None = None,
         draft: bool | None = None,
+        milestone: str | None = None,
     ) -> list[PullRequest]:
         api_state = (
             "closed" if state == "merged" else state
@@ -81,7 +82,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             params["base"] = base
         if head:
             params["head"] = head
-        needs_client_filter = any([author, label, assignee, draft is not None, search])
+        needs_client_filter = any([author, label, assignee, draft is not None, search, milestone])
         fetch_limit = 0 if needs_client_filter else limit
         results = paginate_link_header(
             self._client,
@@ -110,6 +111,8 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 if search_lower in (r.get("title") or "").lower()
                 or search_lower in (r.get("body") or "").lower()
             ]
+        if milestone:
+            results = [r for r in results if (r.get("milestone") or {}).get("title") == milestone]
         prs = [self._to_pull_request(r) for r in results]
         if state == "merged":
             prs = [pr for pr in prs if pr.state == "merged"]
@@ -692,7 +695,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         add_assignees: list[str] | None = None,
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
+        draft: bool | None = None,
     ) -> PullRequest:
+        self._warn_unsupported_params("pr edit", draft=draft)
         payload: dict = {}
         if title is not None:
             payload["title"] = title
@@ -2026,6 +2031,15 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             f"{self._repos_path()}/issues/{number}/subscription",
             json={"subscribed": False},
         )
+
+    # --- PR Subscribe ---
+
+    def subscribe_pull_request(self, number: int) -> None:
+        # GitHub では PR は Issue と同じ subscription API を使用
+        self.subscribe_issue(number)
+
+    def unsubscribe_pull_request(self, number: int) -> None:
+        self.unsubscribe_issue(number)
 
     # --- Issue Pin ---
 

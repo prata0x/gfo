@@ -184,6 +184,7 @@ class GitLabAdapter(GitServiceAdapter):
         base: str | None = None,
         head: str | None = None,
         draft: bool | None = None,
+        milestone: str | None = None,
     ) -> list[PullRequest]:
         params: dict = {"state": "opened" if state == "open" else state}
         if author:
@@ -200,6 +201,8 @@ class GitLabAdapter(GitServiceAdapter):
             params["source_branch"] = head
         if draft is not None:
             params["wip"] = "yes" if draft else "no"
+        if milestone:
+            params["milestone"] = milestone
         results = paginate_page_param(
             self._client,
             f"{self._project_path()}/merge_requests",
@@ -1016,8 +1019,22 @@ class GitLabAdapter(GitServiceAdapter):
         add_assignees: list[str] | None = None,
         remove_assignees: list[str] | None = None,
         milestone: str | None = None,
+        draft: bool | None = None,
     ) -> PullRequest:
         payload: dict = {}
+        if draft is not None:
+            # GitLab は draft ステータスをタイトルの "Draft: " プレフィックスで管理する
+            resp = self._client.get(f"{self._project_path()}/merge_requests/{number}")
+            current_title = resp.json()["title"]
+            if draft:
+                if not current_title.startswith("Draft: "):
+                    payload["title"] = f"Draft: {current_title}"
+            else:
+                for prefix in ("Draft: ", "WIP: "):
+                    if current_title.startswith(prefix):
+                        current_title = current_title[len(prefix) :]
+                        break
+                payload["title"] = current_title
         if title is not None:
             payload["title"] = title
         if body is not None:
@@ -2176,6 +2193,14 @@ class GitLabAdapter(GitServiceAdapter):
 
     def unsubscribe_issue(self, number: int) -> None:
         self._client.post(f"{self._project_path()}/issues/{number}/unsubscribe", json={})
+
+    # --- PR Subscribe ---
+
+    def subscribe_pull_request(self, number: int) -> None:
+        self._client.post(f"{self._project_path()}/merge_requests/{number}/subscribe", json={})
+
+    def unsubscribe_pull_request(self, number: int) -> None:
+        self._client.post(f"{self._project_path()}/merge_requests/{number}/unsubscribe", json={})
 
     # --- Search PRs ---
 
