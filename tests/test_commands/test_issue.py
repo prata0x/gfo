@@ -325,6 +325,49 @@ class TestHandleCreate:
         call_kwargs = adapter.create_issue.call_args.kwargs
         assert call_kwargs["title"] == "Bug Report"
 
+    def test_body_file_overrides_body(self):
+        """--body-file が指定されたらファイル内容を body として使用する。"""
+        import io
+
+        config = _make_config("github")
+        adapter = _make_adapter(self.issue)
+        body_file = io.StringIO("Body from file")
+        args = make_args(
+            title="New Issue",
+            body="",
+            assignee=None,
+            label=None,
+            milestone=None,
+            type=None,
+            priority=None,
+            body_file=body_file,
+        )
+        with _patch_all(config, adapter):
+            issue_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = adapter.create_issue.call_args.kwargs
+        assert call_kwargs["body"] == "Body from file"
+
+    def test_body_file_none_uses_body(self):
+        """--body-file 未指定なら --body の値を使用する。"""
+        config = _make_config("github")
+        adapter = _make_adapter(self.issue)
+        args = make_args(
+            title="New Issue",
+            body="Inline body",
+            assignee=None,
+            label=None,
+            milestone=None,
+            type=None,
+            priority=None,
+            body_file=None,
+        )
+        with _patch_all(config, adapter):
+            issue_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = adapter.create_issue.call_args.kwargs
+        assert call_kwargs["body"] == "Inline body"
+
 
 class TestHandleCreateTitleValidation:
     def test_none_title_raises_config_error(self):

@@ -167,13 +167,14 @@ gfo pr list --base main --draft
 ### gfo pr create
 
 ```
-gfo pr create [--title TITLE] [--body BODY] [--base BRANCH] [--head BRANCH] [--draft] [--reviewer USER] [--assignee USER] [--label NAME] [--milestone NAME] [--fill]
+gfo pr create [--title TITLE] [--body BODY] [--body-file FILE] [--base BRANCH] [--head BRANCH] [--draft] [--reviewer USER] [--assignee USER] [--label NAME] [--milestone NAME] [--fill]
 ```
 
 | オプション | 説明 |
 |---|---|
 | `--title` | PR のタイトル（省略時は対話入力） |
 | `--body` | PR の本文 |
+| `--body-file`, `-F` | ファイルから本文を読み込む |
 | `--base` | マージ先ブランチ（省略時はデフォルトブランチ） |
 | `--head` | マージ元ブランチ（省略時は現在のブランチ） |
 | `--draft` | ドラフト PR として作成 |
@@ -187,6 +188,7 @@ gfo pr create [--title TITLE] [--body BODY] [--base BRANCH] [--head BRANCH] [--d
 gfo pr create --title "Fix login bug" --base main --head feature/fix-login
 gfo pr create --title "WIP: new feature" --draft
 gfo pr create --fill --reviewer alice --label bug --milestone v1.0
+gfo pr create --title "Release" --body-file CHANGELOG.md
 ```
 
 ### gfo pr view
@@ -508,13 +510,14 @@ gfo issue list --search "login bug"
 ### gfo issue create
 
 ```
-gfo issue create --title TITLE [--body BODY] [--assignee USER] [--label LABEL] [--milestone NAME] [--type TYPE] [--priority N]
+gfo issue create --title TITLE [--body BODY] [--body-file FILE] [--assignee USER] [--label LABEL] [--milestone NAME] [--type TYPE] [--priority N]
 ```
 
 | オプション | 必須 | 説明 |
 |---|---|---|
 | `--title` | **必須** | Issue のタイトル |
 | `--body` | — | Issue の本文 |
+| `--body-file`, `-F` | — | ファイルから本文を読み込む |
 | `--assignee` | — | 担当者 |
 | `--label` | — | ラベル |
 | `--milestone` | — | マイルストーン名 |

@@ -48,6 +48,9 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 
 def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue create のハンドラ。"""
+    if getattr(args, "body_file", None):
+        args.body = args.body_file.read()
+        args.body_file.close()
     title = (args.title or "").strip()
     if not title:
         raise ConfigError(_("--title must not be empty."))

@@ -4,24 +4,6 @@
 
 ---
 
-## 2. `--body-file` 共通対応
-
-**変更ファイル**: `cli.py`, `commands/pr.py`, `commands/issue.py`, テスト
-
-`pr create` と `issue create` に `--body-file` / `-F` オプションを追加。CLI 側でファイル読込→ `args.body` に代入。アダプター変更なし。
-
-```python
-# cli.py: pr create / issue create それぞれに追加
-pr_create.add_argument("--body-file", "-F", type=argparse.FileType("r"), help=_("Read body from file"))
-
-# commands/pr.py handle_create():
-if args.body_file:
-    args.body = args.body_file.read()
-    args.body_file.close()
-```
-
----
-
 ## 3. `repo` コマンド拡張
 
 **変更ファイル**: `cli.py`, `commands/repo.py`, `adapter/base.py`, 各アダプター (9 ファイル), テスト

@@ -37,6 +37,9 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 
 def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr create のハンドラ。"""
+    if getattr(args, "body_file", None):
+        args.body = args.body_file.read()
+        args.body_file.close()
     adapter = get_adapter()
     head = args.head or gfo.git_util.get_current_branch()
     base = args.base or gfo.git_util.get_default_branch()

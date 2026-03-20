@@ -171,6 +171,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_create = pr_sub.add_parser("create", help=_("Create pull request"))
     pr_create.add_argument("--title", help=_("Title"))
     pr_create.add_argument("--body", default="", help=_("Body"))
+    pr_create.add_argument(
+        "--body-file", "-F", type=argparse.FileType("r"), help=_("Read body from file")
+    )
     pr_create.add_argument("--base", help=_("Base branch"))
     pr_create.add_argument("--head", help=_("Head branch"))
     pr_create.add_argument("--draft", action="store_true", help=_("Create as draft"))
@@ -290,6 +293,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_create = issue_sub.add_parser("create", help=_("Create issue"))
     issue_create.add_argument("--title", required=True, help=_("Title"))
     issue_create.add_argument("--body", default="", help=_("Body"))
+    issue_create.add_argument(
+        "--body-file", "-F", type=argparse.FileType("r"), help=_("Read body from file")
+    )
     issue_create.add_argument("--assignee", help=_("Assignee"))
     issue_create.add_argument("--label", help=_("Label"))
     issue_create.add_argument("--milestone", help=_("Milestone name"))

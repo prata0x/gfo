@@ -167,13 +167,14 @@ gfo pr list --base main --draft
 ### gfo pr create
 
 ```
-gfo pr create [--title TITLE] [--body BODY] [--base BRANCH] [--head BRANCH] [--draft] [--reviewer USER] [--assignee USER] [--label NAME] [--milestone NAME] [--fill]
+gfo pr create [--title TITLE] [--body BODY] [--body-file FILE] [--base BRANCH] [--head BRANCH] [--draft] [--reviewer USER] [--assignee USER] [--label NAME] [--milestone NAME] [--fill]
 ```
 
 | Option | Description |
 |---|---|
 | `--title` | PR title (interactive input if omitted) |
 | `--body` | PR body |
+| `--body-file`, `-F` | Read body from file |
 | `--base` | Target branch (default branch if omitted) |
 | `--head` | Source branch (current branch if omitted) |
 | `--draft` | Create as draft PR |
@@ -187,6 +188,7 @@ gfo pr create [--title TITLE] [--body BODY] [--base BRANCH] [--head BRANCH] [--d
 gfo pr create --title "Fix login bug" --base main --head feature/fix-login
 gfo pr create --title "WIP: new feature" --draft
 gfo pr create --fill --reviewer alice --label bug --milestone v1.0
+gfo pr create --title "Release" --body-file CHANGELOG.md
 ```
 
 ### gfo pr view
@@ -508,13 +510,14 @@ gfo issue list --search "login bug"
 ### gfo issue create
 
 ```
-gfo issue create --title TITLE [--body BODY] [--assignee USER] [--label LABEL] [--milestone NAME] [--type TYPE] [--priority N]
+gfo issue create --title TITLE [--body BODY] [--body-file FILE] [--assignee USER] [--label LABEL] [--milestone NAME] [--type TYPE] [--priority N]
 ```
 
 | Option | Required | Description |
 |---|---|---|
 | `--title` | **Required** | Issue title |
 | `--body` | — | Issue body |
+| `--body-file`, `-F` | — | Read body from file |
 | `--assignee` | — | Assignee |
 | `--label` | — | Label |
 | `--milestone` | — | Milestone name |

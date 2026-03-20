@@ -336,6 +336,34 @@ class TestHandleCreate:
         assert call_kwargs["labels"] is None
         assert call_kwargs["milestone"] is None
 
+    def test_body_file_overrides_body(self, sample_config, mock_adapter, capsys):
+        """--body-file が指定されたらファイル内容を body として使用する。"""
+        import io
+
+        body_file = io.StringIO("Body from file")
+        args = make_args(
+            head="feature/x", base="main", title="My PR", body="", draft=False, body_file=body_file
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_create(args, fmt="table")
+        call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
+        assert call_kwargs["body"] == "Body from file"
+
+    def test_body_file_none_uses_body(self, sample_config, mock_adapter, capsys):
+        """--body-file 未指定なら --body の値を使用する。"""
+        args = make_args(
+            head="feature/x",
+            base="main",
+            title="My PR",
+            body="Inline body",
+            draft=False,
+            body_file=None,
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_create(args, fmt="table")
+        call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
+        assert call_kwargs["body"] == "Inline body"
+
 
 class TestHandleCreateTitleValidation:
     def test_no_title_and_no_commit_raises_config_error(self, sample_config, mock_adapter):

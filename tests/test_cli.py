@@ -118,6 +118,26 @@ def test_parser_pr_create():
     assert args.draft is True
 
 
+def test_parser_pr_create_body_file(tmp_path):
+    parser, _ = create_parser()
+    f = tmp_path / "body.md"
+    f.write_text("PR body from file")
+    args = parser.parse_args(["pr", "create", "--title", "My PR", "--body-file", str(f)])
+    assert args.body_file is not None
+    content = args.body_file.read()
+    args.body_file.close()
+    assert content == "PR body from file"
+
+
+def test_parser_pr_create_body_file_short_flag(tmp_path):
+    parser, _ = create_parser()
+    f = tmp_path / "body.md"
+    f.write_text("PR body from file")
+    args = parser.parse_args(["pr", "create", "--title", "My PR", "-F", str(f)])
+    assert args.body_file is not None
+    args.body_file.close()
+
+
 def test_parser_pr_view():
     parser, _ = create_parser()
     args = parser.parse_args(["pr", "view", "42"])
@@ -155,6 +175,17 @@ def test_parser_issue_create():
     parser, _ = create_parser()
     args = parser.parse_args(["issue", "create", "--title", "Bug"])
     assert args.title == "Bug"
+
+
+def test_parser_issue_create_body_file(tmp_path):
+    parser, _ = create_parser()
+    f = tmp_path / "body.md"
+    f.write_text("Issue body from file")
+    args = parser.parse_args(["issue", "create", "--title", "Bug", "--body-file", str(f)])
+    assert args.body_file is not None
+    content = args.body_file.read()
+    args.body_file.close()
+    assert content == "Issue body from file"
 
 
 def test_parser_issue_view():
