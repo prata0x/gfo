@@ -1,6 +1,32 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+## [0.5.0] - 2026-03-20
+
+### Added
+
+- `pr list` filter options: `--author`, `--label`, `--assignee`, `--search`, `--base`, `--head`, `--draft` (B5-1–B5-7)
+- `issue list` filter options: `--author`, `--milestone`, `--search` (B3-1–B3-3)
+- `issue create --milestone` option (B3-4)
+- `pr edit` / `issue edit` metadata options: `--add-label`, `--remove-label`, `--add-assignee`, `--remove-assignee`, `--milestone` (B2-1–B2-7)
+- `pr merge --subject` / `--body` for custom merge commit message (B1-2)
+- `branch view`, `tag view`, `deploy-key view`, `ssh-key view`, `gpg-key view` subcommands (F1-1–F1-5)
+- `webhook edit`, `org edit`, `release-asset edit`, `tag-protect edit` subcommands (F2-1–F2-4)
+- `pr status` subcommand (E1-1)
+- `pr lock` / `pr unlock`, `issue lock` / `issue unlock` subcommands (E1-5–E1-6)
+- CI extensions: `ci workflow`, `ci artifact`, `ci download`, `ci watch` with `--timeout` option (E1-3–E1-4, E1-7–E1-8)
+- `issue subscribe` / `issue unsubscribe` subcommands (E1-9)
+- `secret` / `variable` org-scope support (E1-10)
+- `repo edit --name` for repository rename (E1-2)
+- `repo sync` subcommand for fork synchronization (E2-1)
+
+### Fixed
+
+- Fix 19 code review issues: 9 major, 8 minor, 2 nitpick
+- Fix 7 remaining code review issues
+
+### Tests
+
+- Fix 20 test code review issues (+713 tests, coverage 88% → 90%)
 
 ## [0.4.0] - 2026-03-20
 

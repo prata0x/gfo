@@ -1,6 +1,32 @@
 # 変更履歴
 
-このプロジェクトの主な変更はすべてこのファイルに記録します。
+## [0.5.0] - 2026-03-20
+
+### 追加
+
+- `pr list` フィルタオプション: `--author`, `--label`, `--assignee`, `--search`, `--base`, `--head`, `--draft` (B5-1〜B5-7)
+- `issue list` フィルタオプション: `--author`, `--milestone`, `--search` (B3-1〜B3-3)
+- `issue create --milestone` オプション (B3-4)
+- `pr edit` / `issue edit` メタデータオプション: `--add-label`, `--remove-label`, `--add-assignee`, `--remove-assignee`, `--milestone` (B2-1〜B2-7)
+- `pr merge --subject` / `--body` でマージコミットメッセージを指定可能に (B1-2)
+- `branch view`, `tag view`, `deploy-key view`, `ssh-key view`, `gpg-key view` サブコマンド (F1-1〜F1-5)
+- `webhook edit`, `org edit`, `release-asset edit`, `tag-protect edit` サブコマンド (F2-1〜F2-4)
+- `pr status` サブコマンド (E1-1)
+- `pr lock` / `pr unlock`, `issue lock` / `issue unlock` サブコマンド (E1-5〜E1-6)
+- CI 拡張: `ci workflow`, `ci artifact`, `ci download`, `ci watch`（`--timeout` オプション付き）(E1-3〜E1-4, E1-7〜E1-8)
+- `issue subscribe` / `issue unsubscribe` サブコマンド (E1-9)
+- `secret` / `variable` の org スコープ対応 (E1-10)
+- `repo edit --name` でリポジトリリネーム対応 (E1-2)
+- `repo sync` サブコマンド（フォーク同期）(E2-1)
+
+### 修正
+
+- コードレビュー指摘事項 19 件を修正（Major 9 件、Minor 8 件、Nitpick 2 件）
+- コードレビュー残指摘 7 件を修正
+
+### テスト
+
+- テストコードレビュー指摘事項 20 件を修正（+713 テスト、カバレッジ 88% → 90%）
 
 ## [0.4.0] - 2026-03-20
 
