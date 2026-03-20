@@ -93,6 +93,7 @@ _OUTPUT_MAP: dict[tuple[str, str | None], type | None] = {
     ("repo", "sync"): None,
     ("repo", "edit"): Repository,
     ("repo", "archive"): None,
+    ("repo", "unarchive"): None,
     ("repo", "languages"): dict,
     ("repo", "topics"): list[str],
     ("repo", "compare"): CompareResult,

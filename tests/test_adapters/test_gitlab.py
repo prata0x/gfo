@@ -3101,6 +3101,72 @@ class TestArchiveRepositoryGitLab:
         assert responses.calls[0].request.method == "POST"
 
 
+class TestUnarchiveRepositoryGitLab:
+    @responses.activate
+    def test_unarchive_via_update(self, gitlab_adapter):
+        responses.add(responses.POST, f"{PROJECT}/unarchive", json=_repo_data(), status=200)
+        responses.add(responses.GET, f"{PROJECT}", json=_repo_data(), status=200)
+        gitlab_adapter.update_repository(archived=False)
+        assert responses.calls[0].request.method == "POST"
+        assert "/unarchive" in responses.calls[0].request.url
+
+    @responses.activate
+    def test_archive_via_update(self, gitlab_adapter):
+        responses.add(responses.POST, f"{PROJECT}/archive", json=_repo_data(), status=200)
+        responses.add(responses.GET, f"{PROJECT}", json=_repo_data(), status=200)
+        gitlab_adapter.update_repository(archived=True)
+        assert "/archive" in responses.calls[0].request.url
+
+    @responses.activate
+    def test_archive_with_other_params(self, gitlab_adapter):
+        """archived と他のパラメータが同時に渡された場合、POST + PUT の両方が呼ばれる。"""
+        responses.add(responses.POST, f"{PROJECT}/unarchive", json=_repo_data(), status=200)
+        responses.add(responses.PUT, f"{PROJECT}", json=_repo_data(), status=200)
+        gitlab_adapter.update_repository(archived=False, description="new desc")
+        assert len(responses.calls) == 2
+        assert "/unarchive" in responses.calls[0].request.url
+        assert json.loads(responses.calls[1].request.body)["description"] == "new desc"
+
+
+class TestListRepositoriesArchivedGitLab:
+    def test_archived_filter(self, mock_responses, gitlab_adapter):
+        """archived パラメータがクエリパラメータとして送信される。"""
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects",
+            json=[_repo_data()],
+            status=200,
+        )
+        gitlab_adapter.list_repositories(archived=True)
+        assert "archived=true" in mock_responses.calls[0].request.url
+
+    def test_archived_filter_false(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects",
+            json=[_repo_data()],
+            status=200,
+        )
+        gitlab_adapter.list_repositories(archived=False)
+        assert "archived=false" in mock_responses.calls[0].request.url
+
+
+class TestCreateRepositoryAutoInitGitLab:
+    @responses.activate
+    def test_auto_init_true(self, gitlab_adapter):
+        responses.add(responses.POST, f"{BASE}/projects", json=_repo_data(), status=201)
+        gitlab_adapter.create_repository(name="test-repo", auto_init=True)
+        req_body = json.loads(responses.calls[0].request.body)
+        assert req_body["initialize_with_readme"] is True
+
+    @responses.activate
+    def test_auto_init_false(self, gitlab_adapter):
+        responses.add(responses.POST, f"{BASE}/projects", json=_repo_data(), status=201)
+        gitlab_adapter.create_repository(name="test-repo", auto_init=False)
+        req_body = json.loads(responses.calls[0].request.body)
+        assert "initialize_with_readme" not in req_body
+
+
 class TestGetLanguagesGitLab:
     @responses.activate
     def test_get_languages(self, gitlab_adapter):

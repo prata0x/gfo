@@ -2855,6 +2855,73 @@ class TestArchiveRepository:
         assert json.loads(responses.calls[0].request.body)["archived"] is True
 
 
+class TestUnarchiveRepository:
+    @responses.activate
+    def test_unarchive_via_update(self, github_adapter):
+        responses.add(responses.PATCH, f"{REPOS}", json=_repo_data(), status=200)
+        github_adapter.update_repository(archived=False)
+        assert json.loads(responses.calls[0].request.body)["archived"] is False
+
+
+class TestListRepositoriesArchived:
+    def test_archived_filter_true(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/user/repos",
+            json=[
+                {**_repo_data(name="active"), "archived": False},
+                {**_repo_data(name="old"), "archived": True},
+            ],
+            status=200,
+        )
+        repos = github_adapter.list_repositories(archived=True)
+        assert len(repos) == 1
+        assert repos[0].name == "old"
+
+    def test_archived_filter_false(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/user/repos",
+            json=[
+                {**_repo_data(name="active"), "archived": False},
+                {**_repo_data(name="old"), "archived": True},
+            ],
+            status=200,
+        )
+        repos = github_adapter.list_repositories(archived=False)
+        assert len(repos) == 1
+        assert repos[0].name == "active"
+
+    def test_archived_filter_none(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/user/repos",
+            json=[
+                {**_repo_data(name="active"), "archived": False},
+                {**_repo_data(name="old"), "archived": True},
+            ],
+            status=200,
+        )
+        repos = github_adapter.list_repositories(archived=None)
+        assert len(repos) == 2
+
+
+class TestCreateRepositoryAutoInit:
+    @responses.activate
+    def test_auto_init_true(self, github_adapter):
+        responses.add(responses.POST, f"{BASE}/user/repos", json=_repo_data(), status=201)
+        github_adapter.create_repository(name="test-repo", auto_init=True)
+        req_body = json.loads(responses.calls[0].request.body)
+        assert req_body["auto_init"] is True
+
+    @responses.activate
+    def test_auto_init_false(self, github_adapter):
+        responses.add(responses.POST, f"{BASE}/user/repos", json=_repo_data(), status=201)
+        github_adapter.create_repository(name="test-repo", auto_init=False)
+        req_body = json.loads(responses.calls[0].request.body)
+        assert "auto_init" not in req_body
+
+
 class TestGetLanguages:
     @responses.activate
     def test_get_languages(self, github_adapter):

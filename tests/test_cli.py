@@ -564,7 +564,7 @@ def test_parser_org_repos():
 
 
 def test_dispatch_table_entry_count():
-    assert len(_DISPATCH) == 165
+    assert len(_DISPATCH) == 166
 
 
 def test_dispatch_table_all_keys():
@@ -611,6 +611,7 @@ def test_dispatch_table_all_keys():
         ("repo", "sync"),
         ("repo", "edit"),
         ("repo", "archive"),
+        ("repo", "unarchive"),
         ("repo", "languages"),
         ("repo", "topics"),
         ("repo", "compare"),

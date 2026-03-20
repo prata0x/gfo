@@ -324,7 +324,10 @@ class BitbucketAdapter(GitServiceAdapter):
 
     # --- Repository ---
 
-    def list_repositories(self, *, owner: str | None = None, limit: int = 30) -> list[Repository]:
+    def list_repositories(
+        self, *, owner: str | None = None, limit: int = 30, archived: bool | None = None
+    ) -> list[Repository]:
+        self._warn_unsupported_params("repo list", archived=archived)
         o = owner if owner is not None else self._owner
         results = paginate_response_body(
             self._client,
@@ -334,8 +337,9 @@ class BitbucketAdapter(GitServiceAdapter):
         return [self._to_repository(r) for r in results]
 
     def create_repository(
-        self, *, name: str, private: bool = False, description: str = ""
+        self, *, name: str, private: bool = False, description: str = "", auto_init: bool = False
     ) -> Repository:
+        self._warn_unsupported_params("repo create", auto_init=auto_init)
         payload = {"scm": "git", "is_private": private, "description": description}
         resp = self._client.post(
             f"/repositories/{quote(self._owner, safe='')}/{quote(name, safe='')}", json=payload
@@ -358,7 +362,9 @@ class BitbucketAdapter(GitServiceAdapter):
         description: str | None = None,
         private: bool | None = None,
         default_branch: str | None = None,
+        archived: bool | None = None,
     ) -> Repository:
+        self._warn_unsupported_params("repo update", archived=archived)
         payload: dict = {}
         if name is not None:
             payload["name"] = name
@@ -366,7 +372,7 @@ class BitbucketAdapter(GitServiceAdapter):
             payload["description"] = description
         if private is not None:
             payload["is_private"] = private
-        # Bitbucket doesn't support changing default_branch via API
+        # Bitbucket doesn't support changing default_branch or archived via API
         resp = self._client.put(self._repos_path(), json=payload)
         return self._to_repository(resp.json())
 

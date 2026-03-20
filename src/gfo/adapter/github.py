@@ -340,18 +340,24 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- Repository ---
 
-    def list_repositories(self, *, owner: str | None = None, limit: int = 30) -> list[Repository]:
+    def list_repositories(
+        self, *, owner: str | None = None, limit: int = 30, archived: bool | None = None
+    ) -> list[Repository]:
         if owner is not None:
             path = f"/users/{quote(owner, safe='')}/repos"
         else:
             path = "/user/repos"
         results = paginate_link_header(self._client, path, limit=limit)
+        if archived is not None:
+            results = [r for r in results if r.get("archived", False) == archived]
         return [self._to_repository(r) for r in results]
 
     def create_repository(
-        self, *, name: str, private: bool = False, description: str = ""
+        self, *, name: str, private: bool = False, description: str = "", auto_init: bool = False
     ) -> Repository:
         payload = {"name": name, "private": private, "description": description}
+        if auto_init:
+            payload["auto_init"] = True
         resp = self._client.post("/user/repos", json=payload)
         return self._to_repository(resp.json())
 
@@ -371,6 +377,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         description: str | None = None,
         private: bool | None = None,
         default_branch: str | None = None,
+        archived: bool | None = None,
     ) -> Repository:
         payload: dict = {}
         if name is not None:
@@ -381,6 +388,8 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["private"] = private
         if default_branch is not None:
             payload["default_branch"] = default_branch
+        if archived is not None:
+            payload["archived"] = archived
         resp = self._client.patch(self._repos_path(), json=payload)
         return self._to_repository(resp.json())
 

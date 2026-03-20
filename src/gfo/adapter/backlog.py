@@ -371,7 +371,9 @@ class BacklogAdapter(GitServiceAdapter):
 
     # --- Repository ---
 
-    def list_repositories(self, *, owner: str | None = None, limit: int = 30) -> list[Repository]:
+    def list_repositories(
+        self, *, owner: str | None = None, limit: int = 30, archived: bool | None = None
+    ) -> list[Repository]:
         if owner is not None:
             raise NotSupportedError(
                 self.service_name,
@@ -386,8 +388,9 @@ class BacklogAdapter(GitServiceAdapter):
         return [self._to_repository(r) for r in results]
 
     def create_repository(
-        self, *, name: str, private: bool = False, description: str = ""
+        self, *, name: str, private: bool = False, description: str = "", auto_init: bool = False
     ) -> Repository:
+        self._warn_unsupported_params("repo create", auto_init=auto_init)
         payload: dict = {"name": name}
         if description:
             payload["description"] = description

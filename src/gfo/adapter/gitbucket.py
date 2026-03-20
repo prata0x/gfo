@@ -446,6 +446,20 @@ class GitBucketAdapter(GitHubAdapter):
 
     # --- Repo update/archive（GitBucket は GitHub 互換度が限定的）---
 
+    def update_repository(
+        self,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        private: bool | None = None,
+        default_branch: str | None = None,
+        archived: bool | None = None,
+    ) -> Repository:
+        self._warn_unsupported_params("repo update", archived=archived)
+        return super().update_repository(
+            name=name, description=description, private=private, default_branch=default_branch
+        )
+
     def archive_repository(self) -> None:
         raise NotSupportedError("GitBucket", "repo archive")
 

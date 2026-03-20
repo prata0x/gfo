@@ -28,6 +28,7 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     repos = adapter.list_repositories(
         owner=getattr(args, "owner", None),
         limit=args.limit,
+        archived=getattr(args, "archived", None),
     )
     output(repos, fmt=fmt, fields=["name", "full_name", "private", "description"], jq=jq)
 
@@ -121,6 +122,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         name=args.name,
         private=args.private,
         description=getattr(args, "description", "") or "",
+        auto_init=getattr(args, "readme", False),
     )
     output(repo, fmt=fmt, jq=jq)
 
@@ -247,6 +249,14 @@ def handle_archive(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
             return
     adapter.archive_repository()
     print(_("Archived repository '{repo_name}'.").format(repo_name=repo_name))
+
+
+def handle_unarchive(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo repo unarchive のハンドラ。"""
+    adapter = get_adapter()
+    repo_name = f"{adapter.owner}/{adapter.repo}"
+    adapter.update_repository(archived=False)
+    print(_("Unarchived repository '{repo_name}'.").format(repo_name=repo_name))
 
 
 def handle_languages(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

@@ -49,22 +49,24 @@ def _patch_all(sample_config, mock_adapter):
 
 class TestHandleList:
     def test_calls_list_repositories(self, sample_config, mock_adapter, capsys):
-        args = make_args(limit=30)
+        args = make_args(limit=30, archived=None)
         with _patch_all(sample_config, mock_adapter):
             repo_cmd.handle_list(args, fmt="table")
 
-        mock_adapter.list_repositories.assert_called_once_with(owner=None, limit=30)
+        mock_adapter.list_repositories.assert_called_once_with(owner=None, limit=30, archived=None)
 
     def test_passes_owner_to_adapter(self, sample_config, mock_adapter, capsys):
         """--owner 引数が adapter.list_repositories() に渡される（R39-01）。"""
-        args = make_args(owner="other-user", limit=30)
+        args = make_args(owner="other-user", limit=30, archived=None)
         with _patch_all(sample_config, mock_adapter):
             repo_cmd.handle_list(args, fmt="table")
 
-        mock_adapter.list_repositories.assert_called_once_with(owner="other-user", limit=30)
+        mock_adapter.list_repositories.assert_called_once_with(
+            owner="other-user", limit=30, archived=None
+        )
 
     def test_outputs_results(self, sample_config, mock_adapter, capsys):
-        args = make_args(limit=30)
+        args = make_args(limit=30, archived=None)
         with _patch_all(sample_config, mock_adapter):
             repo_cmd.handle_list(args, fmt="table")
 
@@ -72,7 +74,7 @@ class TestHandleList:
         assert "test-repo" in out
 
     def test_plain_format(self, sample_config, mock_adapter, capsys):
-        args = make_args(limit=30)
+        args = make_args(limit=30, archived=None)
         with _patch_all(sample_config, mock_adapter):
             repo_cmd.handle_list(args, fmt="plain")
 
@@ -80,6 +82,14 @@ class TestHandleList:
         assert "\t" in out
         assert "NAME" not in out
         assert "test-repo" in out
+
+    def test_passes_archived_filter(self, sample_config, mock_adapter, capsys):
+        """--archived フラグが adapter.list_repositories() に渡される。"""
+        args = make_args(owner=None, limit=30, archived=True)
+        with _patch_all(sample_config, mock_adapter):
+            repo_cmd.handle_list(args, fmt="table")
+
+        mock_adapter.list_repositories.assert_called_once_with(owner=None, limit=30, archived=True)
 
 
 class TestResolveHostWithoutRepo:
@@ -175,7 +185,9 @@ class TestResolveHostWithoutRepo:
 
 class TestHandleCreate:
     def test_calls_create_repository(self, capsys):
-        args = make_args(host="github.com", name="new-repo", private=False, description="")
+        args = make_args(
+            host="github.com", name="new-repo", private=False, description="", readme=False
+        )
         mock_repo = Repository(
             name="new-repo",
             full_name="test-owner/new-repo",
@@ -205,10 +217,50 @@ class TestHandleCreate:
             name="new-repo",
             private=False,
             description="",
+            auto_init=False,
+        )
+
+    def test_calls_create_with_readme(self, capsys):
+        """--readme フラグが auto_init=True として渡される。"""
+        args = make_args(
+            host="github.com", name="new-repo", private=False, description="", readme=True
+        )
+        mock_repo = Repository(
+            name="new-repo",
+            full_name="test-owner/new-repo",
+            description="",
+            private=False,
+            default_branch="main",
+            clone_url="https://github.com/test-owner/new-repo.git",
+            url="https://github.com/test-owner/new-repo",
+        )
+        mock_adapter = MagicMock()
+        mock_adapter.create_repository.return_value = mock_repo
+        mock_adapter_cls = MagicMock(return_value=mock_adapter)
+
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("github.com", "github"),
+            ),
+            patch("gfo.commands.repo.resolve_token", return_value="test-token"),
+            patch("gfo.commands.repo.build_default_api_url", return_value="https://api.github.com"),
+            patch("gfo.commands.repo.create_http_client"),
+            patch("gfo.commands.repo.get_adapter_class", return_value=mock_adapter_cls),
+        ):
+            repo_cmd.handle_create(args, fmt="table")
+
+        mock_adapter.create_repository.assert_called_once_with(
+            name="new-repo",
+            private=False,
+            description="",
+            auto_init=True,
         )
 
     def test_outputs_created_repository(self, capsys):
-        args = make_args(host="github.com", name="new-repo", private=True, description="desc")
+        args = make_args(
+            host="github.com", name="new-repo", private=True, description="desc", readme=False
+        )
         mock_repo = Repository(
             name="new-repo",
             full_name="test-owner/new-repo",
@@ -1080,3 +1132,41 @@ class TestHandleSyncFork:
             args = make_args(branch=None)
             repo_cmd.handle_sync_fork(args, fmt="json")
         mock_adapter.sync_fork.assert_called_once_with(branch=None)
+
+
+class TestHandleUnarchive:
+    def test_calls_update_repository_with_archived_false(self, sample_config, sample_repo, capsys):
+        adapter = MagicMock()
+        adapter.owner = "test-owner"
+        adapter.repo = "test-repo"
+        adapter.update_repository.return_value = sample_repo
+        args = make_args()
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_unarchive(args, fmt="table")
+
+        adapter.update_repository.assert_called_once_with(archived=False)
+
+    def test_prints_success_message(self, sample_config, sample_repo, capsys):
+        adapter = MagicMock()
+        adapter.owner = "my-org"
+        adapter.repo = "my-repo"
+        adapter.update_repository.return_value = sample_repo
+        args = make_args()
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_unarchive(args, fmt="table")
+
+        out = capsys.readouterr().out
+        assert "Unarchived" in out
+        assert "my-org/my-repo" in out
+
+    def test_error_propagation(self, sample_config):
+        from gfo.exceptions import NotSupportedError
+
+        adapter = MagicMock()
+        adapter.owner = "test-owner"
+        adapter.repo = "test-repo"
+        adapter.update_repository.side_effect = NotSupportedError("Gogs", "repo update")
+        args = make_args()
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            with pytest.raises(NotSupportedError):
+                repo_cmd.handle_unarchive(args, fmt="table")

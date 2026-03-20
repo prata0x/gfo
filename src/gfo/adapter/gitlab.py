@@ -405,21 +405,27 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- Repository ---
 
-    def list_repositories(self, *, owner: str | None = None, limit: int = 30) -> list[Repository]:
+    def list_repositories(
+        self, *, owner: str | None = None, limit: int = 30, archived: bool | None = None
+    ) -> list[Repository]:
         if owner is not None:
             path = f"/users/{quote(owner, safe='')}/projects"
             params: dict = {}
         else:
             path = "/projects"
             params = {"owned": "true", "membership": "true"}
+        if archived is not None:
+            params["archived"] = str(archived).lower()
         results = paginate_page_param(self._client, path, params=params, limit=limit)
         return [self._to_repository(r) for r in results]
 
     def create_repository(
-        self, *, name: str, private: bool = False, description: str = ""
+        self, *, name: str, private: bool = False, description: str = "", auto_init: bool = False
     ) -> Repository:
         visibility = "private" if private else "public"
-        payload = {"name": name, "visibility": visibility, "description": description}
+        payload: dict = {"name": name, "visibility": visibility, "description": description}
+        if auto_init:
+            payload["initialize_with_readme"] = True
         resp = self._client.post("/projects", json=payload)
         return self._to_repository(resp.json())
 
@@ -439,7 +445,15 @@ class GitLabAdapter(GitServiceAdapter):
         description: str | None = None,
         private: bool | None = None,
         default_branch: str | None = None,
+        archived: bool | None = None,
     ) -> Repository:
+        # GitLab は archive/unarchive に専用エンドポイントを使う
+        if archived is not None:
+            if archived:
+                self._client.post(f"{self._project_path()}/archive")
+            else:
+                self._client.post(f"{self._project_path()}/unarchive")
+
         payload = {}
         if name is not None:
             payload["name"] = name
@@ -449,7 +463,11 @@ class GitLabAdapter(GitServiceAdapter):
             payload["visibility"] = "private" if private else "public"
         if default_branch is not None:
             payload["default_branch"] = default_branch
-        resp = self._client.put(self._project_path(), json=payload)
+
+        if payload:
+            resp = self._client.put(self._project_path(), json=payload)
+        else:
+            resp = self._client.get(self._project_path())
         return self._to_repository(resp.json())
 
     def archive_repository(self) -> None:

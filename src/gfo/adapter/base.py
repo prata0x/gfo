@@ -807,12 +807,12 @@ class GitServiceAdapter(ABC):
     # --- Repository ---
     @abstractmethod
     def list_repositories(
-        self, *, owner: str | None = None, limit: int = 30
+        self, *, owner: str | None = None, limit: int = 30, archived: bool | None = None
     ) -> list[Repository]: ...
 
     @abstractmethod
     def create_repository(
-        self, *, name: str, private: bool = False, description: str = ""
+        self, *, name: str, private: bool = False, description: str = "", auto_init: bool = False
     ) -> Repository: ...
 
     @abstractmethod
@@ -834,6 +834,7 @@ class GitServiceAdapter(ABC):
         description: str | None = None,
         private: bool | None = None,
         default_branch: str | None = None,
+        archived: bool | None = None,
     ) -> Repository:
         raise NotSupportedError(self.service_name, "repo update")
 

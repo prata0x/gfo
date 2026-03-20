@@ -905,6 +905,48 @@ class TestCreateRepository:
         assert "project" not in req_body  # project はベース URL に含まれるため不要
 
 
+class TestUpdateRepositoryAzureDevOps:
+    @responses.activate
+    def test_unarchive(self, azure_devops_adapter):
+        responses.add(
+            responses.PATCH,
+            f"{BASE}/git/repositories/test-repo",
+            json=_repo_data(),
+            status=200,
+        )
+        azure_devops_adapter.update_repository(archived=False)
+        assert json.loads(responses.calls[0].request.body)["isDisabled"] is False
+
+    @responses.activate
+    def test_archive_via_update(self, azure_devops_adapter):
+        responses.add(
+            responses.PATCH,
+            f"{BASE}/git/repositories/test-repo",
+            json=_repo_data(),
+            status=200,
+        )
+        azure_devops_adapter.update_repository(archived=True)
+        assert json.loads(responses.calls[0].request.body)["isDisabled"] is True
+
+
+class TestListRepositoriesArchivedAzureDevOps:
+    def test_archived_filter(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/git/repositories",
+            json={
+                "value": [
+                    {**_repo_data(name="active"), "isDisabled": False},
+                    {**_repo_data(name="disabled"), "isDisabled": True},
+                ]
+            },
+            status=200,
+        )
+        repos = azure_devops_adapter.list_repositories(archived=True)
+        assert len(repos) == 1
+        assert repos[0].name == "disabled"
+
+
 class TestGetRepository:
     def test_get(self, mock_responses, azure_devops_adapter):
         mock_responses.add(

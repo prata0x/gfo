@@ -353,12 +353,18 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_list.add_argument(
         "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
     )
+    repo_list.add_argument(
+        "--archived", action="store_true", default=None, help=_("Show only archived repositories")
+    )
     repo_create = repo_sub.add_parser("create", help=_("Create repository"))
     repo_create.add_argument("name", help=_("Repository name"))
     _repo_create_visibility = repo_create.add_mutually_exclusive_group(required=True)
     _repo_create_visibility.add_argument("--private", dest="private", action="store_true")
     _repo_create_visibility.add_argument("--public", dest="private", action="store_false")
     repo_create.add_argument("--description", default="", help=_("Description"))
+    repo_create.add_argument(
+        "--readme", action="store_true", default=False, help=_("Initialize with README")
+    )
     repo_create.add_argument("--host", help=_("Host URL"))
     repo_clone = repo_sub.add_parser("clone", help=_("Clone repository"))
     repo_clone.add_argument(
@@ -394,6 +400,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_archive.add_argument(
         "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
     )
+
+    # gfo repo unarchive
+    repo_sub.add_parser("unarchive", help=_("Unarchive repository"))
 
     # gfo repo languages
     repo_sub.add_parser("languages", help=_("List repository languages"))
@@ -1245,6 +1254,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("repo", "sync"): gfo.commands.repo.handle_sync_fork,
     ("repo", "edit"): gfo.commands.repo.handle_edit,
     ("repo", "archive"): gfo.commands.repo.handle_archive,
+    ("repo", "unarchive"): gfo.commands.repo.handle_unarchive,
     ("repo", "languages"): gfo.commands.repo.handle_languages,
     ("repo", "topics"): gfo.commands.repo.handle_topics,
     ("repo", "compare"): gfo.commands.repo.handle_compare,

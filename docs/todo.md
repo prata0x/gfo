@@ -4,32 +4,6 @@
 
 ---
 
-## 3. `repo` コマンド拡張
-
-**変更ファイル**: `cli.py`, `commands/repo.py`, `adapter/base.py`, 各アダプター (9 ファイル), テスト
-
-### 3a. `repo unarchive` (6 サービス対応)
-
-既存の `update_repository()` に `archived=False` を渡す。新規アダプターメソッド不要。
-
-```python
-# cli.py
-repo_sub.add_parser("unarchive", help=_("Unarchive repository"))
-
-# commands/repo.py handle_unarchive():
-adapter.update_repository(archived=False)
-```
-
-### 3b. `repo list --archived` (6 サービス対応)
-
-`list_repositories()` に `archived` パラメータを追加。
-
-### 3c. `repo create --readme` (5 サービス対応)
-
-`create_repository()` に `auto_init` パラメータを追加。
-
----
-
 ## 4. `issue` コマンド拡張
 
 **変更ファイル**: `cli.py`, `commands/issue.py`, `adapter/base.py`, 各アダプター (9 ファイル), テスト

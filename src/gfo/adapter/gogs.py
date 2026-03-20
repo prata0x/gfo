@@ -522,6 +522,7 @@ class GogsAdapter(GiteaAdapter):
         description: str | None = None,
         private: bool | None = None,
         default_branch: str | None = None,
+        archived: bool | None = None,
     ) -> Repository:
         raise NotSupportedError("Gogs", "repo update")
 

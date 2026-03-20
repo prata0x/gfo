@@ -540,7 +540,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     # --- Repository ---
 
-    def list_repositories(self, *, owner: str | None = None, limit: int = 30) -> list[Repository]:
+    def list_repositories(
+        self, *, owner: str | None = None, limit: int = 30, archived: bool | None = None
+    ) -> list[Repository]:
         if owner is not None:
             raise NotSupportedError(
                 self.service_name,
@@ -553,11 +555,14 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             limit=limit,
             result_key="value",
         )
+        if archived is not None:
+            results = [r for r in results if r.get("isDisabled", False) == archived]
         return [self._to_repository(r, self._project) for r in results]
 
     def create_repository(
-        self, *, name: str, private: bool = False, description: str = ""
+        self, *, name: str, private: bool = False, description: str = "", auto_init: bool = False
     ) -> Repository:
+        self._warn_unsupported_params("repo create", auto_init=auto_init)
         # project はベース URL に含まれるため payload には含めない
         payload = {"name": name}
         resp = self._client.post("/git/repositories", json=payload)
@@ -583,12 +588,15 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         description: str | None = None,
         private: bool | None = None,
         default_branch: str | None = None,
+        archived: bool | None = None,
     ) -> Repository:
-        payload = {}
+        payload: dict = {}
         if name is not None:
             payload["name"] = name
         if default_branch is not None:
             payload["defaultBranch"] = _add_refs_prefix(default_branch)
+        if archived is not None:
+            payload["isDisabled"] = archived
         resp = self._client.patch(self._git_path(), json=payload)
         return self._to_repository(resp.json(), self._project)
 
