@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import json
+
+import pytest
+
 from gfo.adapter.base import Webhook
 from gfo.commands import webhook as webhook_cmd
+from gfo.exceptions import HttpError
 from tests.test_commands.conftest import make_args, patch_adapter
 
 SAMPLE_WEBHOOK = Webhook(id=1, url="https://example.com/hook", events=("push",), active=True)
@@ -126,16 +131,10 @@ class TestHandleEdit:
             args = make_args(id=1, url=None, event=None, secret=None, active=None)
             webhook_cmd.handle_edit(args, fmt="json")
         out = capsys.readouterr().out
-        import json
-
         data = json.loads(out)
         assert data[0]["url"] == "https://example.com/hook"
 
     def test_error_propagation(self):
-        import pytest
-
-        from gfo.exceptions import HttpError
-
         with patch_adapter("gfo.commands.webhook") as adapter:
             adapter.update_webhook.side_effect = HttpError(404, "Not found")
             args = make_args(id=999, url=None, event=None, secret=None, active=None)

@@ -18,7 +18,7 @@ class TestHandleList:
     def test_calls_list_secrets(self, capsys):
         with patch_adapter("gfo.commands.secret") as adapter:
             adapter.list_secrets.return_value = [SAMPLE_SECRET]
-            args = make_args(limit=30)
+            args = make_args(limit=30, org=None)
             secret_cmd.handle_list(args, fmt="table")
         adapter.list_secrets.assert_called_once_with(scope=None, limit=30)
         out = capsys.readouterr().out
@@ -27,7 +27,7 @@ class TestHandleList:
     def test_json_format(self, capsys):
         with patch_adapter("gfo.commands.secret") as adapter:
             adapter.list_secrets.return_value = [SAMPLE_SECRET]
-            args = make_args(limit=30)
+            args = make_args(limit=30, org=None)
             secret_cmd.handle_list(args, fmt="json")
         out = capsys.readouterr().out
         parsed = json.loads(out)
@@ -37,7 +37,7 @@ class TestHandleList:
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.secret") as adapter:
             adapter.list_secrets.side_effect = HttpError(500, "Server error")
-            args = make_args(limit=30)
+            args = make_args(limit=30, org=None)
             with pytest.raises(HttpError):
                 secret_cmd.handle_list(args, fmt="table")
 

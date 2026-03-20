@@ -659,6 +659,17 @@ class TestMergePullRequest:
         assert req_body["squash"] is True
         assert req_body["squash_commit_message"] == "Squash title"
 
+    def test_merge_with_title_only(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1/merge",
+            json={"state": "merged"},
+            status=200,
+        )
+        gitlab_adapter.merge_pull_request(1, title="Custom title")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["merge_commit_message"] == "Custom title"
+
 
 class TestClosePullRequest:
     def test_close(self, mock_responses, gitlab_adapter):
@@ -754,6 +765,42 @@ class TestListIssues:
         assert len(issues) == 2
         req = mock_responses.calls[0].request
         assert "state=all" in req.url
+
+    def test_author_filter(self, mock_responses, gitlab_adapter):
+        """author フィルタが author_username パラメータとして送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/issues",
+            json=[_issue_data()],
+            status=200,
+        )
+        gitlab_adapter.list_issues(author="alice")
+        req = mock_responses.calls[0].request
+        assert "author_username=alice" in req.url
+
+    def test_milestone_filter(self, mock_responses, gitlab_adapter):
+        """milestone フィルタがそのまま milestone パラメータとして送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/issues",
+            json=[_issue_data()],
+            status=200,
+        )
+        gitlab_adapter.list_issues(milestone="v1.0")
+        req = mock_responses.calls[0].request
+        assert "milestone=v1.0" in req.url
+
+    def test_search_filter(self, mock_responses, gitlab_adapter):
+        """search フィルタが search パラメータとして送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/issues",
+            json=[_issue_data()],
+            status=200,
+        )
+        gitlab_adapter.list_issues(search="login bug")
+        req = mock_responses.calls[0].request
+        assert "search=" in req.url
 
 
 class TestCreateIssue:
@@ -1072,6 +1119,16 @@ class TestUpdateReleaseAsset:
         assert asset.name == "renamed.zip"
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["name"] == "renamed.zip"
+
+    def test_not_found(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/releases/v1.0.0/assets/links/999",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.update_release_asset(tag="v1.0.0", asset_id=999, name="x.zip")
 
 
 # --- Label 系 ---
@@ -1727,6 +1784,29 @@ class TestUpdatePullRequest:
         req_body = json.loads(mock_responses.calls[2].request.body)
         assert sorted(req_body["assignee_ids"]) == [10, 20]
 
+    def test_remove_assignees(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests/1",
+            json={"assignees": [{"id": 10, "username": "alice"}, {"id": 20, "username": "bob"}]},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/users",
+            json=[{"id": 20, "username": "bob"}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1",
+            json=_mr_data(),
+            status=200,
+        )
+        gitlab_adapter.update_pull_request(1, remove_assignees=["bob"])
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert req_body["assignee_ids"] == [10]
+
     def test_milestone(self, mock_responses, gitlab_adapter):
         mock_responses.add(
             responses.GET,
@@ -1790,6 +1870,52 @@ class TestUpdateIssue:
         gitlab_adapter.update_issue(1, remove_labels=["wontfix"])
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["remove_labels"] == "wontfix"
+
+    def test_add_assignees(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/issues/1",
+            json={"assignees": [{"id": 10, "username": "alice"}]},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/users",
+            json=[{"id": 30, "username": "charlie"}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/issues/1",
+            json=_issue_data(),
+            status=200,
+        )
+        gitlab_adapter.update_issue(1, add_assignees=["charlie"])
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert sorted(req_body["assignee_ids"]) == [10, 30]
+
+    def test_remove_assignees(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/issues/1",
+            json={"assignees": [{"id": 10, "username": "alice"}, {"id": 20, "username": "bob"}]},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/users",
+            json=[{"id": 20, "username": "bob"}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/issues/1",
+            json=_issue_data(),
+            status=200,
+        )
+        gitlab_adapter.update_issue(1, remove_assignees=["bob"])
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert req_body["assignee_ids"] == [10]
 
     def test_milestone(self, mock_responses, gitlab_adapter):
         mock_responses.add(
@@ -1862,6 +1988,30 @@ class TestCreateReview:
 # --- Branch 系 ---
 
 
+class TestGetBranch:
+    def test_get(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/repository/branches/feature",
+            json=_branch_data(),
+            status=200,
+        )
+        branch = gitlab_adapter.get_branch("feature")
+        assert isinstance(branch, Branch)
+        assert branch.name == "feature"
+        assert branch.sha == "abc123"
+
+    def test_not_found(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/repository/branches/nonexistent",
+            json={"message": "404 Branch Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.get_branch("nonexistent")
+
+
 class TestListBranches:
     def test_list(self, mock_responses, gitlab_adapter):
         mock_responses.add(
@@ -1903,6 +2053,30 @@ class TestDeleteBranch:
 
 
 # --- Tag 系 ---
+
+
+class TestGetTag:
+    def test_get(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/repository/tags/v1.0.0",
+            json=_tag_data(),
+            status=200,
+        )
+        tag = gitlab_adapter.get_tag("v1.0.0")
+        assert isinstance(tag, Tag)
+        assert tag.name == "v1.0.0"
+        assert tag.sha == "def456"
+
+    def test_not_found(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/repository/tags/nonexistent",
+            json={"message": "404 Tag Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.get_tag("nonexistent")
 
 
 class TestListTags:
@@ -2167,6 +2341,30 @@ class TestUpdateWebhook:
 
 
 # --- DeployKey 系 ---
+
+
+class TestGetDeployKey:
+    def test_get(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/deploy_keys/200",
+            json=_deploy_key_data(),
+            status=200,
+        )
+        key = gitlab_adapter.get_deploy_key(200)
+        assert isinstance(key, DeployKey)
+        assert key.id == 200
+        assert key.title == "Deploy Key"
+
+    def test_not_found(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/deploy_keys/999",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.get_deploy_key(999)
 
 
 class TestListDeployKeys:
@@ -3227,6 +3425,16 @@ class TestIssueSubscribe:
             status=201,
         )
         gitlab_adapter.unsubscribe_issue(1)
+
+    def test_subscribe_404(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/issues/999/subscribe",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.subscribe_issue(999)
 
 
 class TestOrgSecrets:

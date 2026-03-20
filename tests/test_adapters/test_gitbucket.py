@@ -524,6 +524,10 @@ class TestNotSupported:
         with pytest.raises(NotSupportedError):
             gitbucket_adapter.delete_deploy_key(key_id=1)
 
+    def test_update_issue_raises(self, gitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.update_issue(1, title="New Title")
+
 
 class TestParseResponse:
     """_parse_response のテスト。"""

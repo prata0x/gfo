@@ -187,8 +187,9 @@ class TestHandleWatch:
         with patch_adapter("gfo.commands.ci") as adapter:
             adapter.get_pipeline.side_effect = [running_pipeline, SAMPLE_PIPELINE]
             args = make_args(id="123", interval=0)
-            with patch("time.sleep"):
+            with patch("time.sleep") as mock_sleep:
                 ci_cmd.handle_watch(args, fmt="table")
+        mock_sleep.assert_called()
         assert adapter.get_pipeline.call_count == 2
 
     def test_watch_failure(self, capsys):

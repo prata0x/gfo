@@ -512,6 +512,21 @@ class TestListPullRequests:
         assert len(prs) == 1
         assert prs[0].number == 1
 
+    def test_search_client_filter_body(self, mock_responses, github_adapter):
+        """search フィルタが body 部分一致でもマッチすることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[
+                {**_pr_data(number=1), "title": "unrelated", "body": "Fix login bug details"},
+                {**_pr_data(number=2), "title": "unrelated2", "body": "something else"},
+            ],
+            status=200,
+        )
+        prs = github_adapter.list_pull_requests(search="login")
+        assert len(prs) == 1
+        assert prs[0].number == 1
+
     def test_client_filter_fetches_all_then_limits(self, mock_responses, github_adapter):
         """クライアント側フィルタ使用時は全件取得後にlimitでスライスする。"""
         prs = [_pr_data(number=i) for i in range(1, 6)]
@@ -779,6 +794,51 @@ class TestListIssues:
         req = mock_responses.calls[0].request
         assert "assignee=dev1" in req.url
         assert "labels=bug" in req.url
+
+    def test_author_filter(self, mock_responses, github_adapter):
+        """author フィルタが creator パラメータとして送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json=[_issue_data()],
+            status=200,
+        )
+        github_adapter.list_issues(author="alice")
+        req = mock_responses.calls[0].request
+        assert "creator=alice" in req.url
+
+    def test_milestone_filter(self, mock_responses, github_adapter):
+        """milestone フィルタがマイルストーン番号に解決されて送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/milestones",
+            json=[{"number": 3, "title": "v1.0", "state": "open", "due_on": None}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json=[_issue_data()],
+            status=200,
+        )
+        github_adapter.list_issues(milestone="v1.0")
+        req = mock_responses.calls[1].request
+        assert "milestone=3" in req.url
+
+    def test_search_filter(self, mock_responses, github_adapter):
+        """search フィルタがクライアント側でタイトル/ボディを部分一致検索することを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json=[
+                {**_issue_data(number=1), "title": "Login error", "body": "details"},
+                {**_issue_data(number=2), "title": "Other", "body": "unrelated"},
+            ],
+            status=200,
+        )
+        issues = github_adapter.list_issues(search="login")
+        assert len(issues) == 1
+        assert issues[0].number == 1
 
 
 class TestCreateIssue:
@@ -1857,6 +1917,18 @@ class TestGetBranch:
         assert branch.name == "feature"
         assert branch.sha == "abc123"
 
+    def test_not_found(self, mock_responses, github_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/branches/nonexistent",
+            json={"message": "Branch not found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            github_adapter.get_branch("nonexistent")
+
 
 class TestCreateBranch:
     def test_create_from_sha(self, mock_responses, github_adapter):
@@ -2286,6 +2358,18 @@ class TestGetDeployKey:
         assert isinstance(key, DeployKey)
         assert key.id == 200
         assert key.title == "Deploy Key"
+
+    def test_not_found(self, mock_responses, github_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/keys/999",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            github_adapter.get_deploy_key(999)
 
 
 class TestCreateDeployKey:
@@ -2892,6 +2976,18 @@ class TestUpdateReleaseAsset:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["name"] == "renamed.zip"
 
+    def test_not_found(self, mock_responses, github_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/releases/assets/999",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            github_adapter.update_release_asset(tag="v1.0.0", asset_id=999, name="x.zip")
+
 
 class TestListIssueTemplates:
     @responses.activate
@@ -3413,6 +3509,19 @@ class TestGetSshKey:
         assert key.id == 1
         assert key.title == "my-key"
 
+    @responses.activate
+    def test_not_found(self, github_adapter):
+        from gfo.exceptions import NotFoundError
+
+        responses.add(
+            responses.GET,
+            f"{BASE}/user/keys/999",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            github_adapter.get_ssh_key(999)
+
 
 # --- GPG Key 系 ---
 
@@ -3442,6 +3551,19 @@ class TestGetGpgKey:
         assert isinstance(key, GpgKey)
         assert key.id == 10
         assert key.primary_key_id == "ABC123"
+
+    @responses.activate
+    def test_not_found(self, github_adapter):
+        from gfo.exceptions import NotFoundError
+
+        responses.add(
+            responses.GET,
+            f"{BASE}/user/gpg_keys/999",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            github_adapter.get_gpg_key(999)
 
 
 # --- Workflow ---
@@ -3655,6 +3777,19 @@ class TestIssueSubscribe:
         github_adapter.unsubscribe_issue(1)
         req_body = json.loads(responses.calls[0].request.body)
         assert req_body["subscribed"] is False
+
+    @responses.activate
+    def test_subscribe_404(self, github_adapter):
+        from gfo.exceptions import NotFoundError
+
+        responses.add(
+            responses.PUT,
+            f"{REPOS}/issues/999/subscription",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            github_adapter.subscribe_issue(999)
 
 
 class TestOrgSecrets:

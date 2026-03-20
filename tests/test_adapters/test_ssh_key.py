@@ -139,6 +139,29 @@ class TestGitLabSshKey:
         gitlab_adapter.delete_ssh_key(key_id=1)
 
     @responses.activate
+    def test_get(self, gitlab_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitlab.com/api/v4/user/keys/1",
+            json=_common_ssh_key_data(),
+            status=200,
+        )
+        key = gitlab_adapter.get_ssh_key(1)
+        assert key.id == 1
+        assert key.title == "my-key"
+
+    @responses.activate
+    def test_get_not_found(self, gitlab_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitlab.com/api/v4/user/keys/999",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.get_ssh_key(999)
+
+    @responses.activate
     def test_list_empty(self, gitlab_adapter):
         responses.add(responses.GET, "https://gitlab.com/api/v4/user/keys", json=[])
         assert gitlab_adapter.list_ssh_keys() == []
@@ -259,6 +282,29 @@ class TestGiteaSshKey:
             status=204,
         )
         gitea_adapter.delete_ssh_key(key_id=1)
+
+    @responses.activate
+    def test_get(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitea.example.com/api/v1/user/keys/1",
+            json=_common_ssh_key_data(),
+            status=200,
+        )
+        key = gitea_adapter.get_ssh_key(1)
+        assert key.id == 1
+        assert key.title == "my-key"
+
+    @responses.activate
+    def test_get_not_found(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitea.example.com/api/v1/user/keys/999",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.get_ssh_key(999)
 
     @responses.activate
     def test_list_empty(self, gitea_adapter):

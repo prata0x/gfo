@@ -1402,6 +1402,42 @@ class TestUpdatePullRequest:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["description"] == "New desc"
 
+    def test_warns_unsupported_metadata_params(self, mock_responses, backlog_adapter):
+        """add_labels 等の未サポートパラメータで警告が出ることを確認する。"""
+        import warnings
+
+        mock_responses.add(
+            responses.PATCH,
+            f"{PR_PATH}/1",
+            json=_pr_data(),
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 5, "name": "Merged"}],
+            status=200,
+        )
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            backlog_adapter.update_pull_request(
+                1,
+                title="x",
+                add_labels=["bug"],
+                remove_labels=["wontfix"],
+                add_assignees=["alice"],
+                remove_assignees=["bob"],
+                milestone="v1.0",
+            )
+            warned_params = [str(warning.message) for warning in w]
+            assert any("add_labels" in m for m in warned_params)
+            assert any("remove_labels" in m for m in warned_params)
+            assert any("add_assignees" in m for m in warned_params)
+            assert any("remove_assignees" in m for m in warned_params)
+            assert any("milestone" in m for m in warned_params)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["summary"] == "x"
+
 
 class TestUpdateIssue:
     def test_update_title(self, mock_responses, backlog_adapter):
@@ -1415,6 +1451,36 @@ class TestUpdateIssue:
         assert isinstance(issue, Issue)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["summary"] == "New Title"
+
+    def test_warns_unsupported_metadata_params(self, mock_responses, backlog_adapter):
+        """add_labels 等の未サポートパラメータで警告が出ることを確認する。"""
+        import warnings
+
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/issues/TEST-1",
+            json=_issue_data(),
+            status=200,
+        )
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            backlog_adapter.update_issue(
+                1,
+                title="x",
+                add_labels=["bug"],
+                remove_labels=["wontfix"],
+                add_assignees=["alice"],
+                remove_assignees=["bob"],
+                milestone="v1.0",
+            )
+            warned_params = [str(warning.message) for warning in w]
+            assert any("add_labels" in m for m in warned_params)
+            assert any("remove_labels" in m for m in warned_params)
+            assert any("add_assignees" in m for m in warned_params)
+            assert any("remove_assignees" in m for m in warned_params)
+            assert any("milestone" in m for m in warned_params)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["summary"] == "x"
 
 
 # --- Branch 系 ---

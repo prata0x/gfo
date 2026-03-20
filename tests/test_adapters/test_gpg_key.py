@@ -150,6 +150,29 @@ class TestGitLabGpgKey:
         gitlab_adapter.delete_gpg_key(key_id=1)
 
     @responses.activate
+    def test_get(self, gitlab_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitlab.com/api/v4/user/gpg_keys/1",
+            json=_gitlab_gpg_key_data(),
+            status=200,
+        )
+        key = gitlab_adapter.get_gpg_key(1)
+        assert key.id == 1
+        assert key.primary_key_id == "ABC123"
+
+    @responses.activate
+    def test_get_not_found(self, gitlab_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitlab.com/api/v4/user/gpg_keys/999",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.get_gpg_key(999)
+
+    @responses.activate
     def test_list_empty(self, gitlab_adapter):
         responses.add(responses.GET, "https://gitlab.com/api/v4/user/gpg_keys", json=[])
         assert gitlab_adapter.list_gpg_keys() == []
@@ -269,6 +292,29 @@ class TestGiteaGpgKey:
             status=204,
         )
         gitea_adapter.delete_gpg_key(key_id=1)
+
+    @responses.activate
+    def test_get(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitea.example.com/api/v1/user/gpg_keys/1",
+            json=_common_gpg_key_data(),
+            status=200,
+        )
+        key = gitea_adapter.get_gpg_key(1)
+        assert key.id == 1
+        assert key.primary_key_id == "ABC123"
+
+    @responses.activate
+    def test_get_not_found(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitea.example.com/api/v1/user/gpg_keys/999",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.get_gpg_key(999)
 
     @responses.activate
     def test_list_empty(self, gitea_adapter):

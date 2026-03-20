@@ -416,3 +416,71 @@ class TestTagProtectNotSupported:
     def test_backlog_edit(self, backlog_adapter):
         with pytest.raises(NotSupportedError):
             backlog_adapter.update_tag_protection(1, pattern="v*")
+
+
+class TestLockUnlockNotSupported:
+    def test_bitbucket_lock_issue(self, bitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.lock_issue(1)
+
+    def test_bitbucket_unlock_issue(self, bitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.unlock_issue(1)
+
+    def test_bitbucket_lock_pr(self, bitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.lock_pull_request(1)
+
+    def test_bitbucket_unlock_pr(self, bitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.unlock_pull_request(1)
+
+    def test_azure_devops_lock_issue(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.lock_issue(1)
+
+    def test_azure_devops_unlock_issue(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.unlock_issue(1)
+
+    def test_azure_devops_lock_pr(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.lock_pull_request(1)
+
+    def test_azure_devops_unlock_pr(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.unlock_pull_request(1)
+
+    def test_backlog_lock_issue(self, backlog_adapter):
+        with pytest.raises(NotSupportedError):
+            backlog_adapter.lock_issue(1)
+
+    def test_backlog_unlock_issue(self, backlog_adapter):
+        with pytest.raises(NotSupportedError):
+            backlog_adapter.unlock_issue(1)
+
+    def test_backlog_lock_pr(self, backlog_adapter):
+        with pytest.raises(NotSupportedError):
+            backlog_adapter.lock_pull_request(1)
+
+    def test_backlog_unlock_pr(self, backlog_adapter):
+        with pytest.raises(NotSupportedError):
+            backlog_adapter.unlock_pull_request(1)
+
+
+class TestSyncForkNotSupported:
+    def test_gitlab(self, gitlab_adapter):
+        with pytest.raises(NotSupportedError):
+            gitlab_adapter.sync_fork()
+
+    def test_bitbucket(self, bitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.sync_fork()
+
+    def test_azure_devops(self, azure_devops_adapter):
+        with pytest.raises(NotSupportedError):
+            azure_devops_adapter.sync_fork()
+
+    def test_backlog(self, backlog_adapter):
+        with pytest.raises(NotSupportedError):
+            backlog_adapter.sync_fork()

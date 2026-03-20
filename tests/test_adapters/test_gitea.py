@@ -688,6 +688,17 @@ class TestMergePullRequest:
         assert req_body["MergeTitleField"] == "Custom title"
         assert req_body["MergeMessageField"] == "Custom body"
 
+    def test_merge_with_title_only(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pulls/1/merge",
+            status=200,
+        )
+        gitea_adapter.merge_pull_request(1, title="Custom title")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["MergeTitleField"] == "Custom title"
+        assert "MergeMessageField" not in req_body
+
 
 class TestClosePullRequest:
     def test_close(self, mock_responses, gitea_adapter):
@@ -777,6 +788,42 @@ class TestListIssues:
         req = mock_responses.calls[0].request
         assert "limit=" in req.url
         assert "per_page=" not in req.url
+
+    def test_author_filter(self, mock_responses, gitea_adapter):
+        """author フィルタが created_by パラメータとして送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json=[_issue_data()],
+            status=200,
+        )
+        gitea_adapter.list_issues(author="alice")
+        req = mock_responses.calls[0].request
+        assert "created_by=alice" in req.url
+
+    def test_milestone_filter(self, mock_responses, gitea_adapter):
+        """milestone フィルタが milestones パラメータとして送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json=[_issue_data()],
+            status=200,
+        )
+        gitea_adapter.list_issues(milestone="v1.0")
+        req = mock_responses.calls[0].request
+        assert "milestones=v1.0" in req.url
+
+    def test_search_filter(self, mock_responses, gitea_adapter):
+        """search フィルタが q パラメータとして送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json=[_issue_data()],
+            status=200,
+        )
+        gitea_adapter.list_issues(search="login bug")
+        req = mock_responses.calls[0].request
+        assert "q=" in req.url
 
 
 class TestCreateIssue:
@@ -1680,6 +1727,63 @@ class TestUpdatePullRequest:
         req_body = json.loads(mock_responses.calls[1].request.body)
         assert req_body["milestone"] == 3
 
+    def test_remove_labels(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1",
+            json={
+                **_pr_data(),
+                "labels": [{"id": 1, "name": "bug"}, {"id": 2, "name": "wontfix"}],
+                "assignees": [],
+            },
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/labels",
+            json=[
+                {"id": 1, "name": "bug", "color": "ff0000"},
+                {"id": 2, "name": "wontfix", "color": "cccccc"},
+            ],
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
+        gitea_adapter.update_pull_request(1, remove_labels=["wontfix"])
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert req_body["labels"] == [1]
+
+    def test_add_assignees(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1",
+            json={
+                **_pr_data(),
+                "labels": [],
+                "assignees": [{"login": "dev1"}],
+            },
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
+        gitea_adapter.update_pull_request(1, add_assignees=["dev2"])
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert sorted(req_body["assignees"]) == ["dev1", "dev2"]
+
+    def test_remove_assignees(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1",
+            json={
+                **_pr_data(),
+                "labels": [],
+                "assignees": [{"login": "dev1"}, {"login": "dev2"}],
+            },
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
+        gitea_adapter.update_pull_request(1, remove_assignees=["dev2"])
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["assignees"] == ["dev1"]
+
 
 class TestUpdateIssue:
     def test_update_title(self, mock_responses, gitea_adapter):
@@ -1749,6 +1853,47 @@ class TestUpdateIssue:
         req_body = json.loads(mock_responses.calls[1].request.body)
         assert req_body["milestone"] == 7
 
+    def test_remove_labels(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues/1",
+            json={
+                **_issue_data(),
+                "labels": [{"id": 1, "name": "bug"}, {"id": 5, "name": "feature"}],
+                "assignees": [],
+            },
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/labels",
+            json=[
+                {"id": 1, "name": "bug", "color": "ff0000"},
+                {"id": 5, "name": "feature", "color": "00ff00"},
+            ],
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json=_issue_data(), status=200)
+        gitea_adapter.update_issue(1, remove_labels=["feature"])
+        req_body = json.loads(mock_responses.calls[2].request.body)
+        assert req_body["labels"] == [1]
+
+    def test_remove_assignees(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues/1",
+            json={
+                **_issue_data(),
+                "labels": [],
+                "assignees": [{"login": "dev1"}, {"login": "dev2"}],
+            },
+            status=200,
+        )
+        mock_responses.add(responses.PATCH, f"{REPOS}/issues/1", json=_issue_data(), status=200)
+        gitea_adapter.update_issue(1, remove_assignees=["dev2"])
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["assignees"] == ["dev1"]
+
 
 # --- Review 系 ---
 
@@ -1797,6 +1942,32 @@ class TestCreateReview:
 
 
 # --- Branch 系 ---
+
+
+class TestGetBranch:
+    def test_get(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/branches/feature",
+            json=_branch_data(),
+            status=200,
+        )
+        branch = gitea_adapter.get_branch("feature")
+        assert isinstance(branch, Branch)
+        assert branch.name == "feature"
+        assert branch.sha == "abc123"
+
+    def test_not_found(self, mock_responses, gitea_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/branches/nonexistent",
+            json={"message": "Branch not found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.get_branch("nonexistent")
 
 
 class TestListBranches:
@@ -1851,6 +2022,32 @@ class TestDeleteBranch:
 
 
 # --- Tag 系 ---
+
+
+class TestGetTag:
+    def test_get(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/tags/v1.0.0",
+            json=_tag_data(),
+            status=200,
+        )
+        tag = gitea_adapter.get_tag("v1.0.0")
+        assert isinstance(tag, Tag)
+        assert tag.name == "v1.0.0"
+        assert tag.sha == "def456"
+
+    def test_not_found(self, mock_responses, gitea_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/tags/nonexistent",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.get_tag("nonexistent")
 
 
 class TestListTags:
@@ -2191,6 +2388,32 @@ class TestUpdateWebhook:
 
 
 # --- DeployKey 系 ---
+
+
+class TestGetDeployKey:
+    def test_get(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/keys/200",
+            json=_deploy_key_data(),
+            status=200,
+        )
+        key = gitea_adapter.get_deploy_key(200)
+        assert isinstance(key, DeployKey)
+        assert key.id == 200
+        assert key.title == "Deploy Key"
+
+    def test_not_found(self, mock_responses, gitea_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/keys/999",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.get_deploy_key(999)
 
 
 class TestListDeployKeys:
@@ -2881,6 +3104,18 @@ class TestUpdateReleaseAsset:
         asset = gitea_adapter.update_release_asset(tag="v1.0.0", asset_id=1, name="renamed.zip")
         assert asset.name == "renamed.zip"
 
+    def test_not_found(self, mock_responses, gitea_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.update_release_asset(tag="v1.0.0", asset_id=999, name="x.zip")
+
 
 class TestListIssueTemplatesGitea:
     @responses.activate
@@ -3106,6 +3341,17 @@ class TestEnableWorkflow:
         gitea_adapter.enable_workflow(1)
         assert mock_responses.calls[0].request.method == "PUT"
 
+    def test_not_found(self, mock_responses, gitea_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/actions/workflows/999/enable",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.enable_workflow("999")
+
 
 class TestDisableWorkflow:
     def test_disable(self, mock_responses, gitea_adapter):
@@ -3116,6 +3362,17 @@ class TestDisableWorkflow:
         )
         gitea_adapter.disable_workflow(1)
         assert mock_responses.calls[0].request.method == "PUT"
+
+    def test_not_found(self, mock_responses, gitea_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/actions/workflows/999/disable",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.disable_workflow("999")
 
 
 # --- Artifact ---
@@ -3165,6 +3422,17 @@ class TestDownloadArtifact:
         assert os.path.basename(result) == "build-output.zip"
         assert os.path.exists(result)
 
+    def test_not_found(self, mock_responses, gitea_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/artifacts/999",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.download_artifact("100", "999", output_dir="/tmp")
+
 
 class TestDownloadRunLogs:
     def test_download(self, mock_responses, gitea_adapter, tmp_path):
@@ -3209,6 +3477,24 @@ class TestIssueSubscribe:
             status=204,
         )
         gitea_adapter.unsubscribe_issue(1)
+
+    def test_subscribe_404(self, mock_responses, gitea_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/user",
+            json={"login": "testuser"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/issues/999/subscriptions/testuser",
+            json={"message": "Not Found"},
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.subscribe_issue(999)
 
 
 class TestOrgSecrets:

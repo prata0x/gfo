@@ -191,6 +191,98 @@ class TestGitHubSecretErrors:
             github_adapter.delete_secret("MISSING")
 
 
+class TestGitHubSecretOrgScope:
+    @responses.activate
+    def test_list_org_scope(self, github_adapter):
+        responses.add(
+            responses.GET,
+            "https://api.github.com/orgs/my-org/actions/secrets",
+            json={
+                "total_count": 1,
+                "secrets": [
+                    {"name": "ORG_SECRET", "created_at": "2024-01-01", "updated_at": "2024-01-02"}
+                ],
+            },
+        )
+        secrets = github_adapter.list_secrets(scope="my-org")
+        assert len(secrets) == 1
+        assert secrets[0].name == "ORG_SECRET"
+
+    @responses.activate
+    def test_set_org_scope(self, github_adapter):
+        responses.add(
+            responses.GET,
+            "https://api.github.com/orgs/my-org/actions/secrets/public-key",
+            json={"key_id": "k1", "key": "AAAA"},
+        )
+        responses.add(
+            responses.PUT,
+            "https://api.github.com/orgs/my-org/actions/secrets/ORG_SECRET",
+            status=201,
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/orgs/my-org/actions/secrets/ORG_SECRET",
+            json={"name": "ORG_SECRET", "created_at": "2024-01-01", "updated_at": "2024-01-02"},
+        )
+        with patch.object(
+            type(github_adapter), "_encrypt_secret", staticmethod(lambda k, v: "encrypted==")
+        ):
+            secret = github_adapter.set_secret("ORG_SECRET", "value", scope="my-org")
+        assert secret.name == "ORG_SECRET"
+
+    @responses.activate
+    def test_delete_org_scope(self, github_adapter):
+        responses.add(
+            responses.DELETE,
+            "https://api.github.com/orgs/my-org/actions/secrets/ORG_SECRET",
+            status=204,
+        )
+        github_adapter.delete_secret("ORG_SECRET", scope="my-org")
+
+
+class TestGitHubVariableOrgScope:
+    @responses.activate
+    def test_list_org_scope(self, github_adapter):
+        responses.add(
+            responses.GET,
+            "https://api.github.com/orgs/my-org/actions/variables",
+            json={
+                "total_count": 1,
+                "variables": [
+                    {"name": "ORG_VAR", "value": "val", "created_at": "", "updated_at": ""}
+                ],
+            },
+        )
+        variables = github_adapter.list_variables(scope="my-org")
+        assert len(variables) == 1
+        assert variables[0].name == "ORG_VAR"
+
+    @responses.activate
+    def test_set_org_scope_create(self, github_adapter):
+        responses.add(
+            responses.GET,
+            "https://api.github.com/orgs/my-org/actions/variables/ORG_VAR",
+            status=404,
+        )
+        responses.add(
+            responses.POST,
+            "https://api.github.com/orgs/my-org/actions/variables",
+            status=201,
+        )
+        var = github_adapter.set_variable("ORG_VAR", "val", scope="my-org")
+        assert var.name == "ORG_VAR"
+
+    @responses.activate
+    def test_delete_org_scope(self, github_adapter):
+        responses.add(
+            responses.DELETE,
+            "https://api.github.com/orgs/my-org/actions/variables/ORG_VAR",
+            status=204,
+        )
+        github_adapter.delete_variable("ORG_VAR", scope="my-org")
+
+
 # --- GitLab ---
 
 
@@ -344,6 +436,27 @@ class TestGitLabVariable:
             gitlab_adapter.delete_variable("X")
 
 
+class TestGitLabVariableGroupScope:
+    @responses.activate
+    def test_list_group_scope(self, gitlab_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitlab.com/api/v4/groups/my-group/variables",
+            json=[
+                {
+                    "key": "GROUP_VAR",
+                    "value": "val",
+                    "variable_type": "env_var",
+                    "masked": False,
+                    "protected": False,
+                }
+            ],
+        )
+        variables = gitlab_adapter.list_variables(scope="my-group")
+        assert len(variables) == 1
+        assert variables[0].name == "GROUP_VAR"
+
+
 # --- Gitea ---
 
 
@@ -481,6 +594,32 @@ class TestGiteaSecretErrors:
         )
         with pytest.raises(NotFoundError):
             gitea_adapter.delete_secret("MISSING")
+
+
+class TestGiteaSecretOrgScope:
+    @responses.activate
+    def test_list_org_scope(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitea.example.com/api/v1/orgs/my-org/actions/secrets",
+            json=[{"name": "ORG_SECRET", "created_at": "2024-01-01"}],
+        )
+        secrets = gitea_adapter.list_secrets(scope="my-org")
+        assert len(secrets) == 1
+        assert secrets[0].name == "ORG_SECRET"
+
+
+class TestGiteaVariableOrgScope:
+    @responses.activate
+    def test_list_org_scope(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitea.example.com/api/v1/orgs/my-org/actions/variables",
+            json=[{"name": "ORG_VAR", "data": "val"}],
+        )
+        variables = gitea_adapter.list_variables(scope="my-org")
+        assert len(variables) == 1
+        assert variables[0].name == "ORG_VAR"
 
 
 # --- Bitbucket ---

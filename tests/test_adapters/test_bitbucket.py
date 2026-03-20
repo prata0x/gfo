@@ -440,6 +440,17 @@ class TestMergePullRequest:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["message"] == "Custom title\n\nCustom body"
 
+    def test_merge_with_title_only(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pullrequests/1/merge",
+            json={},
+            status=200,
+        )
+        bitbucket_adapter.merge_pull_request(1, title="Custom title")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["message"] == "Custom title"
+
 
 class TestClosePullRequest:
     def test_close(self, mock_responses, bitbucket_adapter):
@@ -580,6 +591,51 @@ class TestListIssues:
         req = mock_responses.calls[0].request
         decoded_url = unquote(req.url)
         assert 'state="resolved"' in decoded_url
+
+    def test_search_filter(self, mock_responses, bitbucket_adapter):
+        """search フィルタが title 部分一致の JQL として送信されることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"values": [_issue_data()]},
+            status=200,
+        )
+        bitbucket_adapter.list_issues(search="login bug")
+        req = mock_responses.calls[0].request
+        decoded = unquote_plus(req.url)
+        assert 'title ~ "login bug"' in decoded
+
+    def test_author_unsupported_warns(self, mock_responses, bitbucket_adapter):
+        """author フィルタは Bitbucket で未サポートであり警告が出ることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"values": []},
+            status=200,
+        )
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            bitbucket_adapter.list_issues(author="alice")
+        messages = [str(x.message) for x in w]
+        assert any("author" in m for m in messages)
+
+    def test_milestone_unsupported_warns(self, mock_responses, bitbucket_adapter):
+        """milestone フィルタは Bitbucket で未サポートであり警告が出ることを確認する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"values": []},
+            status=200,
+        )
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            bitbucket_adapter.list_issues(milestone="v1.0")
+        messages = [str(x.message) for x in w]
+        assert any("milestone" in m for m in messages)
 
 
 class TestCreateIssue:
@@ -1086,6 +1142,39 @@ class TestUpdatePullRequest:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["destination"]["branch"]["name"] == "develop"
 
+    def test_warns_unsupported_metadata_params(self, mock_responses, bitbucket_adapter):
+        """add_labels 等の未サポートパラメータで警告が出ることを確認する。"""
+        import warnings
+
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/pullrequests/1",
+            json=_pr_data(),
+            status=200,
+        )
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            bitbucket_adapter.update_pull_request(
+                1,
+                title="x",
+                add_labels=["bug"],
+                remove_labels=["wontfix"],
+                add_assignees=["alice"],
+                remove_assignees=["bob"],
+                milestone="v1.0",
+            )
+            warned_params = [str(warning.message) for warning in w]
+            assert any("add_labels" in m for m in warned_params)
+            assert any("remove_labels" in m for m in warned_params)
+            assert any("add_assignees" in m for m in warned_params)
+            assert any("remove_assignees" in m for m in warned_params)
+            assert any("milestone" in m for m in warned_params)
+        # 警告を出しつつも title は正しく送信される
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["title"] == "x"
+        assert "labels" not in req_body
+        assert "assignees" not in req_body
+
 
 class TestUpdateIssue:
     def test_update_title(self, mock_responses, bitbucket_adapter):
@@ -1110,6 +1199,37 @@ class TestUpdateIssue:
         bitbucket_adapter.update_issue(1, assignee="devuser")
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["assignee"]["nickname"] == "devuser"
+
+    def test_warns_unsupported_metadata_params(self, mock_responses, bitbucket_adapter):
+        """add_labels 等の未サポートパラメータで警告が出ることを確認する。"""
+        import warnings
+
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/issues/1",
+            json=_issue_data(),
+            status=200,
+        )
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            bitbucket_adapter.update_issue(
+                1,
+                title="x",
+                add_labels=["bug"],
+                remove_labels=["wontfix"],
+                add_assignees=["alice"],
+                remove_assignees=["bob"],
+                milestone="v1.0",
+            )
+            warned_params = [str(warning.message) for warning in w]
+            assert any("add_labels" in m for m in warned_params)
+            assert any("remove_labels" in m for m in warned_params)
+            assert any("add_assignees" in m for m in warned_params)
+            assert any("remove_assignees" in m for m in warned_params)
+            assert any("milestone" in m for m in warned_params)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["title"] == "x"
+        assert "labels" not in req_body
 
 
 # --- Review 系 ---
