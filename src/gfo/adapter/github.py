@@ -15,6 +15,7 @@ from .base import (
     Branch,
     BranchProtection,
     CheckRun,
+    CodeSearchResult,
     Comment,
     Commit,
     CommitStatus,
@@ -1949,6 +1950,39 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 break
             page += 1
         return [self._to_issue(r) for r in results if "pull_request" not in r]
+
+    def search_code(self, query: str, *, limit: int = 30) -> list[CodeSearchResult]:
+        results: list[dict] = []
+        per_page = min(limit, 30) if limit > 0 else 30
+        page = 1
+        while True:
+            resp = self._client.get(
+                "/search/code",
+                params={"q": query, "per_page": per_page, "page": page},
+                headers={"Accept": "application/vnd.github.text-match+json"},
+            )
+            body = resp.json()
+            page_data: list[dict] = body.get("items", []) if isinstance(body, dict) else []
+            if not page_data:
+                break
+            results.extend(page_data)
+            if limit > 0 and len(results) >= limit:
+                results = results[:limit]
+                break
+            if len(page_data) < per_page:
+                break
+            page += 1
+        return [
+            CodeSearchResult(
+                path=r.get("path") or "",
+                repository=(r.get("repository") or {}).get("full_name") or "",
+                url=r.get("html_url") or "",
+                matched_text=(r.get("text_matches") or [{}])[0].get("fragment", "")
+                if r.get("text_matches")
+                else "",
+            )
+            for r in results
+        ]
 
     # --- Issue Reaction ---
 

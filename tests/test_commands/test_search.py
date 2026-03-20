@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from gfo.adapter.base import Commit, Issue, PullRequest, Repository
+from gfo.adapter.base import CodeSearchResult, Commit, Issue, PullRequest, Repository
 from gfo.commands import search as search_cmd
 from gfo.exceptions import HttpError
 from tests.test_commands.conftest import make_args, patch_adapter
@@ -162,3 +162,40 @@ class TestHandleCommits:
             args = make_args(query="fix", author=None, since=None, until=None, limit=30)
             with pytest.raises(HttpError):
                 search_cmd.handle_commits(args, fmt="table")
+
+
+# --- search code ---
+
+SAMPLE_CODE_RESULT = CodeSearchResult(
+    path="src/main.py",
+    repository="owner/test-repo",
+    url="https://github.com/owner/test-repo/blob/main/src/main.py",
+    matched_text="def main():",
+)
+
+
+class TestHandleCode:
+    def test_calls_search_code(self, capsys):
+        with patch_adapter("gfo.commands.search") as adapter:
+            adapter.search_code.return_value = [SAMPLE_CODE_RESULT]
+            args = make_args(query="main", limit=30)
+            search_cmd.handle_code(args, fmt="table")
+        adapter.search_code.assert_called_once_with("main", limit=30)
+
+    def test_json_output(self, capsys):
+        with patch_adapter("gfo.commands.search") as adapter:
+            adapter.search_code.return_value = [SAMPLE_CODE_RESULT]
+            args = make_args(query="main", limit=30)
+            search_cmd.handle_code(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert isinstance(data, list)
+        assert data[0]["path"] == "src/main.py"
+        assert data[0]["matched_text"] == "def main():"
+
+    def test_error_propagation(self):
+        with patch_adapter("gfo.commands.search") as adapter:
+            adapter.search_code.side_effect = HttpError(500, "Server error")
+            args = make_args(query="main", limit=30)
+            with pytest.raises(HttpError):
+                search_cmd.handle_code(args, fmt="table")

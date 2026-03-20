@@ -324,6 +324,14 @@ class Commit:
 
 
 @dataclass(frozen=True, slots=True)
+class CodeSearchResult:
+    path: str  # ファイルパス（リポジトリルートからの相対パス）
+    repository: str  # リポジトリ名
+    url: str  # Web URL
+    matched_text: str  # マッチしたテキスト断片
+
+
+@dataclass(frozen=True, slots=True)
 class Package:
     name: str
     type: str  # "npm", "maven", "container", "pypi", etc.
@@ -1238,6 +1246,9 @@ class GitServiceAdapter(ABC):
 
     def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
         raise NotSupportedError(self.service_name, "search issues")
+
+    def search_code(self, query: str, *, limit: int = 30) -> list[CodeSearchResult]:
+        raise NotSupportedError(self.service_name, "search code")
 
     # --- Secret ---
     def list_secrets(self, *, scope: str | None = None, limit: int = 30) -> list[Secret]:

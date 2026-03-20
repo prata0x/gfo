@@ -15,6 +15,7 @@ from .base import (
     Branch,
     BranchProtection,
     CheckRun,
+    CodeSearchResult,
     Comment,
     Commit,
     CommitStatus,
@@ -2002,6 +2003,23 @@ class GitLabAdapter(GitServiceAdapter):
             limit=limit,
         )
         return [self._to_issue(r) for r in results]
+
+    def search_code(self, query: str, *, limit: int = 30) -> list[CodeSearchResult]:
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/search",
+            params={"scope": "blobs", "search": query},
+            limit=limit,
+        )
+        return [
+            CodeSearchResult(
+                path=r.get("path") or r.get("filename") or "",
+                repository=f"{self._owner}/{self._repo}",
+                url="",
+                matched_text=r.get("data") or "",
+            )
+            for r in results
+        ]
 
     # --- Wiki ---
 

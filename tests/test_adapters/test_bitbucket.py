@@ -11,6 +11,7 @@ import responses
 from gfo.adapter.base import (
     Branch,
     CheckRun,
+    CodeSearchResult,
     Comment,
     CommitStatus,
     DeployKey,
@@ -1796,6 +1797,59 @@ class TestSearchIssues:
         issues = bitbucket_adapter.search_issues("bug")
         assert len(issues) >= 1
         assert isinstance(issues[0], Issue)
+
+
+class TestSearchCode:
+    def test_search_code(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/workspaces/test-workspace/search/code",
+            json={
+                "values": [
+                    {
+                        "file": {
+                            "path": "src/main.py",
+                            "type": "commit_file",
+                            "links": {
+                                "self": {
+                                    "href": "https://api.bitbucket.org/2.0/repositories/test-workspace/test-repo/src/main/src/main.py"
+                                }
+                            },
+                        },
+                        "content_matches": [
+                            {
+                                "lines": [
+                                    {
+                                        "line": 1,
+                                        "segments": [
+                                            {"text": "def ", "match": False},
+                                            {"text": "main", "match": True},
+                                            {"text": "():", "match": False},
+                                        ],
+                                    }
+                                ]
+                            }
+                        ],
+                    }
+                ]
+            },
+            status=200,
+        )
+        result = bitbucket_adapter.search_code("main", limit=10)
+        assert len(result) == 1
+        assert isinstance(result[0], CodeSearchResult)
+        assert result[0].path == "src/main.py"
+        assert result[0].matched_text == "def main():"
+
+    def test_search_code_empty(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/workspaces/test-workspace/search/code",
+            json={"values": []},
+            status=200,
+        )
+        result = bitbucket_adapter.search_code("nonexistent")
+        assert result == []
 
 
 # --- 変換ヘルパー単体テスト ---

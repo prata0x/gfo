@@ -11,6 +11,7 @@ import responses
 from gfo.adapter.base import (
     Branch,
     CheckRun,
+    CodeSearchResult,
     Comment,
     CommitStatus,
     DeployKey,
@@ -2706,6 +2707,41 @@ class TestSearchIssues:
         issues = gitlab_adapter.search_issues("bug")
         assert len(issues) == 1
         assert isinstance(issues[0], Issue)
+
+
+class TestSearchCode:
+    def test_search_code(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/search",
+            json=[
+                {
+                    "basename": "main",
+                    "data": "def main():\n    pass",
+                    "path": "src/main.py",
+                    "filename": "src/main.py",
+                    "ref": "main",
+                    "startline": 1,
+                    "project_id": 1,
+                }
+            ],
+            status=200,
+        )
+        result = gitlab_adapter.search_code("main", limit=10)
+        assert len(result) == 1
+        assert isinstance(result[0], CodeSearchResult)
+        assert result[0].path == "src/main.py"
+        assert result[0].matched_text == "def main():\n    pass"
+
+    def test_search_code_empty(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/search",
+            json=[],
+            status=200,
+        )
+        result = gitlab_adapter.search_code("nonexistent")
+        assert result == []
 
 
 # --- Wiki 系 ---

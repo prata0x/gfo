@@ -15,6 +15,7 @@ from .base import (
     Branch,
     BranchProtection,
     CheckRun,
+    CodeSearchResult,
     Comment,
     Commit,
     CommitStatus,
@@ -1560,6 +1561,47 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
             raise GfoError(f"Unexpected API response: {type(batch_body)}")
         return [self._to_issue(item) for item in batch_body.get("value", [])]
+
+    def _search_api_url(self) -> str:
+        """Code Search API の絶対 URL を構築する。
+
+        Azure DevOps Services (cloud) では almsearch.dev.azure.com、
+        On-premises では同一ホストの /_apis/search パスを使用する。
+        """
+        parsed = urlparse(self._client.base_url)
+        if parsed.hostname == "dev.azure.com":
+            host = f"{parsed.scheme}://almsearch.dev.azure.com"
+        else:
+            host = f"{parsed.scheme}://{parsed.netloc}"
+        return f"{host}/{quote(self._org, safe='')}/{quote(self._project, safe='')}/_apis/search/codesearchresults"
+
+    def search_code(self, query: str, *, limit: int = 30) -> list[CodeSearchResult]:
+        url = self._search_api_url()
+        body = {
+            "searchText": query,
+            "$top": min(limit, 1000) if limit > 0 else 1000,
+            "$skip": 0,
+            "filters": {"Repository": [self._repo]},
+        }
+        # Code Search API は POST かつ別ホスト (almsearch) のため、セッション経由で直接リクエスト
+        merged_params = {**self._client._default_params, "api-version": "7.0"}
+        resp = self._client._session.post(url, json=body, params=merged_params, timeout=30)
+        self._client._handle_response(resp)
+        data = resp.json()
+        results = data.get("results", [])
+        if limit > 0:
+            results = results[:limit]
+        parsed = urlparse(self._client.base_url)
+        base_web = f"{parsed.scheme}://{parsed.netloc}/{self._org}/{self._project}"
+        return [
+            CodeSearchResult(
+                path=(r.get("path") or "").lstrip("/"),
+                repository=r.get("repository", {}).get("name", ""),
+                url=f"{base_web}/_git/{quote(r.get('repository', {}).get('name', ''), safe='')}?path={quote(r.get('path', ''), safe='')}",
+                matched_text="",
+            )
+            for r in results
+        ]
 
     # --- Issue Dependencies (Work Item Links) ---
 

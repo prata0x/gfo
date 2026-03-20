@@ -44,3 +44,10 @@ def handle_commits(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
         limit=args.limit,
     )
     output(commits, fmt=fmt, fields=["sha", "message", "author", "created_at"], jq=jq)
+
+
+def handle_code(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo search code <query> のハンドラ。"""
+    adapter = get_adapter()
+    results = adapter.search_code(args.query, limit=args.limit)
+    output(results, fmt=fmt, fields=["path", "repository", "matched_text"], jq=jq)

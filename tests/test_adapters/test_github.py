@@ -10,6 +10,7 @@ import responses
 from gfo.adapter.base import (
     Branch,
     CheckRun,
+    CodeSearchResult,
     Comment,
     CommitStatus,
     DeployKey,
@@ -3337,6 +3338,42 @@ class TestSearchCommits:
         result = github_adapter.search_commits("fix", limit=10)
         assert len(result) == 1
         assert result[0].sha == "abc123"
+
+
+class TestSearchCode:
+    @responses.activate
+    def test_search_code(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{BASE}/search/code",
+            json={
+                "items": [
+                    {
+                        "name": "main.py",
+                        "path": "src/main.py",
+                        "sha": "abc123",
+                        "html_url": "https://github.com/test-owner/test-repo/blob/main/src/main.py",
+                        "repository": {"full_name": "test-owner/test-repo"},
+                        "text_matches": [{"fragment": "def main():"}],
+                    }
+                ]
+            },
+        )
+        result = github_adapter.search_code("main", limit=10)
+        assert len(result) == 1
+        assert isinstance(result[0], CodeSearchResult)
+        assert result[0].path == "src/main.py"
+        assert result[0].repository == "test-owner/test-repo"
+
+    @responses.activate
+    def test_search_code_empty(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{BASE}/search/code",
+            json={"items": []},
+        )
+        result = github_adapter.search_code("nonexistent")
+        assert result == []
 
 
 class TestRepoStarUnstar:

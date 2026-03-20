@@ -928,6 +928,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
     )
 
+    # gfo search code
+    search_code = search_sub.add_parser("code", help=_("Search code"))
+    search_code.add_argument("query", help=_("Search query"))
+    search_code.add_argument(
+        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+    )
+
     # gfo label clone
     label_clone = label_sub.add_parser("clone", help=_("Clone labels from another repository"))
     label_clone.add_argument(
@@ -1365,6 +1372,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("issue", "develop"): gfo.commands.issue.handle_develop,
     ("search", "prs"): gfo.commands.search.handle_prs,
     ("search", "commits"): gfo.commands.search.handle_commits,
+    ("search", "code"): gfo.commands.search.handle_code,
     ("label", "clone"): gfo.commands.label.handle_clone,
     ("wiki", "revisions"): gfo.commands.wiki.handle_revisions,
     ("repo", "mirror"): gfo.commands.repo.handle_mirror,

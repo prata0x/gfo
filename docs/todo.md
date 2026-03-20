@@ -4,14 +4,6 @@
 
 ---
 
-## 7. `search code`
-
-**変更ファイル**: `cli.py`, `commands/search.py`, `adapter/base.py`, 各アダプター (GitHub/GitLab/Bitbucket/Azure DevOps), テスト
-
-`search_code()` を `adapter/base.py` に追加。4 サービス対応。検索 API のインターフェースがサービスごとに異なる。
-
----
-
 ## 8. `release create --generate-notes`
 
 **変更ファイル**: `cli.py`, `commands/release.py`, `adapter/base.py`, 各アダプター (GitHub/GitLab), テスト

@@ -16,6 +16,7 @@ from gfo.adapter.azure_devops import (
 from gfo.adapter.base import (
     Branch,
     CheckRun,
+    CodeSearchResult,
     Comment,
     CommitStatus,
     Issue,
@@ -1861,6 +1862,41 @@ class TestSearchIssues:
         )
         issues = azure_devops_adapter.search_issues("bug")
         assert isinstance(issues, list)
+
+
+class TestSearchCode:
+    def test_search_code(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.POST,
+            "https://almsearch.dev.azure.com/test-org/test-project/_apis/search/codesearchresults",
+            json={
+                "results": [
+                    {
+                        "fileName": "main.py",
+                        "path": "/src/main.py",
+                        "repository": {"name": "test-repo", "id": "repo-id"},
+                        "project": {"name": "test-project", "id": "proj-id"},
+                        "matches": {"content": [{"charOffset": 0, "length": 4}]},
+                    }
+                ]
+            },
+            status=200,
+        )
+        result = azure_devops_adapter.search_code("main", limit=10)
+        assert len(result) == 1
+        assert isinstance(result[0], CodeSearchResult)
+        assert result[0].path == "src/main.py"
+        assert result[0].repository == "test-repo"
+
+    def test_search_code_empty(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.POST,
+            "https://almsearch.dev.azure.com/test-org/test-project/_apis/search/codesearchresults",
+            json={"results": []},
+            status=200,
+        )
+        result = azure_devops_adapter.search_code("nonexistent")
+        assert result == []
 
 
 # --- 変換メソッドのテスト（追加） ---

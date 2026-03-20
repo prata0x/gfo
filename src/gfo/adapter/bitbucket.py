@@ -13,6 +13,7 @@ from .base import (
     Branch,
     BranchProtection,
     CheckRun,
+    CodeSearchResult,
     Comment,
     CommitStatus,
     CompareFile,
@@ -1495,6 +1496,36 @@ class BitbucketAdapter(GitServiceAdapter):
             limit=limit,
         )
         return [self._to_issue(r) for r in results]
+
+    def search_code(self, query: str, *, limit: int = 30) -> list[CodeSearchResult]:
+        results = paginate_response_body(
+            self._client,
+            f"/workspaces/{quote(self._owner, safe='')}/search/code",
+            params={"search_query": query},
+            limit=limit,
+        )
+        out: list[CodeSearchResult] = []
+        for r in results:
+            file_info = r.get("file") or {}
+            path = file_info.get("path") or ""
+            # マッチしたテキストをセグメントから組み立てる
+            matched = ""
+            for cm in r.get("content_matches") or []:
+                for line in cm.get("lines") or []:
+                    matched = "".join(seg.get("text", "") for seg in line.get("segments") or [])
+                    if matched:
+                        break
+                if matched:
+                    break
+            out.append(
+                CodeSearchResult(
+                    path=path,
+                    repository=f"{self._owner}/{self._repo}",
+                    url=(file_info.get("links") or {}).get("self", {}).get("href", ""),
+                    matched_text=matched,
+                )
+            )
+        return out
 
     def search_pull_requests(self, query, *, state=None, limit=30):
         params = {}
