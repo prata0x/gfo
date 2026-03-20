@@ -516,6 +516,117 @@ class TestHandleAsset:
                 release_cmd.handle_asset(args, fmt="table")
 
 
+class TestHandleListWeb:
+    def setup_method(self):
+        self.release = _make_release()
+        self.adapter = _make_adapter(self.release)
+
+    def test_opens_browser(self, sample_config):
+        args = make_args(limit=30, web=True)
+        with (
+            _patch_all(sample_config, self.adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            release_cmd.handle_list(args, fmt="table")
+        self.adapter.get_web_url.assert_called_once_with("release")
+        mock_open.assert_called_once_with(self.adapter.get_web_url.return_value)
+
+    def test_does_not_call_api(self, sample_config):
+        args = make_args(limit=30, web=True)
+        with (
+            _patch_all(sample_config, self.adapter),
+            patch("webbrowser.open"),
+        ):
+            release_cmd.handle_list(args, fmt="table")
+        self.adapter.list_releases.assert_not_called()
+
+
+class TestHandleCreateWeb:
+    def setup_method(self):
+        self.release = _make_release()
+        self.adapter = _make_adapter(self.release)
+
+    def test_opens_browser_after_create(self, sample_config):
+        args = make_args(
+            tag="v1.0.0",
+            title="Version 1.0.0",
+            notes="Release notes",
+            draft=False,
+            prerelease=False,
+            web=True,
+        )
+        with (
+            _patch_all(sample_config, self.adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            release_cmd.handle_create(args, fmt="table")
+        self.adapter.create_release.assert_called_once()
+        mock_open.assert_called_once_with(
+            "https://github.com/test-owner/test-repo/releases/tag/v1.0.0"
+        )
+
+    def test_does_not_open_browser_without_flag(self, sample_config):
+        args = make_args(
+            tag="v1.0.0",
+            title="Version 1.0.0",
+            notes="Release notes",
+            draft=False,
+            prerelease=False,
+        )
+        with (
+            _patch_all(sample_config, self.adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            release_cmd.handle_create(args, fmt="table")
+        mock_open.assert_not_called()
+
+
+class TestReleaseCreateWebArgParsing:
+    def test_web_flag_parsed(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["release", "create", "v1.0.0", "--web"])
+        assert ns.web is True
+
+    def test_web_short_flag_parsed(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["release", "create", "v1.0.0", "-w"])
+        assert ns.web is True
+
+    def test_web_default_is_false(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["release", "create", "v1.0.0"])
+        assert ns.web is False
+
+
+class TestReleaseListWebArgParsing:
+    def test_web_flag_parsed(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["release", "list", "--web"])
+        assert ns.web is True
+
+    def test_web_short_flag_parsed(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["release", "list", "-w"])
+        assert ns.web is True
+
+    def test_web_default_is_false(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["release", "list"])
+        assert ns.web is False
+
+
 class TestHandleViewWeb:
     def setup_method(self):
         self.release = _make_release()

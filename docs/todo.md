@@ -4,14 +4,6 @@
 
 ---
 
-## 10. `--web` オプション共通追加
-
-**変更ファイル**: `cli.py`, `commands/pr.py`, `commands/issue.py`, `commands/release.py`, `commands/browse.py`, テスト
-
-`pr create`, `pr list`, `issue create`, `release view` 等に `--web` / `-w` オプションを追加。既存の `browse` コマンドの URL 構築ロジックを流用してブラウザで開く。
-
----
-
 ## 11. `config` コマンド
 
 **変更ファイル**: `cli.py`, `commands/` (新規ファイル), `config.py`, テスト

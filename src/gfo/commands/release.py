@@ -12,6 +12,12 @@ from gfo.output import output
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo release list のハンドラ。"""
+    if getattr(args, "web", False):
+        import webbrowser
+
+        adapter = get_adapter()
+        webbrowser.open(adapter.get_web_url("release"))
+        return
     adapter = get_adapter()
     releases = adapter.list_releases(limit=args.limit)
     output(releases, fmt=fmt, fields=["tag", "title", "draft", "prerelease"], jq=jq)
@@ -39,6 +45,10 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         generate_notes=getattr(args, "generate_notes", False),
     )
     output(release, fmt=fmt, jq=jq)
+    if getattr(args, "web", False):
+        import webbrowser
+
+        webbrowser.open(release.url)
 
 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

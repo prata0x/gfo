@@ -195,6 +195,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "--fill", action="store_true", help=_("Use commit info for title and body")
     )
     pr_create.add_argument("--dry-run", action="store_true", help=_("Preview without creating"))
+    pr_create.add_argument(
+        "--web", "-w", action="store_true", help=_("Open in browser after creating")
+    )
     pr_view = pr_sub.add_parser("view", help=_("View pull request details"))
     pr_view.add_argument("number", type=int, help=_("PR number"))
     pr_view.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
@@ -320,6 +323,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_create.add_argument("--priority", type=int, help=_("Priority"))
     issue_create.add_argument("--due-date", help=_("Due date (YYYY-MM-DD)"))
     issue_create.add_argument("--template", help=_("Issue template name"))
+    issue_create.add_argument(
+        "--web", "-w", action="store_true", help=_("Open in browser after creating")
+    )
     issue_view = issue_sub.add_parser("view", help=_("View issue details"))
     issue_view.add_argument("number", type=int, help=_("Issue number"))
     issue_view.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
@@ -468,6 +474,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     release_list.add_argument(
         "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
     )
+    release_list.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     release_create = release_sub.add_parser("create", help=_("Create release"))
     release_create.add_argument("tag", help=_("Tag name"))
     release_create.add_argument("--title", default=None, help=_("Title"))
@@ -485,6 +492,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "--generate-notes",
         action="store_true",
         help=_("Auto-generate release notes"),
+    )
+    release_create.add_argument(
+        "--web", "-w", action="store_true", help=_("Open in browser after creating")
     )
     release_delete = release_sub.add_parser("delete", help=_("Delete release"))
     release_delete.add_argument("tag", help=_("Tag name"))

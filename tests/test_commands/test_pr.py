@@ -1115,6 +1115,85 @@ class TestHandleCreateDryRun:
         assert "My PR" in out
 
 
+class TestHandleCreateWeb:
+    """pr create --web のテスト。"""
+
+    def test_opens_browser_after_create(self, sample_config, mock_adapter):
+        args = make_args(
+            head="feature/test",
+            base="main",
+            title="My PR",
+            body="",
+            draft=False,
+            web=True,
+        )
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            pr_cmd.handle_create(args, fmt="table")
+        mock_adapter.create_pull_request.assert_called_once()
+        mock_open.assert_called_once_with("https://github.com/test-owner/test-repo/pull/1")
+
+    def test_does_not_open_browser_without_flag(self, sample_config, mock_adapter):
+        args = make_args(
+            head="feature/test",
+            base="main",
+            title="My PR",
+            body="",
+            draft=False,
+        )
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            pr_cmd.handle_create(args, fmt="table")
+        mock_open.assert_not_called()
+
+    def test_dry_run_does_not_open_browser(self, sample_config, mock_adapter):
+        args = make_args(
+            head="feature/test",
+            base="main",
+            title="My PR",
+            body="",
+            draft=False,
+            dry_run=True,
+            web=True,
+        )
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            pr_cmd.handle_create(args, fmt="table")
+        mock_adapter.create_pull_request.assert_not_called()
+        mock_open.assert_not_called()
+
+
+class TestPrCreateWebArgParsing:
+    """pr create --web の CLI 引数パースのテスト。"""
+
+    def test_web_flag_parsed(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["pr", "create", "--title", "Test", "--web"])
+        assert ns.web is True
+
+    def test_web_short_flag_parsed(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["pr", "create", "--title", "Test", "-w"])
+        assert ns.web is True
+
+    def test_web_default_is_false(self):
+        from gfo.cli import create_parser
+
+        parser, _ = create_parser()
+        ns = parser.parse_args(["pr", "create", "--title", "Test"])
+        assert ns.web is False
+
+
 class TestPrCreateDryRunArgParsing:
     """pr create --dry-run の CLI 引数パースのテスト。"""
 

@@ -99,6 +99,10 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         **kwargs,
     )
     output(issue, fmt=fmt, jq=jq)
+    if getattr(args, "web", False):
+        import webbrowser
+
+        webbrowser.open(issue.url)
 
 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

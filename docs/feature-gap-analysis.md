@@ -33,7 +33,7 @@
 | `pr list --milestone` | O | O | x | x | O | O | x | x | x | **4** |
 | `issue create --template` | O | x | x | x | O | O | x | x | x | **3** |
 | ~~`release create --generate-notes`~~ | ~~O~~ | ~~O~~ | ~~x~~ | ~~x~~ | ~~x~~ | ~~x~~ | ~~x~~ | ~~x~~ | ~~x~~ | ~~**2**~~ |
-| `--web` (pr/issue create 等) | ローカル実装 | ローカル実装 | ローカル実装 | ローカル実装 | ローカル実装 | ローカル実装 | ローカル実装 | ローカル実装 | ローカル実装 | **9** |
+| ~~`--web` (pr/issue create 等)~~ | ~~ローカル実装~~ | ~~ローカル実装~~ | ~~ローカル実装~~ | ~~ローカル実装~~ | ~~ローカル実装~~ | ~~ローカル実装~~ | ~~ローカル実装~~ | ~~ローカル実装~~ | ~~ローカル実装~~ | ~~**9**~~ |
 
 ---
 
@@ -48,7 +48,7 @@ API 対応サービス数と実装コストに基づく優先度分類。
 | `--body-file` (pr/issue create) | 9 (ローカル) | 極低 | CLI 側でファイル読込→既存引数に渡すだけ |
 | `auth token` | 9 (ローカル) | 極低 | config/auth から取得して表示 |
 | `completion` (シェル補完) | 9 (ローカル) | 低 | argparse ベースで自動生成 |
-| `--web` (pr/issue create 等) | 9 (ローカル) | 低 | `browse` コマンドの仕組みを流用 |
+| ~~`--web` (pr/issue create 等)~~ | ~~9 (ローカル)~~ | ~~低~~ | ~~`browse` コマンドの仕組みを流用~~ |
 | `pr create --dry-run` | 9 (ローカル) | 低 | API 呼出をスキップしてプレビュー表示 |
 | `issue status` | 7+ | 低 | 既存 `list_issues()` フィルタの組み合わせ |
 | `issue develop` (Issue→ブランチ) | 7 (間接) | 低 | 既存 `create_branch()` + 命名規則 |

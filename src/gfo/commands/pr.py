@@ -72,6 +72,10 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         milestone=getattr(args, "milestone", None),
     )
     output(pr, fmt=fmt, jq=jq)
+    if getattr(args, "web", False):
+        import webbrowser
+
+        webbrowser.open(pr.url)
 
 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
