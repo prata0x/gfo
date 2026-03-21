@@ -566,6 +566,7 @@ class TestBitbucketIntegration:
                 ["ssh-keygen", "-t", "ed25519", "-f", key_path, "-N", "", "-C", "gfo-test"],
                 capture_output=True,
                 check=True,
+                stdin=subprocess.DEVNULL,
             )
             with open(key_path + ".pub") as f:
                 dummy_key = f.read().strip()

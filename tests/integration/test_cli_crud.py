@@ -104,19 +104,25 @@ def _make_issue_lifecycle_class(
 
         def test_03_issue_list_contains(self) -> None:
             assert self._issue_number is not None
-            result = self._run(
-                [
-                    "issue",
-                    "list",
-                    "--state",
-                    "open",
-                    "--format",
-                    "json",
-                ]
-            )
-            assert result.exit_code == 0
-            data = result.json()
-            numbers = [item["number"] for item in data]
+            import time
+
+            for _ in range(5):
+                result = self._run(
+                    [
+                        "issue",
+                        "list",
+                        "--state",
+                        "open",
+                        "--format",
+                        "json",
+                    ]
+                )
+                assert result.exit_code == 0
+                data = result.json()
+                numbers = [item["number"] for item in data]
+                if self._issue_number in numbers:
+                    break
+                time.sleep(3)
             assert self._issue_number in numbers
 
         def test_04_issue_close(self) -> None:
