@@ -9,6 +9,7 @@ import pytest
 
 from gfo.config import (
     ProjectConfig,
+    _parse_key_parts,
     _toml_key,
     _toml_value,
     build_clone_url,
@@ -856,10 +857,10 @@ def test_get_config_value_simple():
 
 
 def test_get_config_value_nested():
-    """ネストされたキーの取得。"""
-    cfg = {"hosts": {"gitlab.com": {"type": "gitlab"}}}
+    """引用符記法でドット含みキーの取得。"""
+    cfg = {"hosts": {"gitlab.example.com": {"type": "gitlab"}}}
     with patch("gfo.config.load_user_config", return_value=cfg):
-        assert get_config_value("hosts.gitlab.com.type") == "gitlab"
+        assert get_config_value('hosts."gitlab.example.com".type') == "gitlab"
 
 
 def test_get_config_value_missing():
@@ -1012,3 +1013,30 @@ def test_toml_value_int():
 
 def test_toml_value_list():
     assert _toml_value(["a", "b"]) == '["a", "b"]'
+
+
+# ── _parse_key_parts ──
+
+
+def test_parse_key_parts_simple():
+    assert _parse_key_parts("defaults.output") == ["defaults", "output"]
+
+
+def test_parse_key_parts_quoted():
+    assert _parse_key_parts('hosts."gitlab.example.com".type') == [
+        "hosts",
+        "gitlab.example.com",
+        "type",
+    ]
+
+
+def test_parse_key_parts_no_dots():
+    assert _parse_key_parts("output") == ["output"]
+
+
+def test_parse_key_parts_quoted_only():
+    assert _parse_key_parts('"gitlab.example.com"') == ["gitlab.example.com"]
+
+
+def test_parse_key_parts_multiple_quoted():
+    assert _parse_key_parts('"a.b"."c.d"') == ["a.b", "c.d"]

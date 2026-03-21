@@ -39,9 +39,9 @@ class TestHandleGet:
         assert capsys.readouterr().out.strip() == "json"
 
     def test_get_nested_key(self, config_dir, capsys):
-        """ネストされたキーの値を取得。"""
+        """引用符記法でドット含みキーの値を取得。"""
         _write_config(config_dir, '[hosts."gitlab.example.com"]\ntype = "gitlab"\n')
-        args = make_args(key="hosts.gitlab.example.com.type")
+        args = make_args(key='hosts."gitlab.example.com".type')
         config_cmd.handle_get(args, fmt="table")
         assert capsys.readouterr().out.strip() == "gitlab"
 
@@ -103,9 +103,8 @@ class TestHandleSet:
         assert cfg["hosts"]["myhost"]["type"] == "gitlab"
 
     def test_set_dotted_host_key(self, config_dir):
-        """ドットを含む既存ホストキーに値を設定できる。"""
-        _write_config(config_dir, '[hosts."gitlab.example.com"]\n')
-        args = make_args(key="hosts.gitlab.example.com.type", value="gitlab")
+        """引用符記法でドット含みキーに値を設定できる。"""
+        args = make_args(key='hosts."gitlab.example.com".type', value="gitlab")
         config_cmd.handle_set(args, fmt="table")
         cfg = load_user_config()
         assert cfg["hosts"]["gitlab.example.com"]["type"] == "gitlab"

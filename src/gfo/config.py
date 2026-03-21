@@ -117,113 +117,125 @@ def get_hosts_config() -> dict[str, str]:
     return result
 
 
+# ── キーのパース ──
+
+
+def _parse_key_parts(key: str) -> list[str]:
+    """ドット区切りキー文字列をパーツのリストに分割する。
+
+    引用符で囲まれた部分（``"gitlab.example.com"``）はひとまとまりとして扱う。
+
+    例::
+
+        >>> _parse_key_parts('defaults.output')
+        ['defaults', 'output']
+        >>> _parse_key_parts('hosts."gitlab.example.com".type')
+        ['hosts', 'gitlab.example.com', 'type']
+    """
+    parts: list[str] = []
+    i = 0
+    current: list[str] = []
+    while i < len(key):
+        ch = key[i]
+        if ch == '"':
+            # 引用符の開始 → 対応する閉じ引用符まで読む
+            end = key.index('"', i + 1)
+            parts.append(key[i + 1 : end])
+            i = end + 1
+            # 直後のドットをスキップ
+            if i < len(key) and key[i] == ".":
+                i += 1
+        elif ch == ".":
+            if current:
+                parts.append("".join(current))
+                current = []
+            i += 1
+        else:
+            current.append(ch)
+            i += 1
+    if current:
+        parts.append("".join(current))
+    return parts
+
+
 # ── 設定値の取得・設定・削除 ──
 
 
 def get_config_value(key: str) -> Any:
     """ドット区切りキーで config.toml の値を取得する。未設定なら None。
 
-    ドットを含む TOML キー（例: ``hosts."gitlab.example.com".type``）に対応するため、
-    キーの各位置で実際の dict キーへの最長一致を試みる。
+    引用符記法に対応: ``hosts."gitlab.example.com".type``
     """
     cfg = load_user_config()
-    return _resolve_key(cfg, key.split("."))
-
-
-def _resolve_key(data: Any, parts: list[str]) -> Any:
-    """parts を消費しながら data を辿り、最長一致で値を返す。"""
-    if not parts:
-        return data
-    if not isinstance(data, dict):
-        return None
-    # 長いキー（ドットを含む可能性がある）から順に試す
-    for i in range(len(parts), 0, -1):
-        candidate = ".".join(parts[:i])
-        if candidate in data:
-            result = _resolve_key(data[candidate], parts[i:])
-            if result is not None:
-                return result
-    return None
+    parts = _parse_key_parts(key)
+    current: Any = cfg
+    for part in parts:
+        if not isinstance(current, dict) or part not in current:
+            return None
+        current = current[part]
+    return current
 
 
 def set_config_value(key: str, value: str) -> None:
     """ドット区切りキーで config.toml に値を設定する。
 
-    ドットを含む TOML キーに対応するため、既存の dict キーへの最長一致を試みる。
-    一致しない場合は最初のドットで分割して新しいテーブルを作成する。
+    引用符記法に対応: ``hosts."gitlab.example.com".type``
     """
     if not key:
         raise ConfigError("Key must not be empty.")
-    parts = key.split(".")
+    parts = _parse_key_parts(key)
     if len(parts) < 2:
         raise ConfigError(f"Key must have at least two parts (e.g. defaults.output), got: {key}")
 
     cfg = load_user_config()
-    _set_in_dict(cfg, parts, value, key)
+
+    # ネストされた dict を辿り、中間ノードがなければ作成する
+    current = cfg
+    for part in parts[:-1]:
+        if part not in current:
+            current[part] = {}
+        child = current[part]
+        if not isinstance(child, dict):
+            raise ConfigError(f"Cannot set '{key}': '{part}' is not a table.")
+        current = child
+    current[parts[-1]] = value
+
     _save_config(cfg)
-
-
-def _set_in_dict(data: dict, parts: list[str], value: str, original_key: str) -> None:
-    """parts を消費しながら data を辿り、末端に value を設定する。"""
-    if len(parts) == 1:
-        data[parts[0]] = value
-        return
-
-    # 既存キーに最長一致を試みる
-    for i in range(len(parts) - 1, 0, -1):
-        candidate = ".".join(parts[:i])
-        if candidate in data:
-            child = data[candidate]
-            if not isinstance(child, dict):
-                raise ConfigError(f"Cannot set '{original_key}': '{candidate}' is not a table.")
-            _set_in_dict(child, parts[i:], value, original_key)
-            return
-
-    # 一致なし → 最初のパートで新しいテーブルを作成
-    first = parts[0]
-    if first not in data:
-        data[first] = {}
-    child = data[first]
-    if not isinstance(child, dict):
-        raise ConfigError(f"Cannot set '{original_key}': '{first}' is not a table.")
-    _set_in_dict(child, parts[1:], value, original_key)
 
 
 def unset_config_value(key: str) -> bool:
     """ドット区切りキーで config.toml の値を削除する。削除できたら True。"""
     if not key:
         raise ConfigError("Key must not be empty.")
-    parts = key.split(".")
+    parts = _parse_key_parts(key)
     if len(parts) < 2:
         raise ConfigError(f"Key must have at least two parts (e.g. defaults.output), got: {key}")
 
     cfg = load_user_config()
-    if not _unset_in_dict(cfg, parts):
+
+    # parts を辿り、末端キーを削除する
+    ancestors: list[tuple[dict, str]] = []
+    current = cfg
+    for part in parts[:-1]:
+        if not isinstance(current, dict) or part not in current:
+            return False
+        ancestors.append((current, part))
+        current = current[part]
+
+    if not isinstance(current, dict) or parts[-1] not in current:
         return False
+
+    del current[parts[-1]]
+
+    # 空になった中間テーブルを末端側から削除する
+    for parent, child_key in reversed(ancestors):
+        if not parent[child_key]:
+            del parent[child_key]
+        else:
+            break
+
     _save_config(cfg)
     return True
-
-
-def _unset_in_dict(data: dict, parts: list[str]) -> bool:
-    """parts を消費しながら data を辿り、末端キーを削除する。空テーブルは自動削除。"""
-    # 最長一致を試みる
-    for i in range(len(parts), 0, -1):
-        candidate = ".".join(parts[:i])
-        if candidate in data:
-            remaining = parts[i:]
-            if not remaining:
-                # 末端キー → 削除
-                del data[candidate]
-                return True
-            child = data[candidate]
-            if not isinstance(child, dict):
-                continue
-            if _unset_in_dict(child, remaining):
-                # 子テーブルが空になったら親からも削除
-                if not child:
-                    del data[candidate]
-                return True
-    return False
 
 
 def _save_config(cfg: dict) -> None:
