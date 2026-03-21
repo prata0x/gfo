@@ -21,6 +21,8 @@ from tests.integration.conftest import (
 # ── サービス非対応マッピング ──
 # label list が NotSupportedError になるサービス
 _LABEL_NOT_SUPPORTED = {"bitbucket", "backlog", "azure-devops", "gogs"}
+# PR list が NotSupportedError になるサービス
+_PR_NOT_SUPPORTED = {"gogs"}
 
 
 def _make_cli_test_class(
@@ -75,7 +77,10 @@ def _make_cli_test_class(
 
         def test_pr_list(self) -> None:
             result = self._run(["pr", "list", "--limit", "5", "--format", "json"])
-            assert result.exit_code == 0
+            if service_type in _PR_NOT_SUPPORTED:
+                assert result.exit_code == ExitCode.NOT_SUPPORTED
+            else:
+                assert result.exit_code == 0
 
         def test_branch_list(self) -> None:
             result = self._run(["branch", "list", "--limit", "5", "--format", "json"])
