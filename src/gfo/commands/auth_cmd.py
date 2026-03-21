@@ -105,12 +105,20 @@ def handle_token(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     """gfo auth token のハンドラ。"""
     if args.host:
         host = args.host
-        # service_type は検出を試みるが、失敗しても空文字で続行
-        try:
-            result = gfo.detect.detect_service()
-            service_type = result.service_type or ""
-        except (DetectionError, GitCommandError):
-            service_type = ""
+        # service_type を解決: ユーザー設定 > 既知ホスト > プローブ > 空文字フォールバック
+        from gfo.config import get_host_config
+        from gfo.detect import get_known_service_type, probe_unknown_host
+
+        host_cfg = get_host_config(host)
+        if host_cfg and "type" in host_cfg:
+            service_type = host_cfg["type"]
+        else:
+            service_type = get_known_service_type(host) or ""
+            if not service_type:
+                try:
+                    service_type = probe_unknown_host(host) or ""
+                except Exception:
+                    service_type = ""
     else:
         try:
             result = gfo.detect.detect_service()

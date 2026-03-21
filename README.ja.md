@@ -165,6 +165,10 @@ gfo config get defaults.output           # 特定の値を取得
 gfo config set defaults.output json      # 値を設定
 gfo config unset defaults.output         # 値を削除
 gfo config path                          # 設定ファイルのパスを表示
+
+# ドットを含むキーは引用符で囲む
+gfo config set hosts."gitlab.example.com".type gitlab
+gfo config get hosts."gitlab.example.com".type
 ```
 
 ## サービス別機能対応表

@@ -14,6 +14,7 @@ from gfo.config import (
 )
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
+from gfo.output import apply_jq_filter
 
 
 def handle_get(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -23,7 +24,8 @@ def handle_get(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
         raise ConfigError(_("Key not found: {key}").format(key=args.key))
 
     if fmt == "json":
-        print(json.dumps({"key": args.key, "value": value}, ensure_ascii=False, indent=2))
+        json_str = json.dumps({"key": args.key, "value": value}, ensure_ascii=False, indent=2)
+        print(apply_jq_filter(json_str, jq) if jq else json_str)
     else:
         print(value)
 
@@ -32,7 +34,8 @@ def handle_set(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
     """gfo config set のハンドラ。"""
     set_config_value(args.key, args.value)
     if fmt == "json":
-        print(json.dumps({"key": args.key, "value": args.value}, ensure_ascii=False, indent=2))
+        json_str = json.dumps({"key": args.key, "value": args.value}, ensure_ascii=False, indent=2)
+        print(apply_jq_filter(json_str, jq) if jq else json_str)
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -40,7 +43,8 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     cfg = load_user_config()
 
     if fmt == "json":
-        print(json.dumps(cfg, ensure_ascii=False, indent=2))
+        json_str = json.dumps(cfg, ensure_ascii=False, indent=2)
+        print(apply_jq_filter(json_str, jq) if jq else json_str)
         return
 
     entries = _flatten(cfg)
@@ -58,14 +62,16 @@ def handle_unset(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     if not removed:
         raise ConfigError(_("Key not found: {key}").format(key=args.key))
     if fmt == "json":
-        print(json.dumps({"key": args.key, "removed": True}, ensure_ascii=False, indent=2))
+        json_str = json.dumps({"key": args.key, "removed": True}, ensure_ascii=False, indent=2)
+        print(apply_jq_filter(json_str, jq) if jq else json_str)
 
 
 def handle_path(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo config path のハンドラ。"""
     path = get_config_path()
     if fmt == "json":
-        print(json.dumps({"path": str(path)}, ensure_ascii=False, indent=2))
+        json_str = json.dumps({"path": str(path)}, ensure_ascii=False, indent=2)
+        print(apply_jq_filter(json_str, jq) if jq else json_str)
     else:
         print(path)
 

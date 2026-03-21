@@ -3636,3 +3636,23 @@ class TestOrgVariables:
             status=204,
         )
         gitea_adapter.delete_variable("ORG_VAR", scope="test-org")
+
+
+class TestClientFilterLimit:
+    """クライアント側フィルタ + limit が正しく動作するテスト。"""
+
+    def test_repo_archived_with_limit(self, mock_responses, gitea_adapter):
+        """repo archived=False + limit=1: 先頭が archived=True → スキップして2件目を返す。"""
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/user/repos",
+            json=[
+                {**_repo_data(name="archived-repo"), "archived": True},
+                {**_repo_data(name="active-repo"), "archived": False},
+                {**_repo_data(name="active-repo2"), "archived": False},
+            ],
+            status=200,
+        )
+        result = gitea_adapter.list_repositories(archived=False, limit=1)
+        assert len(result) == 1
+        assert result[0].name == "active-repo"

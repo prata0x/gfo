@@ -4008,3 +4008,42 @@ class TestOrgVariables:
             status=204,
         )
         github_adapter.delete_variable("ORG_VAR", scope="test-org")
+
+
+class TestClientFilterLimit:
+    """クライアント側フィルタ + limit が正しく動作するテスト。"""
+
+    @responses.activate
+    def test_issue_search_with_limit(self, github_adapter):
+        """issue search + limit=1: 先頭が不一致、2件目が一致 → 1件返る。"""
+        responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json=[
+                _issue_data(number=1),  # title "Issue #1" - 不一致
+                _issue_data(number=2),  # title "Issue #2" - 不一致
+                {**_issue_data(number=3), "title": "Fix login bug"},  # 一致
+                {**_issue_data(number=4), "title": "Fix logout bug"},  # 一致
+            ],
+            status=200,
+        )
+        result = github_adapter.list_issues(search="fix", limit=1)
+        assert len(result) == 1
+        assert result[0].title == "Fix login bug"
+
+    @responses.activate
+    def test_repo_archived_with_limit(self, github_adapter):
+        """repo archived=False + limit=1: 先頭が archived=True → スキップして2件目を返す。"""
+        responses.add(
+            responses.GET,
+            f"{BASE}/user/repos",
+            json=[
+                {**_repo_data(name="archived-repo"), "archived": True},
+                {**_repo_data(name="active-repo"), "archived": False},
+                {**_repo_data(name="active-repo2"), "archived": False},
+            ],
+            status=200,
+        )
+        result = github_adapter.list_repositories(archived=False, limit=1)
+        assert len(result) == 1
+        assert result[0].name == "active-repo"

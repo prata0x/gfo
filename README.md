@@ -165,6 +165,10 @@ gfo config get defaults.output           # Get a specific value
 gfo config set defaults.output json      # Set a value
 gfo config unset defaults.output         # Remove a value
 gfo config path                          # Show config file path
+
+# Keys containing dots must be quoted
+gfo config set hosts."gitlab.example.com".type gitlab
+gfo config get hosts."gitlab.example.com".type
 ```
 
 ## Feature Support Matrix

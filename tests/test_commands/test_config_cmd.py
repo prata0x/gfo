@@ -291,3 +291,61 @@ class TestConfigRoundtrip:
         # そのキーで get できる
         config_cmd.handle_get(make_args(key=key_from_list), fmt="table")
         assert capsys.readouterr().out.strip() == "gitlab"
+
+
+class TestJqFilter:
+    """--jq フィルタが各ハンドラで適用されるテスト。"""
+
+    def test_get_jq(self, config_dir, capsys):
+        """handle_get で jq フィルタが適用される。"""
+        _write_config(config_dir, '[defaults]\noutput = "json"\n')
+        args = make_args(key="defaults.output")
+        with patch("gfo.commands.config_cmd.apply_jq_filter", return_value='"json"') as mock_jq:
+            config_cmd.handle_get(args, fmt="json", jq=".value")
+        mock_jq.assert_called_once()
+        assert ".value" in mock_jq.call_args[0]
+
+    def test_set_jq(self, config_dir, capsys):
+        """handle_set で jq フィルタが適用される。"""
+        args = make_args(key="defaults.output", value="plain")
+        with patch("gfo.commands.config_cmd.apply_jq_filter", return_value='"plain"') as mock_jq:
+            config_cmd.handle_set(args, fmt="json", jq=".value")
+        mock_jq.assert_called_once()
+
+    def test_list_jq(self, config_dir, capsys):
+        """handle_list で jq フィルタが適用される。"""
+        _write_config(config_dir, '[defaults]\noutput = "json"\n')
+        args = make_args()
+        with patch(
+            "gfo.commands.config_cmd.apply_jq_filter", return_value='{"defaults":{"output":"json"}}'
+        ) as mock_jq:
+            config_cmd.handle_list(args, fmt="json", jq=".")
+        mock_jq.assert_called_once()
+
+    def test_unset_jq(self, config_dir, capsys):
+        """handle_unset で jq フィルタが適用される。"""
+        _write_config(config_dir, '[defaults]\noutput = "json"\n')
+        args = make_args(key="defaults.output")
+        with patch(
+            "gfo.commands.config_cmd.apply_jq_filter",
+            return_value='{"key":"defaults.output","removed":true}',
+        ) as mock_jq:
+            config_cmd.handle_unset(args, fmt="json", jq=".")
+        mock_jq.assert_called_once()
+
+    def test_path_jq(self, config_dir, capsys):
+        """handle_path で jq フィルタが適用される。"""
+        args = make_args()
+        with patch(
+            "gfo.commands.config_cmd.apply_jq_filter", return_value='"/path/to/config.toml"'
+        ) as mock_jq:
+            config_cmd.handle_path(args, fmt="json", jq=".path")
+        mock_jq.assert_called_once()
+
+    def test_get_no_jq(self, config_dir, capsys):
+        """jq=None の場合は apply_jq_filter が呼ばれない。"""
+        _write_config(config_dir, '[defaults]\noutput = "json"\n')
+        args = make_args(key="defaults.output")
+        with patch("gfo.commands.config_cmd.apply_jq_filter") as mock_jq:
+            config_cmd.handle_get(args, fmt="json", jq=None)
+        mock_jq.assert_not_called()

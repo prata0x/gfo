@@ -2884,6 +2884,10 @@ gfo config set KEY VALUE
 ```bash
 gfo config set defaults.output json
 gfo config set defaults.host github.com
+
+# ドットを含むキーは引用符で囲む
+gfo config set hosts."gitlab.example.com".type gitlab
+gfo config get hosts."gitlab.example.com".type
 ```
 
 ### gfo config list

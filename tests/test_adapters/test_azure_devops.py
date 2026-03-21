@@ -2296,3 +2296,30 @@ class TestMigrateRepository:
 
         body = json_mod.loads(responses.calls[1].request.body)
         assert body["parameters"]["gitSource"]["password"] == "pat-token"
+
+
+class TestClientFilterLimit:
+    """クライアント側フィルタ + limit が正しく動作するテスト。"""
+
+    @responses.activate
+    def test_pr_author_with_limit(self, azure_devops_adapter):
+        """PR author + limit=1: 先頭が別著者 → スキップして2件目を返す。"""
+        responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests",
+            json={
+                "value": [
+                    _pr_data(pull_request_id=1),  # author@example.com
+                    {
+                        **_pr_data(pull_request_id=2),
+                        "createdBy": {"uniqueName": "other@example.com"},
+                    },
+                    _pr_data(pull_request_id=3),  # author@example.com
+                ],
+                "count": 3,
+            },
+            status=200,
+        )
+        result = azure_devops_adapter.list_pull_requests(author="other@example.com", limit=1)
+        assert len(result) == 1
+        assert result[0].number == 2

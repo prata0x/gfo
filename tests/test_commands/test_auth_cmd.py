@@ -341,33 +341,31 @@ class TestHandleStatus:
 class TestHandleToken:
     """handle_token のテスト。"""
 
-    def test_token_with_host_and_detection(self, capsys):
-        """--host 指定 + detect 成功 → service_type を使って resolve_token。"""
-        args = make_args(host="github.com")
+    def test_token_with_host_known_service(self, capsys):
+        """--host gitlab.com → get_known_service_type が "gitlab" を返し、resolve_token("gitlab.com", "gitlab")。"""
+        args = make_args(host="gitlab.com")
 
         with (
+            patch("gfo.config.get_host_config", return_value=None),
+            patch("gfo.detect.get_known_service_type", return_value="gitlab"),
             patch(
-                "gfo.commands.auth_cmd.gfo.detect.detect_service",
-                return_value=_make_detect_result("github.com"),
-            ),
-            patch(
-                "gfo.commands.auth_cmd.gfo.auth.resolve_token", return_value="ghp_test123"
+                "gfo.commands.auth_cmd.gfo.auth.resolve_token", return_value="glpat_test123"
             ) as mock_resolve,
         ):
             auth_cmd.handle_token(args, fmt="table")
 
-        mock_resolve.assert_called_once_with("github.com", "github")
+        mock_resolve.assert_called_once_with("gitlab.com", "gitlab")
         captured = capsys.readouterr()
-        assert captured.out.strip() == "ghp_test123"
+        assert captured.out.strip() == "glpat_test123"
 
-    def test_token_with_host_detection_fails(self, capsys):
-        """--host 指定 + detect 失敗 → service_type="" で resolve_token。"""
+    def test_token_with_host_config_type(self, capsys):
+        """--host 指定 + get_host_config で type 設定あり → その type が使われる。"""
         args = make_args(host="custom.host")
 
         with (
             patch(
-                "gfo.commands.auth_cmd.gfo.detect.detect_service",
-                side_effect=DetectionError("no remote"),
+                "gfo.config.get_host_config",
+                return_value={"type": "gitea", "api_url": "https://custom.host/api/v1"},
             ),
             patch(
                 "gfo.commands.auth_cmd.gfo.auth.resolve_token", return_value="tok123"
@@ -375,9 +373,27 @@ class TestHandleToken:
         ):
             auth_cmd.handle_token(args, fmt="table")
 
-        mock_resolve.assert_called_once_with("custom.host", "")
+        mock_resolve.assert_called_once_with("custom.host", "gitea")
         captured = capsys.readouterr()
         assert captured.out.strip() == "tok123"
+
+    def test_token_with_host_unknown(self, capsys):
+        """--host 指定 + 未知ホスト + プローブ失敗 → service_type="" でフォールバック。"""
+        args = make_args(host="unknown.host")
+
+        with (
+            patch("gfo.config.get_host_config", return_value=None),
+            patch("gfo.detect.get_known_service_type", return_value=None),
+            patch("gfo.detect.probe_unknown_host", side_effect=Exception("timeout")),
+            patch(
+                "gfo.commands.auth_cmd.gfo.auth.resolve_token", return_value="tok_fallback"
+            ) as mock_resolve,
+        ):
+            auth_cmd.handle_token(args, fmt="table")
+
+        mock_resolve.assert_called_once_with("unknown.host", "")
+        captured = capsys.readouterr()
+        assert captured.out.strip() == "tok_fallback"
 
     def test_token_without_host_uses_detect(self, capsys):
         """--host なし → detect_service() の host と service_type を使用。"""
@@ -433,10 +449,8 @@ class TestHandleToken:
         args = make_args(host="github.com")
 
         with (
-            patch(
-                "gfo.commands.auth_cmd.gfo.detect.detect_service",
-                return_value=_make_detect_result("github.com"),
-            ),
+            patch("gfo.config.get_host_config", return_value=None),
+            patch("gfo.detect.get_known_service_type", return_value="github"),
             patch("gfo.commands.auth_cmd.gfo.auth.resolve_token", return_value="ghp_json"),
         ):
             auth_cmd.handle_token(args, fmt="json")

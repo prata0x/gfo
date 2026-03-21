@@ -299,9 +299,13 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             path = f"/users/{quote(owner, safe='')}/repos"
         else:
             path = "/user/repos"
-        results = paginate_link_header(self._client, path, limit=limit, per_page_key="limit")
+        needs_client_filter = archived is not None
+        fetch_limit = 0 if needs_client_filter else limit
+        results = paginate_link_header(self._client, path, limit=fetch_limit, per_page_key="limit")
         if archived is not None:
             results = [r for r in results if r.get("archived", False) == archived]
+        if needs_client_filter and limit > 0:
+            results = results[:limit]
         return [self._to_repository(r) for r in results]
 
     def create_repository(

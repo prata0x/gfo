@@ -178,17 +178,21 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             params["searchCriteria.targetRefName"] = f"refs/heads/{base}"
         if head:
             params["searchCriteria.sourceRefName"] = f"refs/heads/{head}"
+        needs_client_filter = any([author, draft is not None])
+        fetch_limit = 0 if needs_client_filter else limit
         results = paginate_top_skip(
             self._client,
             f"{self._git_path()}/pullrequests",
             params=params,
-            limit=limit,
+            limit=fetch_limit,
             result_key="value",
         )
         if author:
             results = [r for r in results if (r.get("createdBy") or {}).get("uniqueName") == author]
         if draft is not None:
             results = [r for r in results if r.get("isDraft", False) == draft]
+        if needs_client_filter and limit > 0:
+            results = results[:limit]
         return [self._to_pull_request(r) for r in results]
 
     def create_pull_request(
