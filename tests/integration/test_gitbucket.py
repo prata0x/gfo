@@ -188,25 +188,22 @@ class TestGitBucketIntegration:
     # --- PR close ---
 
     def test_17_pr_close(self) -> None:
-        import base64
         import time
 
-        # TODO: _repos_path(), _client はプライベートメンバーへの依存。公開 API への移行を検討。
-        content = base64.b64encode(f"close-test {time.time()}".encode()).decode()
-        marker_path = f"{self.adapter._repos_path()}/contents/test-close-marker.txt"
-        payload: dict = {
-            "message": "test: add marker for close test",
-            "content": content,
-            "branch": self.config.test_branch,
-        }
+        content = f"close-test {time.time()}"
         try:
-            existing = self.adapter._client.get(
-                marker_path, params={"ref": self.config.test_branch}
+            _, sha = self.adapter.get_file_content(
+                "test-close-marker.txt", ref=self.config.test_branch
             )
-            payload["sha"] = existing.json()["sha"]
         except GfoError:
-            pass
-        self.adapter._client.put(marker_path, json=payload)
+            sha = None
+        self.adapter.create_or_update_file(
+            "test-close-marker.txt",
+            content=content,
+            message="test: add marker for close test",
+            sha=sha,
+            branch=self.config.test_branch,
+        )
         pr = self.adapter.create_pull_request(
             title="gfo-test-pr-close",
             body="Integration test for close",
@@ -275,25 +272,22 @@ class TestGitBucketIntegration:
 
     def test_24_update_pr(self) -> None:
         """PR の title 更新テスト。差分確保のため test_branch にコミットを追加してから PR 作成。"""
-        import base64
         import time
 
-        # TODO: _repos_path(), _client はプライベートメンバーへの依存。公開 API への移行を検討。
-        content = base64.b64encode(f"update-pr-{time.time()}".encode()).decode()
-        marker_path = f"{self.adapter._repos_path()}/contents/test-update-pr-marker.txt"
-        payload: dict = {
-            "message": "test: add marker for update PR",
-            "content": content,
-            "branch": self.config.test_branch,
-        }
+        content = f"update-pr-{time.time()}"
         try:
-            existing = self.adapter._client.get(
-                marker_path, params={"ref": self.config.test_branch}
+            _, sha = self.adapter.get_file_content(
+                "test-update-pr-marker.txt", ref=self.config.test_branch
             )
-            payload["sha"] = existing.json()["sha"]
         except GfoError:
-            pass
-        self.adapter._client.put(marker_path, json=payload)
+            sha = None
+        self.adapter.create_or_update_file(
+            "test-update-pr-marker.txt",
+            content=content,
+            message="test: add marker for update PR",
+            sha=sha,
+            branch=self.config.test_branch,
+        )
         pr = self.adapter.create_pull_request(
             title="gfo-test-update-pr",
             body="original body",
@@ -394,8 +388,7 @@ class TestGitBucketIntegration:
         import tempfile
         import urllib.parse
 
-        # TODO: _client.base_url はプライベートメンバーへの依存。公開 API への移行を検討。
-        parsed = urllib.parse.urlparse(self.adapter._client.base_url)
+        parsed = urllib.parse.urlparse(self.config.api_url)
         host = f"{parsed.hostname}:{parsed.port}"
         gb_user = os.environ.get("GFO_TEST_GITBUCKET_USER", "root")
         gb_pass = os.environ.get("GFO_TEST_GITBUCKET_PASSWORD", "root")
@@ -455,8 +448,7 @@ class TestGitBucketIntegration:
         import tempfile
         import urllib.parse
 
-        # TODO: _client.base_url はプライベートメンバーへの依存。公開 API への移行を検討。
-        parsed = urllib.parse.urlparse(self.adapter._client.base_url)
+        parsed = urllib.parse.urlparse(self.config.api_url)
         host = f"{parsed.hostname}:{parsed.port}"
         gb_user = os.environ.get("GFO_TEST_GITBUCKET_USER", "root")
         gb_pass = os.environ.get("GFO_TEST_GITBUCKET_PASSWORD", "root")
@@ -506,11 +498,7 @@ class TestGitBucketIntegration:
 
     def test_38_create_commit_status(self) -> None:
         """コミットステータスを作成するテスト。"""
-        # TODO: _client, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-        branch_resp = self.adapter._client.get(
-            f"{self.adapter._repos_path()}/branches/{self.config.default_branch}"
-        )
-        self.__class__._head_sha = branch_resp.json()["commit"]["sha"]
+        self.__class__._head_sha = self.adapter.get_branch(self.config.default_branch).sha
         status = self.adapter.create_commit_status(
             self._head_sha,
             state="success",

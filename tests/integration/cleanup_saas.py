@@ -38,11 +38,7 @@ def cleanup_github() -> None:
 
     _safe("delete release", adapter.delete_release, tag=TEST_RELEASE_TAG)
     # git タグを削除（リリース削除ではタグが残る）
-    _safe(
-        "delete git tag",
-        adapter._client.delete,  # type: ignore[attr-defined]
-        f"{adapter._repos_path()}/git/refs/tags/{TEST_RELEASE_TAG}",  # type: ignore[attr-defined]
-    )
+    _safe("delete git tag", adapter.delete_tag, name=TEST_RELEASE_TAG)
     _safe("delete label", adapter.delete_label, name=TEST_LABEL)
     # マイルストーンは番号が必要なので一覧から解決する
     try:
@@ -67,11 +63,7 @@ def cleanup_gitlab() -> None:
 
     _safe("delete release", adapter.delete_release, tag=TEST_RELEASE_TAG)
     # GitLab はリリース削除でもタグは残る
-    _safe(
-        "delete git tag",
-        adapter._client.delete,  # type: ignore[attr-defined]
-        f"{adapter._project_path()}/repository/tags/{TEST_RELEASE_TAG}",  # type: ignore[attr-defined]
-    )
+    _safe("delete git tag", adapter.delete_tag, name=TEST_RELEASE_TAG)
     _safe("delete label", adapter.delete_label, name=TEST_LABEL)
     try:
         milestones = adapter.list_milestones()

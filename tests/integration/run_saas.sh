@@ -32,7 +32,18 @@ fi
 echo ""
 echo "=== SaaS 統合テスト実行 ==="
 cd "$SCRIPT_DIR/../.."
-python -m pytest tests/integration/ -m saas -v --tb=short --no-cov
+
+# フィルタオプション: --cli-only / --adapter-only
+MARKER="saas"
+if [ "${1:-}" = "--cli-only" ]; then
+    MARKER="saas and cli"
+    echo "  (CLI テストのみ)"
+elif [ "${1:-}" = "--adapter-only" ]; then
+    MARKER="saas and not cli"
+    echo "  (adapter テストのみ)"
+fi
+
+python -m pytest tests/integration/ -m "$MARKER" -v --tb=short --no-cov
 
 echo ""
 echo "=== テスト完了 ==="

@@ -178,52 +178,20 @@ class TestAzureDevOpsIntegration:
     def test_17_pr_close(self) -> None:
         import time
 
-        # TODO: _client, _git_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-        # ブランチの最新コミットID取得
-        refs_resp = self.adapter._client.get(
-            f"{self.adapter._git_path()}/refs",
-            params={"filter": f"heads/{self.config.test_branch}"},
+        # ファイルの既存 sha を取得し、create_or_update_file で差分を追加
+        try:
+            _, sha = self.adapter.get_file_content(
+                "test-close-marker.txt", ref=self.config.test_branch
+            )
+        except GfoError:
+            sha = None
+        self.adapter.create_or_update_file(
+            "test-close-marker.txt",
+            content=f"close-{int(time.time())}",
+            message="test: add marker for close test",
+            sha=sha,
+            branch=self.config.test_branch,
         )
-        old_object_id = refs_resp.json()["value"][0]["objectId"]
-        # コミット追加（ファイルが既存の場合は edit、なければ add）
-        for change_type in ("add", "edit"):
-            try:
-                self.adapter._client.post(
-                    f"{self.adapter._git_path()}/pushes",
-                    json={
-                        "refUpdates": [
-                            {
-                                "name": f"refs/heads/{self.config.test_branch}",
-                                "oldObjectId": old_object_id,
-                            }
-                        ],
-                        "commits": [
-                            {
-                                "comment": "test: add marker for close test",
-                                "changes": [
-                                    {
-                                        "changeType": change_type,
-                                        "item": {"path": "/test-close-marker.txt"},
-                                        "newContent": {
-                                            "content": f"close-{int(time.time())}",
-                                            "contentType": "rawtext",
-                                        },
-                                    }
-                                ],
-                            }
-                        ],
-                    },
-                )
-                break
-            except GfoError:
-                if change_type == "edit":
-                    raise
-                # ファイル既存エラーの場合は edit で再試行するため objectId を再取得
-                refs_resp = self.adapter._client.get(
-                    f"{self.adapter._git_path()}/refs",
-                    params={"filter": f"heads/{self.config.test_branch}"},
-                )
-                old_object_id = refs_resp.json()["value"][0]["objectId"]
         pr = self.adapter.create_pull_request(
             title="gfo-test-pr-close",
             body="Integration test",
@@ -313,50 +281,20 @@ class TestAzureDevOpsIntegration:
         """PR の title 更新テスト。"""
         import time
 
-        # TODO: _client, _git_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         # test_branch に差分を追加
-        refs_resp = self.adapter._client.get(
-            f"{self.adapter._git_path()}/refs",
-            params={"filter": f"heads/{self.config.test_branch}"},
+        try:
+            _, sha = self.adapter.get_file_content(
+                "test-update-pr-marker.txt", ref=self.config.test_branch
+            )
+        except GfoError:
+            sha = None
+        self.adapter.create_or_update_file(
+            "test-update-pr-marker.txt",
+            content=f"update-pr-{int(time.time())}",
+            message="test: add marker for update_pr test",
+            sha=sha,
+            branch=self.config.test_branch,
         )
-        old_object_id = refs_resp.json()["value"][0]["objectId"]
-        for change_type in ("add", "edit"):
-            try:
-                self.adapter._client.post(
-                    f"{self.adapter._git_path()}/pushes",
-                    json={
-                        "refUpdates": [
-                            {
-                                "name": f"refs/heads/{self.config.test_branch}",
-                                "oldObjectId": old_object_id,
-                            }
-                        ],
-                        "commits": [
-                            {
-                                "comment": "test: add marker for update_pr test",
-                                "changes": [
-                                    {
-                                        "changeType": change_type,
-                                        "item": {"path": "/test-update-pr-marker.txt"},
-                                        "newContent": {
-                                            "content": f"update-pr-{int(time.time())}",
-                                            "contentType": "rawtext",
-                                        },
-                                    }
-                                ],
-                            }
-                        ],
-                    },
-                )
-                break
-            except GfoError:
-                if change_type == "edit":
-                    raise
-                refs_resp = self.adapter._client.get(
-                    f"{self.adapter._git_path()}/refs",
-                    params={"filter": f"heads/{self.config.test_branch}"},
-                )
-                old_object_id = refs_resp.json()["value"][0]["objectId"]
 
         # 既存オープン PR を閉じる
         for pr in self.adapter.list_pull_requests(state="open"):
@@ -443,12 +381,7 @@ class TestAzureDevOpsIntegration:
 
     def test_33_create_branch(self) -> None:
         """ブランチ作成テスト。AzDO は ref に commit hash を要求する。"""
-        # TODO: _client, _git_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-        refs_resp = self.adapter._client.get(
-            f"{self.adapter._git_path()}/refs",
-            params={"filter": f"heads/{self.config.default_branch}"},
-        )
-        head_sha = refs_resp.json()["value"][0]["objectId"]
+        head_sha = self.adapter.get_branch(self.config.default_branch).sha
         branch = self.adapter.create_branch(
             name="gfo-test-branch-temp",
             ref=head_sha,
@@ -465,12 +398,7 @@ class TestAzureDevOpsIntegration:
 
     def test_35_create_tag(self) -> None:
         """タグ作成テスト。AzDO は ref に commit hash を要求する。"""
-        # TODO: _client, _git_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-        refs_resp = self.adapter._client.get(
-            f"{self.adapter._git_path()}/refs",
-            params={"filter": f"heads/{self.config.default_branch}"},
-        )
-        head_sha = refs_resp.json()["value"][0]["objectId"]
+        head_sha = self.adapter.get_branch(self.config.default_branch).sha
         self.__class__._head_sha = head_sha
         tag = self.adapter.create_tag(name="v0.0.2-test", ref=head_sha)
         assert tag.name == "v0.0.2-test"

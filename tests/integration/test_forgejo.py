@@ -38,12 +38,8 @@ class TestForgejoIntegration(GiteaFamilyIntegrationBase):
         _sync_wiki_master() は不要。
         """
         # Wiki を有効化
-        # TODO: _client, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         try:
-            self.adapter._client.patch(
-                f"{self.adapter._repos_path()}",
-                json={"has_wiki": True},
-            )
+            self.adapter.update_repository(has_wiki=True)
         except Exception:
             pass
         try:

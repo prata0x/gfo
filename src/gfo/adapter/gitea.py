@@ -334,6 +334,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         private: bool | None = None,
         default_branch: str | None = None,
         archived: bool | None = None,
+        has_wiki: bool | None = None,
     ) -> Repository:
         payload: dict = {}
         if name is not None:
@@ -346,6 +347,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["default_branch"] = default_branch
         if archived is not None:
             payload["archived"] = archived
+        if has_wiki is not None:
+            payload["has_wiki"] = has_wiki
         resp = self._client.patch(self._repos_path(), json=payload)
         return self._to_repository(resp.json())
 

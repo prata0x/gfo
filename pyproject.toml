@@ -48,6 +48,8 @@ markers = [
     "integration: integration tests requiring live services",
     "saas: integration tests requiring SaaS accounts (GitHub, GitLab, etc.)",
     "selfhosted: integration tests requiring Docker self-hosted services",
+    "cli: CLI integration tests (argparse -> handler -> adapter -> output)",
+    "slow: slow tests (CI pipelines, network-heavy operations)",
 ]
 
 [tool.ruff]

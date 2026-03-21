@@ -141,16 +141,12 @@ class TestBitbucketIntegration:
                     pass
 
         # 前回マージ済みで差分がない場合に備えてマーカーファイルを更新
-        # TODO: _client._session, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-        # Bitbucket src API はマルチパートのため _session を直接使用する
         content = f"test run {time.time()}\n"
-        self.adapter._client._session.post(
-            f"{self.adapter._client.base_url}{self.adapter._repos_path()}/src",
-            data={
-                "message": "test: update marker for PR",
-                "branch": self.config.test_branch,
-            },
-            files={"test-pr-marker.txt": ("test-pr-marker.txt", content.encode(), "text/plain")},
+        self.adapter.create_or_update_file(
+            "test-pr-marker.txt",
+            content=content,
+            message="test: update marker for PR",
+            branch=self.config.test_branch,
         )
 
         pr = self.adapter.create_pull_request(
@@ -194,15 +190,12 @@ class TestBitbucketIntegration:
     def test_17_pr_close(self) -> None:
         import time
 
-        # TODO: _client._session はプライベートメンバーへの依存。公開 API への移行を検討。
         content = f"close-{int(time.time())}"
-        self.adapter._client._session.post(
-            f"{self.adapter._client.base_url}{self.adapter._repos_path()}/src",
-            data={
-                "test-close-marker.txt": content,
-                "branch": self.config.test_branch,
-                "message": "test: add marker for close test",
-            },
+        self.adapter.create_or_update_file(
+            "test-close-marker.txt",
+            content=content,
+            message="test: add marker for close test",
+            branch=self.config.test_branch,
         )
         # 既存オープンPRを閉じる
         for pr in self.adapter.list_pull_requests(state="open"):
@@ -296,22 +289,13 @@ class TestBitbucketIntegration:
         """PR の title 更新テスト。"""
         import time
 
-        # TODO: _client._session, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         # test_branch にマーカーファイルを追加して差分を確保
         content = f"update-pr-{time.time()}\n"
-        self.adapter._client._session.post(
-            f"{self.adapter._client.base_url}{self.adapter._repos_path()}/src",
-            data={
-                "message": "test: add marker for update_pr test",
-                "branch": self.config.test_branch,
-            },
-            files={
-                "test-update-pr-marker.txt": (
-                    "test-update-pr-marker.txt",
-                    content.encode(),
-                    "text/plain",
-                )
-            },
+        self.adapter.create_or_update_file(
+            "test-update-pr-marker.txt",
+            content=content,
+            message="test: add marker for update_pr test",
+            branch=self.config.test_branch,
         )
         # 残留オープン PR を閉じる
         for pr in self.adapter.list_pull_requests(state="open"):

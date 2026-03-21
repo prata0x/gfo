@@ -124,12 +124,8 @@ class TestGiteaIntegration(GiteaFamilyIntegrationBase):
         - ページ識別子は sub_url（例: "gfo-test-wiki.-"）を使用する。
         """
         # Wiki を有効化
-        # TODO: _client はプライベートメンバーへの依存。公開 API への移行を検討。
         try:
-            self.adapter._client.patch(
-                f"{self.adapter._repos_path()}",
-                json={"has_wiki": True},
-            )
+            self.adapter.update_repository(has_wiki=True)
         except Exception:
             pass
         # master を main に同期してから読み取り可能な状態にする

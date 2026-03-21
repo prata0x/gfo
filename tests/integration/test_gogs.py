@@ -276,13 +276,7 @@ class TestGogsIntegration:
         tags = self.adapter.list_tags()
         assert isinstance(tags, list)
         try:
-            # TODO: _client, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-            branch_resp = self.adapter._client.get(
-                f"{self.adapter._repos_path()}/branches/{self.config.default_branch}"
-            )
-            commit = branch_resp.json()["commit"]
-            # Gogs 0.13 は commit.id を使用、Gitea 系は commit.sha
-            head_sha = commit.get("sha") or commit.get("id") or ""
+            head_sha = self.adapter.get_branch(self.config.default_branch).sha
             tag = self.adapter.create_tag(name="v0.0.2-test", ref=head_sha)
             assert tag.name == "v0.0.2-test"
             tags2 = self.adapter.list_tags()
@@ -297,13 +291,7 @@ class TestGogsIntegration:
 
     def test_24_commit_status(self) -> None:
         """コミットステータスの作成・一覧テスト（Gitea 継承、動作確認）。"""
-        # TODO: _client, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-        branch_resp = self.adapter._client.get(
-            f"{self.adapter._repos_path()}/branches/{self.config.default_branch}"
-        )
-        commit = branch_resp.json()["commit"]
-        # Gogs 0.13 は commit.id を使用、Gitea 系は commit.sha
-        self.__class__._head_sha = commit.get("sha") or commit.get("id") or ""
+        self.__class__._head_sha = self.adapter.get_branch(self.config.default_branch).sha
         try:
             status = self.adapter.create_commit_status(
                 self._head_sha,

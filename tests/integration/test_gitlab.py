@@ -48,9 +48,8 @@ class TestGitLabIntegration:
         except Exception:
             pass
         try:
-            # TODO: _client, _project_path() はプライベートメンバーへの依存。公開 API への移行を検討。
             # リリース削除では git タグが残るため個別削除
-            cls.adapter._client.delete(f"{cls.adapter._project_path()}/repository/tags/v0.0.1-test")
+            cls.adapter.delete_tag(name="v0.0.1-test")
         except Exception:
             pass
         try:
@@ -76,7 +75,7 @@ class TestGitLabIntegration:
         except Exception:
             pass
         try:
-            cls.adapter._client.delete(f"{cls.adapter._project_path()}/repository/tags/v0.0.2-test")
+            cls.adapter.delete_tag(name="v0.0.2-test")
         except Exception:
             pass
         try:
@@ -171,11 +170,7 @@ class TestGitLabIntegration:
 
     def test_11_pr_create(self) -> None:
         import time
-        from urllib.parse import quote as _quote
 
-        from gfo.exceptions import GfoError, NotFoundError
-
-        # TODO: _client, _project_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         # 残留オープン MR を閉じる（前回テストが途中終了した場合の対応）
         for pr in self.adapter.list_pull_requests(state="open"):
             if pr.title == "gfo-test-pr":
@@ -186,49 +181,21 @@ class TestGitLabIntegration:
 
         # test_branch が存在しない場合は再作成（前回マージで削除された場合の対応）
         try:
-            self.adapter._client.get(
-                f"{self.adapter._project_path()}/repository/branches"
-                f"/{_quote(self.config.test_branch, safe='')}"
-            )
-        except NotFoundError:
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/branches",
-                json={"branch": self.config.test_branch, "ref": self.config.default_branch},
-            )
+            self.adapter.create_branch(name=self.config.test_branch, ref=self.config.default_branch)
+        except GfoError:
+            pass  # 既に存在する場合はエラーになるので無視
 
         # ブランチに差分コミットを追加（前回マージ済みで差分がない場合の対応）
         content = f"test run {time.time()}\n"
         try:
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/commits",
-                json={
-                    "branch": self.config.test_branch,
-                    "commit_message": "test: update marker for MR",
-                    "actions": [
-                        {
-                            "action": "update",
-                            "file_path": "test-pr-marker.txt",
-                            "content": content,
-                        }
-                    ],
-                },
+            self.adapter.create_or_update_file(
+                path="test-pr-marker.txt",
+                content=content,
+                message="test: update marker for MR",
+                branch=self.config.test_branch,
             )
         except GfoError:
-            # ファイルが存在しない場合は create で再試行
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/commits",
-                json={
-                    "branch": self.config.test_branch,
-                    "commit_message": "test: add marker for MR",
-                    "actions": [
-                        {
-                            "action": "create",
-                            "file_path": "test-pr-marker.txt",
-                            "content": content,
-                        }
-                    ],
-                },
-            )
+            pass  # ファイルの作成/更新が失敗した場合は既存の差分で続行
 
         pr = self.adapter.create_pull_request(
             title="gfo-test-pr",
@@ -252,25 +219,24 @@ class TestGitLabIntegration:
 
     def test_14_pr_merge(self) -> None:
         assert self._pr_number is not None
-        # TODO: _client, _project_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         # GitLab は MR 作成直後 merge_status が "checking" になるため、
-        # "can_be_merged" になるまで最大 10 秒待機する
+        # マージ可能になるまで最大 10 秒リトライする
         import time
 
-        merge_status = None
+        last_error = None
         for _ in range(10):
-            resp = self.adapter._client.get(
-                f"{self.adapter._project_path()}/merge_requests/{self._pr_number}"
-            )
-            merge_status = resp.json().get("merge_status")
-            if merge_status == "can_be_merged":
+            pr = self.adapter.get_pull_request(self._pr_number)
+            if pr.state != "open":
                 break
-            time.sleep(1)
-        if merge_status != "can_be_merged":
-            pytest.fail(
-                f"MR merge_status が 10 秒以内に 'can_be_merged' にならなかった: {merge_status}"
-            )
-        self.adapter.merge_pull_request(self._pr_number, method="merge")
+            try:
+                self.adapter.merge_pull_request(self._pr_number, method="merge")
+                last_error = None
+                break
+            except GfoError as e:
+                last_error = e
+                time.sleep(1)
+        if last_error is not None:
+            pytest.fail(f"MR が 10 秒以内にマージ可能にならなかった: {last_error}")
         pr = self.adapter.get_pull_request(self._pr_number)
         assert pr.state == "merged"
 
@@ -294,49 +260,22 @@ class TestGitLabIntegration:
     def test_17_pr_close(self) -> None:
         import time
 
-        # TODO: _client, _project_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         # マージ後にブランチが削除されている場合があるため再作成する
         try:
-            self.adapter._client.get(
-                f"{self.adapter._project_path()}/repository/branches/{self.config.test_branch}"
-            )
+            self.adapter.create_branch(name=self.config.test_branch, ref=self.config.default_branch)
         except GfoError:
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/branches",
-                json={"branch": self.config.test_branch, "ref": self.config.default_branch},
-            )
+            pass  # 既に存在する場合はエラーになるので無視
 
         content = f"close-marker-{int(time.time())}"
         try:
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/commits",
-                json={
-                    "branch": self.config.test_branch,
-                    "commit_message": "test: add marker for close test",
-                    "actions": [
-                        {
-                            "action": "update",
-                            "file_path": "test-close-marker.txt",
-                            "content": content,
-                        }
-                    ],
-                },
+            self.adapter.create_or_update_file(
+                path="test-close-marker.txt",
+                content=content,
+                message="test: add marker for close test",
+                branch=self.config.test_branch,
             )
         except GfoError:
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/commits",
-                json={
-                    "branch": self.config.test_branch,
-                    "commit_message": "test: add marker for close test",
-                    "actions": [
-                        {
-                            "action": "create",
-                            "file_path": "test-close-marker.txt",
-                            "content": content,
-                        }
-                    ],
-                },
-            )
+            pass  # ファイルの作成/更新が失敗した場合は既存の差分で続行
         pr = self.adapter.create_pull_request(
             title="gfo-test-pr-close",
             body="Integration test",
@@ -432,54 +371,23 @@ class TestGitLabIntegration:
     def test_24_update_pr(self) -> None:
         """MR（PR）の title 更新テスト。差分確保のため test_branch にコミットを追加してから MR 作成。"""
         import time
-        from urllib.parse import quote as _quote
 
-        from gfo.exceptions import NotFoundError
-
-        # TODO: _client, _project_path() はプライベートメンバーへの依存。公開 API への移行を検討。
         # test_branch が存在しない場合は再作成
         try:
-            self.adapter._client.get(
-                f"{self.adapter._project_path()}/repository/branches"
-                f"/{_quote(self.config.test_branch, safe='')}"
-            )
-        except NotFoundError:
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/branches",
-                json={"branch": self.config.test_branch, "ref": self.config.default_branch},
-            )
+            self.adapter.create_branch(name=self.config.test_branch, ref=self.config.default_branch)
+        except GfoError:
+            pass  # 既に存在する場合はエラーになるので無視
 
         content = f"update-pr-{time.time()}\n"
         try:
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/commits",
-                json={
-                    "branch": self.config.test_branch,
-                    "commit_message": "test: add marker for update PR",
-                    "actions": [
-                        {
-                            "action": "update",
-                            "file_path": "test-update-pr-marker.txt",
-                            "content": content,
-                        }
-                    ],
-                },
+            self.adapter.create_or_update_file(
+                path="test-update-pr-marker.txt",
+                content=content,
+                message="test: add marker for update PR",
+                branch=self.config.test_branch,
             )
         except GfoError:
-            self.adapter._client.post(
-                f"{self.adapter._project_path()}/repository/commits",
-                json={
-                    "branch": self.config.test_branch,
-                    "commit_message": "test: create marker for update PR",
-                    "actions": [
-                        {
-                            "action": "create",
-                            "file_path": "test-update-pr-marker.txt",
-                            "content": content,
-                        }
-                    ],
-                },
-            )
+            pass  # ファイルの作成/更新が失敗した場合は既存の差分で続行
 
         pr = self.adapter.create_pull_request(
             title="gfo-test-update-pr",
@@ -588,14 +496,8 @@ class TestGitLabIntegration:
 
     def test_35_create_tag(self) -> None:
         """タグを作成するテスト。"""
-        from urllib.parse import quote as _quote
-
-        # TODO: _client, _project_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-        branch_resp = self.adapter._client.get(
-            f"{self.adapter._project_path()}/repository/branches"
-            f"/{_quote(self.config.default_branch, safe='')}"
-        )
-        head_sha = branch_resp.json()["commit"]["id"]
+        branch = self.adapter.get_branch(self.config.default_branch)
+        head_sha = branch.sha
         tag = self.adapter.create_tag(name="v0.0.2-test", ref=head_sha)
         assert tag.name == "v0.0.2-test"
 
@@ -618,14 +520,8 @@ class TestGitLabIntegration:
 
     def test_38_create_commit_status(self) -> None:
         """コミットステータスを作成するテスト。"""
-        from urllib.parse import quote as _quote
-
-        # TODO: _client, _project_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-        branch_resp = self.adapter._client.get(
-            f"{self.adapter._project_path()}/repository/branches"
-            f"/{_quote(self.config.default_branch, safe='')}"
-        )
-        self.__class__._head_sha = branch_resp.json()["commit"]["id"]
+        branch = self.adapter.get_branch(self.config.default_branch)
+        self.__class__._head_sha = branch.sha
         status = self.adapter.create_commit_status(
             self._head_sha,
             state="success",

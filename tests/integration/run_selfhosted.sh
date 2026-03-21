@@ -51,7 +51,18 @@ python "$SCRIPT_DIR/setup_services.py"
 echo ""
 echo "=== 統合テスト実行 ==="
 cd "$SCRIPT_DIR/../.."
-python -m pytest tests/integration/ -m selfhosted -v --tb=short --no-cov
+
+# フィルタオプション: --cli-only / --adapter-only
+MARKER="selfhosted"
+if [ "${1:-}" = "--cli-only" ]; then
+    MARKER="selfhosted and cli"
+    echo "  (CLI テストのみ)"
+elif [ "${1:-}" = "--adapter-only" ]; then
+    MARKER="selfhosted and not cli"
+    echo "  (adapter テストのみ)"
+fi
+
+python -m pytest tests/integration/ -m "$MARKER" -v --tb=short --no-cov
 
 echo ""
 echo "=== テスト完了 ==="

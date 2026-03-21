@@ -162,3 +162,43 @@ def create_test_adapter(config: ServiceTestConfig) -> GitServiceAdapter:
     if config.project_key is not None:
         kwargs["project_key"] = config.project_key
     return adapter_cls(client, config.owner, config.repo, **kwargs)
+
+
+# 全サービス種別のリスト
+ALL_SERVICE_TYPES = list(_TOKEN_ENV_MAP.keys())
+
+# SaaS サービス
+SAAS_SERVICE_TYPES = ["github", "gitlab", "bitbucket", "azure-devops", "backlog"]
+
+# セルフホスト サービス
+SELFHOSTED_SERVICE_TYPES = ["gitea", "forgejo", "gogs", "gitbucket"]
+
+
+def get_all_configured_services() -> list[ServiceTestConfig]:
+    """設定済みの全サービスの ServiceTestConfig をリストで返す（パラメタライズ用）。"""
+    configs = []
+    for service_type in ALL_SERVICE_TYPES:
+        config = get_service_config(service_type)
+        if config is not None:
+            configs.append(config)
+    return configs
+
+
+def get_configured_saas_services() -> list[ServiceTestConfig]:
+    """設定済みの SaaS サービスの ServiceTestConfig をリストで返す。"""
+    configs = []
+    for service_type in SAAS_SERVICE_TYPES:
+        config = get_service_config(service_type)
+        if config is not None:
+            configs.append(config)
+    return configs
+
+
+def get_configured_selfhosted_services() -> list[ServiceTestConfig]:
+    """設定済みのセルフホスト サービスの ServiceTestConfig をリストで返す。"""
+    configs = []
+    for service_type in SELFHOSTED_SERVICE_TYPES:
+        config = get_service_config(service_type)
+        if config is not None:
+            configs.append(config)
+    return configs

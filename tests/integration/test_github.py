@@ -6,7 +6,7 @@ import time
 
 import pytest
 
-from gfo.exceptions import GfoError, NotSupportedError
+from gfo.exceptions import NotSupportedError
 from tests.integration.conftest import (
     TEST_SSH_PUBLIC_KEY,
     ServiceTestConfig,
@@ -50,9 +50,8 @@ class TestGitHubIntegration:
         except Exception:
             pass
         try:
-            # TODO: _client, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
             # リリース削除では git タグが残るため個別削除
-            cls.adapter._client.delete(f"{cls.adapter._repos_path()}/git/refs/tags/v0.0.1-test")
+            cls.adapter.delete_tag(name="v0.0.1-test")
         except Exception:
             pass
         try:
@@ -71,7 +70,7 @@ class TestGitHubIntegration:
         except Exception:
             pass
         try:
-            cls.adapter._client.delete(f"{cls.adapter._repos_path()}/git/refs/tags/v0.0.2-test")
+            cls.adapter.delete_tag(name="v0.0.2-test")
         except Exception:
             pass
         try:
@@ -186,28 +185,15 @@ class TestGitHubIntegration:
     # --- Pull Request ---
 
     def test_11_pr_create(self) -> None:
-        import base64
         import time
 
-        from gfo.exceptions import GfoError
-
-        # TODO: _repos_path(), _client はプライベートメンバーへの依存。公開 API への移行を検討。
         # 前回マージ済みの場合はブランチに差分がないため、テストファイルを更新してコミットを追加する
-        content = base64.b64encode(f"test run {time.time()}".encode()).decode()
-        marker_path = f"{self.adapter._repos_path()}/contents/test-pr-marker.txt"
-        payload: dict = {
-            "message": "test: update marker for PR",
-            "content": content,
-            "branch": self.config.test_branch,
-        }
-        try:
-            existing = self.adapter._client.get(
-                marker_path, params={"ref": self.config.test_branch}
-            )
-            payload["sha"] = existing.json()["sha"]
-        except GfoError:
-            pass  # ファイルが存在しない場合は sha なしで新規作成
-        self.adapter._client.put(marker_path, json=payload)
+        self.adapter.create_or_update_file(
+            path="test-pr-marker.txt",
+            content=f"test run {time.time()}",
+            message="test: update marker for PR",
+            branch=self.config.test_branch,
+        )
 
         pr = self.adapter.create_pull_request(
             title="gfo-test-pr",
@@ -262,25 +248,14 @@ class TestGitHubIntegration:
     # --- PR close ---
 
     def test_17_pr_close(self) -> None:
-        import base64
         import time
 
-        # TODO: _repos_path(), _client はプライベートメンバーへの依存。公開 API への移行を検討。
-        content = base64.b64encode(f"close-test {time.time()}".encode()).decode()
-        marker_path = f"{self.adapter._repos_path()}/contents/test-close-marker.txt"
-        payload: dict = {
-            "message": "test: add marker for close test",
-            "content": content,
-            "branch": self.config.test_branch,
-        }
-        try:
-            existing = self.adapter._client.get(
-                marker_path, params={"ref": self.config.test_branch}
-            )
-            payload["sha"] = existing.json()["sha"]
-        except GfoError:
-            pass
-        self.adapter._client.put(marker_path, json=payload)
+        self.adapter.create_or_update_file(
+            path="test-close-marker.txt",
+            content=f"close-test {time.time()}",
+            message="test: add marker for close test",
+            branch=self.config.test_branch,
+        )
         pr = self.adapter.create_pull_request(
             title="gfo-test-pr-close",
             body="Integration test for close",
@@ -374,25 +349,14 @@ class TestGitHubIntegration:
 
     def test_24_update_pr(self) -> None:
         """PR の title 更新テスト。差分確保のため test_branch にコミットを追加してから PR 作成。"""
-        import base64
         import time
 
-        # TODO: _repos_path(), _client はプライベートメンバーへの依存。公開 API への移行を検討。
-        content = base64.b64encode(f"update-pr-{time.time()}".encode()).decode()
-        marker_path = f"{self.adapter._repos_path()}/contents/test-update-pr-marker.txt"
-        payload: dict = {
-            "message": "test: add marker for update PR",
-            "content": content,
-            "branch": self.config.test_branch,
-        }
-        try:
-            existing = self.adapter._client.get(
-                marker_path, params={"ref": self.config.test_branch}
-            )
-            payload["sha"] = existing.json()["sha"]
-        except GfoError:
-            pass
-        self.adapter._client.put(marker_path, json=payload)
+        self.adapter.create_or_update_file(
+            path="test-update-pr-marker.txt",
+            content=f"update-pr-{time.time()}",
+            message="test: add marker for update PR",
+            branch=self.config.test_branch,
+        )
         pr = self.adapter.create_pull_request(
             title="gfo-test-update-pr",
             body="original body",
@@ -502,11 +466,8 @@ class TestGitHubIntegration:
 
     def test_35_create_tag(self) -> None:
         """タグを作成するテスト。"""
-        # TODO: _client, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-        branch_resp = self.adapter._client.get(
-            f"{self.adapter._repos_path()}/branches/{self.config.default_branch}"
-        )
-        head_sha = branch_resp.json()["commit"]["sha"]
+        branch = self.adapter.get_branch(self.config.default_branch)
+        head_sha = branch.sha
         tag = self.adapter.create_tag(name="v0.0.2-test", ref=head_sha)
         assert tag.name == "v0.0.2-test"
 
@@ -522,11 +483,6 @@ class TestGitHubIntegration:
     def test_37_delete_tag(self) -> None:
         """test_35 で作成したタグを削除するテスト。"""
         self.adapter.delete_tag(name="v0.0.2-test")
-        # GitHub はリリースとタグ ref を別管理するため、タグ ref も削除する
-        try:
-            self.adapter._client.delete(f"{self.adapter._repos_path()}/git/refs/tags/v0.0.2-test")
-        except Exception:
-            pass
         tags = self.adapter.list_tags()
         assert not any(t.name == "v0.0.2-test" for t in tags)
 
@@ -534,11 +490,8 @@ class TestGitHubIntegration:
 
     def test_38_create_commit_status(self) -> None:
         """コミットステータスを作成するテスト。"""
-        # TODO: _client, _repos_path() はプライベートメンバーへの依存。公開 API への移行を検討。
-        branch_resp = self.adapter._client.get(
-            f"{self.adapter._repos_path()}/branches/{self.config.default_branch}"
-        )
-        self.__class__._head_sha = branch_resp.json()["commit"]["sha"]
+        branch = self.adapter.get_branch(self.config.default_branch)
+        self.__class__._head_sha = branch.sha
         status = self.adapter.create_commit_status(
             self._head_sha,
             state="success",
