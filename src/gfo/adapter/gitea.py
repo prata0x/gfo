@@ -739,7 +739,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         if milestone is not None:
             payload["milestone"] = self._resolve_milestone_id_by_title(milestone)
         if draft is not None:
-            payload["state"] = "open"
+            payload["draft"] = draft
         resp = self._client.patch(f"{self._repos_path()}/pulls/{number}", json=payload)
         return self._to_pull_request(resp.json())
 

@@ -113,11 +113,11 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | 一括操作 | `batch` | `---` | `---` | `---` | `---` |
 | スキーマ | `schema` | `---` | `---` | `---` | `---` |
 | Issue テンプレート | `issue-template` | `---` | `---` | `---` | `---` |
-| 設定 | `---` | `config` | `config` | `---` | `---` |
+| 設定 | `config` | `config` | `config` | `---` | `---` |
 | エイリアス | `---` | `alias` | `alias` | `---` | `---` |
 | 拡張 | `---` | `extension` | `---` | `---` | `---` |
-| 補完 | `---` | `completion` | `completion` | `---` | `completion` |
-| トークン管理 | `---` | `---` | `token` | `---` | `---` |
+| 補完 | `completion` | `completion` | `completion` | `---` | `completion` |
+| トークン管理 | `auth token` | `---` | `token` | `---` | `---` |
 | チェンジログ | `---` | `---` | `changelog` | `---` | `---` |
 
 ---
@@ -150,7 +150,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | review | `pr review` (list/create/dismiss) | `pr review` | `mr approve` / `mr revoke` | `pr approve`/`reject` | `---` |
 | comment | `pr comment` (list/create/edit/delete) | `pr comment` | `mr note` | `comment` (独立コマンド) | `pr comment` / `pr edit comment` |
 | reviewers | `pr reviewers` (list/add/remove) | `---` | `mr approvers` | `---` | `---` |
-| subscribe | `---` | `---` | `mr subscribe` / `unsubscribe` | `---` | `---` |
+| subscribe | `pr subscribe` / `pr unsubscribe` | `---` | `mr subscribe` / `unsubscribe` | `---` | `---` |
 | todo | `---` | `---` | `mr todo` | `---` | `---` |
 | issues | `---` | `---` | `mr issues` | `---` | `---` |
 | lock / unlock | `pr lock` / `pr unlock` | `pr lock` / `pr unlock` | `---` | `---` | `---` |
@@ -169,7 +169,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | ラベル | `--label` / `-l` | `--label` / `-l` | `--label` / `-l`, `--not-label` | `--labels` / `-L` | `--labels` / `-l` |
 | ベースブランチ | `--base` / `-B` | `--base` / `-B` | `--target-branch` / `-t` | `---` | `---` |
 | ヘッドブランチ | `--head` / `-H` | `--head` / `-H` | `--source-branch` / `-s` | `---` | `---` |
-| マイルストーン | `---` | `---` (`--search` 経由) | `--milestone` / `-m` | `--milestones` / `-m` | `---` |
+| マイルストーン | `--milestone` | `---` (`--search` 経由) | `--milestone` / `-m` | `--milestones` / `-m` | `---` |
 | 検索クエリ | `--search` / `-S` | `--search` / `-S` | `--search` | `--keyword` / `-k` | 位置引数 (query) |
 | ドラフト | `--draft` / `--no-draft` | `--draft` / `-d` | `--draft` / `-d`, `--not-draft` | `---` | `---` |
 | レビュアー | `---` | `---` (`--search` 経由) | `--reviewer` / `-r` | `---` | `---` |
@@ -180,7 +180,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | オプション | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
 | タイトル | `--title` | `--title` / `-t` | `--title` / `-t` | `--title` / `-t` | 位置引数 (`WIP:` 接頭辞でドラフト) |
-| 本文 | `--body` | `--body` / `-b` / `--body-file` / `-F` | `--description` / `-d` | `--description` / `-d` | `--body` / `--body-file` |
+| 本文 | `--body` / `--body-file` | `--body` / `-b` / `--body-file` / `-F` | `--description` / `-d` | `--description` / `-d` | `--body` / `--body-file` |
 | ベースブランチ | `--base` | `--base` / `-B` | `--target-branch` / `-b` | `--base` / `-b` | `--base` |
 | ヘッドブランチ | `--head` | `--head` / `-H` | `--source-branch` / `-s` | `--head` | `--head` |
 | ドラフト | `--draft` | `--draft` / `-d` | `--draft` | `---` | `WIP:` 接頭辞 (タイトル) |
@@ -222,7 +222,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | 担当者追加/削除 | `--add-assignee` / `--remove-assignee` | `--add-assignee` / `--remove-assignee` | `--assignee` / `-a` / `--unassign` | `--add-assignees` / `-a` | `---` |
 | レビュアー追加/削除 | `---` | `--add-reviewer` / `--remove-reviewer` | `--reviewer` | `---` | `---` |
 | マイルストーン | `--milestone` | `--milestone` / `-m` / `--remove-milestone` | `--milestone` / `-m` | `--milestone` / `-m` | `---` |
-| ドラフト切替 | `---` | `---` | `--draft` / `--ready` | `---` | `---` |
+| ドラフト切替 | `--draft` / `--ready` | `---` | `--draft` / `--ready` | `---` | `---` |
 | プロジェクト | `---` | `--add-project` / `--remove-project` | `---` | `---` | `---` |
 | Discussion ロック | `---` | `---` | `--lock-discussion` / `--unlock-discussion` | `---` | `---` |
 | コメント編集 | `---` | `---` | `---` | `---` | `pr edit <id> comment <idx>` |
@@ -261,8 +261,8 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | time | `issue time` (list/add/delete) | `---` | `issue time-tracking` | `times` (独立コマンド) | `---` |
 | migrate | `issue migrate` | `---` | `---` | `---` | `---` |
 | lock / unlock | `issue lock` / `issue unlock` | `issue lock` / `issue unlock` | `---` | `---` | `---` |
-| develop | `---` | `issue develop` | `---` | `---` | `---` |
-| status | `---` | `issue status` | `---` | `---` | `---` |
+| develop | `issue develop` | `issue develop` | `---` | `---` | `---` |
+| status | `issue status` | `issue status` | `---` | `---` | `---` |
 | transfer | `---` | `issue transfer` | `---` | `---` | `---` |
 | browse | `---` | `---` | `---` | `---` | `issue browse` |
 | templates | `---` | `---` | `---` | `---` | `issue templates` |
@@ -289,7 +289,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | オプション | gfo | gh | glab | tea | fj |
 |---|---|---|---|---|---|
 | タイトル | `--title` | `--title` / `-t` | `--title` / `-t` | `--title` / `-t` | 位置引数 |
-| 本文 | `--body` | `--body` / `-b` / `--body-file` / `-F` | `--description` / `-d` | `--description` / `-d` | `--body` / `--body-file` |
+| 本文 | `--body` / `--body-file` | `--body` / `-b` / `--body-file` / `-F` | `--description` / `-d` | `--description` / `-d` | `--body` / `--body-file` |
 | 担当者 | `--assignee` | `--assignee` / `-a` | `--assignee` / `-a` | `--assignees` / `-a` | `---` |
 | ラベル | `--label` | `--label` / `-l` | `--label` / `-l` | `--labels` / `-L` | `---` |
 | マイルストーン | `--milestone` | `--milestone` / `-m` | `--milestone` / `-m` | `--milestone` / `-m` | `---` |
@@ -298,12 +298,12 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | 優先度 | `--priority` | `---` | `---` | `---` | `---` |
 | 機密 | `---` | `---` | `--confidential` | `---` | `---` |
 | 重み | `---` | `---` | `--weight` | `---` | `---` |
-| 期限 | `---` | `---` | `--due-date` (YYYY-MM-DD) | `---` | `---` |
+| 期限 | `--due-date` | `---` | `--due-date` (YYYY-MM-DD) | `---` | `---` |
 | Epic | `---` | `---` | `--epic` | `---` | `---` |
 | 関連 Issue | `---` | `---` | `--linked-issues` | `---` | `---` |
 | 関連 MR | `---` | `---` | `--linked-mr` | `---` | `---` |
 | Web で作成 | `--web` / `-w` | `--web` | `--web` | `---` | `--web` |
-| テンプレート | `---` | `--template` | `---` | `---` | `--template` / `--no-template` |
+| テンプレート | `--template` | `--template` | `---` | `---` | `--template` / `--no-template` |
 
 #### オプション比較: issue edit
 
@@ -316,7 +316,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | マイルストーン | `--milestone` | `--milestone` / `-m` / `--remove-milestone` | `--milestone` / `-m` | `--milestone` / `-m` | `---` |
 | 機密 | `---` | `---` | `--confidential` / `--public` | `---` | `---` |
 | 重み | `---` | `---` | `--weight` | `---` | `---` |
-| 期限 | `---` | `---` | `--due-date` | `---` | `---` |
+| 期限 | `--due-date` | `---` | `--due-date` | `---` | `---` |
 | Discussion ロック | `---` | `---` | `--lock-discussion` / `--unlock-discussion` | `---` | `---` |
 | プロジェクト | `---` | `--add-project` / `--remove-project` | `---` | `---` | `---` |
 | コメント編集 | `---` | `---` | `---` | `---` | `issue edit <id> comment <idx>` |
@@ -359,7 +359,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | browse | `---` | `---` | `---` | `---` | `repo browse` |
 | rename | `repo edit --name` | `repo rename` | `---` | `---` | `---` |
 | sync | `repo sync` | `repo sync` | `---` | `---` | `---` |
-| unarchive | `---` | `repo unarchive` | `---` | `---` | `---` |
+| unarchive | `repo unarchive` | `repo unarchive` | `---` | `---` | `---` |
 | set-default | `---` | `repo set-default` | `---` | `---` | `---` |
 | autolink | `---` | `repo autolink` (list/create/delete/view) | `---` | `---` | `---` |
 
@@ -369,7 +369,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 |---|---|---|---|---|---|
 | 所有者 | `--owner` | `--owner` | `---` | `---` | `---` |
 | 件数上限 | `--limit` | `--limit` / `-L` | `--per-page` / `-P`, `--page` / `-p` | `--limit` / `--page` | `---` |
-| アーカイブ | `---` | `--archived` | `--archived` | `---` | `---` |
+| アーカイブ | `--archived` | `--archived` | `--archived` | `---` | `---` |
 | ソースのみ (フォーク除外) | `---` | `--source` | `---` | `---` | `---` |
 | 言語 | `---` | `--language` / `-l` | `---` | `---` | `---` |
 | 可視性 | `---` | `--visibility` | `---` | `---` | `---` |
@@ -380,12 +380,12 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 |---|---|---|---|---|---|
 | 名前 | 位置引数 | 位置引数 | `--name` / `-n` | 位置引数 | 位置引数 |
 | 非公開 | `--private` | `--private` | `--private` / `-p` | `--private` | `--private` / `-P` |
-| 公開 | `---` | `--public` | `--public` / `-P` | `---` | `---` |
+| 公開 | `--public` | `--public` | `--public` / `-P` | `---` | `---` |
 | 内部 | `---` | `---` | `--internal` | `---` | `---` |
 | 説明 | `--description` | `--description` / `-d` | `--description` / `-d` | `--description` | `--description` / `-d` |
 | グループ/所有者 | `--host` | `---` | `--group` / `-g` | `---` | `---` |
 | デフォルトブランチ | `---` | `---` | `--defaultBranch` | `---` | `---` |
-| README 初期化 | `---` | `---` | `--readme` | `---` | `---` |
+| README 初期化 | `--readme` | `---` | `--readme` | `---` | `---` |
 | リモート追加 | `---` | `---` | `---` | `---` | `--remote` |
 | プッシュ | `---` | `---` | `---` | `---` | `--push` |
 | SSH 使用 | `---` | `---` | `---` | `---` | `--ssh` / `-S` |
@@ -647,7 +647,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | cancel | `ci cancel` | `run cancel` | `ci cancel` | `---` | `---` |
 | logs | `ci logs` | `run view --log` | `ci trace` | `actions runs logs` | `---` |
 | download | `ci download` | `run download` | `---` | `---` | `---` |
-| delete | `---` | `run delete` | `---` | `actions runs delete` | `---` |
+| delete | `ci delete` | `run delete` | `---` | `actions runs delete` | `---` |
 | watch | `ci watch` | `run watch` | `---` | `---` | `---` |
 | workflow list | `ci workflow list` | `workflow list` | `---` | `actions workflows` | `---` |
 | workflow enable/disable | `ci workflow enable` / `disable` | `workflow enable` / `disable` | `---` | `---` | `---` |
@@ -721,7 +721,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | issues | `search issues` | `search issues` | `---` | `---` | `---` |
 | prs | `search prs` | `search prs` | `---` | `---` | `---` |
 | commits | `search commits` | `search commits` | `---` | `---` | `---` |
-| code | `---` | `search code` | `---` | `---` | `---` |
+| code | `search code` | `search code` | `---` | `---` | `---` |
 
 ---
 

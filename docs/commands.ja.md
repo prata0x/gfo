@@ -131,6 +131,52 @@ gfo auth logout --host github.com
 gfo auth logout --host github.com --account work
 ```
 
+### gfo auth token
+
+現在のホストまたは指定ホストの認証トークンを出力します。
+
+```
+gfo auth token [--host HOST]
+```
+
+| オプション | 説明 |
+|---|---|
+| `--host HOST` | ホスト名（省略時は `gfo init` の設定から自動解決） |
+
+```bash
+gfo auth token
+gfo auth token --host github.com
+```
+
+---
+
+## gfo completion
+
+シェル補完スクリプトを生成します。
+
+```
+gfo completion {bash,zsh,fish}
+```
+
+| オプション | 説明 |
+|---|---|
+| `bash` | bash 補完を生成 |
+| `zsh` | zsh 補完を生成 |
+| `fish` | fish 補完を生成 |
+
+**例:**
+
+```bash
+# bash
+eval "$(gfo completion bash)"
+
+# zsh
+gfo completion zsh > "${fpath[1]}/_gfo"
+
+# fish
+gfo completion fish > ~/.config/fish/completions/gfo.fish
+```
+
 ---
 
 ## gfo pr
@@ -156,6 +202,7 @@ gfo pr list [--state {open,closed,merged,all}] [--limit N] [--author USER] [--la
 | `--base`, `-B` | — | ベースブランチでフィルタ |
 | `--head`, `-H` | — | ヘッドブランチでフィルタ |
 | `--draft` / `--no-draft` | — | ドラフト状態でフィルタ |
+| `--milestone` | — | マイルストーンでフィルタ |
 
 ```bash
 gfo pr list
@@ -183,6 +230,8 @@ gfo pr create [--title TITLE] [--body BODY] [--body-file FILE] [--base BRANCH] [
 | `--label` | ラベル名（繰り返し可） |
 | `--milestone` | マイルストーン名 |
 | `--fill` | コミット情報をタイトルとボディに使用 |
+| `--web`, `-w` | ブラウザで作成した PR を開く |
+| `--dry-run` | 実際に作成せず、作成される内容を表示 |
 
 ```bash
 gfo pr create --title "Fix login bug" --base main --head feature/fix-login
@@ -323,6 +372,7 @@ gfo pr edit NUMBER [--title TITLE] [--body BODY] [--base BRANCH] [--add-label LA
 | `--add-assignee` | 担当者を追加（繰り返し可） |
 | `--remove-assignee` | 担当者を削除（繰り返し可） |
 | `--milestone` | マイルストーン名 |
+| `--draft` / `--ready` | ドラフトと公開状態を切り替え |
 
 ```bash
 gfo pr edit 42 --title "Updated title"
@@ -456,6 +506,34 @@ gfo pr review dismiss 42 12345
 gfo pr review dismiss 42 12345 --message "Outdated review"
 ```
 
+### gfo pr subscribe
+
+プルリクエストの通知を購読します。
+
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo pr subscribe NUMBER
+```
+
+```bash
+gfo pr subscribe 42
+```
+
+### gfo pr unsubscribe
+
+プルリクエストの通知購読を解除します。
+
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo pr unsubscribe NUMBER
+```
+
+```bash
+gfo pr unsubscribe 42
+```
+
 ### gfo pr comment
 
 PR のコメントを管理します。
@@ -523,6 +601,9 @@ gfo issue create --title TITLE [--body BODY] [--body-file FILE] [--assignee USER
 | `--milestone` | — | マイルストーン名 |
 | `--type` | — | Issue タイプ（Azure DevOps: `Task`, `Bug` など） |
 | `--priority` | — | 優先度（Backlog など数値で指定するサービス向け） |
+| `--due-date` | — | 期限（YYYY-MM-DD 形式、対応サービスのみ） |
+| `--template` | — | Issue テンプレート名 |
+| `--web`, `-w` | — | ブラウザで作成した Issue を開く |
 
 ```bash
 gfo issue create --title "Bug: login fails"
@@ -636,6 +717,36 @@ gfo issue unsubscribe NUMBER
 gfo issue unsubscribe 10
 ```
 
+### gfo issue status
+
+現在のユーザーに関連する Issue のサマリーを表示します（作成した Issue・アサインされた Issue）。
+
+```
+gfo issue status
+```
+
+```bash
+gfo issue status
+```
+
+### gfo issue develop
+
+Issue の開発用ブランチを作成します。
+
+```
+gfo issue develop NUMBER [--name BRANCH] [--base BRANCH]
+```
+
+| オプション | 説明 |
+|---|---|
+| `--name` | ブランチ名（デフォルト: `issue-{number}-{slug}`） |
+| `--base` | ベースブランチ（デフォルト: デフォルトブランチ） |
+
+```bash
+gfo issue develop 10
+gfo issue develop 10 --name feature/fix-login --base develop
+```
+
 ### gfo issue edit
 
 > GitBucket は非対応
@@ -655,6 +766,7 @@ gfo issue edit NUMBER [--title TITLE] [--body BODY] [--assignee USER] [--label L
 | `--add-assignee` | 担当者を追加（繰り返し可） |
 | `--remove-assignee` | 担当者を削除（繰り返し可） |
 | `--milestone` | マイルストーン名 |
+| `--due-date` | 期限（YYYY-MM-DD 形式、空文字で解除） |
 
 ```bash
 gfo issue edit 10 --title "New title" --assignee bob
@@ -834,7 +946,7 @@ gfo issue migrate --from github:owner/repo --to gitea:gitea.example.com:owner/re
 ### gfo repo list
 
 ```
-gfo repo list [--owner OWNER] [--limit N]
+gfo repo list [--owner OWNER] [--archived] [--limit N]
 ```
 
 ```bash
@@ -945,6 +1057,20 @@ gfo repo archive [--yes]
 | オプション | 説明 |
 |---|---|
 | `--yes`, `-y` | 確認プロンプトをスキップ |
+
+### gfo repo unarchive
+
+リポジトリのアーカイブを解除します。
+
+> **対応サービス**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
+
+```
+gfo repo unarchive
+```
+
+```bash
+gfo repo unarchive
+```
 
 ### gfo repo languages
 
@@ -1724,6 +1850,18 @@ gfo ci cancel ID
 gfo ci cancel 12345678
 ```
 
+### gfo ci delete
+
+パイプライン実行を削除します。
+
+```
+gfo ci delete ID
+```
+
+```bash
+gfo ci delete 12345678
+```
+
 ### gfo ci watch
 
 パイプラインのステータスをリアルタイムで監視します。
@@ -1874,6 +2012,20 @@ gfo search commits QUERY [--limit N]
 
 ```bash
 gfo search commits "refactor auth" --limit 20
+```
+
+### gfo search code
+
+リポジトリ内のコードを検索します。
+
+> **対応サービス**: GitHub, GitLab, Azure DevOps
+
+```
+gfo search code QUERY [--limit N]
+```
+
+```bash
+gfo search code "import requests" --limit 20
 ```
 
 ---

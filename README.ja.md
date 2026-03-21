@@ -80,12 +80,12 @@ gfo auth status
 | コマンド | サブコマンド | 説明 |
 |---|---|---|
 | `gfo init` | — | プロジェクト設定の初期化 |
-| `gfo auth` | `login`, `status` | トークン保存・認証状態確認 |
-| `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `update`, `diff`, `checks`, `files`, `commits`, `reviewers`, `update-branch`, `ready` | プルリクエスト操作 |
-| `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update`, `reaction`, `depends`, `timeline`, `pin`, `unpin`, `time`, `migrate` | Issue 操作 |
+| `gfo auth` | `login`, `status`, `switch`, `logout`, `token` | トークン保存・認証状態確認・アカウント管理 |
+| `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `edit`, `diff`, `checks`, `files`, `commits`, `reviewers`, `update-branch`, `ready`, `status`, `subscribe`, `unsubscribe`, `lock`, `unlock`, `comment`, `review` | プルリクエスト操作 |
+| `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `edit`, `status`, `develop`, `subscribe`, `unsubscribe`, `reaction`, `depends`, `timeline`, `pin`, `unpin`, `time`, `migrate`, `lock`, `unlock`, `comment` | Issue 操作 |
 | `gfo issue-template` | `list` | Issue テンプレート一覧 |
-| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `update`, `archive`, `languages`, `topics`, `compare`, `migrate`, `mirror`, `transfer`, `star`, `unstar` | リポジトリ操作 |
-| `gfo release` | `list`, `create`, `view`, `update`, `delete`, `asset` | リリース管理 |
+| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `edit`, `archive`, `unarchive`, `languages`, `topics`, `compare`, `migrate`, `mirror`, `transfer`, `star`, `unstar`, `sync` | リポジトリ操作 |
+| `gfo release` | `list`, `create`, `view`, `edit`, `delete`, `asset` | リリース管理 |
 | `gfo label` | `list`, `create`, `update`, `delete`, `clone` | ラベル管理 |
 | `gfo milestone` | `list`, `create`, `view`, `update`, `close`, `reopen`, `delete` | マイルストーン管理 |
 | `gfo comment` | `list`, `create`, `update`, `delete` | PR / Issue コメント操作 |
@@ -97,9 +97,9 @@ gfo auth status
 | `gfo webhook` | `list`, `create`, `delete`, `test` | Webhook 管理 |
 | `gfo deploy-key` | `list`, `create`, `delete` | デプロイキー管理 |
 | `gfo collaborator` | `list`, `add`, `remove` | コラボレーター管理 |
-| `gfo ci` | `list`, `view`, `cancel`, `trigger`, `retry`, `logs` | CI/CD ジョブ操作 |
+| `gfo ci` | `list`, `view`, `cancel`, `trigger`, `retry`, `logs`, `delete`, `download`, `watch`, `workflow`, `artifact` | CI/CD ジョブ操作 |
 | `gfo user` | `whoami` | 認証ユーザー情報表示 |
-| `gfo search` | `repos`, `issues`, `prs`, `commits` | リポジトリ・Issue・PR・コミット検索 |
+| `gfo search` | `repos`, `issues`, `prs`, `commits`, `code` | リポジトリ・Issue・PR・コミット・コード検索 |
 | `gfo wiki` | `list`, `view`, `create`, `update`, `delete`, `revisions` | Wiki 操作 |
 | `gfo browse` | — | リポジトリをブラウザで開く |
 | `gfo branch-protect` | `list`, `view`, `set`, `remove` | ブランチ保護ルール管理 |
@@ -113,6 +113,8 @@ gfo auth status
 | `gfo package` | `list`, `view`, `delete` | パッケージ管理 |
 | `gfo api` | `METHOD`, `PATH` | 任意の API エンドポイント呼び出し |
 | `gfo schema` | `--list`, `[command] [subcommand]` | コマンドの JSON Schema を表示（AI エージェント向け） |
+| `gfo config` | `get`, `set`, `list`, `unset`, `path` | 設定管理 |
+| `gfo completion` | `bash`, `zsh`, `fish` | シェル補完スクリプト生成 |
 | `gfo batch` | `pr create` | 複数リポジトリへの一括操作 |
 
 各コマンドの詳細なオプション・使用例は [docs/commands.ja.md](docs/commands.ja.md) を参照してください。
@@ -155,6 +157,16 @@ api_url = "https://gitlab.example.com/api/v4"
 - Windows: `%APPDATA%\gfo\config.toml`
 - Linux / macOS: `~/.config/gfo/config.toml`
 
+`gfo config` コマンドでも設定を管理できます:
+
+```bash
+gfo config list                          # 全設定を表示
+gfo config get defaults.output           # 特定の値を取得
+gfo config set defaults.output json      # 値を設定
+gfo config unset defaults.output         # 値を削除
+gfo config path                          # 設定ファイルのパスを表示
+```
+
 ## サービス別機能対応表
 
 | 機能 | GitHub | GitLab | Bitbucket | Azure DevOps | Backlog | Gitea | Forgejo | Gogs | GitBucket |
@@ -184,7 +196,7 @@ api_url = "https://gitlab.example.com/api/v4"
 | Review Dismiss | ○ | × | × | ○ | × | ○ | ○ | × | × |
 | Wiki | × | ○ | × | × | × | ○ | ○ | × | × |
 | CI/CD | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
-| Search | ○ | ○ | × | × | × | × | × | × | × |
+| Search | ○ | ○ | △ | ○ | × | ○ | ○ | × | × |
 | Browse | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | Branch Protect | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
 | Notification | ○ | ○ | × | × | ○ | ○ | ○ | × | × |

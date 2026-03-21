@@ -1749,6 +1749,18 @@ class TestUpdatePullRequest:
         req_body = json.loads(mock_responses.calls[1].request.body)
         assert req_body["milestone"] == 3
 
+    def test_draft_true(self, mock_responses, gitea_adapter):
+        mock_responses.add(responses.PATCH, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
+        gitea_adapter.update_pull_request(1, draft=True)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["draft"] is True
+
+    def test_draft_false(self, mock_responses, gitea_adapter):
+        mock_responses.add(responses.PATCH, f"{REPOS}/pulls/1", json=_pr_data(), status=200)
+        gitea_adapter.update_pull_request(1, draft=False)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["draft"] is False
+
     def test_remove_labels(self, mock_responses, gitea_adapter):
         mock_responses.add(
             responses.GET,

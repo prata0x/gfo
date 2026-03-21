@@ -80,12 +80,12 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 | Command | Subcommands | Description |
 |---|---|---|
 | `gfo init` | — | Initialize project configuration |
-| `gfo auth` | `login`, `status` | Save token / check auth status |
-| `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `update`, `diff`, `checks`, `files`, `commits`, `reviewers`, `update-branch`, `ready` | Pull request operations |
-| `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `update`, `reaction`, `depends`, `timeline`, `pin`, `unpin`, `time`, `migrate` | Issue operations |
+| `gfo auth` | `login`, `status`, `switch`, `logout`, `token` | Save token / check auth status / manage accounts |
+| `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `edit`, `diff`, `checks`, `files`, `commits`, `reviewers`, `update-branch`, `ready`, `status`, `subscribe`, `unsubscribe`, `lock`, `unlock`, `comment`, `review` | Pull request operations |
+| `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `edit`, `status`, `develop`, `subscribe`, `unsubscribe`, `reaction`, `depends`, `timeline`, `pin`, `unpin`, `time`, `migrate`, `lock`, `unlock`, `comment` | Issue operations |
 | `gfo issue-template` | `list` | Issue template listing |
-| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `update`, `archive`, `languages`, `topics`, `compare`, `migrate`, `mirror`, `transfer`, `star`, `unstar` | Repository operations |
-| `gfo release` | `list`, `create`, `view`, `update`, `delete`, `asset` | Release management |
+| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `edit`, `archive`, `unarchive`, `languages`, `topics`, `compare`, `migrate`, `mirror`, `transfer`, `star`, `unstar`, `sync` | Repository operations |
+| `gfo release` | `list`, `create`, `view`, `edit`, `delete`, `asset` | Release management |
 | `gfo label` | `list`, `create`, `update`, `delete`, `clone` | Label management |
 | `gfo milestone` | `list`, `create`, `view`, `update`, `close`, `reopen`, `delete` | Milestone management |
 | `gfo comment` | `list`, `create`, `update`, `delete` | PR / Issue comment operations |
@@ -97,9 +97,9 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 | `gfo webhook` | `list`, `create`, `delete`, `test` | Webhook management |
 | `gfo deploy-key` | `list`, `create`, `delete` | Deploy key management |
 | `gfo collaborator` | `list`, `add`, `remove` | Collaborator management |
-| `gfo ci` | `list`, `view`, `cancel`, `trigger`, `retry`, `logs` | CI/CD job operations |
+| `gfo ci` | `list`, `view`, `cancel`, `trigger`, `retry`, `logs`, `delete`, `download`, `watch`, `workflow`, `artifact` | CI/CD job operations |
 | `gfo user` | `whoami` | Display authenticated user info |
-| `gfo search` | `repos`, `issues`, `prs`, `commits` | Search repositories / issues / PRs / commits |
+| `gfo search` | `repos`, `issues`, `prs`, `commits`, `code` | Search repositories / issues / PRs / commits / code |
 | `gfo wiki` | `list`, `view`, `create`, `update`, `delete`, `revisions` | Wiki operations |
 | `gfo browse` | — | Open repository in browser |
 | `gfo branch-protect` | `list`, `view`, `set`, `remove` | Branch protection rule management |
@@ -113,6 +113,8 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 | `gfo package` | `list`, `view`, `delete` | Package management |
 | `gfo api` | `METHOD`, `PATH` | Send raw API request |
 | `gfo schema` | `--list`, `[command] [subcommand]` | Show command JSON Schema (for AI agents) |
+| `gfo config` | `get`, `set`, `list`, `unset`, `path` | Manage gfo configuration |
+| `gfo completion` | `bash`, `zsh`, `fish` | Generate shell completion script |
 | `gfo batch` | `pr create` | Batch operations across multiple repositories |
 
 See [docs/commands.md](docs/commands.md) for detailed options and examples for each command.
@@ -155,6 +157,16 @@ api_url = "https://gitlab.example.com/api/v4"
 - Windows: `%APPDATA%\gfo\config.toml`
 - Linux / macOS: `~/.config/gfo/config.toml`
 
+You can also manage configuration via the `gfo config` command:
+
+```bash
+gfo config list                          # Show all configuration
+gfo config get defaults.output           # Get a specific value
+gfo config set defaults.output json      # Set a value
+gfo config unset defaults.output         # Remove a value
+gfo config path                          # Show config file path
+```
+
 ## Feature Support Matrix
 
 | Feature | GitHub | GitLab | Bitbucket | Azure DevOps | Backlog | Gitea | Forgejo | Gogs | GitBucket |
@@ -184,7 +196,7 @@ api_url = "https://gitlab.example.com/api/v4"
 | Review Dismiss | ○ | × | × | ○ | × | ○ | ○ | × | × |
 | Wiki | × | ○ | × | × | × | ○ | ○ | × | × |
 | CI/CD | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
-| Search | ○ | ○ | × | × | × | × | × | × | × |
+| Search | ○ | ○ | △ | ○ | × | ○ | ○ | × | × |
 | Browse | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | Branch Protect | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
 | Notification | ○ | ○ | × | × | ○ | ○ | ○ | × | × |

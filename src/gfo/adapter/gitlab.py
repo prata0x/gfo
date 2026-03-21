@@ -2021,11 +2021,17 @@ class GitLabAdapter(GitServiceAdapter):
             params={"scope": "blobs", "search": query},
             limit=limit,
         )
+        from urllib.parse import urlparse
+
+        parsed = urlparse(self._client.base_url)
+        web_base = f"{parsed.scheme}://{parsed.hostname}"
+        if parsed.port:
+            web_base = f"{web_base}:{parsed.port}"
         return [
             CodeSearchResult(
                 path=r.get("path") or r.get("filename") or "",
                 repository=f"{self._owner}/{self._repo}",
-                url="",
+                url=f"{web_base}/{self._owner}/{self._repo}/-/blob/{r.get('ref', 'HEAD')}/{r.get('path') or r.get('filename') or ''}",
                 matched_text=r.get("data") or "",
             )
             for r in results

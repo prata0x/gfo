@@ -131,6 +131,52 @@ gfo auth logout --host github.com
 gfo auth logout --host github.com --account work
 ```
 
+### gfo auth token
+
+Print the authentication token for the current or specified host.
+
+```
+gfo auth token [--host HOST]
+```
+
+| Option | Description |
+|---|---|
+| `--host HOST` | Hostname (auto-resolved from `gfo init` config if omitted) |
+
+```bash
+gfo auth token
+gfo auth token --host github.com
+```
+
+---
+
+## gfo completion
+
+Generate shell completion script.
+
+```
+gfo completion {bash,zsh,fish}
+```
+
+| Option | Description |
+|---|---|
+| `bash` | Generate bash completion |
+| `zsh` | Generate zsh completion |
+| `fish` | Generate fish completion |
+
+**Examples:**
+
+```bash
+# bash
+eval "$(gfo completion bash)"
+
+# zsh
+gfo completion zsh > "${fpath[1]}/_gfo"
+
+# fish
+gfo completion fish > ~/.config/fish/completions/gfo.fish
+```
+
 ---
 
 ## gfo pr
@@ -156,6 +202,7 @@ gfo pr list [--state {open,closed,merged,all}] [--limit N] [--author USER] [--la
 | `--base`, `-B` | — | Filter by base branch |
 | `--head`, `-H` | — | Filter by head branch |
 | `--draft` / `--no-draft` | — | Filter by draft status |
+| `--milestone` | — | Filter by milestone |
 
 ```bash
 gfo pr list
@@ -183,6 +230,8 @@ gfo pr create [--title TITLE] [--body BODY] [--body-file FILE] [--base BRANCH] [
 | `--label` | Label name (repeatable) |
 | `--milestone` | Milestone name |
 | `--fill` | Use commit info for title and body |
+| `--web`, `-w` | Open the created PR in browser |
+| `--dry-run` | Print what would be created without actually creating |
 
 ```bash
 gfo pr create --title "Fix login bug" --base main --head feature/fix-login
@@ -323,6 +372,7 @@ gfo pr edit NUMBER [--title TITLE] [--body BODY] [--base BRANCH] [--add-label LA
 | `--add-assignee` | Add assignee (repeatable) |
 | `--remove-assignee` | Remove assignee (repeatable) |
 | `--milestone` | Milestone name |
+| `--draft` / `--ready` | Switch between draft and ready state |
 
 ```bash
 gfo pr edit 42 --title "Updated title"
@@ -456,6 +506,34 @@ gfo pr review dismiss 42 12345
 gfo pr review dismiss 42 12345 --message "Outdated review"
 ```
 
+### gfo pr subscribe
+
+Subscribe to pull request notifications.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo pr subscribe NUMBER
+```
+
+```bash
+gfo pr subscribe 42
+```
+
+### gfo pr unsubscribe
+
+Unsubscribe from pull request notifications.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo pr unsubscribe NUMBER
+```
+
+```bash
+gfo pr unsubscribe 42
+```
+
 ### gfo pr comment
 
 Manage PR comments.
@@ -523,6 +601,9 @@ gfo issue create --title TITLE [--body BODY] [--body-file FILE] [--assignee USER
 | `--milestone` | — | Milestone name |
 | `--type` | — | Issue type (Azure DevOps: `Task`, `Bug`, etc.) |
 | `--priority` | — | Priority (for services that use numeric priority, e.g., Backlog) |
+| `--due-date` | — | Due date (YYYY-MM-DD format, for services that support it) |
+| `--template` | — | Issue template name |
+| `--web`, `-w` | — | Open the created issue in browser |
 
 ```bash
 gfo issue create --title "Bug: login fails"
@@ -636,6 +717,36 @@ gfo issue unsubscribe NUMBER
 gfo issue unsubscribe 10
 ```
 
+### gfo issue status
+
+Show summary of issues related to the current user (created by you and assigned to you).
+
+```
+gfo issue status
+```
+
+```bash
+gfo issue status
+```
+
+### gfo issue develop
+
+Create a development branch for an issue.
+
+```
+gfo issue develop NUMBER [--name BRANCH] [--base BRANCH]
+```
+
+| Option | Description |
+|---|---|
+| `--name` | Branch name (default: `issue-{number}-{slug}`) |
+| `--base` | Base branch (default: default branch) |
+
+```bash
+gfo issue develop 10
+gfo issue develop 10 --name feature/fix-login --base develop
+```
+
 ### gfo issue edit
 
 > GitBucket not supported
@@ -655,6 +766,7 @@ gfo issue edit NUMBER [--title TITLE] [--body BODY] [--assignee USER] [--label L
 | `--add-assignee` | Add assignee (repeatable) |
 | `--remove-assignee` | Remove assignee (repeatable) |
 | `--milestone` | Milestone name |
+| `--due-date` | Due date (YYYY-MM-DD format, empty string to clear) |
 
 ```bash
 gfo issue edit 10 --title "New title" --assignee bob
@@ -834,7 +946,7 @@ Operate repositories.
 ### gfo repo list
 
 ```
-gfo repo list [--owner OWNER] [--limit N]
+gfo repo list [--owner OWNER] [--archived] [--limit N]
 ```
 
 ```bash
@@ -845,7 +957,7 @@ gfo repo list --owner myorg --limit 50
 ### gfo repo create
 
 ```
-gfo repo create NAME (--private | --public) [--description DESC] [--host HOST]
+gfo repo create NAME (--private | --public) [--description DESC] [--host HOST] [--readme]
 ```
 
 ```bash
@@ -945,6 +1057,20 @@ gfo repo archive [--yes]
 | Option | Description |
 |---|---|
 | `--yes`, `-y` | Skip confirmation prompt |
+
+### gfo repo unarchive
+
+Unarchive a repository.
+
+> **Supported services**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
+
+```
+gfo repo unarchive
+```
+
+```bash
+gfo repo unarchive
+```
 
 ### gfo repo languages
 
@@ -1724,6 +1850,18 @@ gfo ci cancel ID
 gfo ci cancel 12345678
 ```
 
+### gfo ci delete
+
+Delete a pipeline run.
+
+```
+gfo ci delete ID
+```
+
+```bash
+gfo ci delete 12345678
+```
+
 ### gfo ci watch
 
 Watch pipeline status with live updates.
@@ -1874,6 +2012,20 @@ gfo search commits QUERY [--limit N]
 
 ```bash
 gfo search commits "refactor auth" --limit 20
+```
+
+### gfo search code
+
+Search code in the repository.
+
+> **Supported services**: GitHub, GitLab, Azure DevOps
+
+```
+gfo search code QUERY [--limit N]
+```
+
+```bash
+gfo search code "import requests" --limit 20
 ```
 
 ---

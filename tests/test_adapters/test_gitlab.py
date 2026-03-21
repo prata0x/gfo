@@ -2801,6 +2801,7 @@ class TestSearchCode:
         assert len(result) == 1
         assert isinstance(result[0], CodeSearchResult)
         assert result[0].path == "src/main.py"
+        assert result[0].url == "https://gitlab.com/test-owner/test-repo/-/blob/main/src/main.py"
         assert result[0].matched_text == "def main():\n    pass"
 
     def test_search_code_empty(self, mock_responses, gitlab_adapter):

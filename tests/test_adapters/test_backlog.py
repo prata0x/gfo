@@ -923,6 +923,17 @@ class TestListRepositories:
         with pytest.raises(NotSupportedError):
             backlog_adapter.list_repositories(owner="someone")
 
+    def test_archived_warns(self, mock_responses, backlog_adapter):
+        """archived=True を渡すと未サポート警告が出る。"""
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/git/repositories",
+            json=[_repo_data()],
+            status=200,
+        )
+        with pytest.warns(match="archived"):
+            backlog_adapter.list_repositories(archived=True)
+
 
 class TestCreateRepository:
     def test_create(self, mock_responses, backlog_adapter):

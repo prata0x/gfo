@@ -1887,6 +1887,7 @@ class TestSearchCode:
         assert isinstance(result[0], CodeSearchResult)
         assert result[0].path == "src/main.py"
         assert result[0].repository == "test-repo"
+        assert result[0].matched_text == "main.py"
 
     def test_search_code_empty(self, mock_responses, azure_devops_adapter):
         mock_responses.add(

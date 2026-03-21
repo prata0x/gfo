@@ -1599,7 +1599,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 path=(r.get("path") or "").lstrip("/"),
                 repository=r.get("repository", {}).get("name", ""),
                 url=f"{base_web}/_git/{quote(r.get('repository', {}).get('name', ''), safe='')}?path={quote(r.get('path', ''), safe='')}",
-                matched_text="",
+                matched_text=r.get("fileName", ""),
             )
             for r in results
         ]

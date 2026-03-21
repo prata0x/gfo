@@ -1120,6 +1120,38 @@ class TestHandleCreateTemplate:
         assert call_kwargs["body"] == "My custom body"
         adapter.list_issue_templates.assert_not_called()
 
+    def test_template_title_used_when_no_title_given(self):
+        """--title 未指定でもテンプレートの title が使われれば ConfigError にならない。"""
+        from gfo.adapter.base import IssueTemplate
+
+        config = _make_config("github")
+        adapter = _make_adapter(self.issue)
+        adapter.list_issue_templates.return_value = [
+            IssueTemplate(
+                name="bug_report",
+                title="Bug Report",
+                body="## Description\n",
+                about="Report a bug",
+                labels=("bug",),
+            ),
+        ]
+        args = make_args(
+            title="",
+            body="",
+            assignee=None,
+            label=None,
+            milestone=None,
+            type=None,
+            priority=None,
+            template="bug_report",
+        )
+        with _patch_all(config, adapter):
+            issue_cmd.handle_create(args, fmt="table")
+
+        call_kwargs = adapter.create_issue.call_args.kwargs
+        assert call_kwargs["title"] == "Bug Report"
+        assert "Description" in call_kwargs["body"]
+
 
 # --- 4c: issue status ---
 

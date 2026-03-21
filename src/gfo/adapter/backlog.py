@@ -385,6 +385,7 @@ class BacklogAdapter(GitServiceAdapter):
                 "filtering repositories by owner "
                 "(repositories are scoped to the configured project)",
             )
+        self._warn_unsupported_params("repo list", archived=archived)
         results = paginate_offset(
             self._client,
             f"/projects/{self._project_key}/git/repositories",

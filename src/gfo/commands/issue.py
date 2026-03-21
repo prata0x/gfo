@@ -52,8 +52,6 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         args.body = args.body_file.read()
         args.body_file.close()
     title = (args.title or "").strip()
-    if not title:
-        raise ConfigError(_("--title must not be empty."))
     adapter, config = get_adapter_with_config()
 
     # --template: テンプレート名が指定された場合、本文に反映
@@ -71,6 +69,9 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         args.body = matched.body
         if matched.title and not title:
             title = matched.title
+
+    if not title:
+        raise ConfigError(_("--title must not be empty."))
 
     kwargs: dict = {}
     if args.type:
