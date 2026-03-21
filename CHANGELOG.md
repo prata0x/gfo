@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.6.0] - 2026-03-22
+
+### Added
+
+- `config` command with `get`, `set`, `list`, `unset`, `path` subcommands
+- `auth token` command to display the current token
+- `completion` command for shell completion
+- `search code` command (GitHub/GitLab/Bitbucket/Azure DevOps)
+- `ci delete` command (GitHub/GitLab/Azure DevOps)
+- `release create --generate-notes` option (GitHub/GitLab)
+- `--web` option extended to `pr`/`issue`/`release` `create`/`list`/`view`
+- `pr` command extensions: `--draft`, `--ready`, `--milestone`, `subscribe`, `--dry-run`
+- `issue` command extensions: `--due-date`, `--template`, `status`, `develop`
+- `repo` command extensions: `unarchive`, `list --archived`, `create --readme`
+- `pr create` / `issue create` `--body-file` (`-F`) option
+- `repo create` now requires `--private` / `--public` flag
+
+### Fixed
+
+- Fix config key parsing for quoted notation with dot-containing keys
+- Fix review issues: auth token, config `--jq`, limit+filter interaction, documentation
+
+### Tests
+
+- Add 115 unit tests for edge cases and error paths (coverage 90% → 91%)
+- Add CLI integration tests with private member dependency removal
+- Add SaaS integration tests with rate limiting delay
+- Fix integration test issues (GitHub SHA, Bitbucket/Azure DevOps CI classification, timing, subprocess, SSH)
+
 ## [0.5.0] - 2026-03-20
 
 ### Added

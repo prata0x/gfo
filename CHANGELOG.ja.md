@@ -1,5 +1,34 @@
 # 変更履歴
 
+## [0.6.0] - 2026-03-22
+
+### 追加
+
+- `config` コマンド追加（`get`, `set`, `list`, `unset`, `path` サブコマンド）
+- `auth token` コマンド（現在のトークンを表示）
+- `completion` コマンド（シェル補完）
+- `search code` コマンド（GitHub/GitLab/Bitbucket/Azure DevOps）
+- `ci delete` コマンド（GitHub/GitLab/Azure DevOps）
+- `release create --generate-notes` オプション（GitHub/GitLab）
+- `--web` オプションを `pr`/`issue`/`release` の `create`/`list`/`view` に拡大
+- `pr` コマンド拡張: `--draft`, `--ready`, `--milestone`, `subscribe`, `--dry-run`
+- `issue` コマンド拡張: `--due-date`, `--template`, `status`, `develop`
+- `repo` コマンド拡張: `unarchive`, `list --archived`, `create --readme`
+- `pr create` / `issue create` に `--body-file` (`-F`) オプション追加
+- `repo create` で `--private` / `--public` フラグを必須に変更
+
+### 修正
+
+- config キー解析でドット含みキーの引用符記法に対応
+- レビュー指摘修正: auth token、config `--jq`、limit+フィルタの相互作用、ドキュメント
+
+### テスト
+
+- エッジケース・エラーパスの単体テスト 115 件追加（カバレッジ 90% → 91%）
+- CLI 統合テスト追加（private member 依存解消）
+- SaaS 統合テスト追加（レート制限対策ディレイ付き）
+- 統合テスト修正（GitHub SHA、Bitbucket/Azure DevOps CI 分類、タイミング、subprocess、SSH）
+
 ## [0.5.0] - 2026-03-20
 
 ### 追加
