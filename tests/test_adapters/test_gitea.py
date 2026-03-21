@@ -28,7 +28,13 @@ from gfo.adapter.base import (
 )
 from gfo.adapter.gitea import GiteaAdapter
 from gfo.adapter.registry import get_adapter_class
-from gfo.exceptions import AuthenticationError, GfoError, NotFoundError, ServerError
+from gfo.exceptions import (
+    AuthenticationError,
+    GfoError,
+    NotFoundError,
+    NotSupportedError,
+    ServerError,
+)
 
 BASE = "https://gitea.example.com/api/v1"
 REPOS = f"{BASE}/repos/test-owner/test-repo"
@@ -3002,6 +3008,59 @@ class TestUpdateRepositoryGitea:
         responses.add(responses.PATCH, f"{REPOS}", json=_repo_data(), status=200)
         gitea_adapter.update_repository(private=True)
         assert json.loads(responses.calls[0].request.body)["private"] is True
+
+    @responses.activate
+    def test_allow_squash_merge(self, gitea_adapter):
+        responses.add(responses.PATCH, f"{REPOS}", json=_repo_data(), status=200)
+        gitea_adapter.update_repository(allow_squash_merge=True)
+        assert json.loads(responses.calls[0].request.body)["default_merge_style"] == "squash"
+
+    @responses.activate
+    def test_allow_rebase_merge(self, gitea_adapter):
+        responses.add(responses.PATCH, f"{REPOS}", json=_repo_data(), status=200)
+        gitea_adapter.update_repository(allow_rebase_merge=True)
+        assert json.loads(responses.calls[0].request.body)["default_merge_style"] == "rebase"
+
+    @responses.activate
+    def test_delete_branch_on_merge(self, gitea_adapter):
+        responses.add(responses.PATCH, f"{REPOS}", json=_repo_data(), status=200)
+        gitea_adapter.update_repository(delete_branch_on_merge=True)
+        body = json.loads(responses.calls[0].request.body)
+        assert body["default_delete_branch_after_merge"] is True
+
+
+class TestDisableAutoMergeGitea:
+    def test_calls_delete(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/pulls/1/merge",
+            status=204,
+        )
+        gitea_adapter.disable_auto_merge(1)
+        assert mock_responses.calls[0].request.method == "DELETE"
+
+
+class TestListContributorsGitea:
+    def test_basic(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/contributors",
+            json=[{"login": "alice", "contributions": 100}],
+            status=200,
+        )
+        contributors = gitea_adapter.list_contributors()
+        assert len(contributors) == 1
+        assert contributors[0].username == "alice"
+        assert contributors[0].commits == 100
+
+    def test_api_not_found_raises(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/contributors",
+            status=404,
+        )
+        with pytest.raises(NotSupportedError):
+            gitea_adapter.list_contributors()
 
 
 class TestArchiveRepositoryGitea:

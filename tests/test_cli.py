@@ -153,6 +153,12 @@ def test_parser_pr_merge():
     assert args.rebase is False
 
 
+def test_parser_pr_merge_disable_auto():
+    parser, _ = create_parser()
+    args = parser.parse_args(["pr", "merge", "1", "--disable-auto"])
+    assert args.disable_auto is True
+
+
 def test_parser_pr_close():
     parser, _ = create_parser()
     args = parser.parse_args(["pr", "close", "3"])

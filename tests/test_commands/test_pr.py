@@ -764,6 +764,22 @@ class TestHandleMergeDisableAuto:
         assert "42" in out
         assert "Disabled" in out
 
+    def test_disable_auto_ignores_merge_method(self):
+        """--disable-auto と --squash を同時指定しても disable_auto_merge のみ呼ばれる。"""
+        with patch_adapter("gfo.commands.pr") as adapter:
+            args = make_args(number=1, squash=True, auto=False, disable_auto=True)
+            pr_cmd.handle_merge(args, fmt="table")
+        adapter.disable_auto_merge.assert_called_once_with(1)
+        adapter.merge_pull_request.assert_not_called()
+
+    def test_disable_auto_wins_over_auto(self):
+        """--disable-auto と --auto 同時指定時は disable_auto が優先される。"""
+        with patch_adapter("gfo.commands.pr") as adapter:
+            args = make_args(number=1, squash=False, auto=True, disable_auto=True)
+            pr_cmd.handle_merge(args, fmt="table")
+        adapter.disable_auto_merge.assert_called_once_with(1)
+        adapter.enable_auto_merge.assert_not_called()
+
 
 def test_pr_list_config_error(capsys):
     """resolve_project_config が ConfigError を投げた場合に CLI で exit code 6 になる。"""

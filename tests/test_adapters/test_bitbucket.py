@@ -781,6 +781,19 @@ class TestListRepositories:
         bitbucket_adapter.list_repositories(owner="org/sub")
         assert "%2F" in mock_responses.calls[0].request.url
 
+    def test_visibility_private(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/repositories/test-workspace",
+            json={"values": [_repo_data()]},
+            status=200,
+        )
+        bitbucket_adapter.list_repositories(visibility="private")
+        from urllib.parse import unquote
+
+        url = unquote(mock_responses.calls[0].request.url)
+        assert "is_private=true" in url
+
 
 class TestCreateRepository:
     def test_create(self, mock_responses, bitbucket_adapter):
@@ -884,6 +897,14 @@ class TestNotSupported:
     def test_create_milestone(self, bitbucket_adapter):
         with pytest.raises(NotSupportedError):
             bitbucket_adapter.create_milestone(title="v1.0")
+
+    def test_disable_auto_merge(self, bitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.disable_auto_merge(1)
+
+    def test_list_contributors(self, bitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.list_contributors()
 
 
 # --- Registry ---

@@ -528,6 +528,10 @@ class TestNotSupported:
         with pytest.raises(NotSupportedError):
             gitbucket_adapter.update_issue(1, title="New Title")
 
+    def test_disable_auto_merge_raises(self, gitbucket_adapter):
+        with pytest.raises(NotSupportedError):
+            gitbucket_adapter.disable_auto_merge(1)
+
 
 class TestParseResponse:
     """_parse_response のテスト。"""

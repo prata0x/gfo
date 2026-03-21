@@ -142,6 +142,16 @@ class TestHandleContributors:
         assert "alice" in out
         assert "bob" in out
 
+    def test_empty_contributors_list(self, sample_config, capsys):
+        """コントリビューターが空の場合、空の JSON 配列が出力される。"""
+        adapter = MagicMock()
+        adapter.list_contributors.return_value = []
+        with _patch_all(sample_config, adapter):
+            args = make_args(limit=30)
+            repo_cmd.handle_contributors(args, fmt="json")
+        data = json.loads(capsys.readouterr().out)
+        assert data == []
+
 
 class TestResolveHostWithoutRepo:
     def test_uses_args_host_when_provided(self):
@@ -922,6 +932,29 @@ class TestHandleEditMergeStrategy:
 
         call_kwargs = adapter.update_repository.call_args.kwargs
         assert call_kwargs["delete_branch_on_merge"] is False
+
+    def test_all_merge_options_none(self, sample_config, sample_repo):
+        """全マージオプションが None の場合、adapter に None が渡される。"""
+        adapter = MagicMock()
+        adapter.update_repository.return_value = sample_repo
+        args = make_args(
+            name=None,
+            description=None,
+            private=None,
+            default_branch=None,
+            allow_merge_commit=None,
+            allow_squash_merge=None,
+            allow_rebase_merge=None,
+            delete_branch_on_merge=None,
+        )
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_edit(args, fmt="table")
+
+        call_kwargs = adapter.update_repository.call_args.kwargs
+        assert call_kwargs["allow_merge_commit"] is None
+        assert call_kwargs["allow_squash_merge"] is None
+        assert call_kwargs["allow_rebase_merge"] is None
+        assert call_kwargs["delete_branch_on_merge"] is None
 
 
 class TestHandleArchive:

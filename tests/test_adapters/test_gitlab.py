@@ -1195,6 +1195,14 @@ class TestUpdateRelease:
         assert "description" not in req_body
         assert "upcoming_release" not in req_body
 
+    def test_new_tag_raises_not_supported(self, gitlab_adapter):
+        with pytest.raises(NotSupportedError):
+            gitlab_adapter.update_release(tag="v1.0.0", new_tag="v2.0.0")
+
+    def test_target_raises_not_supported(self, gitlab_adapter):
+        with pytest.raises(NotSupportedError):
+            gitlab_adapter.update_release(tag="v1.0.0", target="main")
+
 
 class TestUpdateReleaseAsset:
     def test_update_name(self, mock_responses, gitlab_adapter):
@@ -3201,6 +3209,18 @@ class TestEnableAutoMergeGitLab:
         assert body["merge_when_pipeline_succeeds"] is True
 
 
+class TestDisableAutoMergeGitLab:
+    def test_calls_cancel_endpoint(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/merge_requests/1/cancel_merge_when_pipeline_succeeds",
+            json={},
+            status=200,
+        )
+        gitlab_adapter.disable_auto_merge(1)
+        assert mock_responses.calls[0].request.method == "POST"
+
+
 class TestMarkPullRequestReadyGitLab:
     def test_mark_ready(self, mock_responses, gitlab_adapter):
         mr = _mr_data()
@@ -3252,6 +3272,38 @@ class TestUpdateRepositoryGitLab:
         gitlab_adapter.update_repository(private=False)
         body = json.loads(responses.calls[0].request.body)
         assert body["visibility"] == "public"
+
+    @responses.activate
+    def test_allow_merge_commit(self, gitlab_adapter):
+        responses.add(responses.PUT, f"{PROJECT}", json=_repo_data(), status=200)
+        gitlab_adapter.update_repository(allow_merge_commit=True)
+        assert json.loads(responses.calls[0].request.body)["merge_method"] == "merge"
+
+    @responses.activate
+    def test_allow_squash_merge(self, gitlab_adapter):
+        responses.add(responses.PUT, f"{PROJECT}", json=_repo_data(), status=200)
+        gitlab_adapter.update_repository(allow_squash_merge=True)
+        assert json.loads(responses.calls[0].request.body)["merge_method"] == "merge"
+
+    @responses.activate
+    def test_allow_rebase_merge(self, gitlab_adapter):
+        responses.add(responses.PUT, f"{PROJECT}", json=_repo_data(), status=200)
+        gitlab_adapter.update_repository(allow_rebase_merge=True)
+        assert json.loads(responses.calls[0].request.body)["merge_method"] == "rebase_merge"
+
+    @responses.activate
+    def test_delete_branch_on_merge(self, gitlab_adapter):
+        responses.add(responses.PUT, f"{PROJECT}", json=_repo_data(), status=200)
+        gitlab_adapter.update_repository(delete_branch_on_merge=True)
+        body = json.loads(responses.calls[0].request.body)
+        assert body["remove_source_branch_after_merge"] is True
+
+    @responses.activate
+    def test_merge_strategy_none(self, gitlab_adapter):
+        responses.add(responses.PUT, f"{PROJECT}", json=_repo_data(), status=200)
+        gitlab_adapter.update_repository(description="x")
+        body = json.loads(responses.calls[0].request.body)
+        assert "merge_method" not in body
 
 
 class TestArchiveRepositoryGitLab:
@@ -3379,6 +3431,31 @@ class TestTopicsGitLab:
         )
         result = gitlab_adapter.remove_topic("b")
         assert "b" not in result
+
+
+class TestListContributorsGitLab:
+    def test_basic(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/repository/contributors",
+            json=[{"name": "Alice", "email": "a@ex.com", "commits": 50}],
+            status=200,
+        )
+        contributors = gitlab_adapter.list_contributors()
+        assert len(contributors) == 1
+        assert contributors[0].username is None
+        assert contributors[0].name == "Alice"
+        assert contributors[0].commits == 50
+
+    def test_empty(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/repository/contributors",
+            json=[],
+            status=200,
+        )
+        contributors = gitlab_adapter.list_contributors()
+        assert contributors == []
 
 
 class TestCompareGitLab:

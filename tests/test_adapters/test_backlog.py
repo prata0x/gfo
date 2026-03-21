@@ -1023,6 +1023,14 @@ class TestNotSupported:
         with pytest.raises(NotSupportedError):
             backlog_adapter.create_milestone(title="v1.0")
 
+    def test_disable_auto_merge(self, backlog_adapter):
+        with pytest.raises(NotSupportedError):
+            backlog_adapter.disable_auto_merge(1)
+
+    def test_list_contributors(self, backlog_adapter):
+        with pytest.raises(NotSupportedError):
+            backlog_adapter.list_contributors()
+
 
 class TestUpdateMilestoneBacklog:
     def test_update_title(self, mock_responses, backlog_adapter):

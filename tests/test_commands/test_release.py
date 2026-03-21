@@ -184,6 +184,95 @@ class TestHandleListFilter:
         data = json.loads(capsys.readouterr().out)
         assert len(data) == 0
 
+    def test_filter_then_limit(self, sample_config, capsys):
+        """limit でアダプターから取得後、draft/prerelease フィルタで件数が減るケース。"""
+        releases = [
+            Release(
+                tag="v1.0.0",
+                title="Stable1",
+                body="",
+                draft=False,
+                prerelease=False,
+                url="",
+                created_at="2024-01-01",
+            ),
+            Release(
+                tag="v2.0.0",
+                title="Stable2",
+                body="",
+                draft=False,
+                prerelease=False,
+                url="",
+                created_at="2024-01-02",
+            ),
+            Release(
+                tag="v3.0.0-draft",
+                title="Draft",
+                body="",
+                draft=True,
+                prerelease=False,
+                url="",
+                created_at="2024-01-03",
+            ),
+            Release(
+                tag="v4.0.0-rc1",
+                title="RC",
+                body="",
+                draft=False,
+                prerelease=True,
+                url="",
+                created_at="2024-01-04",
+            ),
+        ]
+        adapter = MagicMock()
+        adapter.list_releases.return_value = releases
+        args = make_args(limit=4, draft=False, prerelease=False)
+        with _patch_all(sample_config, adapter):
+            release_cmd.handle_list(args, fmt="json")
+        data = json.loads(capsys.readouterr().out)
+        assert len(data) == 2
+        assert all(not r["draft"] and not r["prerelease"] for r in data)
+
+    def test_prerelease_and_limit(self, sample_config, capsys):
+        """prerelease=True フィルタで prerelease のみ残るケース。"""
+        releases = [
+            Release(
+                tag="v1.0.0-rc1",
+                title="RC1",
+                body="",
+                draft=False,
+                prerelease=True,
+                url="",
+                created_at="2024-01-01",
+            ),
+            Release(
+                tag="v2.0.0-rc2",
+                title="RC2",
+                body="",
+                draft=False,
+                prerelease=True,
+                url="",
+                created_at="2024-01-02",
+            ),
+            Release(
+                tag="v3.0.0",
+                title="Stable",
+                body="",
+                draft=False,
+                prerelease=False,
+                url="",
+                created_at="2024-01-03",
+            ),
+        ]
+        adapter = MagicMock()
+        adapter.list_releases.return_value = releases
+        args = make_args(limit=3, draft=None, prerelease=True)
+        with _patch_all(sample_config, adapter):
+            release_cmd.handle_list(args, fmt="json")
+        data = json.loads(capsys.readouterr().out)
+        assert len(data) == 2
+        assert all(r["prerelease"] for r in data)
+
 
 class TestHandleCreate:
     def setup_method(self):

@@ -80,5 +80,3 @@ pytest
 # 特定テストの実行
 pytest tests/test_commands/test_pr.py -v
 ```
-
-カバレッジ: 2552 テスト、88%

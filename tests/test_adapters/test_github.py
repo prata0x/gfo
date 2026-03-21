@@ -1173,6 +1173,40 @@ class TestUpdateRelease:
         assert "draft" not in req_body
         assert "prerelease" not in req_body
 
+    def test_update_new_tag(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json={"id": 42, "tag_name": "v1.0.0"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/releases/42",
+            json=_release_data(),
+            status=200,
+        )
+        github_adapter.update_release(tag="v1.0.0", new_tag="v1.0.1")
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["tag_name"] == "v1.0.1"
+
+    def test_update_target(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json={"id": 42, "tag_name": "v1.0.0"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/releases/42",
+            json=_release_data(),
+            status=200,
+        )
+        github_adapter.update_release(tag="v1.0.0", target="main")
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["target_commitish"] == "main"
+
 
 # --- Label 系 ---
 
@@ -2907,6 +2941,23 @@ class TestUpdateRepository:
         github_adapter.update_repository(private=True)
         assert json.loads(responses.calls[0].request.body)["private"] is True
 
+    @responses.activate
+    def test_update_merge_strategy(self, github_adapter):
+        responses.add(responses.PATCH, f"{REPOS}", json=_repo_data(), status=200)
+        github_adapter.update_repository(
+            allow_merge_commit=True, allow_squash_merge=False, allow_rebase_merge=True
+        )
+        req_body = json.loads(responses.calls[0].request.body)
+        assert req_body["allow_merge_commit"] is True
+        assert req_body["allow_squash_merge"] is False
+        assert req_body["allow_rebase_merge"] is True
+
+    @responses.activate
+    def test_update_delete_branch_on_merge(self, github_adapter):
+        responses.add(responses.PATCH, f"{REPOS}", json=_repo_data(), status=200)
+        github_adapter.update_repository(delete_branch_on_merge=True)
+        assert json.loads(responses.calls[0].request.body)["delete_branch_on_merge"] is True
+
 
 class TestArchiveRepository:
     @responses.activate
@@ -3021,6 +3072,30 @@ class TestTopics:
         responses.add(responses.PUT, f"{REPOS}/topics", json={"names": ["a"]}, status=200)
         result = github_adapter.remove_topic("b")
         assert "b" not in result
+
+
+class TestListContributors:
+    def test_basic(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/contributors",
+            json=[{"login": "alice", "contributions": 100}],
+            status=200,
+        )
+        contributors = github_adapter.list_contributors()
+        assert len(contributors) == 1
+        assert contributors[0].username == "alice"
+        assert contributors[0].commits == 100
+
+    def test_empty(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/contributors",
+            json=[],
+            status=200,
+        )
+        contributors = github_adapter.list_contributors()
+        assert contributors == []
 
 
 class TestCompare:

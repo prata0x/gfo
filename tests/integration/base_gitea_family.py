@@ -10,6 +10,7 @@ import time
 
 import pytest
 
+from gfo.adapter.base import Repository
 from gfo.exceptions import GfoError, HttpError
 from tests.integration.conftest import (
     TEST_SSH_PUBLIC_KEY,
@@ -113,6 +114,23 @@ class GiteaFamilyIntegrationBase:
         names = [r.name for r in repos]
         assert self.config.repo in names
 
+    def test_02a_repo_list_visibility(self) -> None:
+        repos = self.adapter.list_repositories(visibility="public", limit=10)
+        assert isinstance(repos, list)
+        names = [r.name for r in repos]
+        assert self.config.repo in names
+
+    def test_02b_repo_edit_merge_strategy(self) -> None:
+        repo = self.adapter.update_repository(delete_branch_on_merge=True)
+        assert isinstance(repo, Repository)
+        self.adapter.update_repository(delete_branch_on_merge=False)
+
+    def test_02c_repo_contributors(self) -> None:
+        contributors = self.adapter.list_contributors(limit=10)
+        assert isinstance(contributors, list)
+        assert len(contributors) >= 1
+        assert contributors[0].commits >= 1
+
     # --- Phase 2: Label ---
 
     def test_03_label_create(self) -> None:
@@ -209,6 +227,35 @@ class GiteaFamilyIntegrationBase:
         releases = self.adapter.list_releases(limit=10)
         tags = [r.tag for r in releases]
         assert "v0.0.1-test" in tags
+
+    def test_16a_release_edit(self) -> None:
+        updated = self.adapter.update_release(
+            tag="v0.0.1-test",
+            title="Test Release (Updated)",
+            notes="Updated notes",
+            draft=False,
+            prerelease=True,
+        )
+        assert updated.title == "Test Release (Updated)"
+        assert updated.prerelease is True
+        self.adapter.update_release(
+            tag="v0.0.1-test",
+            prerelease=False,
+        )
+
+    def test_16b_release_list_filter(self) -> None:
+        self.adapter.create_release(tag="v0.0.2-draft", title="Draft", notes="", draft=True)
+        self.adapter.create_release(tag="v0.0.3-rc1", title="RC1", notes="", prerelease=True)
+        time.sleep(2)
+        releases = self.adapter.list_releases(limit=50)
+        drafts = [r for r in releases if r.draft]
+        prereleases = [r for r in releases if r.prerelease]
+        non_drafts = [r for r in releases if not r.draft]
+        assert any(r.tag == "v0.0.2-draft" for r in drafts)
+        assert not any(r.tag == "v0.0.2-draft" for r in non_drafts)
+        assert any(r.tag == "v0.0.3-rc1" for r in prereleases)
+        self.adapter.delete_release(tag="v0.0.2-draft")
+        self.adapter.delete_release(tag="v0.0.3-rc1")
 
     # --- PR close ---
 

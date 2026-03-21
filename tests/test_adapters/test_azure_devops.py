@@ -944,6 +944,19 @@ class TestUpdateRepositoryAzureDevOps:
         assert json.loads(responses.calls[0].request.body)["isDisabled"] is True
 
 
+class TestDisableAutoMergeAzureDevOps:
+    def test_calls_patch_with_empty_autocomplete(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{GIT}/pullrequests/1",
+            json={},
+            status=200,
+        )
+        azure_devops_adapter.disable_auto_merge(1)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["autoCompleteSetBy"]["id"] == ""
+
+
 class TestListRepositoriesArchivedAzureDevOps:
     def test_archived_filter(self, mock_responses, azure_devops_adapter):
         mock_responses.add(
