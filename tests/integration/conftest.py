@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -192,6 +193,17 @@ def get_configured_saas_services() -> list[ServiceTestConfig]:
         if config is not None:
             configs.append(config)
     return configs
+
+
+# SaaS テスト間のディレイ（秒）。レート制限対策。
+_SAAS_DELAY = float(os.environ.get("GFO_TEST_SAAS_DELAY", "0.5"))
+
+
+def pytest_runtest_teardown(item: object) -> None:
+    """SaaS 統合テスト後にディレイを挿入してレート制限を回避する。"""
+    markers = {m.name for m in getattr(item, "iter_markers", lambda: [])()}
+    if "saas" in markers and "integration" in markers and _SAAS_DELAY > 0:
+        time.sleep(_SAAS_DELAY)
 
 
 def get_configured_selfhosted_services() -> list[ServiceTestConfig]:
