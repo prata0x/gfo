@@ -71,10 +71,14 @@ def handle_path(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 
 
 def _flatten(data: dict, prefix: str = "") -> list[tuple[str, str]]:
-    """ネストされた dict をフラットな (キー, 値) リストに変換する。"""
+    """ネストされた dict をフラットな (キー, 値) リストに変換する。
+
+    ドットを含むキーは引用符で囲み、出力をそのまま get/set/unset に渡せるようにする。
+    """
     entries: list[tuple[str, str]] = []
     for key, value in data.items():
-        full_key = f"{prefix}{key}" if not prefix else f"{prefix}.{key}"
+        escaped = f'"{key}"' if "." in key else key
+        full_key = f"{prefix}{escaped}" if not prefix else f"{prefix}.{escaped}"
         if isinstance(value, dict):
             entries.extend(_flatten(value, full_key))
         else:

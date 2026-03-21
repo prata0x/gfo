@@ -158,7 +158,7 @@ class TestHandleList:
         assert "defaults.host=github.com" in out
 
     def test_list_nested_values(self, config_dir, capsys):
-        """ネストされた設定値を一覧表示。"""
+        """ネストされた設定値を一覧表示（ドット含みキーは引用符付き）。"""
         _write_config(
             config_dir,
             '[defaults]\noutput = "table"\n\n[hosts."gitlab.example.com"]\ntype = "gitlab"\n',
@@ -167,7 +167,7 @@ class TestHandleList:
         config_cmd.handle_list(args, fmt="table")
         out = capsys.readouterr().out
         assert "defaults.output=table" in out
-        assert "hosts.gitlab.example.com.type=gitlab" in out
+        assert 'hosts."gitlab.example.com".type=gitlab' in out
 
     def test_list_json_format(self, config_dir, capsys):
         """fmt=json で JSON 出力。"""
@@ -277,3 +277,17 @@ class TestConfigRoundtrip:
         # host はまだ残っている
         config_cmd.handle_get(make_args(key="defaults.host"), fmt="table")
         assert capsys.readouterr().out.strip() == "github.com"
+
+    def test_list_output_usable_as_get_key(self, config_dir, capsys):
+        """list 出力のキーをそのまま get に渡せる。"""
+        _write_config(
+            config_dir,
+            '[hosts."gitlab.example.com"]\ntype = "gitlab"\n',
+        )
+        # list でキーを取得
+        config_cmd.handle_list(make_args(), fmt="table")
+        line = capsys.readouterr().out.strip()
+        key_from_list = line.split("=", 1)[0]
+        # そのキーで get できる
+        config_cmd.handle_get(make_args(key=key_from_list), fmt="table")
+        assert capsys.readouterr().out.strip() == "gitlab"
