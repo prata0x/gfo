@@ -181,19 +181,19 @@ class TestCIForgejo(
     pass
 
 
-# ── CI 非対応: Bitbucket / Azure DevOps / Backlog / Gogs / GitBucket ──
+# ── CI 対応: Bitbucket / Azure DevOps ──
 
 
-class TestCINotSupportedBitbucket(
-    _make_ci_not_supported_class(
+class TestCIBitbucket(
+    _make_ci_test_class(
         "bitbucket", marker="saas", skip_reason="Bitbucket credentials not configured"
     )
 ):
     pass
 
 
-class TestCINotSupportedAzureDevOps(
-    _make_ci_not_supported_class(
+class TestCIAzureDevOps(
+    _make_ci_test_class(
         "azure-devops", marker="saas", skip_reason="Azure DevOps credentials not configured"
     )
 ):
