@@ -498,7 +498,13 @@ class TestGitHubIntegration:
 
     def test_36_list_tags(self) -> None:
         """タグ一覧に test_35 で作成したタグが含まれることを確認する。"""
-        tags = self.adapter.list_tags()
+        import time
+
+        for _ in range(5):
+            tags = self.adapter.list_tags()
+            if any(t.name == "v0.0.2-test" for t in tags):
+                break
+            time.sleep(2)
         assert any(t.name == "v0.0.2-test" for t in tags)
 
     # --- delete_tag ---
