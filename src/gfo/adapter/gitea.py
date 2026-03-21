@@ -20,6 +20,7 @@ from .base import (
     CommitStatus,
     CompareFile,
     CompareResult,
+    Contributor,
     DeployKey,
     GitHubLikeAdapter,
     GitServiceAdapter,
@@ -293,17 +294,25 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     # --- Repository ---
 
     def list_repositories(
-        self, *, owner: str | None = None, limit: int = 30, archived: bool | None = None
+        self,
+        *,
+        owner: str | None = None,
+        limit: int = 30,
+        archived: bool | None = None,
+        visibility: str | None = None,
     ) -> list[Repository]:
         if owner is not None:
             path = f"/users/{quote(owner, safe='')}/repos"
         else:
             path = "/user/repos"
-        needs_client_filter = archived is not None
+        needs_client_filter = archived is not None or visibility is not None
         fetch_limit = 0 if needs_client_filter else limit
         results = paginate_link_header(self._client, path, limit=fetch_limit, per_page_key="limit")
         if archived is not None:
             results = [r for r in results if r.get("archived", False) == archived]
+        if visibility is not None:
+            is_private = visibility == "private"
+            results = [r for r in results if r.get("private", False) == is_private]
         if needs_client_filter and limit > 0:
             results = results[:limit]
         return [self._to_repository(r) for r in results]
@@ -335,6 +344,10 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         default_branch: str | None = None,
         archived: bool | None = None,
         has_wiki: bool | None = None,
+        allow_merge_commit: bool | None = None,
+        allow_squash_merge: bool | None = None,
+        allow_rebase_merge: bool | None = None,
+        delete_branch_on_merge: bool | None = None,
     ) -> Repository:
         payload: dict = {}
         if name is not None:
@@ -349,6 +362,15 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["archived"] = archived
         if has_wiki is not None:
             payload["has_wiki"] = has_wiki
+        # Gitea の default_merge_style: "merge" | "rebase" | "squash" | "rebase-merge"
+        if allow_squash_merge is True:
+            payload["default_merge_style"] = "squash"
+        elif allow_rebase_merge is True:
+            payload["default_merge_style"] = "rebase"
+        elif allow_merge_commit is True:
+            payload["default_merge_style"] = "merge"
+        if delete_branch_on_merge is not None:
+            payload["default_delete_branch_after_merge"] = delete_branch_on_merge
         resp = self._client.patch(self._repos_path(), json=payload)
         return self._to_repository(resp.json())
 
@@ -376,6 +398,31 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def remove_topic(self, topic: str) -> list[str]:
         self._client.delete(f"{self._repos_path()}/topics/{quote(topic, safe='')}")
         return self.list_topics()
+
+    def list_contributors(self, *, limit: int = 30) -> list[Contributor]:
+        # Gitea は GitHub 互換のレスポンスを返さないため、git log ベースの API を利用
+        # /repos/{owner}/{repo}/contributors は Gitea 1.22+ で利用可能
+        # 未実装の場合はフォールバックなしで NotSupportedError
+        from gfo.exceptions import NotSupportedError
+
+        try:
+            results = paginate_link_header(
+                self._client,
+                f"{self._repos_path()}/contributors",
+                limit=limit,
+                per_page_key="limit",
+            )
+        except Exception:
+            raise NotSupportedError(self.service_name, "repo contributors")
+        return [
+            Contributor(
+                username=r.get("login"),
+                name=r.get("name") or r.get("full_name"),
+                email=r.get("email"),
+                commits=r.get("contributions", 0),
+            )
+            for r in results
+        ]
 
     # --- Compare ---
 
@@ -482,6 +529,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         notes: str | None = None,
         draft: bool | None = None,
         prerelease: bool | None = None,
+        new_tag: str | None = None,
+        target: str | None = None,
     ) -> Release:
         resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
         release_id = resp.json()["id"]
@@ -494,6 +543,10 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["draft"] = draft
         if prerelease is not None:
             payload["prerelease"] = prerelease
+        if new_tag is not None:
+            payload["tag_name"] = new_tag
+        if target is not None:
+            payload["target_commitish"] = target
         resp = self._client.patch(f"{self._repos_path()}/releases/{release_id}", json=payload)
         return self._to_release(resp.json())
 
@@ -808,6 +861,9 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             f"{self._repos_path()}/pulls/{number}/merge",
             json={"Do": merge_method or "merge", "merge_when_checks_succeed": True},
         )
+
+    def disable_auto_merge(self, number: int) -> None:
+        self._client.delete(f"{self._repos_path()}/pulls/{number}/merge")
 
     def dismiss_review(self, number: int, review_id: int, *, message: str = "") -> None:
         self._client.post(

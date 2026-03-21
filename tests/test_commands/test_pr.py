@@ -747,6 +747,24 @@ class TestHandleMergeAuto:
         adapter.enable_auto_merge.assert_called_once()
 
 
+class TestHandleMergeDisableAuto:
+    def test_disable_auto_merge_calls_adapter(self):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            args = make_args(number=1, squash=False, auto=False, disable_auto=True)
+            pr_cmd.handle_merge(args, fmt="table")
+        adapter.disable_auto_merge.assert_called_once_with(1)
+        adapter.merge_pull_request.assert_not_called()
+        adapter.enable_auto_merge.assert_not_called()
+
+    def test_disable_auto_prints_message(self, capsys):
+        with patch_adapter("gfo.commands.pr"):
+            args = make_args(number=42, squash=False, auto=False, disable_auto=True)
+            pr_cmd.handle_merge(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "42" in out
+        assert "Disabled" in out
+
+
 def test_pr_list_config_error(capsys):
     """resolve_project_config が ConfigError を投げた場合に CLI で exit code 6 になる。"""
     from gfo.cli import main

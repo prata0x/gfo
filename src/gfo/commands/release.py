@@ -20,6 +20,12 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         return
     adapter = get_adapter()
     releases = adapter.list_releases(limit=args.limit)
+    draft = getattr(args, "draft", None)
+    if draft is not None:
+        releases = [r for r in releases if r.draft == draft]
+    prerelease = getattr(args, "prerelease", None)
+    if prerelease is not None:
+        releases = [r for r in releases if r.prerelease == prerelease]
     output(releases, fmt=fmt, fields=["tag", "title", "draft", "prerelease"], jq=jq)
 
 
@@ -93,12 +99,19 @@ def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     if not tag:
         raise ConfigError(_("tag must not be empty."))
     adapter = get_adapter()
+    notes = args.notes
+    notes_file = getattr(args, "notes_file", None)
+    if notes_file:
+        notes = notes_file.read()
+        notes_file.close()
     release = adapter.update_release(
         tag=tag,
         title=args.title,
-        notes=args.notes,
+        notes=notes,
         draft=args.draft,
         prerelease=args.prerelease,
+        new_tag=getattr(args, "new_tag", None),
+        target=getattr(args, "target", None),
     )
     output(release, fmt=fmt, jq=jq)
 

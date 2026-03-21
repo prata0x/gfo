@@ -255,7 +255,7 @@ gfo pr view 42
 > Backlog は PR マージ非対応
 
 ```
-gfo pr merge NUMBER [--merge | --squash | --rebase] [--delete-branch] [--subject TITLE] [--body BODY] [--auto]
+gfo pr merge NUMBER [--merge | --squash | --rebase] [--delete-branch] [--subject TITLE] [--body BODY] [--auto] [--disable-auto]
 ```
 
 | オプション | 説明 |
@@ -267,14 +267,18 @@ gfo pr merge NUMBER [--merge | --squash | --rebase] [--delete-branch] [--subject
 | `--subject` | マージコミットのタイトル |
 | `--body` | マージコミットの本文 |
 | `--auto` | 自動マージを有効化（条件を満たしたら自動でマージ） |
+| `--disable-auto` | 自動マージを無効化 |
 
 > `--auto` 対応サービス: GitLab, Azure DevOps, Gitea, Forgejo
+>
+> `--disable-auto` 対応サービス: GitLab, Azure DevOps, Gitea, Forgejo
 
 ```bash
 gfo pr merge 42
 gfo pr merge 42 --squash --delete-branch
 gfo pr merge 42 --subject "feat: merge feature X" --body "Detailed description"
 gfo pr merge 42 --rebase --auto
+gfo pr merge 42 --disable-auto
 ```
 
 ### gfo pr close
@@ -946,12 +950,20 @@ gfo issue migrate --from github:owner/repo --to gitea:gitea.example.com:owner/re
 ### gfo repo list
 
 ```
-gfo repo list [--owner OWNER] [--archived] [--limit N]
+gfo repo list [--owner OWNER] [--archived] [--visibility public|private|internal] [--limit N]
 ```
+
+| オプション | 説明 |
+|---|---|
+| `--owner OWNER` | リポジトリオーナーでフィルタ |
+| `--archived` | アーカイブ済みリポジトリのみ表示 |
+| `--visibility`, `-V` | 可視性でフィルタ（`public`, `private`, `internal`） |
+| `--limit N` | 最大取得件数（デフォルト: 30） |
 
 ```bash
 gfo repo list
 gfo repo list --owner myorg --limit 50
+gfo repo list --visibility private
 ```
 
 ### gfo repo create
@@ -1028,7 +1040,7 @@ gfo repo fork --org myorg
 > **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
 
 ```
-gfo repo edit [--name NAME] [--description TEXT] [--private | --public] [--default-branch BRANCH]
+gfo repo edit [--name NAME] [--description TEXT] [--private | --public] [--default-branch BRANCH] [--allow-merge-commit | --no-allow-merge-commit] [--allow-squash-merge | --no-allow-squash-merge] [--allow-rebase-merge | --no-allow-rebase-merge] [--delete-branch-on-merge | --no-delete-branch-on-merge]
 ```
 
 | オプション | 説明 |
@@ -1038,10 +1050,30 @@ gfo repo edit [--name NAME] [--description TEXT] [--private | --public] [--defau
 | `--private` | リポジトリを非公開に設定 |
 | `--public` | リポジトリを公開に設定 |
 | `--default-branch BRANCH` | デフォルトブランチを変更 |
+| `--allow-merge-commit` / `--no-allow-merge-commit` | マージコミットの許可/禁止 |
+| `--allow-squash-merge` / `--no-allow-squash-merge` | スカッシュマージの許可/禁止 |
+| `--allow-rebase-merge` / `--no-allow-rebase-merge` | リベースマージの許可/禁止 |
+| `--delete-branch-on-merge` / `--no-delete-branch-on-merge` | マージ後のブランチ自動削除の有効/無効 |
 
 ```bash
 gfo repo edit --name new-repo-name
 gfo repo edit --description "Updated description" --private
+gfo repo edit --allow-squash-merge --no-allow-merge-commit --delete-branch-on-merge
+```
+
+### gfo repo contributors
+
+リポジトリの貢献者一覧を表示します。
+
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo repo contributors [--limit N]
+```
+
+```bash
+gfo repo contributors
+gfo repo contributors --limit 10
 ```
 
 ### gfo repo archive
@@ -1222,11 +1254,19 @@ gfo repo unstar
 ### gfo release list
 
 ```
-gfo release list [--limit N]
+gfo release list [--limit N] [--draft | --no-draft] [--prerelease | --no-prerelease]
 ```
+
+| オプション | 説明 |
+|---|---|
+| `--limit N` | 最大取得件数（デフォルト: 30） |
+| `--draft` / `--no-draft` | ドラフトのみ / ドラフト除外 |
+| `--prerelease` / `--no-prerelease` | プレリリースのみ / プレリリース除外 |
 
 ```bash
 gfo release list
+gfo release list --draft
+gfo release list --no-prerelease
 ```
 
 ### gfo release create
@@ -1286,20 +1326,25 @@ gfo release view --latest
 > GitBucket は非対応
 
 ```
-gfo release edit TAG [--title TITLE] [--notes NOTES] [--draft | --no-draft] [--prerelease | --no-prerelease]
+gfo release edit TAG [--title TITLE] [--notes NOTES] [--notes-file FILE] [--draft | --no-draft] [--prerelease | --no-prerelease] [--tag NEW_TAG] [--target TARGET]
 ```
 
 | オプション | 説明 |
 |---|---|
 | `--title` | リリースタイトル |
 | `--notes` | リリースノート |
+| `--notes-file`, `-F` | ファイルからリリースノートを読み込み |
 | `--draft` / `--no-draft` | ドラフト状態の切り替え |
 | `--prerelease` / `--no-prerelease` | プレリリース状態の切り替え |
+| `--tag` | 新しいタグ名（GitHub, Gitea, Forgejo） |
+| `--target` | ターゲットブランチまたはコミット SHA（GitHub, Gitea, Forgejo） |
 
 ```bash
 gfo release edit v1.0.0 --title "Version 1.0.0 GA"
 gfo release edit v1.0.0 --notes "Updated release notes"
 gfo release edit v1.0.0 --no-draft --no-prerelease
+gfo release edit v1.0.0 --notes-file CHANGELOG.md
+gfo release edit v1.0.0 --tag v1.0.1 --target main
 ```
 
 ### gfo release asset

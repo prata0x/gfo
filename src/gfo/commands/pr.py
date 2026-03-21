@@ -107,7 +107,10 @@ def handle_merge(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     if getattr(args, "delete_branch", False):
         pr_info = adapter.get_pull_request(args.number)
         source_branch = pr_info.source_branch
-    if getattr(args, "auto", False):
+    if getattr(args, "disable_auto", False):
+        adapter.disable_auto_merge(args.number)
+        print(_("Disabled auto-merge for PR #{number}.").format(number=args.number))
+    elif getattr(args, "auto", False):
         if getattr(args, "subject", None) or getattr(args, "body", None):
             warnings.warn(_("--subject/--body are ignored when --auto is used."), stacklevel=1)
         adapter.enable_auto_merge(args.number, merge_method=method)

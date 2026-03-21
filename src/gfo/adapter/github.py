@@ -21,6 +21,7 @@ from .base import (
     CommitStatus,
     CompareFile,
     CompareResult,
+    Contributor,
     DeployKey,
     GitHubLikeAdapter,
     GitServiceAdapter,
@@ -351,17 +352,28 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     # --- Repository ---
 
     def list_repositories(
-        self, *, owner: str | None = None, limit: int = 30, archived: bool | None = None
+        self,
+        *,
+        owner: str | None = None,
+        limit: int = 30,
+        archived: bool | None = None,
+        visibility: str | None = None,
     ) -> list[Repository]:
+        params: dict = {}
         if owner is not None:
             path = f"/users/{quote(owner, safe='')}/repos"
         else:
             path = "/user/repos"
-        needs_client_filter = archived is not None
+            if visibility is not None:
+                params["visibility"] = visibility
+        needs_client_filter = archived is not None or (visibility is not None and owner is not None)
         fetch_limit = 0 if needs_client_filter else limit
-        results = paginate_link_header(self._client, path, limit=fetch_limit)
+        results = paginate_link_header(self._client, path, limit=fetch_limit, params=params)
         if archived is not None:
             results = [r for r in results if r.get("archived", False) == archived]
+        if visibility is not None and owner is not None:
+            is_private = visibility == "private"
+            results = [r for r in results if r.get("private", False) == is_private]
         if needs_client_filter and limit > 0:
             results = results[:limit]
         return [self._to_repository(r) for r in results]
@@ -392,6 +404,10 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         private: bool | None = None,
         default_branch: str | None = None,
         archived: bool | None = None,
+        allow_merge_commit: bool | None = None,
+        allow_squash_merge: bool | None = None,
+        allow_rebase_merge: bool | None = None,
+        delete_branch_on_merge: bool | None = None,
     ) -> Repository:
         payload: dict = {}
         if name is not None:
@@ -404,6 +420,14 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["default_branch"] = default_branch
         if archived is not None:
             payload["archived"] = archived
+        if allow_merge_commit is not None:
+            payload["allow_merge_commit"] = allow_merge_commit
+        if allow_squash_merge is not None:
+            payload["allow_squash_merge"] = allow_squash_merge
+        if allow_rebase_merge is not None:
+            payload["allow_rebase_merge"] = allow_rebase_merge
+        if delete_branch_on_merge is not None:
+            payload["delete_branch_on_merge"] = delete_branch_on_merge
         resp = self._client.patch(self._repos_path(), json=payload)
         return self._to_repository(resp.json())
 
@@ -421,6 +445,20 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def set_topics(self, topics: list[str]) -> list[str]:
         resp = self._client.put(f"{self._repos_path()}/topics", json={"names": topics})
         return list(resp.json().get("names", []))
+
+    def list_contributors(self, *, limit: int = 30) -> list[Contributor]:
+        results = paginate_link_header(
+            self._client, f"{self._repos_path()}/contributors", limit=limit
+        )
+        return [
+            Contributor(
+                username=r.get("login"),
+                name=None,
+                email=None,
+                commits=r.get("contributions", 0),
+            )
+            for r in results
+        ]
 
     def compare(self, base: str, head: str) -> CompareResult:
         resp = self._client.get(
@@ -518,6 +556,8 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         notes: str | None = None,
         draft: bool | None = None,
         prerelease: bool | None = None,
+        new_tag: str | None = None,
+        target: str | None = None,
     ) -> Release:
         resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
         release_id = resp.json()["id"]
@@ -530,6 +570,10 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["draft"] = draft
         if prerelease is not None:
             payload["prerelease"] = prerelease
+        if new_tag is not None:
+            payload["tag_name"] = new_tag
+        if target is not None:
+            payload["target_commitish"] = target
         resp = self._client.patch(f"{self._repos_path()}/releases/{release_id}", json=payload)
         return self._to_release(resp.json())
 

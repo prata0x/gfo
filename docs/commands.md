@@ -255,7 +255,7 @@ gfo pr view 42
 > Backlog does not support PR merge
 
 ```
-gfo pr merge NUMBER [--merge | --squash | --rebase] [--delete-branch] [--subject TITLE] [--body BODY] [--auto]
+gfo pr merge NUMBER [--merge | --squash | --rebase] [--delete-branch] [--subject TITLE] [--body BODY] [--auto] [--disable-auto]
 ```
 
 | Option | Description |
@@ -267,14 +267,18 @@ gfo pr merge NUMBER [--merge | --squash | --rebase] [--delete-branch] [--subject
 | `--subject` | Merge commit title |
 | `--body` | Merge commit body |
 | `--auto` | Enable auto-merge (merges automatically when conditions are met) |
+| `--disable-auto` | Disable auto-merge |
 
 > `--auto` supported services: GitLab, Azure DevOps, Gitea, Forgejo
+>
+> `--disable-auto` supported services: GitLab, Azure DevOps, Gitea, Forgejo
 
 ```bash
 gfo pr merge 42
 gfo pr merge 42 --squash --delete-branch
 gfo pr merge 42 --subject "feat: merge feature X" --body "Detailed description"
 gfo pr merge 42 --rebase --auto
+gfo pr merge 42 --disable-auto
 ```
 
 ### gfo pr close
@@ -946,12 +950,20 @@ Operate repositories.
 ### gfo repo list
 
 ```
-gfo repo list [--owner OWNER] [--archived] [--limit N]
+gfo repo list [--owner OWNER] [--archived] [--visibility public|private|internal] [--limit N]
 ```
+
+| Option | Description |
+|---|---|
+| `--owner OWNER` | Filter by repository owner |
+| `--archived` | Show only archived repositories |
+| `--visibility`, `-V` | Filter by visibility (`public`, `private`, `internal`) |
+| `--limit N` | Maximum number of results (default: 30) |
 
 ```bash
 gfo repo list
 gfo repo list --owner myorg --limit 50
+gfo repo list --visibility private
 ```
 
 ### gfo repo create
@@ -1028,7 +1040,7 @@ Edit repository settings.
 > **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
 
 ```
-gfo repo edit [--name NAME] [--description TEXT] [--private | --public] [--default-branch BRANCH]
+gfo repo edit [--name NAME] [--description TEXT] [--private | --public] [--default-branch BRANCH] [--allow-merge-commit | --no-allow-merge-commit] [--allow-squash-merge | --no-allow-squash-merge] [--allow-rebase-merge | --no-allow-rebase-merge] [--delete-branch-on-merge | --no-delete-branch-on-merge]
 ```
 
 | Option | Description |
@@ -1038,10 +1050,30 @@ gfo repo edit [--name NAME] [--description TEXT] [--private | --public] [--defau
 | `--private` | Set repository as private |
 | `--public` | Set repository as public |
 | `--default-branch BRANCH` | Change default branch |
+| `--allow-merge-commit` / `--no-allow-merge-commit` | Allow/disallow merge commits |
+| `--allow-squash-merge` / `--no-allow-squash-merge` | Allow/disallow squash merging |
+| `--allow-rebase-merge` / `--no-allow-rebase-merge` | Allow/disallow rebase merging |
+| `--delete-branch-on-merge` / `--no-delete-branch-on-merge` | Enable/disable auto-delete branch on merge |
 
 ```bash
 gfo repo edit --name new-repo-name
 gfo repo edit --description "Updated description" --private
+gfo repo edit --allow-squash-merge --no-allow-merge-commit --delete-branch-on-merge
+```
+
+### gfo repo contributors
+
+List repository contributors.
+
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
+
+```
+gfo repo contributors [--limit N]
+```
+
+```bash
+gfo repo contributors
+gfo repo contributors --limit 10
 ```
 
 ### gfo repo archive
@@ -1222,11 +1254,19 @@ Manage releases.
 ### gfo release list
 
 ```
-gfo release list [--limit N]
+gfo release list [--limit N] [--draft | --no-draft] [--prerelease | --no-prerelease]
 ```
+
+| Option | Description |
+|---|---|
+| `--limit N` | Maximum number of results (default: 30) |
+| `--draft` / `--no-draft` | Filter draft only / exclude drafts |
+| `--prerelease` / `--no-prerelease` | Filter prerelease only / exclude prereleases |
 
 ```bash
 gfo release list
+gfo release list --draft
+gfo release list --no-prerelease
 ```
 
 ### gfo release create
@@ -1286,20 +1326,25 @@ gfo release view --latest
 > GitBucket not supported
 
 ```
-gfo release edit TAG [--title TITLE] [--notes NOTES] [--draft | --no-draft] [--prerelease | --no-prerelease]
+gfo release edit TAG [--title TITLE] [--notes NOTES] [--notes-file FILE] [--draft | --no-draft] [--prerelease | --no-prerelease] [--tag NEW_TAG] [--target TARGET]
 ```
 
 | Option | Description |
 |---|---|
 | `--title` | Release title |
 | `--notes` | Release notes |
+| `--notes-file`, `-F` | Read release notes from file |
 | `--draft` / `--no-draft` | Toggle draft status |
 | `--prerelease` / `--no-prerelease` | Toggle prerelease status |
+| `--tag` | New tag name (GitHub, Gitea, Forgejo) |
+| `--target` | Target branch or commit SHA (GitHub, Gitea, Forgejo) |
 
 ```bash
 gfo release edit v1.0.0 --title "Version 1.0.0 GA"
 gfo release edit v1.0.0 --notes "Updated release notes"
 gfo release edit v1.0.0 --no-draft --no-prerelease
+gfo release edit v1.0.0 --notes-file CHANGELOG.md
+gfo release edit v1.0.0 --tag v1.0.1 --target main
 ```
 
 ### gfo release asset

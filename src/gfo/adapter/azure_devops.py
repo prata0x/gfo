@@ -400,6 +400,12 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             },
         )
 
+    def disable_auto_merge(self, number: int) -> None:
+        self._client.patch(
+            f"{self._git_path()}/pullrequests/{number}",
+            json={"autoCompleteSetBy": {"id": ""}},
+        )
+
     def mark_pull_request_ready(self, number: int) -> None:
         self._client.patch(
             f"{self._git_path()}/pullrequests/{number}",
@@ -558,7 +564,12 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     # --- Repository ---
 
     def list_repositories(
-        self, *, owner: str | None = None, limit: int = 30, archived: bool | None = None
+        self,
+        *,
+        owner: str | None = None,
+        limit: int = 30,
+        archived: bool | None = None,
+        visibility: str | None = None,
     ) -> list[Repository]:
         if owner is not None:
             raise NotSupportedError(
@@ -566,6 +577,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 "filtering repositories by owner "
                 "(repositories are scoped to the configured project)",
             )
+        self._warn_unsupported_params("repo list", visibility=visibility)
         results = paginate_top_skip(
             self._client,
             "/git/repositories",
@@ -606,7 +618,18 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         private: bool | None = None,
         default_branch: str | None = None,
         archived: bool | None = None,
+        allow_merge_commit: bool | None = None,
+        allow_squash_merge: bool | None = None,
+        allow_rebase_merge: bool | None = None,
+        delete_branch_on_merge: bool | None = None,
     ) -> Repository:
+        self._warn_unsupported_params(
+            "repo edit",
+            allow_merge_commit=allow_merge_commit,
+            allow_squash_merge=allow_squash_merge,
+            allow_rebase_merge=allow_rebase_merge,
+            delete_branch_on_merge=delete_branch_on_merge,
+        )
         payload: dict = {}
         if name is not None:
             payload["name"] = name

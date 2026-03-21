@@ -29,6 +29,7 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         owner=getattr(args, "owner", None),
         limit=args.limit,
         archived=getattr(args, "archived", None),
+        visibility=getattr(args, "visibility", None),
     )
     output(repos, fmt=fmt, fields=["name", "full_name", "private", "description"], jq=jq)
 
@@ -225,6 +226,10 @@ def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         description=getattr(args, "description", None),
         private=getattr(args, "private", None),
         default_branch=getattr(args, "default_branch", None),
+        allow_merge_commit=getattr(args, "allow_merge_commit", None),
+        allow_squash_merge=getattr(args, "allow_squash_merge", None),
+        allow_rebase_merge=getattr(args, "allow_rebase_merge", None),
+        delete_branch_on_merge=getattr(args, "delete_branch_on_merge", None),
     )
     output(repo, fmt=fmt, jq=jq)
     if getattr(args, "name", None):
@@ -310,6 +315,13 @@ def _parse_compare_spec(spec: str) -> tuple[str, str]:
             parts = spec.split(sep, 1)
             return parts[0].strip(), parts[1].strip()
     raise ConfigError(_("Invalid compare spec. Use 'base...head' or 'base..head'."))
+
+
+def handle_contributors(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
+    """gfo repo contributors のハンドラ。"""
+    adapter = get_adapter()
+    contributors = adapter.list_contributors(limit=args.limit)
+    output(contributors, fmt=fmt, fields=["username", "name", "email", "commits"], jq=jq)
 
 
 def handle_compare(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

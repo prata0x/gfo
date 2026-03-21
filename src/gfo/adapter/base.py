@@ -216,6 +216,14 @@ class Notification:
 
 
 @dataclass(frozen=True, slots=True)
+class Contributor:
+    username: str | None
+    name: str | None
+    email: str | None
+    commits: int
+
+
+@dataclass(frozen=True, slots=True)
 class BranchProtection:
     branch: str
     require_reviews: int  # 0 = 無効
@@ -766,6 +774,9 @@ class GitServiceAdapter(ABC):
     def enable_auto_merge(self, number: int, *, merge_method: str | None = None) -> None:
         raise NotSupportedError(self.service_name, "pr auto-merge")
 
+    def disable_auto_merge(self, number: int) -> None:
+        raise NotSupportedError(self.service_name, "pr disable-auto-merge")
+
     def dismiss_review(self, number: int, review_id: int, *, message: str = "") -> None:
         raise NotSupportedError(self.service_name, "review dismiss")
 
@@ -823,7 +834,12 @@ class GitServiceAdapter(ABC):
     # --- Repository ---
     @abstractmethod
     def list_repositories(
-        self, *, owner: str | None = None, limit: int = 30, archived: bool | None = None
+        self,
+        *,
+        owner: str | None = None,
+        limit: int = 30,
+        archived: bool | None = None,
+        visibility: str | None = None,
     ) -> list[Repository]: ...
 
     @abstractmethod
@@ -851,6 +867,10 @@ class GitServiceAdapter(ABC):
         private: bool | None = None,
         default_branch: str | None = None,
         archived: bool | None = None,
+        allow_merge_commit: bool | None = None,
+        allow_squash_merge: bool | None = None,
+        allow_rebase_merge: bool | None = None,
+        delete_branch_on_merge: bool | None = None,
     ) -> Repository:
         raise NotSupportedError(self.service_name, "repo update")
 
@@ -889,6 +909,9 @@ class GitServiceAdapter(ABC):
             topics.remove(topic)
             return self.set_topics(topics)
         return topics
+
+    def list_contributors(self, *, limit: int = 30) -> list[Contributor]:
+        raise NotSupportedError(self.service_name, "repo contributors")
 
     def compare(self, base: str, head: str) -> CompareResult:
         raise NotSupportedError(self.service_name, "repo compare")
@@ -936,6 +959,8 @@ class GitServiceAdapter(ABC):
         notes: str | None = None,
         draft: bool | None = None,
         prerelease: bool | None = None,
+        new_tag: str | None = None,
+        target: str | None = None,
     ) -> Release:
         raise NotSupportedError(self.service_name, "release update")
 

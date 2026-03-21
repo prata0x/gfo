@@ -250,6 +250,8 @@ class GogsAdapter(GiteaAdapter):
         notes: str | None = None,
         draft: bool | None = None,
         prerelease: bool | None = None,
+        new_tag: str | None = None,
+        target: str | None = None,
     ) -> Release:
         raise NotSupportedError("Gogs", "release operations")
 
@@ -527,6 +529,10 @@ class GogsAdapter(GiteaAdapter):
         default_branch: str | None = None,
         archived: bool | None = None,
         has_wiki: bool | None = None,
+        allow_merge_commit: bool | None = None,
+        allow_squash_merge: bool | None = None,
+        allow_rebase_merge: bool | None = None,
+        delete_branch_on_merge: bool | None = None,
     ) -> Repository:
         raise NotSupportedError("Gogs", "repo update")
 

@@ -94,6 +94,97 @@ class TestHandleList:
         assert data[0]["tag"] == "v1.0.0"
 
 
+class TestHandleListFilter:
+    """release list の --draft / --prerelease フィルタテスト。"""
+
+    def setup_method(self):
+        self.releases = [
+            Release(
+                tag="v1.0.0",
+                title="Stable",
+                body="",
+                draft=False,
+                prerelease=False,
+                url="https://example.com/v1.0.0",
+                created_at="2024-01-01",
+            ),
+            Release(
+                tag="v2.0.0-rc1",
+                title="RC",
+                body="",
+                draft=False,
+                prerelease=True,
+                url="https://example.com/v2.0.0-rc1",
+                created_at="2024-01-02",
+            ),
+            Release(
+                tag="v3.0.0-draft",
+                title="Draft",
+                body="",
+                draft=True,
+                prerelease=False,
+                url="https://example.com/v3.0.0-draft",
+                created_at="2024-01-03",
+            ),
+        ]
+        self.adapter = MagicMock()
+        self.adapter.list_releases.return_value = self.releases
+
+    def test_draft_filter(self, sample_config, capsys):
+        args = make_args(limit=30, draft=True, prerelease=None)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_list(args, fmt="json")
+        data = json.loads(capsys.readouterr().out)
+        assert len(data) == 1
+        assert data[0]["tag"] == "v3.0.0-draft"
+
+    def test_no_draft_filter(self, sample_config, capsys):
+        args = make_args(limit=30, draft=False, prerelease=None)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_list(args, fmt="json")
+        data = json.loads(capsys.readouterr().out)
+        assert len(data) == 2
+        assert all(not r["draft"] for r in data)
+
+    def test_prerelease_filter(self, sample_config, capsys):
+        args = make_args(limit=30, draft=None, prerelease=True)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_list(args, fmt="json")
+        data = json.loads(capsys.readouterr().out)
+        assert len(data) == 1
+        assert data[0]["tag"] == "v2.0.0-rc1"
+
+    def test_no_prerelease_filter(self, sample_config, capsys):
+        args = make_args(limit=30, draft=None, prerelease=False)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_list(args, fmt="json")
+        data = json.loads(capsys.readouterr().out)
+        assert len(data) == 2
+        assert all(not r["prerelease"] for r in data)
+
+    def test_combined_filter(self, sample_config, capsys):
+        args = make_args(limit=30, draft=False, prerelease=False)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_list(args, fmt="json")
+        data = json.loads(capsys.readouterr().out)
+        assert len(data) == 1
+        assert data[0]["tag"] == "v1.0.0"
+
+    def test_no_filter(self, sample_config, capsys):
+        args = make_args(limit=30, draft=None, prerelease=None)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_list(args, fmt="json")
+        data = json.loads(capsys.readouterr().out)
+        assert len(data) == 3
+
+    def test_filter_all_excluded(self, sample_config, capsys):
+        args = make_args(limit=30, draft=True, prerelease=True)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_list(args, fmt="json")
+        data = json.loads(capsys.readouterr().out)
+        assert len(data) == 0
+
+
 class TestHandleCreate:
     def setup_method(self):
         self.release = _make_release()
@@ -327,6 +418,8 @@ class TestHandleEdit:
             notes="New notes",
             draft=True,
             prerelease=False,
+            new_tag=None,
+            target=None,
         )
 
     def test_update_with_none_fields(self, sample_config):
@@ -349,6 +442,91 @@ class TestHandleEdit:
         data = json.loads(out)
         assert isinstance(data, list)
         assert data[0]["tag"] == "v1.0.0"
+
+    def test_notes_file_overrides_notes(self, sample_config):
+        """--notes-file が指定されたらファイル内容を notes として使用する。"""
+        import io
+
+        notes_file = io.StringIO("Notes from file")
+        args = make_args(
+            tag="v1.0.0",
+            title=None,
+            notes=None,
+            draft=None,
+            prerelease=None,
+            notes_file=notes_file,
+        )
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_edit(args, fmt="table")
+
+        call_kwargs = self.adapter.update_release.call_args.kwargs
+        assert call_kwargs["notes"] == "Notes from file"
+
+    def test_notes_file_none_uses_notes(self, sample_config):
+        """--notes-file 未指定なら --notes の値を使用する。"""
+        args = make_args(
+            tag="v1.0.0",
+            title=None,
+            notes="Inline notes",
+            draft=None,
+            prerelease=None,
+            notes_file=None,
+        )
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_edit(args, fmt="table")
+
+        call_kwargs = self.adapter.update_release.call_args.kwargs
+        assert call_kwargs["notes"] == "Inline notes"
+
+    def test_new_tag_passed_to_adapter(self, sample_config):
+        args = make_args(
+            tag="v1.0.0",
+            title=None,
+            notes=None,
+            draft=None,
+            prerelease=None,
+            new_tag="v1.0.1",
+            target=None,
+        )
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_edit(args, fmt="table")
+
+        call_kwargs = self.adapter.update_release.call_args.kwargs
+        assert call_kwargs["new_tag"] == "v1.0.1"
+        assert call_kwargs["target"] is None
+
+    def test_target_passed_to_adapter(self, sample_config):
+        args = make_args(
+            tag="v1.0.0",
+            title=None,
+            notes=None,
+            draft=None,
+            prerelease=None,
+            new_tag=None,
+            target="main",
+        )
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_edit(args, fmt="table")
+
+        call_kwargs = self.adapter.update_release.call_args.kwargs
+        assert call_kwargs["target"] == "main"
+
+    def test_new_tag_and_target_combined(self, sample_config):
+        args = make_args(
+            tag="v1.0.0",
+            title=None,
+            notes=None,
+            draft=None,
+            prerelease=None,
+            new_tag="v2.0.0",
+            target="develop",
+        )
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_edit(args, fmt="table")
+
+        call_kwargs = self.adapter.update_release.call_args.kwargs
+        assert call_kwargs["new_tag"] == "v2.0.0"
+        assert call_kwargs["target"] == "develop"
 
     def test_empty_tag_raises_config_error(self, sample_config):
         args = make_args(tag="", title=None, notes=None, draft=None, prerelease=None)

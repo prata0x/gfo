@@ -21,6 +21,7 @@ from .base import (
     CommitStatus,
     CompareFile,
     CompareResult,
+    Contributor,
     DeployKey,
     GitServiceAdapter,
     GpgKey,
@@ -413,7 +414,12 @@ class GitLabAdapter(GitServiceAdapter):
     # --- Repository ---
 
     def list_repositories(
-        self, *, owner: str | None = None, limit: int = 30, archived: bool | None = None
+        self,
+        *,
+        owner: str | None = None,
+        limit: int = 30,
+        archived: bool | None = None,
+        visibility: str | None = None,
     ) -> list[Repository]:
         if owner is not None:
             path = f"/users/{quote(owner, safe='')}/projects"
@@ -423,6 +429,8 @@ class GitLabAdapter(GitServiceAdapter):
             params = {"owned": "true", "membership": "true"}
         if archived is not None:
             params["archived"] = str(archived).lower()
+        if visibility is not None:
+            params["visibility"] = visibility
         results = paginate_page_param(self._client, path, params=params, limit=limit)
         return [self._to_repository(r) for r in results]
 
@@ -453,6 +461,10 @@ class GitLabAdapter(GitServiceAdapter):
         private: bool | None = None,
         default_branch: str | None = None,
         archived: bool | None = None,
+        allow_merge_commit: bool | None = None,
+        allow_squash_merge: bool | None = None,
+        allow_rebase_merge: bool | None = None,
+        delete_branch_on_merge: bool | None = None,
     ) -> Repository:
         # GitLab は archive/unarchive に専用エンドポイントを使う
         if archived is not None:
@@ -461,7 +473,7 @@ class GitLabAdapter(GitServiceAdapter):
             else:
                 self._client.post(f"{self._project_path()}/unarchive")
 
-        payload = {}
+        payload: dict = {}
         if name is not None:
             payload["name"] = name
         if description is not None:
@@ -470,6 +482,15 @@ class GitLabAdapter(GitServiceAdapter):
             payload["visibility"] = "private" if private else "public"
         if default_branch is not None:
             payload["default_branch"] = default_branch
+        # GitLab の merge_method: "merge" | "rebase_merge" | "ff"
+        if allow_rebase_merge is True:
+            payload["merge_method"] = "rebase_merge"
+        elif allow_merge_commit is True:
+            payload["merge_method"] = "merge"
+        elif allow_squash_merge is True:
+            payload["merge_method"] = "merge"
+        if delete_branch_on_merge is not None:
+            payload["remove_source_branch_after_merge"] = delete_branch_on_merge
 
         if payload:
             resp = self._client.put(self._project_path(), json=payload)
@@ -493,6 +514,22 @@ class GitLabAdapter(GitServiceAdapter):
     def set_topics(self, topics: list[str]) -> list[str]:
         resp = self._client.put(self._project_path(), json={"topics": topics})
         return list(resp.json().get("topics", []))
+
+    def list_contributors(self, *, limit: int = 30) -> list[Contributor]:
+        results = paginate_page_param(
+            self._client,
+            f"{self._project_path()}/repository/contributors",
+            limit=limit,
+        )
+        return [
+            Contributor(
+                username=None,
+                name=r.get("name"),
+                email=r.get("email"),
+                commits=r.get("commits", 0),
+            )
+            for r in results
+        ]
 
     # --- Compare ---
 
@@ -613,7 +650,13 @@ class GitLabAdapter(GitServiceAdapter):
         notes: str | None = None,
         draft: bool | None = None,
         prerelease: bool | None = None,
+        new_tag: str | None = None,
+        target: str | None = None,
     ) -> Release:
+        if new_tag is not None:
+            raise NotSupportedError("GitLab", "release tag rename")
+        if target is not None:
+            raise NotSupportedError("GitLab", "release target change")
         payload: dict = {}
         if title is not None:
             payload["name"] = title
@@ -1214,6 +1257,11 @@ class GitLabAdapter(GitServiceAdapter):
         self._client.put(
             f"{self._project_path()}/merge_requests/{number}/merge",
             json=payload,
+        )
+
+    def disable_auto_merge(self, number: int) -> None:
+        self._client.post(
+            f"{self._project_path()}/merge_requests/{number}/cancel_merge_when_pipeline_succeeds",
         )
 
     def mark_pull_request_ready(self, number: int) -> None:

@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from gfo.adapter.base import CompareFile, CompareResult, Repository
+from gfo.adapter.base import CompareFile, CompareResult, Contributor, Repository
 from gfo.commands import repo as repo_cmd
 from gfo.exceptions import ConfigError
 from tests.test_commands.conftest import make_args
@@ -53,7 +53,9 @@ class TestHandleList:
         with _patch_all(sample_config, mock_adapter):
             repo_cmd.handle_list(args, fmt="table")
 
-        mock_adapter.list_repositories.assert_called_once_with(owner=None, limit=30, archived=None)
+        mock_adapter.list_repositories.assert_called_once_with(
+            owner=None, limit=30, archived=None, visibility=None
+        )
 
     def test_passes_owner_to_adapter(self, sample_config, mock_adapter, capsys):
         """--owner 引数が adapter.list_repositories() に渡される（R39-01）。"""
@@ -62,7 +64,7 @@ class TestHandleList:
             repo_cmd.handle_list(args, fmt="table")
 
         mock_adapter.list_repositories.assert_called_once_with(
-            owner="other-user", limit=30, archived=None
+            owner="other-user", limit=30, archived=None, visibility=None
         )
 
     def test_outputs_results(self, sample_config, mock_adapter, capsys):
@@ -89,7 +91,56 @@ class TestHandleList:
         with _patch_all(sample_config, mock_adapter):
             repo_cmd.handle_list(args, fmt="table")
 
-        mock_adapter.list_repositories.assert_called_once_with(owner=None, limit=30, archived=True)
+        mock_adapter.list_repositories.assert_called_once_with(
+            owner=None, limit=30, archived=True, visibility=None
+        )
+
+    def test_passes_visibility_filter(self, sample_config, mock_adapter, capsys):
+        """--visibility フラグが adapter.list_repositories() に渡される。"""
+        args = make_args(owner=None, limit=30, archived=None, visibility="private")
+        with _patch_all(sample_config, mock_adapter):
+            repo_cmd.handle_list(args, fmt="table")
+
+        mock_adapter.list_repositories.assert_called_once_with(
+            owner=None, limit=30, archived=None, visibility="private"
+        )
+
+
+class TestHandleContributors:
+    def setup_method(self):
+        self.contributors = [
+            Contributor(username="alice", name="Alice", email="alice@example.com", commits=100),
+            Contributor(username="bob", name="Bob", email="bob@example.com", commits=50),
+        ]
+
+    def test_calls_list_contributors(self, sample_config):
+        adapter = MagicMock()
+        adapter.list_contributors.return_value = self.contributors
+        with _patch_all(sample_config, adapter):
+            args = make_args(limit=30)
+            repo_cmd.handle_contributors(args, fmt="table")
+        adapter.list_contributors.assert_called_once_with(limit=30)
+
+    def test_json_format(self, sample_config, capsys):
+        adapter = MagicMock()
+        adapter.list_contributors.return_value = self.contributors
+        with _patch_all(sample_config, adapter):
+            args = make_args(limit=30)
+            repo_cmd.handle_contributors(args, fmt="json")
+        data = json.loads(capsys.readouterr().out)
+        assert len(data) == 2
+        assert data[0]["username"] == "alice"
+        assert data[0]["commits"] == 100
+
+    def test_table_output(self, sample_config, capsys):
+        adapter = MagicMock()
+        adapter.list_contributors.return_value = self.contributors
+        with _patch_all(sample_config, adapter):
+            args = make_args(limit=30)
+            repo_cmd.handle_contributors(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "alice" in out
+        assert "bob" in out
 
 
 class TestResolveHostWithoutRepo:
@@ -759,6 +810,10 @@ class TestHandleEdit:
             description="new desc",
             private=True,
             default_branch="develop",
+            allow_merge_commit=None,
+            allow_squash_merge=None,
+            allow_rebase_merge=None,
+            delete_branch_on_merge=None,
         )
 
     def test_json_format(self, sample_config, sample_repo, capsys):
@@ -784,6 +839,10 @@ class TestHandleEdit:
             description=None,
             private=None,
             default_branch=None,
+            allow_merge_commit=None,
+            allow_squash_merge=None,
+            allow_rebase_merge=None,
+            delete_branch_on_merge=None,
         )
 
     def test_rename_shows_warning(self, sample_config, sample_repo, capsys):
@@ -798,6 +857,10 @@ class TestHandleEdit:
             description=None,
             private=None,
             default_branch=None,
+            allow_merge_commit=None,
+            allow_squash_merge=None,
+            allow_rebase_merge=None,
+            delete_branch_on_merge=None,
         )
         err = capsys.readouterr().err
         assert "remote" in err.lower() or "renamed" in err.lower()
@@ -811,6 +874,54 @@ class TestHandleEdit:
 
         err = capsys.readouterr().err
         assert err == ""
+
+
+class TestHandleEditMergeStrategy:
+    def test_merge_strategy_options_passed(self, sample_config, sample_repo):
+        adapter = MagicMock()
+        adapter.update_repository.return_value = sample_repo
+        args = make_args(
+            name=None,
+            description=None,
+            private=None,
+            default_branch=None,
+            allow_merge_commit=True,
+            allow_squash_merge=False,
+            allow_rebase_merge=None,
+            delete_branch_on_merge=True,
+        )
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_edit(args, fmt="table")
+
+        adapter.update_repository.assert_called_once_with(
+            name=None,
+            description=None,
+            private=None,
+            default_branch=None,
+            allow_merge_commit=True,
+            allow_squash_merge=False,
+            allow_rebase_merge=None,
+            delete_branch_on_merge=True,
+        )
+
+    def test_delete_branch_on_merge_false(self, sample_config, sample_repo):
+        adapter = MagicMock()
+        adapter.update_repository.return_value = sample_repo
+        args = make_args(
+            name=None,
+            description=None,
+            private=None,
+            default_branch=None,
+            allow_merge_commit=None,
+            allow_squash_merge=None,
+            allow_rebase_merge=None,
+            delete_branch_on_merge=False,
+        )
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_edit(args, fmt="table")
+
+        call_kwargs = adapter.update_repository.call_args.kwargs
+        assert call_kwargs["delete_branch_on_merge"] is False
 
 
 class TestHandleArchive:

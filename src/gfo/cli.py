@@ -246,6 +246,12 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_merge.add_argument("--subject", "-t", help=_("Merge commit title"))
     pr_merge.add_argument("--body", "-b", help=_("Merge commit body"))
     pr_merge.add_argument("--auto", action="store_true", help=_("Enable auto-merge"))
+    pr_merge.add_argument(
+        "--disable-auto",
+        dest="disable_auto",
+        action="store_true",
+        help=_("Disable auto-merge"),
+    )
     pr_close = pr_sub.add_parser("close", help=_("Close pull request"))
     pr_close.add_argument("number", type=int, help=_("PR number"))
     pr_checkout = pr_sub.add_parser("checkout", help=_("Checkout pull request branch"))
@@ -421,6 +427,12 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_list.add_argument(
         "--archived", action="store_true", default=None, help=_("Show only archived repositories")
     )
+    repo_list.add_argument(
+        "--visibility",
+        "-V",
+        choices=["public", "private", "internal"],
+        help=_("Filter by visibility"),
+    )
     repo_create = repo_sub.add_parser("create", help=_("Create repository"))
     repo_create.add_argument("name", help=_("Repository name"))
     _repo_create_visibility = repo_create.add_mutually_exclusive_group(required=True)
@@ -459,6 +471,68 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "--public", dest="private", action="store_false", help=_("Set as public")
     )
     repo_edit.add_argument("--default-branch", dest="default_branch", help=_("Default branch name"))
+    _repo_merge_commit = repo_edit.add_mutually_exclusive_group()
+    _repo_merge_commit.add_argument(
+        "--allow-merge-commit",
+        dest="allow_merge_commit",
+        action="store_true",
+        default=None,
+        help=_("Allow merge commits"),
+    )
+    _repo_merge_commit.add_argument(
+        "--no-allow-merge-commit",
+        dest="allow_merge_commit",
+        action="store_false",
+        help=_("Disallow merge commits"),
+    )
+    _repo_squash = repo_edit.add_mutually_exclusive_group()
+    _repo_squash.add_argument(
+        "--allow-squash-merge",
+        dest="allow_squash_merge",
+        action="store_true",
+        default=None,
+        help=_("Allow squash merging"),
+    )
+    _repo_squash.add_argument(
+        "--no-allow-squash-merge",
+        dest="allow_squash_merge",
+        action="store_false",
+        help=_("Disallow squash merging"),
+    )
+    _repo_rebase = repo_edit.add_mutually_exclusive_group()
+    _repo_rebase.add_argument(
+        "--allow-rebase-merge",
+        dest="allow_rebase_merge",
+        action="store_true",
+        default=None,
+        help=_("Allow rebase merging"),
+    )
+    _repo_rebase.add_argument(
+        "--no-allow-rebase-merge",
+        dest="allow_rebase_merge",
+        action="store_false",
+        help=_("Disallow rebase merging"),
+    )
+    _repo_delete_branch = repo_edit.add_mutually_exclusive_group()
+    _repo_delete_branch.add_argument(
+        "--delete-branch-on-merge",
+        dest="delete_branch_on_merge",
+        action="store_true",
+        default=None,
+        help=_("Delete branch on merge"),
+    )
+    _repo_delete_branch.add_argument(
+        "--no-delete-branch-on-merge",
+        dest="delete_branch_on_merge",
+        action="store_false",
+        help=_("Keep branch on merge"),
+    )
+
+    # gfo repo contributors
+    repo_contributors = repo_sub.add_parser("contributors", help=_("List repository contributors"))
+    repo_contributors.add_argument(
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
+    )
 
     # gfo repo archive
     repo_archive = repo_sub.add_parser("archive", help=_("Archive repository"))
@@ -507,6 +581,33 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     release_list.add_argument(
         "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
+    _release_list_draft = release_list.add_mutually_exclusive_group()
+    _release_list_draft.add_argument(
+        "--draft",
+        "-d",
+        dest="draft",
+        action="store_true",
+        default=None,
+        help=_("Filter draft releases only"),
+    )
+    _release_list_draft.add_argument(
+        "--no-draft", dest="draft", action="store_false", help=_("Filter non-draft releases only")
+    )
+    _release_list_prerelease = release_list.add_mutually_exclusive_group()
+    _release_list_prerelease.add_argument(
+        "--prerelease",
+        "-p",
+        dest="prerelease",
+        action="store_true",
+        default=None,
+        help=_("Filter prerelease only"),
+    )
+    _release_list_prerelease.add_argument(
+        "--no-prerelease",
+        dest="prerelease",
+        action="store_false",
+        help=_("Filter non-prerelease only"),
+    )
     release_list.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     release_create = release_sub.add_parser("create", help=_("Create release"))
     release_create.add_argument("tag", help=_("Tag name"))
@@ -543,6 +644,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     release_edit.add_argument("--title", "-t", help=_("Title"))
     release_edit.add_argument("--notes", "-n", help=_("Release notes"))
     release_edit.add_argument(
+        "--notes-file",
+        "-F",
+        dest="notes_file",
+        type=argparse.FileType("r"),
+        help=_("Read release notes from file"),
+    )
+    release_edit.add_argument(
         "--draft", "-d", action="store_true", default=None, help=_("Mark as draft")
     )
     release_edit.add_argument(
@@ -554,6 +662,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     release_edit.add_argument(
         "--no-prerelease", dest="prerelease", action="store_false", help=_("Unmark as prerelease")
     )
+    release_edit.add_argument("--tag", dest="new_tag", help=_("New tag name"))
+    release_edit.add_argument("--target", help=_("Target branch or commit SHA"))
 
     # gfo release asset → サブサブコマンド
     release_asset = release_sub.add_parser("asset", help=_("Manage release assets"))
@@ -1363,6 +1473,7 @@ _DISPATCH: dict[tuple[str, str | None], Callable] = {
     ("repo", "languages"): gfo.commands.repo.handle_languages,
     ("repo", "topics"): gfo.commands.repo.handle_topics,
     ("repo", "compare"): gfo.commands.repo.handle_compare,
+    ("repo", "contributors"): gfo.commands.repo.handle_contributors,
     ("repo", "migrate"): gfo.commands.repo.handle_migrate,
     ("release", "list"): gfo.commands.release.handle_list,
     ("release", "create"): gfo.commands.release.handle_create,

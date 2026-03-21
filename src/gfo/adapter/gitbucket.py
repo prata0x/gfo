@@ -242,6 +242,8 @@ class GitBucketAdapter(GitHubAdapter):
         notes: str | None = None,
         draft: bool | None = None,
         prerelease: bool | None = None,
+        new_tag: str | None = None,
+        target: str | None = None,
     ) -> Release:
         raise NotSupportedError("GitBucket", "release update")
 
@@ -459,8 +461,19 @@ class GitBucketAdapter(GitHubAdapter):
         private: bool | None = None,
         default_branch: str | None = None,
         archived: bool | None = None,
+        allow_merge_commit: bool | None = None,
+        allow_squash_merge: bool | None = None,
+        allow_rebase_merge: bool | None = None,
+        delete_branch_on_merge: bool | None = None,
     ) -> Repository:
-        self._warn_unsupported_params("repo update", archived=archived)
+        self._warn_unsupported_params(
+            "repo update",
+            archived=archived,
+            allow_merge_commit=allow_merge_commit,
+            allow_squash_merge=allow_squash_merge,
+            allow_rebase_merge=allow_rebase_merge,
+            delete_branch_on_merge=delete_branch_on_merge,
+        )
         return super().update_repository(
             name=name, description=description, private=private, default_branch=default_branch
         )

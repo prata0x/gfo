@@ -330,14 +330,24 @@ class BitbucketAdapter(GitServiceAdapter):
     # --- Repository ---
 
     def list_repositories(
-        self, *, owner: str | None = None, limit: int = 30, archived: bool | None = None
+        self,
+        *,
+        owner: str | None = None,
+        limit: int = 30,
+        archived: bool | None = None,
+        visibility: str | None = None,
     ) -> list[Repository]:
         self._warn_unsupported_params("repo list", archived=archived)
         o = owner if owner is not None else self._owner
+        params: dict = {}
+        if visibility is not None:
+            is_private = "true" if visibility == "private" else "false"
+            params["q"] = f"is_private={is_private}"
         results = paginate_response_body(
             self._client,
             f"/repositories/{quote(o, safe='')}",
             limit=limit,
+            params=params,
         )
         return [self._to_repository(r) for r in results]
 
@@ -368,8 +378,19 @@ class BitbucketAdapter(GitServiceAdapter):
         private: bool | None = None,
         default_branch: str | None = None,
         archived: bool | None = None,
+        allow_merge_commit: bool | None = None,
+        allow_squash_merge: bool | None = None,
+        allow_rebase_merge: bool | None = None,
+        delete_branch_on_merge: bool | None = None,
     ) -> Repository:
-        self._warn_unsupported_params("repo update", archived=archived)
+        self._warn_unsupported_params(
+            "repo update",
+            archived=archived,
+            allow_merge_commit=allow_merge_commit,
+            allow_squash_merge=allow_squash_merge,
+            allow_rebase_merge=allow_rebase_merge,
+            delete_branch_on_merge=delete_branch_on_merge,
+        )
         payload: dict = {}
         if name is not None:
             payload["name"] = name
