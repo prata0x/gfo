@@ -97,6 +97,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     )
     parser.add_argument(
         "--repo",
+        "-R",
         dest="global_repo",
         default=None,
         metavar="REPO",
@@ -172,14 +173,15 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_list = pr_sub.add_parser("list", help=_("List pull requests"))
     pr_list.add_argument(
         "--state",
+        "-s",
         choices=["open", "closed", "merged", "all"],
         default="open",
         help=_("Filter by state"),
     )
     pr_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
-    pr_list.add_argument("--author", help=_("Filter by author"))
+    pr_list.add_argument("--author", "-A", help=_("Filter by author"))
     pr_list.add_argument("--label", "-l", help=_("Filter by label"))
     pr_list.add_argument("--assignee", "-a", help=_("Filter by assignee"))
     pr_list.add_argument("--search", "-S", help=_("Filter by title/description"))
@@ -187,7 +189,12 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_list.add_argument("--head", "-H", help=_("Filter by head branch"))
     _pr_list_draft = pr_list.add_mutually_exclusive_group()
     _pr_list_draft.add_argument(
-        "--draft", dest="draft", action="store_true", default=None, help=_("Filter draft PRs only")
+        "--draft",
+        "-d",
+        dest="draft",
+        action="store_true",
+        default=None,
+        help=_("Filter draft PRs only"),
     )
     _pr_list_draft.add_argument(
         "--no-draft", dest="draft", action="store_false", help=_("Filter non-draft PRs only")
@@ -195,20 +202,24 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_list.add_argument("--milestone", "-m", help=_("Filter by milestone"))
     pr_list.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     pr_create = pr_sub.add_parser("create", help=_("Create pull request"))
-    pr_create.add_argument("--title", help=_("Title"))
-    pr_create.add_argument("--body", default="", help=_("Body"))
+    pr_create.add_argument("--title", "-t", help=_("Title"))
+    pr_create.add_argument("--body", "-b", default="", help=_("Body"))
     pr_create.add_argument(
         "--body-file", "-F", type=argparse.FileType("r"), help=_("Read body from file")
     )
-    pr_create.add_argument("--base", help=_("Base branch"))
-    pr_create.add_argument("--head", help=_("Head branch"))
-    pr_create.add_argument("--draft", action="store_true", help=_("Create as draft"))
-    pr_create.add_argument("--reviewer", action="append", help=_("Reviewer username (repeatable)"))
-    pr_create.add_argument("--assignee", action="append", help=_("Assignee username (repeatable)"))
-    pr_create.add_argument("--label", action="append", help=_("Label name (repeatable)"))
-    pr_create.add_argument("--milestone", help=_("Milestone name"))
+    pr_create.add_argument("--base", "-B", help=_("Base branch"))
+    pr_create.add_argument("--head", "-H", help=_("Head branch"))
+    pr_create.add_argument("--draft", "-d", action="store_true", help=_("Create as draft"))
     pr_create.add_argument(
-        "--fill", action="store_true", help=_("Use commit info for title and body")
+        "--reviewer", "-r", action="append", help=_("Reviewer username (repeatable)")
+    )
+    pr_create.add_argument(
+        "--assignee", "-a", action="append", help=_("Assignee username (repeatable)")
+    )
+    pr_create.add_argument("--label", "-l", action="append", help=_("Label name (repeatable)"))
+    pr_create.add_argument("--milestone", "-m", help=_("Milestone name"))
+    pr_create.add_argument(
+        "--fill", "-f", action="store_true", help=_("Use commit info for title and body")
     )
     pr_create.add_argument("--dry-run", action="store_true", help=_("Preview without creating"))
     pr_create.add_argument(
@@ -220,9 +231,11 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_merge = pr_sub.add_parser("merge", help=_("Merge pull request"))
     pr_merge.add_argument("number", type=int, help=_("PR number"))
     _merge_method = pr_merge.add_mutually_exclusive_group()
-    _merge_method.add_argument("--merge", action="store_true", help=_("Create a merge commit"))
-    _merge_method.add_argument("--squash", action="store_true", help=_("Squash and merge"))
-    _merge_method.add_argument("--rebase", action="store_true", help=_("Rebase and merge"))
+    _merge_method.add_argument(
+        "--merge", "-m", action="store_true", help=_("Create a merge commit")
+    )
+    _merge_method.add_argument("--squash", "-s", action="store_true", help=_("Squash and merge"))
+    _merge_method.add_argument("--rebase", "-r", action="store_true", help=_("Rebase and merge"))
     pr_merge.add_argument(
         "--delete-branch",
         "-d",
@@ -230,8 +243,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         action="store_true",
         help=_("Delete branch after merge"),
     )
-    pr_merge.add_argument("--subject", help=_("Merge commit title"))
-    pr_merge.add_argument("--body", help=_("Merge commit body"))
+    pr_merge.add_argument("--subject", "-t", help=_("Merge commit title"))
+    pr_merge.add_argument("--body", "-b", help=_("Merge commit body"))
     pr_merge.add_argument("--auto", action="store_true", help=_("Enable auto-merge"))
     pr_close = pr_sub.add_parser("close", help=_("Close pull request"))
     pr_close.add_argument("number", type=int, help=_("PR number"))
@@ -287,7 +300,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "--request-changes", dest="request_changes", action="store_true", help=_("Request changes")
     )
     _pr_review_group.add_argument("--comment", action="store_true", help=_("Comment only"))
-    pr_review_create.add_argument("--body", default="", help=_("Body"))
+    pr_review_create.add_argument("--body", "-b", default="", help=_("Body"))
     pr_review_dismiss = pr_review_sub.add_parser("dismiss", help=_("Dismiss review"))
     pr_review_dismiss.add_argument("number", type=int, help=_("PR number"))
     pr_review_dismiss.add_argument("review_id", type=int, help=_("Review ID"))
@@ -299,14 +312,14 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_comment_list = pr_comment_sub.add_parser("list", help=_("List comments"))
     pr_comment_list.add_argument("number", type=int, help=_("PR number"))
     pr_comment_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     pr_comment_create = pr_comment_sub.add_parser("create", help=_("Create comment"))
     pr_comment_create.add_argument("number", type=int, help=_("PR number"))
-    pr_comment_create.add_argument("--body", required=True, help=_("Body"))
+    pr_comment_create.add_argument("--body", "-b", required=True, help=_("Body"))
     pr_comment_edit = pr_comment_sub.add_parser("edit", help=_("Edit comment"))
     pr_comment_edit.add_argument("comment_id", type=int, help=_("Comment ID"))
-    pr_comment_edit.add_argument("--body", required=True, help=_("Body"))
+    pr_comment_edit.add_argument("--body", "-b", required=True, help=_("Body"))
     pr_comment_delete = pr_comment_sub.add_parser("delete", help=_("Delete comment"))
     pr_comment_delete.add_argument("comment_id", type=int, help=_("Comment ID"))
 
@@ -315,26 +328,30 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_sub = issue_parser.add_subparsers(dest="subcommand")
     issue_list = issue_sub.add_parser("list", help=_("List issues"))
     issue_list.add_argument(
-        "--state", choices=["open", "closed", "all"], default="open", help=_("Filter by state")
+        "--state",
+        "-s",
+        choices=["open", "closed", "all"],
+        default="open",
+        help=_("Filter by state"),
     )
-    issue_list.add_argument("--assignee", help=_("Filter by assignee"))
-    issue_list.add_argument("--label", help=_("Filter by label"))
+    issue_list.add_argument("--assignee", "-a", help=_("Filter by assignee"))
+    issue_list.add_argument("--label", "-l", help=_("Filter by label"))
     issue_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
-    issue_list.add_argument("--author", help=_("Filter by author"))
-    issue_list.add_argument("--milestone", help=_("Filter by milestone"))
+    issue_list.add_argument("--author", "-A", help=_("Filter by author"))
+    issue_list.add_argument("--milestone", "-m", help=_("Filter by milestone"))
     issue_list.add_argument("--search", "-S", help=_("Filter by title/description"))
     issue_list.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     issue_create = issue_sub.add_parser("create", help=_("Create issue"))
-    issue_create.add_argument("--title", required=True, help=_("Title"))
-    issue_create.add_argument("--body", default="", help=_("Body"))
+    issue_create.add_argument("--title", "-t", required=True, help=_("Title"))
+    issue_create.add_argument("--body", "-b", default="", help=_("Body"))
     issue_create.add_argument(
         "--body-file", "-F", type=argparse.FileType("r"), help=_("Read body from file")
     )
-    issue_create.add_argument("--assignee", help=_("Assignee"))
-    issue_create.add_argument("--label", help=_("Label"))
-    issue_create.add_argument("--milestone", help=_("Milestone name"))
+    issue_create.add_argument("--assignee", "-a", help=_("Assignee"))
+    issue_create.add_argument("--label", "-l", help=_("Label"))
+    issue_create.add_argument("--milestone", "-m", help=_("Milestone name"))
     issue_create.add_argument("--type", help=_("Issue type"))
     issue_create.add_argument("--priority", type=int, help=_("Priority"))
     issue_create.add_argument("--due-date", help=_("Due date (YYYY-MM-DD)"))
@@ -397,9 +414,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     )
     repo_sub = repo_parser.add_subparsers(dest="subcommand")
     repo_list = repo_sub.add_parser("list", help=_("List repositories"))
-    repo_list.add_argument("--owner", help=_("Repository owner"))
+    repo_list.add_argument("--owner", "-o", help=_("Repository owner"))
     repo_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     repo_list.add_argument(
         "--archived", action="store_true", default=None, help=_("Show only archived repositories")
@@ -409,7 +426,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     _repo_create_visibility = repo_create.add_mutually_exclusive_group(required=True)
     _repo_create_visibility.add_argument("--private", dest="private", action="store_true")
     _repo_create_visibility.add_argument("--public", dest="private", action="store_false")
-    repo_create.add_argument("--description", default="", help=_("Description"))
+    repo_create.add_argument("--description", "-d", default="", help=_("Description"))
     repo_create.add_argument(
         "--readme", action="store_true", default=False, help=_("Initialize with README")
     )
@@ -433,7 +450,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     # gfo repo edit
     repo_edit = repo_sub.add_parser("edit", help=_("Edit repository settings"))
     repo_edit.add_argument("--name", help=_("Rename repository"))
-    repo_edit.add_argument("--description", help=_("Description"))
+    repo_edit.add_argument("--description", "-d", help=_("Description"))
     _repo_private_group = repo_edit.add_mutually_exclusive_group()
     _repo_private_group.add_argument(
         "--private", dest="private", action="store_true", default=None, help=_("Set as private")
@@ -473,9 +490,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     # gfo repo migrate
     repo_migrate = repo_sub.add_parser("migrate", help=_("Migrate repository from URL"))
     repo_migrate.add_argument("clone_url", help=_("Clone URL of source repository"))
-    repo_migrate.add_argument("--name", required=True, help=_("Repository name"))
+    repo_migrate.add_argument("--name", "-n", required=True, help=_("Repository name"))
     repo_migrate.add_argument("--private", action="store_true", help=_("Create as private"))
-    repo_migrate.add_argument("--description", default="", help=_("Description"))
+    repo_migrate.add_argument("--description", "-d", default="", help=_("Description"))
     repo_migrate.add_argument("--mirror", action="store_true", help=_("Create as mirror"))
     repo_migrate.add_argument(
         "--auth-token", dest="auth_token", help=_("Authentication token for source")
@@ -488,21 +505,24 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     release_sub = release_parser.add_subparsers(dest="subcommand")
     release_list = release_sub.add_parser("list", help=_("List releases"))
     release_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     release_list.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     release_create = release_sub.add_parser("create", help=_("Create release"))
     release_create.add_argument("tag", help=_("Tag name"))
-    release_create.add_argument("--title", default=None, help=_("Title"))
-    release_create.add_argument("--notes", default="", help=_("Release notes"))
+    release_create.add_argument("--title", "-t", default=None, help=_("Title"))
+    release_create.add_argument("--notes", "-n", default="", help=_("Release notes"))
     release_create.add_argument(
         "--notes-file",
+        "-F",
         dest="notes_file",
         type=argparse.FileType("r"),
         help=_("Read release notes from file"),
     )
-    release_create.add_argument("--draft", action="store_true", help=_("Create as draft"))
-    release_create.add_argument("--prerelease", action="store_true", help=_("Mark as prerelease"))
+    release_create.add_argument("--draft", "-d", action="store_true", help=_("Create as draft"))
+    release_create.add_argument(
+        "--prerelease", "-p", action="store_true", help=_("Mark as prerelease")
+    )
     release_create.add_argument("--target", help=_("Target branch or commit SHA"))
     release_create.add_argument(
         "--generate-notes",
@@ -520,14 +540,16 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     release_view.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     release_edit = release_sub.add_parser("edit", help=_("Edit release"))
     release_edit.add_argument("tag", help=_("Tag name"))
-    release_edit.add_argument("--title", help=_("Title"))
-    release_edit.add_argument("--notes", help=_("Release notes"))
-    release_edit.add_argument("--draft", action="store_true", default=None, help=_("Mark as draft"))
+    release_edit.add_argument("--title", "-t", help=_("Title"))
+    release_edit.add_argument("--notes", "-n", help=_("Release notes"))
+    release_edit.add_argument(
+        "--draft", "-d", action="store_true", default=None, help=_("Mark as draft")
+    )
     release_edit.add_argument(
         "--no-draft", dest="draft", action="store_false", help=_("Unmark as draft")
     )
     release_edit.add_argument(
-        "--prerelease", action="store_true", default=None, help=_("Mark as prerelease")
+        "--prerelease", "-p", action="store_true", default=None, help=_("Mark as prerelease")
     )
     release_edit.add_argument(
         "--no-prerelease", dest="prerelease", action="store_false", help=_("Unmark as prerelease")
@@ -561,15 +583,15 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     label_sub.add_parser("list", help=_("List labels"))
     label_create = label_sub.add_parser("create", help=_("Create label"))
     label_create.add_argument("name", help=_("Label name"))
-    label_create.add_argument("--color", help=_("Color (hex)"))
-    label_create.add_argument("--description", help=_("Description"))
+    label_create.add_argument("--color", "-c", help=_("Color (hex)"))
+    label_create.add_argument("--description", "-d", help=_("Description"))
     label_delete = label_sub.add_parser("delete", help=_("Delete label"))
     label_delete.add_argument("name", help=_("Label name"))
     label_edit = label_sub.add_parser("edit", help=_("Edit label"))
     label_edit.add_argument("current_name", metavar="NAME", help=_("Label name"))
-    label_edit.add_argument("--name", help=_("New name"))
-    label_edit.add_argument("--color", help=_("Color (hex)"))
-    label_edit.add_argument("--description", help=_("Description"))
+    label_edit.add_argument("--name", "-n", help=_("New name"))
+    label_edit.add_argument("--color", "-c", help=_("Color (hex)"))
+    label_edit.add_argument("--description", "-d", help=_("Description"))
 
     # gfo milestone → サブサブコマンド
     milestone_parser = subparser_map["milestone"] = subparsers.add_parser(
@@ -580,7 +602,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     milestone_list.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     milestone_create = milestone_sub.add_parser("create", help=_("Create milestone"))
     milestone_create.add_argument("title", help=_("Milestone title"))
-    milestone_create.add_argument("--description", help=_("Description"))
+    milestone_create.add_argument("--description", "-d", help=_("Description"))
     milestone_create.add_argument("--due", help=_("Due date"))
     milestone_delete = milestone_sub.add_parser("delete", help=_("Delete milestone"))
     milestone_delete.add_argument("number", type=int, help=_("Milestone number"))
@@ -589,8 +611,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     milestone_view.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     milestone_edit = milestone_sub.add_parser("edit", help=_("Edit milestone"))
     milestone_edit.add_argument("number", type=int, help=_("Milestone number"))
-    milestone_edit.add_argument("--title", help=_("Title"))
-    milestone_edit.add_argument("--description", help=_("Description"))
+    milestone_edit.add_argument("--title", "-t", help=_("Title"))
+    milestone_edit.add_argument("--description", "-d", help=_("Description"))
     milestone_edit.add_argument("--due", help=_("Due date"))
     milestone_edit.add_argument("--state", choices=["open", "closed"], help=_("State"))
     milestone_close = milestone_sub.add_parser("close", help=_("Close milestone"))
@@ -601,17 +623,17 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     # gfo pr edit（既存 pr に追加）
     pr_edit = pr_sub.add_parser("edit", help=_("Edit pull request"))
     pr_edit.add_argument("number", type=int, help=_("PR number"))
-    pr_edit.add_argument("--title", help=_("Title"))
-    pr_edit.add_argument("--body", help=_("Body"))
-    pr_edit.add_argument("--base", help=_("Base branch"))
+    pr_edit.add_argument("--title", "-t", help=_("Title"))
+    pr_edit.add_argument("--body", "-b", help=_("Body"))
+    pr_edit.add_argument("--base", "-B", help=_("Base branch"))
     pr_edit.add_argument("--add-label", action="append", help=_("Add label"))
     pr_edit.add_argument("--remove-label", action="append", help=_("Remove label"))
     pr_edit.add_argument("--add-assignee", action="append", help=_("Add assignee"))
     pr_edit.add_argument("--remove-assignee", action="append", help=_("Remove assignee"))
-    pr_edit.add_argument("--milestone", help=_("Milestone"))
+    pr_edit.add_argument("--milestone", "-m", help=_("Milestone"))
     _pr_edit_draft = pr_edit.add_mutually_exclusive_group()
     _pr_edit_draft.add_argument(
-        "--draft", dest="draft", action="store_true", default=None, help=_("Convert to draft")
+        "--draft", "-d", dest="draft", action="store_true", default=None, help=_("Convert to draft")
     )
     _pr_edit_draft.add_argument(
         "--ready", dest="draft", action="store_false", help=_("Mark as ready for review")
@@ -620,15 +642,15 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     # gfo issue edit（既存 issue に追加）
     issue_edit = issue_sub.add_parser("edit", help=_("Edit issue"))
     issue_edit.add_argument("number", type=int, help=_("Issue number"))
-    issue_edit.add_argument("--title", help=_("Title"))
-    issue_edit.add_argument("--body", help=_("Body"))
-    issue_edit.add_argument("--assignee", help=_("Assignee"))
-    issue_edit.add_argument("--label", help=_("Label"))
+    issue_edit.add_argument("--title", "-t", help=_("Title"))
+    issue_edit.add_argument("--body", "-b", help=_("Body"))
+    issue_edit.add_argument("--assignee", "-a", help=_("Assignee"))
+    issue_edit.add_argument("--label", "-l", help=_("Label"))
     issue_edit.add_argument("--add-label", action="append", help=_("Add label"))
     issue_edit.add_argument("--remove-label", action="append", help=_("Remove label"))
     issue_edit.add_argument("--add-assignee", action="append", help=_("Add assignee"))
     issue_edit.add_argument("--remove-assignee", action="append", help=_("Remove assignee"))
-    issue_edit.add_argument("--milestone", help=_("Milestone"))
+    issue_edit.add_argument("--milestone", "-m", help=_("Milestone"))
     issue_edit.add_argument("--due-date", help=_("Due date (YYYY-MM-DD)"))
 
     # gfo issue comment → サブサブコマンド
@@ -637,14 +659,14 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_comment_list = issue_comment_sub.add_parser("list", help=_("List comments"))
     issue_comment_list.add_argument("number", type=int, help=_("Issue number"))
     issue_comment_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     issue_comment_create = issue_comment_sub.add_parser("create", help=_("Create comment"))
     issue_comment_create.add_argument("number", type=int, help=_("Issue number"))
-    issue_comment_create.add_argument("--body", required=True, help=_("Body"))
+    issue_comment_create.add_argument("--body", "-b", required=True, help=_("Body"))
     issue_comment_edit = issue_comment_sub.add_parser("edit", help=_("Edit comment"))
     issue_comment_edit.add_argument("comment_id", type=int, help=_("Comment ID"))
-    issue_comment_edit.add_argument("--body", required=True, help=_("Body"))
+    issue_comment_edit.add_argument("--body", "-b", required=True, help=_("Body"))
     issue_comment_delete = issue_comment_sub.add_parser("delete", help=_("Delete comment"))
     issue_comment_delete.add_argument("comment_id", type=int, help=_("Comment ID"))
 
@@ -665,7 +687,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     branch_view.add_argument("name", help=_("Branch name"))
     branch_list = branch_sub.add_parser("list", help=_("List branches"))
     branch_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     branch_create = branch_sub.add_parser("create", help=_("Create branch"))
     branch_create.add_argument("name", help=_("Branch name"))
@@ -680,12 +702,12 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     tag_view.add_argument("name", help=_("Tag name"))
     tag_list = tag_sub.add_parser("list", help=_("List tags"))
     tag_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     tag_create = tag_sub.add_parser("create", help=_("Create tag"))
     tag_create.add_argument("name", help=_("Tag name"))
     tag_create.add_argument("--ref", required=True, help=_("Source ref"))
-    tag_create.add_argument("--message", default="", help=_("Tag message"))
+    tag_create.add_argument("--message", "-m", default="", help=_("Tag message"))
     tag_delete = tag_sub.add_parser("delete", help=_("Delete tag"))
     tag_delete.add_argument("name", help=_("Tag name"))
 
@@ -697,7 +719,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     status_list = status_sub.add_parser("list", help=_("List commit statuses"))
     status_list.add_argument("ref", help=_("Commit ref"))
     status_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     status_create = status_sub.add_parser("create", help=_("Create commit status"))
     status_create.add_argument("ref", help=_("Commit ref"))
@@ -708,7 +730,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         help=_("Status state"),
     )
     status_create.add_argument("--context", help=_("Context name"))
-    status_create.add_argument("--description", help=_("Description"))
+    status_create.add_argument("--description", "-d", help=_("Description"))
     status_create.add_argument("--url", help=_("Target URL"))
 
     # gfo file → サブサブコマンド
@@ -735,7 +757,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     webhook_sub = webhook_parser.add_subparsers(dest="subcommand")
     webhook_list = webhook_sub.add_parser("list", help=_("List webhooks"))
     webhook_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     webhook_create = webhook_sub.add_parser("create", help=_("Create webhook"))
     webhook_create.add_argument("--url", required=True, help=_("Webhook URL"))
@@ -767,10 +789,10 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     deploy_key_view.add_argument("id", type=int, help=_("Deploy key ID"))
     deploy_key_list = deploy_key_sub.add_parser("list", help=_("List deploy keys"))
     deploy_key_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     deploy_key_create = deploy_key_sub.add_parser("create", help=_("Create deploy key"))
-    deploy_key_create.add_argument("--title", required=True, help=_("Title"))
+    deploy_key_create.add_argument("--title", "-t", required=True, help=_("Title"))
     deploy_key_create.add_argument("--key", required=True, help=_("Public key"))
     deploy_key_create.add_argument(
         "--read-write", dest="read_write", action="store_true", help=_("Allow write access")
@@ -785,7 +807,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     collab_sub = collab_parser.add_subparsers(dest="subcommand")
     collab_list = collab_sub.add_parser("list", help=_("List collaborators"))
     collab_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     collab_add = collab_sub.add_parser("add", help=_("Add collaborator"))
     collab_add.add_argument("username", help=_("Username"))
@@ -804,7 +826,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     ci_list = ci_sub.add_parser("list", help=_("List pipelines"))
     ci_list.add_argument("--ref", help=_("Git ref"))
     ci_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     ci_view = ci_sub.add_parser("view", help=_("View pipeline details"))
     ci_view.add_argument("id", help=_("Pipeline ID"))
@@ -838,7 +860,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     ci_workflow_sub = ci_workflow.add_subparsers(dest="workflow_action")
     ci_wf_list = ci_workflow_sub.add_parser("list", help=_("List workflows"))
     ci_wf_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     ci_wf_enable = ci_workflow_sub.add_parser("enable", help=_("Enable workflow"))
     ci_wf_enable.add_argument("id", help=_("Workflow ID"))
@@ -850,7 +872,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     ci_art_list = ci_artifact_sub.add_parser("list", help=_("List artifacts"))
     ci_art_list.add_argument("run_id", help=_("Pipeline run ID"))
     ci_art_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     ci_art_download = ci_artifact_sub.add_parser("download", help=_("Download artifact"))
     ci_art_download.add_argument("run_id", help=_("Pipeline run ID"))
@@ -870,12 +892,12 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     search_repos = search_sub.add_parser("repos", help=_("Search repositories"))
     search_repos.add_argument("query", help=_("Search query"))
     search_repos.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     search_issues = search_sub.add_parser("issues", help=_("Search issues"))
     search_issues.add_argument("query", help=_("Search query"))
     search_issues.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
 
     # gfo wiki → サブサブコマンド
@@ -883,16 +905,16 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     wiki_sub = wiki_parser.add_subparsers(dest="subcommand")
     wiki_list = wiki_sub.add_parser("list", help=_("List wiki pages"))
     wiki_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     wiki_view = wiki_sub.add_parser("view", help=_("View wiki page"))
     wiki_view.add_argument("id", help=_("Page ID"))
     wiki_create = wiki_sub.add_parser("create", help=_("Create wiki page"))
-    wiki_create.add_argument("--title", required=True, help=_("Title"))
+    wiki_create.add_argument("--title", "-t", required=True, help=_("Title"))
     wiki_create.add_argument("--content", required=True, help=_("Content"))
     wiki_edit = wiki_sub.add_parser("edit", help=_("Edit wiki page"))
     wiki_edit.add_argument("id", help=_("Page ID"))
-    wiki_edit.add_argument("--title", help=_("Title"))
+    wiki_edit.add_argument("--title", "-t", help=_("Title"))
     wiki_edit.add_argument("--content", help=_("Content"))
     wiki_delete = wiki_sub.add_parser("delete", help=_("Delete wiki page"))
     wiki_delete.add_argument("id", help=_("Page ID"))
@@ -927,7 +949,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_timeline = issue_sub.add_parser("timeline", help=_("List issue timeline events"))
     issue_timeline.add_argument("number", type=int, help=_("Issue number"))
     issue_timeline.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
 
     # gfo issue pin / unpin
@@ -955,7 +977,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "--state", choices=["open", "closed", "merged", "all"], help=_("Filter by state")
     )
     search_prs.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
 
     # gfo search commits
@@ -965,14 +987,14 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     search_commits.add_argument("--since", help=_("Start date"))
     search_commits.add_argument("--until", help=_("End date"))
     search_commits.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
 
     # gfo search code
     search_code = search_sub.add_parser("code", help=_("Search code"))
     search_code.add_argument("query", help=_("Search query"))
     search_code.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
 
     # gfo label clone
@@ -1020,7 +1042,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     package_list = package_sub.add_parser("list", help=_("List packages"))
     package_list.add_argument("--type", dest="type", help=_("Package type"))
     package_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     package_view = package_sub.add_parser("view", help=_("View package details"))
     package_view.add_argument("package_type", help=_("Package type"))
@@ -1041,7 +1063,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     bp_sub = bp_parser.add_subparsers(dest="subcommand")
     bp_list = bp_sub.add_parser("list", help=_("List branch protection rules"))
     bp_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     bp_view = bp_sub.add_parser("view", help=_("View branch protection rule"))
     bp_view.add_argument("branch", help=_("Branch name"))
@@ -1093,7 +1115,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     tp_sub = tp_parser.add_subparsers(dest="subcommand")
     tp_list = tp_sub.add_parser("list", help=_("List tag protection rules"))
     tp_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     tp_create = tp_sub.add_parser("create", help=_("Create tag protection rule"))
     tp_create.add_argument("pattern", help=_("Tag pattern"))
@@ -1113,7 +1135,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     notif_list = notif_sub.add_parser("list", help=_("List notifications"))
     notif_list.add_argument("--unread-only", action="store_true", help=_("Show unread only"))
     notif_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     notif_read = notif_sub.add_parser("read", help=_("Mark notifications as read"))
     notif_read.add_argument("id", nargs="?", metavar="ID", help=_("Notification ID"))
@@ -1126,28 +1148,28 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     org_sub = org_parser.add_subparsers(dest="subcommand")
     org_list = org_sub.add_parser("list", help=_("List organizations"))
     org_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     org_view = org_sub.add_parser("view", help=_("View organization details"))
     org_view.add_argument("name", help=_("Organization name"))
     org_members = org_sub.add_parser("members", help=_("List members"))
     org_members.add_argument("name", help=_("Organization name"))
     org_members.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     org_repos = org_sub.add_parser("repos", help=_("List repositories"))
     org_repos.add_argument("name", help=_("Organization name"))
     org_repos.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     org_create = org_sub.add_parser("create", help=_("Create organization"))
     org_create.add_argument("name", help=_("Organization name"))
     org_create.add_argument("--display-name", dest="display_name", help=_("Display name"))
-    org_create.add_argument("--description", help=_("Description"))
+    org_create.add_argument("--description", "-d", help=_("Description"))
     org_edit = org_sub.add_parser("edit", help=_("Edit organization"))
     org_edit.add_argument("name", help=_("Organization name"))
     org_edit.add_argument("--display-name", dest="display_name", help=_("Display name"))
-    org_edit.add_argument("--description", help=_("Description"))
+    org_edit.add_argument("--description", "-d", help=_("Description"))
     org_delete = org_sub.add_parser("delete", help=_("Delete organization"))
     org_delete.add_argument("name", help=_("Organization name"))
     org_delete.add_argument("--yes", "-y", action="store_true", help=_("Skip confirmation prompt"))
@@ -1161,10 +1183,10 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     ssh_key_view.add_argument("id", help=_("SSH key ID"))
     ssh_key_list = ssh_key_sub.add_parser("list", help=_("List SSH keys"))
     ssh_key_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     ssh_key_create = ssh_key_sub.add_parser("create", help=_("Create SSH key"))
-    ssh_key_create.add_argument("--title", required=True, help=_("Title"))
+    ssh_key_create.add_argument("--title", "-t", required=True, help=_("Title"))
     ssh_key_create.add_argument("--key", required=True, help=_("Public key"))
     ssh_key_delete = ssh_key_sub.add_parser("delete", help=_("Delete SSH key"))
     ssh_key_delete.add_argument("id", type=int, help=_("SSH key ID"))
@@ -1178,7 +1200,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     gpg_key_view.add_argument("id", help=_("GPG key ID"))
     gpg_key_list = gpg_key_sub.add_parser("list", help=_("List GPG keys"))
     gpg_key_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     gpg_key_create = gpg_key_sub.add_parser("create", help=_("Create GPG key"))
     gpg_key_create.add_argument("--key", required=True, help=_("GPG public key"))
@@ -1192,7 +1214,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     secret_sub = secret_parser.add_subparsers(dest="subcommand")
     secret_list = secret_sub.add_parser("list", help=_("List secrets"))
     secret_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     secret_list.add_argument("--org", help=_("Organization scope"))
     secret_set = secret_sub.add_parser("set", help=_("Set secret"))
@@ -1215,7 +1237,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     variable_sub = variable_parser.add_subparsers(dest="subcommand")
     variable_list = variable_sub.add_parser("list", help=_("List variables"))
     variable_list.add_argument(
-        "--limit", type=_positive_int, default=30, help=_("Maximum number of results")
+        "--limit", "-L", type=_positive_int, default=30, help=_("Maximum number of results")
     )
     variable_list.add_argument("--org", help=_("Organization scope"))
     variable_set = variable_sub.add_parser("set", help=_("Set variable"))
@@ -1266,11 +1288,11 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     batch_pr_create.add_argument(
         "--repos", required=True, help=_("Target repositories (comma-separated)")
     )
-    batch_pr_create.add_argument("--title", required=True, help=_("Title"))
-    batch_pr_create.add_argument("--body", default="", help=_("Body"))
-    batch_pr_create.add_argument("--head", required=True, help=_("Head branch"))
-    batch_pr_create.add_argument("--base", default="main", help=_("Base branch"))
-    batch_pr_create.add_argument("--draft", action="store_true", help=_("Create as draft"))
+    batch_pr_create.add_argument("--title", "-t", required=True, help=_("Title"))
+    batch_pr_create.add_argument("--body", "-b", default="", help=_("Body"))
+    batch_pr_create.add_argument("--head", "-H", required=True, help=_("Head branch"))
+    batch_pr_create.add_argument("--base", "-B", default="main", help=_("Base branch"))
+    batch_pr_create.add_argument("--draft", "-d", action="store_true", help=_("Create as draft"))
     batch_pr_create.add_argument(
         "--dry-run", dest="dry_run", action="store_true", help=_("Dry run")
     )
