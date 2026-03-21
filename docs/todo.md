@@ -6,11 +6,12 @@
 
 ## T-1: アダプターレベルのテスト追加
 
-既存テストファイルに追記する。ペイロード検証は `json.loads(mock_responses.calls[N].request.body)` パターンで統一。
+既存テストファイルに追記する。ペイロード検証は `json.loads(calls[N].request.body)` パターンで行う。
+モック方式はクラスごとに異なる（`mock_responses` フィクスチャ or `@responses.activate` デコレータ）ため、追記先の既存テストに合わせる。
 
 ### 1. GitHub (`tests/test_adapters/test_github.py`)
 
-既存の `TestUpdateRelease`（L1120）と `TestUpdateRepository`（L2890）に追記。
+既存の `TestUpdateRelease`（L1111）と `TestUpdateRepository`（L2890）に追記。
 
 #### update_release: new_tag / target
 
@@ -41,16 +42,17 @@ GET（リリース ID 取得）+ PATCH の 2 リクエストパターン。`mock
 
 #### update_release: NotSupportedError
 
-既存 `TestUpdateRelease`（L1153）に 2 テスト追加:
+既存 `TestUpdateRelease`（L1150）に 2 テスト追加:
 
 - `test_new_tag_raises_not_supported`: `new_tag="v2.0.0"` → `NotSupportedError` 検証
 - `test_target_raises_not_supported`: `target="main"` → `NotSupportedError` 検証
 
 #### update_repository: merge_method 変換
 
-既存 `TestUpdateRepositoryGitLab`（L3228）に 4 テスト追加:
+既存 `TestUpdateRepositoryGitLab`（L3228）に 5 テスト追加:
 
 - `test_allow_merge_commit`: `allow_merge_commit=True` → `merge_method: "merge"` 検証
+- `test_allow_squash_merge`: `allow_squash_merge=True` → `merge_method: "merge"` 検証（`allow_merge_commit` と同じ値になることを明示的に確認）
 - `test_allow_rebase_merge`: `allow_rebase_merge=True` → `merge_method: "rebase_merge"` 検証
 - `test_delete_branch_on_merge`: `delete_branch_on_merge=True` → `remove_source_branch_after_merge: true` 検証
 - `test_merge_strategy_none`: 全 None → ペイロードに `merge_method` キーなし検証
@@ -74,7 +76,7 @@ GET（リリース ID 取得）+ PATCH の 2 リクエストパターン。`mock
 
 #### update_repository: default_merge_style 変換
 
-既存の `TestUpdateRepository` に 3 テスト追加:
+既存の `TestUpdateRepositoryGitea` に 3 テスト追加:
 
 - `test_allow_squash_merge`: `allow_squash_merge=True` → `default_merge_style: "squash"` 検証
 - `test_allow_rebase_merge`: `allow_rebase_merge=True` → `default_merge_style: "rebase"` 検証
@@ -117,14 +119,14 @@ GET（リリース ID 取得）+ PATCH の 2 リクエストパターン。`mock
 
 ### 6. 非対応サービス NotSupportedError テスト
 
-各テストファイルの既存 `TestNotSupported` クラスに追記。
+各テストファイルの既存 NotSupported テストクラスに追記。
 
-| サービス | テストファイル | 追加メソッド |
-|---|---|---|
-| Bitbucket | `test_bitbucket.py` | `test_disable_auto_merge`, `test_list_contributors` |
-| Gogs | `test_gogs.py` | `test_disable_auto_merge`, `test_list_contributors` |
-| GitBucket | `test_gitbucket.py` | `test_disable_auto_merge`, `test_list_contributors` |
-| Backlog | `test_backlog.py` | `test_disable_auto_merge`, `test_list_contributors` |
+| サービス | テストファイル | クラス名 | 追加メソッド |
+|---|---|---|---|
+| Bitbucket | `test_bitbucket.py` | `TestNotSupported` | `test_disable_auto_merge`, `test_list_contributors` |
+| Gogs | `test_gogs.py` | `TestNotSupportedOperations` | `test_disable_auto_merge`, `test_list_contributors` |
+| GitBucket | `test_gitbucket.py` | `TestNotSupported` | `test_disable_auto_merge`, `test_list_contributors` |
+| Backlog | `test_backlog.py` | `TestNotSupported` | `test_disable_auto_merge`, `test_list_contributors` |
 
 ---
 
@@ -132,16 +134,18 @@ GET（リリース ID 取得）+ PATCH の 2 リクエストパターン。`mock
 
 ### `tests/test_commands/test_release.py`
 
-`TestHandleListFilter` クラスに 1 テスト追加:
+`TestHandleListFilter` クラスに 2 テスト追加:
 
-- `test_filter_then_limit`: リリース 3 件（全 non-draft）→ `draft=False, limit=1` → 結果 1 件（フィルタ後に limit 適用の順序検証）
-  - ハンドラで `adapter.list_releases(limit=args.limit)` を呼ぶため、limit はアダプター側で適用済み。コマンド側フィルタで件数が減る可能性の確認
+- `test_filter_then_limit`: リリース 4 件（1 件 draft, 1 件 prerelease, 2 件 通常）→ `draft=False, prerelease=False, limit=4` → アダプターから 4 件返却後、コマンド側フィルタで 2 件に減ることを検証
+  - ハンドラで `adapter.list_releases(limit=args.limit)` を呼ぶため、limit はアダプター側で適用済み。コマンド側 draft/prerelease フィルタで件数が減る可能性の確認
+- `test_prerelease_and_limit`: リリース 3 件（2 件 prerelease, 1 件 通常）→ `prerelease=True, limit=3` → フィルタ後 2 件を検証
 
 ### `tests/test_commands/test_pr.py`
 
-`TestHandleMergeDisableAuto` に 1 テスト追加:
+`TestHandleMergeDisableAuto` に 2 テスト追加:
 
 - `test_disable_auto_ignores_merge_method`: `disable_auto=True, squash=True` → `disable_auto_merge` のみ呼ばれ `merge_pull_request` は呼ばれないことを検証
+- `test_disable_auto_wins_over_auto`: `disable_auto=True, auto=True` → `disable_auto_merge` のみ呼ばれ `enable_auto_merge` は呼ばれないことを検証（`--auto` と `--disable-auto` は排他グループではなく、ハンドラの `elif` で `disable_auto` が優先される）
 
 ### `tests/test_commands/test_repo.py`
 
@@ -205,32 +209,50 @@ def test_02c_repo_contributors(self) -> None:
 
 `test_16_release_list` の直後に挿入。`test_15_release_create` で作成した `v0.0.1-test` を編集。
 
+title, notes に加え draft, prerelease の変更も検証する。
+
 ```python
 def test_16a_release_edit(self) -> None:
     updated = self.adapter.update_release(
         tag="v0.0.1-test",
         title="Test Release (Updated)",
         notes="Updated notes",
+        draft=False,
+        prerelease=True,
     )
     assert updated.title == "Test Release (Updated)"
+    assert updated.prerelease is True
+    # 復元
+    self.adapter.update_release(
+        tag="v0.0.1-test",
+        prerelease=False,
+    )
 ```
 
 ### test_16b_release_list_filter
 
+draft と prerelease の両方のフィルタを検証する。
+
 ```python
 def test_16b_release_list_filter(self) -> None:
-    # ドラフトリリースを作成
+    # ドラフトリリースと prerelease を作成
     self.adapter.create_release(
         tag="v0.0.2-draft", title="Draft", notes="", draft=True
+    )
+    self.adapter.create_release(
+        tag="v0.0.3-rc1", title="RC1", notes="", prerelease=True
     )
     time.sleep(2)
     releases = self.adapter.list_releases(limit=50)
     drafts = [r for r in releases if r.draft]
+    prereleases = [r for r in releases if r.prerelease]
     non_drafts = [r for r in releases if not r.draft]
     assert any(r.tag == "v0.0.2-draft" for r in drafts)
     assert not any(r.tag == "v0.0.2-draft" for r in non_drafts)
+    assert any(r.tag == "v0.0.3-rc1" for r in prereleases)
     # クリーンアップ
     self.adapter.delete_release(tag="v0.0.2-draft")
+    self.adapter.delete_release(tag="v0.0.3-rc1")
 ```
 
 ---
