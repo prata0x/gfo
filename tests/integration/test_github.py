@@ -42,6 +42,22 @@ class TestGitHubIntegration:
         cls._deploy_key_id: int | None = None
         cls._head_sha: str | None = None
 
+    @staticmethod
+    def _update_file(adapter, path, content, message, branch):
+        """SHA を自動取得してファイルを作成・更新する。"""
+        sha = None
+        try:
+            _, sha = adapter.get_file_content(path, ref=branch)
+        except Exception:
+            pass
+        adapter.create_or_update_file(
+            path=path,
+            content=content,
+            message=message,
+            sha=sha,
+            branch=branch,
+        )
+
     @classmethod
     def teardown_class(cls) -> None:
         """テスト終了後にテスト用リソースを削除する。"""
@@ -188,7 +204,8 @@ class TestGitHubIntegration:
         import time
 
         # 前回マージ済みの場合はブランチに差分がないため、テストファイルを更新してコミットを追加する
-        self.adapter.create_or_update_file(
+        self._update_file(
+            self.adapter,
             path="test-pr-marker.txt",
             content=f"test run {time.time()}",
             message="test: update marker for PR",
@@ -250,7 +267,8 @@ class TestGitHubIntegration:
     def test_17_pr_close(self) -> None:
         import time
 
-        self.adapter.create_or_update_file(
+        self._update_file(
+            self.adapter,
             path="test-close-marker.txt",
             content=f"close-test {time.time()}",
             message="test: add marker for close test",
@@ -351,7 +369,8 @@ class TestGitHubIntegration:
         """PR の title 更新テスト。差分確保のため test_branch にコミットを追加してから PR 作成。"""
         import time
 
-        self.adapter.create_or_update_file(
+        self._update_file(
+            self.adapter,
             path="test-update-pr-marker.txt",
             content=f"update-pr-{time.time()}",
             message="test: add marker for update PR",
@@ -414,7 +433,9 @@ class TestGitHubIntegration:
 
     def test_29_pr_comment(self) -> None:
         """PR にコメントを作成・一覧取得するテスト。"""
-        assert self._update_pr_number is not None
+        if self._update_pr_number is None:
+            pytest.skip("PR not created (test_24 failed)")
+
         comment = self.adapter.create_comment("pr", self._update_pr_number, body="test PR comment")
         assert comment.body == "test PR comment"
         self.__class__._update_pr_comment_id = comment.id
@@ -425,7 +446,9 @@ class TestGitHubIntegration:
 
     def test_30_review(self) -> None:
         """PR にレビューを作成・一覧取得するテスト。"""
-        assert self._update_pr_number is not None
+        if self._update_pr_number is None:
+            pytest.skip("PR not created (test_24 failed)")
+
         review = self.adapter.create_review(
             self._update_pr_number, state="COMMENT", body="test review"
         )
@@ -483,8 +506,15 @@ class TestGitHubIntegration:
     def test_37_delete_tag(self) -> None:
         """test_35 で作成したタグを削除するテスト。"""
         self.adapter.delete_tag(name="v0.0.2-test")
-        tags = self.adapter.list_tags()
-        assert not any(t.name == "v0.0.2-test" for t in tags)
+        # GitHub API はタグ削除後のリスト反映に遅延がある場合がある
+        found = True
+        for _ in range(5):
+            time.sleep(2)
+            tags = self.adapter.list_tags()
+            found = any(t.name == "v0.0.2-test" for t in tags)
+            if not found:
+                break
+        assert not found
 
     # --- create_commit_status ---
 
@@ -614,7 +644,8 @@ class TestGitHubIntegration:
         assert isinstance(issues, list)
         collaborators = self.adapter.list_collaborators()
         assert isinstance(collaborators, list)
-        assert self._pr_number is not None
+        if self._pr_number is None:
+            pytest.skip("PR not created (test_11 failed)")
         refspec = self.adapter.get_pr_checkout_refspec(self._pr_number)
         assert refspec
         # GitHub は wiki API 非対応
@@ -645,6 +676,7 @@ class TestGitHubIntegration:
                 ["ssh-keygen", "-t", "ed25519", "-f", key_path, "-N", "", "-C", "gfo-test"],
                 capture_output=True,
                 check=True,
+                stdin=subprocess.DEVNULL,
             )
             with open(key_path + ".pub") as f:
                 dummy_key = f.read().strip()
