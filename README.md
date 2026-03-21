@@ -84,7 +84,7 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 | `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `edit`, `diff`, `checks`, `files`, `commits`, `reviewers`, `update-branch`, `ready`, `status`, `subscribe`, `unsubscribe`, `lock`, `unlock`, `comment`, `review` | Pull request operations |
 | `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `edit`, `status`, `develop`, `subscribe`, `unsubscribe`, `reaction`, `depends`, `timeline`, `pin`, `unpin`, `time`, `migrate`, `lock`, `unlock`, `comment` | Issue operations |
 | `gfo issue-template` | `list` | Issue template listing |
-| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `edit`, `archive`, `unarchive`, `languages`, `topics`, `compare`, `migrate`, `mirror`, `transfer`, `star`, `unstar`, `sync` | Repository operations |
+| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `edit`, `archive`, `unarchive`, `languages`, `topics`, `compare`, `contributors`, `migrate`, `mirror`, `transfer`, `star`, `unstar`, `sync` | Repository operations |
 | `gfo release` | `list`, `create`, `view`, `edit`, `delete`, `asset` | Release management |
 | `gfo label` | `list`, `create`, `update`, `delete`, `clone` | Label management |
 | `gfo milestone` | `list`, `create`, `view`, `update`, `close`, `reopen`, `delete` | Milestone management |

@@ -400,9 +400,9 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return self.list_topics()
 
     def list_contributors(self, *, limit: int = 30) -> list[Contributor]:
-        # Gitea は GitHub 互換のレスポンスを返さないため、git log ベースの API を利用
         # /repos/{owner}/{repo}/contributors は Gitea 1.22+ で利用可能
-        # 未実装の場合はフォールバックなしで NotSupportedError
+        # GitHub 互換のレスポンス形式（login, contributions）を返す
+        # 未実装バージョンの場合はフォールバックなしで NotSupportedError
         from gfo.exceptions import NotSupportedError
 
         try:

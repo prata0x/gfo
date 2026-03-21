@@ -208,7 +208,7 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | ブランチ削除 | `--delete-branch` / `-d` | `--delete-branch` / `-d` | `--remove-source-branch` / `-d` | `---` | `--delete` / `-d` |
 | コミットメッセージ | `--subject` / `-t` / `--body` / `-b` | `--subject` / `-t` / `--body` / `-b` | `--message` / `-m` / `--squash-message` | `--title` / `-t` / `--message` / `-m` | `--title` / `-t` / `--message` / `-m` |
 | 管理者権限 | `---` | `--admin` | `---` | `---` | `---` |
-| 自動マージ解除 | `---` | `--disable-auto` | `---` | `---` | `---` |
+| 自動マージ解除 | `--disable-auto` | `--disable-auto` | `---` | `---` | `---` |
 | 手動マージ | `---` | `---` | `---` | `---` | `--method manual` |
 
 #### オプション比較: pr edit
@@ -484,11 +484,11 @@ gfo の 33 トップレベルコマンドを基準に、各ツールの対応コ
 | ノート | `--notes` / `-n` | `--notes` / `-n` | `---` | `--note` / `-n` | `--body` / `-b` |
 | ドラフト切替 | `--draft` / `-d` / `--no-draft` | `--draft` | `---` | `--draft` / `-d` | `--draft` / `-d` |
 | プレリリース切替 | `--prerelease` / `-p` / `--no-prerelease` | `--prerelease` | `---` | `--prerelease` / `-p` | `--prerelease` / `-p` |
-| タグ | `---` | `--tag` | `---` | `---` | `--tag` / `-t` |
+| タグ | `--tag` | `--tag` | `---` | `---` | `--tag` / `-t` |
 | Latest 指定 | `---` | `--latest` | `---` | `---` | `---` |
-| ターゲット | `---` | `--target` | `---` | `---` | `---` |
+| ターゲット | `--target` | `--target` | `---` | `---` | `---` |
 | Discussion カテゴリ | `---` | `--discussion-category` | `---` | `---` | `---` |
-| ノートファイル | `---` | `--notes-file` | `---` | `---` | `---` |
+| ノートファイル | `--notes-file` / `-F` | `--notes-file` | `---` | `---` | `---` |
 
 #### オプション比較: release asset upload
 
