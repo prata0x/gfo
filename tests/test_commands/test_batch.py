@@ -198,3 +198,197 @@ class TestHandleBatchPr:
         captured = capsys.readouterr()
         data = json.loads(captured.out)
         assert data == []
+
+    @patch("gfo.commands.batch.create_adapter_from_spec")
+    @patch("gfo.commands.batch.parse_service_spec")
+    def test_all_repos_fail(self, mock_parse, mock_create_adapter, capsys):
+        """全リポジトリが失敗した場合、全 status="failed" のレポート出力。"""
+        spec1 = _make_spec("github", "owner1", "repo1")
+        spec2 = _make_spec("gitlab", "owner2", "repo2")
+        mock_parse.side_effect = [spec1, spec2]
+
+        adapter1 = MagicMock()
+        adapter1.create_pull_request.side_effect = HttpError(500, "Error 1")
+        adapter2 = MagicMock()
+        adapter2.create_pull_request.side_effect = HttpError(403, "Error 2")
+        mock_create_adapter.side_effect = [adapter1, adapter2]
+
+        args = make_args(
+            repos="github:owner1/repo1,gitlab:owner2/repo2",
+            title="Test PR",
+            body="",
+            head="feature",
+            base="main",
+            draft=False,
+            dry_run=False,
+            batch_pr_action="create",
+        )
+
+        batch_cmd.handle_batch_pr(args, fmt="json")
+
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        assert len(data) == 2
+        assert all(r["status"] == "failed" for r in data)
+        assert all(r["error"] is not None for r in data)
+
+    @patch("gfo.commands.batch.create_adapter_from_spec")
+    @patch("gfo.commands.batch.parse_service_spec")
+    def test_invalid_spec_label_fallback(self, mock_parse, mock_create_adapter, capsys):
+        """parse_service_spec が両方失敗 → 生の spec_str が repo_label に使われる。"""
+        # 最初の parse_service_spec 呼び出しで create_adapter_from_spec が例外
+        # except 内の parse_service_spec も失敗するケース
+        mock_parse.side_effect = ConfigError("Invalid spec")
+
+        args = make_args(
+            repos="invalid-spec-string",
+            title="Test PR",
+            body="",
+            head="feature",
+            base="main",
+            draft=False,
+            dry_run=False,
+            batch_pr_action="create",
+        )
+
+        batch_cmd.handle_batch_pr(args, fmt="json")
+
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        assert len(data) == 1
+        assert data[0]["status"] == "failed"
+        assert data[0]["repo"] == "invalid-spec-string"
+
+    @patch("gfo.commands.batch.create_adapter_from_spec")
+    @patch("gfo.commands.batch.parse_service_spec")
+    def test_draft_flag_forwarded(self, mock_parse, mock_create_adapter):
+        """draft=True が create_pull_request に渡される。"""
+        spec = _make_spec()
+        mock_parse.return_value = spec
+        adapter = MagicMock()
+        adapter.create_pull_request.return_value = _make_pr()
+        mock_create_adapter.return_value = adapter
+
+        args = make_args(
+            repos="github:owner/repo",
+            title="Draft PR",
+            body="body",
+            head="feature",
+            base="main",
+            draft=True,
+            dry_run=False,
+            batch_pr_action="create",
+        )
+
+        batch_cmd.handle_batch_pr(args, fmt="table")
+
+        adapter.create_pull_request.assert_called_once_with(
+            title="Draft PR",
+            body="body",
+            head="feature",
+            base="main",
+            draft=True,
+        )
+
+    @patch("gfo.commands.batch.create_adapter_from_spec")
+    @patch("gfo.commands.batch.parse_service_spec")
+    def test_repos_whitespace_handling(self, mock_parse, mock_create_adapter, capsys):
+        """前後の空白 + 空要素がスキップされる。"""
+        spec = _make_spec()
+        mock_parse.return_value = spec
+        adapter = MagicMock()
+        adapter.create_pull_request.return_value = _make_pr()
+        mock_create_adapter.return_value = adapter
+
+        args = make_args(
+            repos=" , github:o/r , ",
+            title="Test PR",
+            body="",
+            head="feature",
+            base="main",
+            draft=False,
+            dry_run=False,
+            batch_pr_action="create",
+        )
+
+        batch_cmd.handle_batch_pr(args, fmt="json")
+
+        # 空要素がスキップされ、1つだけ処理される
+        assert mock_parse.call_count == 1
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        assert len(data) == 1
+        assert data[0]["status"] == "created"
+
+    @patch("gfo.commands.batch.create_adapter_from_spec")
+    @patch("gfo.commands.batch.parse_service_spec")
+    def test_dry_run_json_output(self, mock_parse, mock_create_adapter, capsys):
+        """dry_run 結果の JSON 内容検証。"""
+        spec = _make_spec()
+        mock_parse.return_value = spec
+        adapter = MagicMock()
+        mock_create_adapter.return_value = adapter
+
+        args = make_args(
+            repos="github:owner/repo",
+            title="Test PR",
+            body="",
+            head="feature",
+            base="main",
+            draft=False,
+            dry_run=True,
+            batch_pr_action="create",
+        )
+
+        batch_cmd.handle_batch_pr(args, fmt="json")
+
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        assert len(data) == 1
+        assert data[0]["status"] == "skipped"
+        assert data[0]["number"] is None
+        assert data[0]["url"] is None
+        assert data[0]["error"] is None
+        assert data[0]["repo"] == "github:owner/repo"
+
+    @patch("gfo.commands.batch.create_adapter_from_spec")
+    @patch("gfo.commands.batch.parse_service_spec")
+    def test_mixed_order_preserved(self, mock_parse, mock_create_adapter, capsys):
+        """成功→失敗→成功の results 順序保持。"""
+        spec1 = _make_spec("github", "o1", "r1")
+        spec2 = _make_spec("github", "o2", "r2")
+        spec3 = _make_spec("github", "o3", "r3")
+        # except 内で parse_service_spec が再度呼ばれるため、
+        # 失敗したリポジトリ分の追加 spec が必要
+        mock_parse.side_effect = [spec1, spec2, spec2, spec3]
+
+        adapter1 = MagicMock()
+        adapter1.create_pull_request.return_value = _make_pr(number=1)
+        adapter2 = MagicMock()
+        adapter2.create_pull_request.side_effect = HttpError(500, "Error")
+        adapter3 = MagicMock()
+        adapter3.create_pull_request.return_value = _make_pr(number=3)
+        mock_create_adapter.side_effect = [adapter1, adapter2, adapter3]
+
+        args = make_args(
+            repos="github:o1/r1,github:o2/r2,github:o3/r3",
+            title="Test",
+            body="",
+            head="feature",
+            base="main",
+            draft=False,
+            dry_run=False,
+            batch_pr_action="create",
+        )
+
+        batch_cmd.handle_batch_pr(args, fmt="json")
+
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        assert len(data) == 3
+        assert data[0]["status"] == "created"
+        assert data[0]["repo"] == "github:o1/r1"
+        assert data[1]["status"] == "failed"
+        assert data[1]["repo"] == "github:o2/r2"
+        assert data[2]["status"] == "created"
+        assert data[2]["repo"] == "github:o3/r3"

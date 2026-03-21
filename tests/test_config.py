@@ -55,6 +55,28 @@ def test_get_config_dir_windows_no_appdata():
         assert result == home / "AppData" / "Roaming" / "gfo"
 
 
+def test_get_config_dir_darwin():
+    """macOS (darwin) では ~/.config/gfo がデフォルト。"""
+    with (
+        patch("gfo.config.sys") as mock_sys,
+        patch.dict("os.environ", {"XDG_CONFIG_HOME": ""}, clear=False),
+    ):
+        mock_sys.platform = "darwin"
+        result = get_config_dir()
+        assert result == Path.home() / ".config" / "gfo"
+
+
+def test_get_config_dir_darwin_xdg():
+    """macOS (darwin) + XDG_CONFIG_HOME 設定時はそのパスを使う。"""
+    with (
+        patch("gfo.config.sys") as mock_sys,
+        patch.dict("os.environ", {"XDG_CONFIG_HOME": "/custom/darwin/config"}),
+    ):
+        mock_sys.platform = "darwin"
+        result = get_config_dir()
+        assert result == Path("/custom/darwin/config") / "gfo"
+
+
 def test_get_config_dir_unix():
     with patch("gfo.config.sys") as mock_sys:
         mock_sys.platform = "linux"
@@ -1040,3 +1062,24 @@ def test_parse_key_parts_quoted_only():
 
 def test_parse_key_parts_multiple_quoted():
     assert _parse_key_parts('"a.b"."c.d"') == ["a.b", "c.d"]
+
+
+# ── 非 ASCII round-trip (#4-B) ──
+
+
+def test_set_config_unicode_key(tmp_path):
+    """日本語キーの保存・再読込。"""
+    d = tmp_path / "gfo_config"
+    d.mkdir()
+    with patch("gfo.config.get_config_dir", return_value=d):
+        set_config_value('hosts."日本語ホスト".type', "gitea")
+        assert get_config_value('hosts."日本語ホスト".type') == "gitea"
+
+
+def test_set_config_unicode_value(tmp_path):
+    """日本語値の保存・再読込。"""
+    d = tmp_path / "gfo_config"
+    d.mkdir()
+    with patch("gfo.config.get_config_dir", return_value=d):
+        set_config_value("defaults.output", "テーブル")
+        assert get_config_value("defaults.output") == "テーブル"

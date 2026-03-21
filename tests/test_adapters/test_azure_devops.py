@@ -2323,3 +2323,446 @@ class TestClientFilterLimit:
         result = azure_devops_adapter.list_pull_requests(author="other@example.com", limit=1)
         assert len(result) == 1
         assert result[0].number == 2
+
+
+# --- Issue Dependency (Work Item Links) ---
+
+
+class TestListIssueDependencies:
+    def test_list_issue_dependencies_success(self, mock_responses, azure_devops_adapter):
+        """relations から Dependency リンクを抽出する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems/1",
+            json={
+                **_issue_data(id=1),
+                "relations": [
+                    {
+                        "rel": "System.LinkTypes.Dependency-Forward",
+                        "url": f"{WIT}/workitems/2",
+                    },
+                ],
+            },
+            status=200,
+        )
+        # get_issue(2) が呼ばれる
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems/2",
+            json=_issue_data(id=2),
+            status=200,
+        )
+        deps = azure_devops_adapter.list_issue_dependencies(1)
+        assert len(deps) == 1
+        assert deps[0].number == 2
+
+    def test_list_issue_dependencies_no_relations(self, mock_responses, azure_devops_adapter):
+        """relations が空 → 空リスト。"""
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems/1",
+            json={**_issue_data(id=1), "relations": []},
+            status=200,
+        )
+        deps = azure_devops_adapter.list_issue_dependencies(1)
+        assert deps == []
+
+    def test_list_issue_dependencies_non_dependency_links_ignored(
+        self, mock_responses, azure_devops_adapter
+    ):
+        """他の LinkType が無視される。"""
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems/1",
+            json={
+                **_issue_data(id=1),
+                "relations": [
+                    {
+                        "rel": "System.LinkTypes.Related",
+                        "url": f"{WIT}/workitems/2",
+                    },
+                    {
+                        "rel": "System.LinkTypes.Hierarchy-Forward",
+                        "url": f"{WIT}/workitems/3",
+                    },
+                ],
+            },
+            status=200,
+        )
+        deps = azure_devops_adapter.list_issue_dependencies(1)
+        assert deps == []
+
+
+class TestAddIssueDependency:
+    def test_add_issue_dependency_success(self, mock_responses, azure_devops_adapter):
+        """JSON Patch で /relations/- 追加。"""
+        mock_responses.add(
+            responses.PATCH,
+            f"{WIT}/workitems/1",
+            json=_issue_data(id=1),
+            status=200,
+        )
+        azure_devops_adapter.add_issue_dependency(1, 2)
+        req = mock_responses.calls[0].request
+        body = json.loads(req.body)
+        assert body[0]["op"] == "add"
+        assert body[0]["path"] == "/relations/-"
+        assert "System.LinkTypes.Dependency-Forward" in body[0]["value"]["rel"]
+
+    def test_add_issue_dependency_url_construction(self, mock_responses, azure_devops_adapter):
+        """base_url から target URL が正しく構築される。"""
+        mock_responses.add(
+            responses.PATCH,
+            f"{WIT}/workitems/10",
+            json=_issue_data(id=10),
+            status=200,
+        )
+        azure_devops_adapter.add_issue_dependency(10, 20)
+        req = mock_responses.calls[0].request
+        body = json.loads(req.body)
+        target_url = body[0]["value"]["url"]
+        assert "/test-org/test-project/_apis/wit/workitems/20" in target_url
+
+
+class TestRemoveIssueDependency:
+    def test_remove_issue_dependency_success(self, mock_responses, azure_devops_adapter):
+        """relations index で Patch 削除。"""
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems/1",
+            json={
+                **_issue_data(id=1),
+                "relations": [
+                    {
+                        "rel": "System.LinkTypes.Dependency-Forward",
+                        "url": f"{WIT}/workitems/2",
+                    },
+                ],
+            },
+            status=200,
+        )
+        mock_responses.add(
+            responses.PATCH,
+            f"{WIT}/workitems/1",
+            json=_issue_data(id=1),
+            status=200,
+        )
+        azure_devops_adapter.remove_issue_dependency(1, 2)
+        req = mock_responses.calls[1].request
+        body = json.loads(req.body)
+        assert body[0]["op"] == "remove"
+        assert body[0]["path"] == "/relations/0"
+
+    def test_remove_issue_dependency_not_found(self, mock_responses, azure_devops_adapter):
+        """指定 ID が relations にない → 何も起きない（PATCH は呼ばれない）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems/1",
+            json={
+                **_issue_data(id=1),
+                "relations": [
+                    {
+                        "rel": "System.LinkTypes.Dependency-Forward",
+                        "url": f"{WIT}/workitems/2",
+                    },
+                ],
+            },
+            status=200,
+        )
+        azure_devops_adapter.remove_issue_dependency(1, 999)
+        # GET のみで PATCH は呼ばれない
+        assert len(mock_responses.calls) == 1
+
+
+# --- Issue Timeline (Work Item Updates) ---
+
+
+class TestGetIssueTimeline:
+    def test_timeline_success(self, mock_responses, azure_devops_adapter):
+        """fields の newValue が detail_parts に変換される。"""
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems/1/updates",
+            json={
+                "value": [
+                    {
+                        "id": 1,
+                        "revisedBy": {"displayName": "Alice"},
+                        "revisedDate": "2025-01-01T00:00:00Z",
+                        "fields": {
+                            "System.State": {"oldValue": "New", "newValue": "Active"},
+                        },
+                    },
+                ]
+            },
+            status=200,
+        )
+        events = azure_devops_adapter.get_issue_timeline(1)
+        assert len(events) == 1
+        assert events[0].event == "updated"
+        assert events[0].actor == "Alice"
+        assert "System.State: Active" in events[0].detail
+
+    def test_timeline_empty_updates(self, mock_responses, azure_devops_adapter):
+        """更新なし → 空リスト。"""
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems/1/updates",
+            json={"value": []},
+            status=200,
+        )
+        events = azure_devops_adapter.get_issue_timeline(1)
+        assert events == []
+
+    def test_timeline_detail_truncated_to_3(self, mock_responses, azure_devops_adapter):
+        """4件以上の field 変更 → detail[:3] に切り詰め。"""
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems/1/updates",
+            json={
+                "value": [
+                    {
+                        "id": 1,
+                        "revisedBy": {"displayName": "Bob"},
+                        "revisedDate": "2025-01-01T00:00:00Z",
+                        "fields": {
+                            "System.State": {"newValue": "Active"},
+                            "System.Title": {"newValue": "New Title"},
+                            "System.AssignedTo": {"newValue": "dev@example.com"},
+                            "System.Tags": {"newValue": "bug"},
+                        },
+                    },
+                ]
+            },
+            status=200,
+        )
+        events = azure_devops_adapter.get_issue_timeline(1)
+        assert len(events) == 1
+        # detail は "; " 区切りで最大3件
+        parts = events[0].detail.split("; ")
+        assert len(parts) == 3
+
+    def test_timeline_missing_revised_by(self, mock_responses, azure_devops_adapter):
+        """revisedBy が null のハンドリング。"""
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems/1/updates",
+            json={
+                "value": [
+                    {
+                        "id": 1,
+                        "revisedBy": None,
+                        "revisedDate": "2025-01-01T00:00:00Z",
+                        "fields": {
+                            "System.State": {"newValue": "Closed"},
+                        },
+                    },
+                ]
+            },
+            status=200,
+        )
+        events = azure_devops_adapter.get_issue_timeline(1)
+        assert len(events) == 1
+        assert events[0].actor == ""
+
+    def test_timeline_limit(self, mock_responses, azure_devops_adapter):
+        """limit パラメータで件数制限。"""
+        updates = []
+        for i in range(10):
+            updates.append(
+                {
+                    "id": i + 1,
+                    "revisedBy": {"displayName": f"User{i}"},
+                    "revisedDate": "2025-01-01T00:00:00Z",
+                    "fields": {
+                        "System.State": {"newValue": "Active"},
+                    },
+                }
+            )
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems/1/updates",
+            json={"value": updates},
+            status=200,
+        )
+        events = azure_devops_adapter.get_issue_timeline(1, limit=3)
+        assert len(events) == 3
+
+
+# --- Search PRs / Commits ---
+
+
+class TestSearchPullRequests:
+    def test_search_pull_requests_matches_title(self, mock_responses, azure_devops_adapter):
+        """title にクエリマッチ。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests",
+            json={"value": [_pr_data(pull_request_id=1)]},
+            status=200,
+        )
+        prs = azure_devops_adapter.search_pull_requests("PR #1")
+        assert len(prs) == 1
+        assert prs[0].number == 1
+
+    def test_search_pull_requests_matches_body(self, mock_responses, azure_devops_adapter):
+        """body にクエリマッチ。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests",
+            json={"value": [_pr_data(pull_request_id=1)]},
+            status=200,
+        )
+        prs = azure_devops_adapter.search_pull_requests("pr description")
+        assert len(prs) == 1
+
+    def test_search_pull_requests_case_insensitive(self, mock_responses, azure_devops_adapter):
+        """大文字小文字を無視。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests",
+            json={"value": [_pr_data(pull_request_id=1)]},
+            status=200,
+        )
+        prs = azure_devops_adapter.search_pull_requests("PR DESCRIPTION")
+        assert len(prs) == 1
+
+    def test_search_pull_requests_no_match(self, mock_responses, azure_devops_adapter):
+        """マッチなし → 空リスト。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests",
+            json={"value": [_pr_data(pull_request_id=1)]},
+            status=200,
+        )
+        prs = azure_devops_adapter.search_pull_requests("nonexistent query")
+        assert prs == []
+
+    def test_search_pull_requests_with_state(self, mock_responses, azure_devops_adapter):
+        """state フィルタ付き。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests",
+            json={"value": [_pr_data(pull_request_id=1, status="completed")]},
+            status=200,
+        )
+        prs = azure_devops_adapter.search_pull_requests("PR", state="merged")
+        assert len(prs) == 1
+        req = mock_responses.calls[0].request
+        assert "searchCriteria.status=completed" in req.url
+
+
+class TestSearchCommits:
+    def test_search_commits_matches_message(self, mock_responses, azure_devops_adapter):
+        """commit.message にクエリマッチ。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/commits",
+            json={
+                "value": [
+                    {
+                        "commitId": "abc123",
+                        "comment": "fix bug in parser",
+                        "author": {"name": "dev1", "date": "2025-01-01T00:00:00Z"},
+                        "remoteUrl": "https://example.com/commit/abc123",
+                    }
+                ]
+            },
+            status=200,
+        )
+        commits = azure_devops_adapter.search_commits("fix bug")
+        assert len(commits) == 1
+        assert commits[0].sha == "abc123"
+
+    def test_search_commits_no_match(self, mock_responses, azure_devops_adapter):
+        """マッチなし → 空リスト。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/commits",
+            json={
+                "value": [
+                    {
+                        "commitId": "abc123",
+                        "comment": "fix bug",
+                        "author": {"name": "dev1", "date": "2025-01-01T00:00:00Z"},
+                        "remoteUrl": "https://example.com/commit/abc123",
+                    }
+                ]
+            },
+            status=200,
+        )
+        commits = azure_devops_adapter.search_commits("nonexistent")
+        assert commits == []
+
+    def test_search_commits_with_author(self, mock_responses, azure_devops_adapter):
+        """author フィルタ付き。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/commits",
+            json={
+                "value": [
+                    {
+                        "commitId": "abc123",
+                        "comment": "fix bug",
+                        "author": {"name": "dev1", "date": "2025-01-01T00:00:00Z"},
+                        "remoteUrl": "https://example.com/commit/abc123",
+                    }
+                ]
+            },
+            status=200,
+        )
+        commits = azure_devops_adapter.search_commits("fix", author="dev1")
+        assert len(commits) == 1
+        req = mock_responses.calls[0].request
+        assert "searchCriteria.author=dev1" in req.url
+
+
+# --- Time Entry (Completed Work) ---
+
+
+class TestAddTimeEntry:
+    def test_add_time_entry_converts_seconds_to_hours(self, mock_responses, azure_devops_adapter):
+        """3600秒 → 1時間。"""
+        mock_responses.add(
+            responses.PATCH,
+            f"{WIT}/workitems/1",
+            json=_issue_data(id=1),
+            status=200,
+        )
+        azure_devops_adapter.add_time_entry(1, 3600)
+        req = mock_responses.calls[0].request
+        body = json.loads(req.body)
+        completed_op = next(
+            op for op in body if op["path"] == "/fields/Microsoft.VSTS.Scheduling.CompletedWork"
+        )
+        assert completed_op["value"] == 1.0
+
+    def test_add_time_entry_partial_hour(self, mock_responses, azure_devops_adapter):
+        """1800秒 → 0.5時間。"""
+        mock_responses.add(
+            responses.PATCH,
+            f"{WIT}/workitems/1",
+            json=_issue_data(id=1),
+            status=200,
+        )
+        azure_devops_adapter.add_time_entry(1, 1800)
+        req = mock_responses.calls[0].request
+        body = json.loads(req.body)
+        completed_op = next(
+            op for op in body if op["path"] == "/fields/Microsoft.VSTS.Scheduling.CompletedWork"
+        )
+        assert completed_op["value"] == 0.5
+
+    def test_add_time_entry_returns_stub(self, mock_responses, azure_devops_adapter):
+        """返値の id=0, user="", created_at=""。"""
+        mock_responses.add(
+            responses.PATCH,
+            f"{WIT}/workitems/1",
+            json=_issue_data(id=1),
+            status=200,
+        )
+        result = azure_devops_adapter.add_time_entry(1, 3600)
+        assert result.id == 0
+        assert result.user == ""
+        assert result.created_at == ""
+        assert result.duration == 3600

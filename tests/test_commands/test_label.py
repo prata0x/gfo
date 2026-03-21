@@ -360,3 +360,170 @@ class TestHandleClone:
             args = make_args(source="src-owner/src-repo", overwrite=False)
             label_cmd.handle_clone(args, fmt="table")
         dest_adapter.create_label.assert_called_once()
+
+    def test_clone_overwrite_true(self, sample_config, capsys):
+        """overwrite=True で既存ラベルに対して update_label が呼ばれる。"""
+        from gfo.config import ProjectConfig
+
+        mock_cfg = ProjectConfig(
+            service_type="github",
+            host="github.com",
+            api_url="https://api.github.com",
+            owner="src-owner",
+            repo="src-repo",
+        )
+        existing_label = _make_label()
+        source_adapter = MagicMock()
+        source_adapter.list_labels.return_value = [existing_label]
+        dest_adapter = MagicMock()
+        dest_adapter.list_labels.return_value = [existing_label]  # 既存に同名ラベルあり
+
+        mock_adapter_cls = MagicMock(return_value=source_adapter)
+
+        with (
+            patch("gfo.commands.label.get_adapter", return_value=dest_adapter),
+            patch("gfo.config.resolve_project_config", return_value=mock_cfg),
+            patch("gfo.auth.resolve_token", return_value="test-token"),
+            patch("gfo.config.build_default_api_url", return_value="https://api.github.com"),
+            patch("gfo.adapter.registry.create_http_client"),
+            patch("gfo.adapter.registry.get_adapter_class", return_value=mock_adapter_cls),
+        ):
+            args = make_args(source="src-owner/src-repo", overwrite=True)
+            label_cmd.handle_clone(args, fmt="table")
+        dest_adapter.update_label.assert_called_once()
+        dest_adapter.create_label.assert_not_called()
+
+    def test_clone_overwrite_update_fails(self, sample_config, capsys):
+        """overwrite=True で update_label が例外 → continue でスキップされる。"""
+        from gfo.config import ProjectConfig
+
+        mock_cfg = ProjectConfig(
+            service_type="github",
+            host="github.com",
+            api_url="https://api.github.com",
+            owner="src-owner",
+            repo="src-repo",
+        )
+        existing_label = _make_label()
+        source_adapter = MagicMock()
+        source_adapter.list_labels.return_value = [existing_label]
+        dest_adapter = MagicMock()
+        dest_adapter.list_labels.return_value = [existing_label]
+        dest_adapter.update_label.side_effect = RuntimeError("API error")
+
+        mock_adapter_cls = MagicMock(return_value=source_adapter)
+
+        with (
+            patch("gfo.commands.label.get_adapter", return_value=dest_adapter),
+            patch("gfo.config.resolve_project_config", return_value=mock_cfg),
+            patch("gfo.auth.resolve_token", return_value="test-token"),
+            patch("gfo.config.build_default_api_url", return_value="https://api.github.com"),
+            patch("gfo.adapter.registry.create_http_client"),
+            patch("gfo.adapter.registry.get_adapter_class", return_value=mock_adapter_cls),
+        ):
+            args = make_args(source="src-owner/src-repo", overwrite=True)
+            label_cmd.handle_clone(args, fmt="table")
+        # 例外が伝搬せず正常終了
+        out = capsys.readouterr().out
+        assert "0 labels" in out
+
+    def test_clone_empty_source(self, sample_config, capsys):
+        """ソースが0件の場合 created=0。"""
+        from gfo.config import ProjectConfig
+
+        mock_cfg = ProjectConfig(
+            service_type="github",
+            host="github.com",
+            api_url="https://api.github.com",
+            owner="src-owner",
+            repo="src-repo",
+        )
+        source_adapter = MagicMock()
+        source_adapter.list_labels.return_value = []
+        dest_adapter = MagicMock()
+        dest_adapter.list_labels.return_value = []
+
+        mock_adapter_cls = MagicMock(return_value=source_adapter)
+
+        with (
+            patch("gfo.commands.label.get_adapter", return_value=dest_adapter),
+            patch("gfo.config.resolve_project_config", return_value=mock_cfg),
+            patch("gfo.auth.resolve_token", return_value="test-token"),
+            patch("gfo.config.build_default_api_url", return_value="https://api.github.com"),
+            patch("gfo.adapter.registry.create_http_client"),
+            patch("gfo.adapter.registry.get_adapter_class", return_value=mock_adapter_cls),
+        ):
+            args = make_args(source="src-owner/src-repo", overwrite=False)
+            label_cmd.handle_clone(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "0 labels" in out
+        dest_adapter.create_label.assert_not_called()
+
+    def test_clone_invalid_repo_format(self, sample_config):
+        """無効なリポジトリ形式 'invalid' で ConfigError。"""
+        with patch("gfo.config.resolve_project_config", return_value=sample_config):
+            args = make_args(source="invalid", overwrite=False)
+            with pytest.raises(ConfigError, match="Invalid repo format"):
+                label_cmd.handle_clone(args, fmt="table")
+
+    def test_clone_slash_only(self, sample_config):
+        """'/' のみで ConfigError。"""
+        with patch("gfo.config.resolve_project_config", return_value=sample_config):
+            args = make_args(source="/", overwrite=False)
+            with pytest.raises(ConfigError, match="Invalid repo format"):
+                label_cmd.handle_clone(args, fmt="table")
+
+
+class TestHandleCreateEdgeCases:
+    """handle_create の追加エッジケーステスト。"""
+
+    def setup_method(self):
+        self.label = _make_label()
+        self.adapter = _make_adapter(self.label)
+
+    def test_create_3digit_color_rejected(self, sample_config):
+        """3桁カラー '#f00' は ConfigError。"""
+        args = make_args(name="bug", color="#f00", description=None)
+        with (
+            _patch_all(sample_config, self.adapter),
+            pytest.raises(ConfigError, match="Invalid color"),
+        ):
+            label_cmd.handle_create(args, fmt="table")
+
+
+class TestHandleListEdgeCases:
+    """handle_list の追加エッジケーステスト。"""
+
+    def setup_method(self):
+        self.label = _make_label()
+        self.adapter = _make_adapter(self.label)
+
+    def test_list_error_propagation(self, sample_config):
+        """NotSupportedError が伝搬する。"""
+        from gfo.exceptions import NotSupportedError
+
+        self.adapter.list_labels.side_effect = NotSupportedError("github", "list_labels")
+        args = make_args()
+        with (
+            _patch_all(sample_config, self.adapter),
+            pytest.raises(NotSupportedError),
+        ):
+            label_cmd.handle_list(args, fmt="table")
+
+
+class TestHandleEditEdgeCases:
+    """handle_edit の追加エッジケーステスト。"""
+
+    def setup_method(self):
+        self.label = _make_label()
+        self.adapter = _make_adapter(self.label)
+
+    def test_edit_color_hash_stripped(self, sample_config):
+        """'#ff0000' → 'ff0000' に変換される。"""
+        self.adapter.update_label.return_value = self.label
+        args = make_args(current_name="bug", name=None, color="#ff0000", description=None)
+        with _patch_all(sample_config, self.adapter):
+            label_cmd.handle_edit(args, fmt="table")
+        self.adapter.update_label.assert_called_once_with(
+            name="bug", new_name=None, color="ff0000", description=None
+        )

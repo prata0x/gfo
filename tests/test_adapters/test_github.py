@@ -4047,3 +4047,22 @@ class TestClientFilterLimit:
         result = github_adapter.list_repositories(archived=False, limit=1)
         assert len(result) == 1
         assert result[0].name == "active-repo"
+
+
+# --- created_at 異常値テスト ---
+
+
+class TestToIssueMissingCreatedAt:
+    def test_to_issue_missing_created_at(self):
+        """created_at が欠落している場合は GfoError が送出される。"""
+        data = _issue_data()
+        del data["created_at"]
+        with pytest.raises(GfoError, match="missing field"):
+            GitHubAdapter._to_issue(data)
+
+    def test_to_issue_empty_created_at(self):
+        """created_at が空文字列の場合、Issue は created_at="" で生成される（KeyError にならない）。"""
+        data = _issue_data()
+        data["created_at"] = ""
+        issue = GitHubAdapter._to_issue(data)
+        assert issue.created_at == ""

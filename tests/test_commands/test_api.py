@@ -121,6 +121,80 @@ class TestHandleApi:
                 api_cmd.handle_api(args, fmt="json", jq=".name")
                 mock_jq.assert_called_once()
 
+    def test_invalid_json_data(self, sample_config, mock_client):
+        """不正な JSON データで ConfigError。"""
+        args = make_args(method="POST", path="/test", data="{invalid json", header=None)
+        with _patch_all(sample_config, mock_client):
+            with pytest.raises(ConfigError, match="Invalid JSON"):
+                api_cmd.handle_api(args, fmt="json")
+
+    def test_put_method(self, sample_config, mock_client, capsys):
+        """PUT メソッド。"""
+        args = make_args(method="put", path="/test", data='{"x": 1}', header=None)
+        with _patch_all(sample_config, mock_client):
+            api_cmd.handle_api(args, fmt="json")
+
+        mock_client.request.assert_called_once_with(
+            "PUT",
+            "/test",
+            json={"x": 1},
+            headers={},
+        )
+
+    def test_delete_method(self, sample_config, mock_client, capsys):
+        """DELETE メソッド。"""
+        args = make_args(method="delete", path="/test", data=None, header=None)
+        with _patch_all(sample_config, mock_client):
+            api_cmd.handle_api(args, fmt="json")
+
+        mock_client.request.assert_called_once_with(
+            "DELETE",
+            "/test",
+            json=None,
+            headers={},
+        )
+
+    def test_header_multiple_colons(self, sample_config, mock_client, capsys):
+        """ヘッダー値にコロンを含む場合: split(":", 1) の検証。"""
+        args = make_args(
+            method="GET",
+            path="/test",
+            data=None,
+            header=["Authorization: Bearer token:with:colons"],
+        )
+        with _patch_all(sample_config, mock_client):
+            api_cmd.handle_api(args, fmt="json")
+
+        mock_client.request.assert_called_once_with(
+            "GET",
+            "/test",
+            json=None,
+            headers={"Authorization": "Bearer token:with:colons"},
+        )
+
+    def test_no_data_sends_none(self, sample_config, mock_client, capsys):
+        """data 未指定 → json=None。"""
+        args = make_args(method="GET", path="/test", data=None, header=None)
+        with _patch_all(sample_config, mock_client):
+            api_cmd.handle_api(args, fmt="json")
+
+        call_kwargs = mock_client.request.call_args
+        assert call_kwargs.kwargs["json"] is None
+
+    def test_response_non_json(self, sample_config, capsys):
+        """レスポンスが非 JSON テキスト → resp.text がそのまま出力される。"""
+        client = MagicMock()
+        resp = MagicMock()
+        resp.text = "plain text response"
+        client.request.return_value = resp
+
+        args = make_args(method="GET", path="/test", data=None, header=None)
+        with _patch_all(sample_config, client):
+            api_cmd.handle_api(args, fmt="json")
+
+        out = capsys.readouterr().out.strip()
+        assert out == "plain text response"
+
 
 class TestParseHeaders:
     def test_empty(self):

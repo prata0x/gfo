@@ -344,6 +344,28 @@ def test_save_token_posix_permission(tmp_path, monkeypatch):
     assert chmod_calls[0][1] == 0o600
 
 
+def test_save_token_darwin_permission(tmp_path, monkeypatch):
+    """macOS (darwin) でも POSIX と同様に chmod 0o600 が呼ばれる。"""
+    config_dir = tmp_path / "config"
+    monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml")
+    monkeypatch.setattr("gfo.auth.sys.platform", "darwin")
+
+    chmod_calls = []
+    original_chmod = os.chmod
+
+    def mock_chmod(path, mode):
+        chmod_calls.append((path, mode))
+        original_chmod(path, mode)
+
+    monkeypatch.setattr("gfo.auth.os.chmod", mock_chmod)
+
+    save_token("github.com", "ghp_test")
+
+    assert len(chmod_calls) == 1
+    assert chmod_calls[0][1] == 0o600
+
+
 def test_save_token_windows_icacls(tmp_path, monkeypatch):
     """Windows では icacls をベストエフォートで呼ぶ。"""
     config_dir = tmp_path / "config"
@@ -910,6 +932,47 @@ def test_write_credentials_toml_atomic_no_partial_file(tmp_path, monkeypatch):
 
     # 元のファイルが保持されている
     assert path.read_text(encoding="utf-8") == "original content"
+
+
+# ── ヘルパー ──
+
+
+# ── 非 ASCII round-trip (#4-A) ──
+
+
+def test_roundtrip_unicode_host(tmp_path, monkeypatch):
+    """日本語ホスト名で保存・再読込できる。"""
+    config_dir = tmp_path / "config"
+    monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
+    creds = config_dir / "credentials.toml"
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+
+    save_token("gitlab.日本語.local", "tok-unicode-host")
+
+    tokens = load_tokens()
+    assert "gitlab.日本語.local" in tokens
+    assert tokens["gitlab.日本語.local"]["default"] == "tok-unicode-host"
+
+
+def test_roundtrip_unicode_token(tmp_path, monkeypatch):
+    """日本語文字を含むトークン値の round-trip。"""
+    config_dir = tmp_path / "config"
+    monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
+    creds = config_dir / "credentials.toml"
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+
+    save_token("github.com", "トークン値テスト🎉")
+
+    tokens = load_tokens()
+    assert tokens["github.com"]["default"] == "トークン値テスト🎉"
+
+
+def test_escape_toml_value_unicode():
+    """非 ASCII 文字がエスケープされずそのまま保持される。"""
+    result = _escape_toml_value("日本語テスト")
+    assert result == "日本語テスト"
+    result2 = _escape_toml_value("🎉絵文字")
+    assert result2 == "🎉絵文字"
 
 
 # ── ヘルパー ──

@@ -379,3 +379,52 @@ class TestApplyJqFilter:
         with patch("gfo.output.subprocess.run", return_value=mock_result):
             result = apply_jq_filter('{"a": "hello"}', ".a")
         assert result == '"hello"'
+
+
+# ── 非 ASCII 表示幅テスト (#4-C) ──
+
+
+class TestDisplayWidthNonAscii:
+    def test_display_width_emoji(self):
+        """絵文字 🎉 の表示幅（W/F カテゴリ判定）。"""
+        width = _display_width("🎉")
+        # 🎉 は East Asian Width "W" なので幅 2
+        assert width == 2
+
+    def test_display_width_combining_char(self):
+        """結合文字（濁点付き）の表示幅。"""
+        # か(U+304B) + 結合濁点(U+3099) の合成文字列
+        # _display_width は各コードポイントの east_asian_width を個別に判定する
+        import unicodedata
+
+        combined = "\u304b\u3099"  # か + 結合濁点
+        width = _display_width(combined)
+        # 各コードポイントの East Asian Width に従い、W/F なら 2、それ以外なら 1
+        expected = sum(
+            2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1 for ch in combined
+        )
+        assert width == expected
+
+    def test_display_width_half_width_katakana(self):
+        """半角カタカナの表示幅。"""
+        # ｶ (U+FF76) は East Asian Width "H" (Halfwidth) → 幅 1
+        width = _display_width("ｶ")
+        assert width == 1
+
+    def test_table_alignment_with_emoji(self):
+        """emoji 混在テーブルの整列。"""
+        items = [
+            SampleItem(1, "🎉リリース", "open", "alice"),
+            SampleItem(2, "plain text", "closed", "bob"),
+        ]
+        result = format_table(items, ["number", "title", "state"])
+        lines = result.split("\n")
+        # テーブルが最低4行（ヘッダー + セパレーター + 2データ行）あること
+        assert len(lines) == 4
+        # セパレーターの幅が emoji 含む文字列の表示幅以上であること
+        # "🎉リリース" の表示幅 = 2+2+2+2 = 8 (各文字が W/F カテゴリ)
+        emoji_title_width = _display_width("🎉リリース")
+        sep_parts = lines[1].split("  ")
+        # TITLE 列（2番目の列）のセパレーター幅は emoji タイトルの表示幅以上
+        title_sep_width = len(sep_parts[1])
+        assert title_sep_width >= max(emoji_title_width, _display_width("TITLE"))

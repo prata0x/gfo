@@ -72,3 +72,23 @@ def test_language_empty_string_fallback():
 def test_ngettext_exported():
     """ngettext がエクスポートされている。"""
     assert callable(gfo.i18n.ngettext)
+
+
+def test_locale_getlocale_exception():
+    """locale.getlocale() が例外を投げた場合、_get_languages() は None を返す。"""
+    env = {k: v for k, v in os.environ.items() if k != "LANGUAGE"}
+    with (
+        mock.patch.dict(os.environ, env, clear=True),
+        mock.patch("locale.getlocale", side_effect=ValueError("unsupported locale")),
+    ):
+        # _get_languages() を直接テストして例外時に None が返ることを確認
+        mod = importlib.reload(gfo.i18n)
+        result = mod._get_languages()
+        assert result is None
+
+
+def test_invalid_locale_string():
+    """LANGUAGE="invalid" の場合、翻訳ファイルが見つからず英語フォールバックになる。"""
+    with mock.patch.dict(os.environ, {"LANGUAGE": "invalid"}, clear=False):
+        mod = importlib.reload(gfo.i18n)
+        assert mod._("No results found.") == "No results found."

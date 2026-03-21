@@ -1079,6 +1079,26 @@ class TestHandleTransfer:
             repo_cmd.handle_transfer(args, fmt="table")
         mock_adapter.transfer_repository.assert_called_once_with("new-owner", team_ids=None)
 
+    def test_transfer_confirmation_yes(self, sample_config, mock_adapter, capsys):
+        """ "y" → transfer_repository() 呼び出し。"""
+        mock_adapter.owner = "test-owner"
+        mock_adapter.repo = "test-repo"
+        with _patch_all(sample_config, mock_adapter), patch("builtins.input", return_value="y"):
+            args = make_args(new_owner="new-owner", team_id=None, yes=False)
+            repo_cmd.handle_transfer(args, fmt="table")
+        mock_adapter.transfer_repository.assert_called_once_with("new-owner", team_ids=None)
+
+    def test_transfer_confirmation_no(self, sample_config, mock_adapter, capsys):
+        """ "n" → "Aborted." 出力、未呼び出し。"""
+        mock_adapter.owner = "test-owner"
+        mock_adapter.repo = "test-repo"
+        with _patch_all(sample_config, mock_adapter), patch("builtins.input", return_value="n"):
+            args = make_args(new_owner="new-owner", team_id=None, yes=False)
+            repo_cmd.handle_transfer(args, fmt="table")
+        mock_adapter.transfer_repository.assert_not_called()
+        out = capsys.readouterr().out
+        assert "Aborted" in out
+
 
 class TestHandleViewWeb:
     def test_opens_browser(self, sample_config, mock_adapter):

@@ -1048,3 +1048,31 @@ class TestUploadFileRetry:
         )
         client.upload_multipart("/upload", str(test_file), name="renamed.bin")
         assert b"renamed.bin" in responses.calls[0].request.body
+
+
+# ── Retry-After 境界値テスト ──
+
+
+class TestRetryAfterEdgeCases:
+    def test_retry_after_empty_string(self):
+        """空文字列 → int 変換失敗 → HTTP-date パースも失敗 → デフォルト値にフォールバック。"""
+        assert HttpClient._parse_retry_after("") == 60
+        assert HttpClient._parse_retry_after("", default=30) == 30
+
+    def test_retry_after_malformed_http_date(self):
+        """不完全な日時形式 → デフォルト値にフォールバック。"""
+        # 月名なし・不完全な日時
+        assert HttpClient._parse_retry_after("Mon, 99") == 60
+        # 完全に無効な日時文字列
+        assert HttpClient._parse_retry_after("not-a-date-at-all") == 60
+        # 部分的な HTTP-date (タイムゾーンなし等)
+        assert HttpClient._parse_retry_after("2025-13-45T99:99:99") == 60
+
+    def test_retry_after_large_seconds_clamped(self):
+        """_MAX_RETRY_AFTER (300) を超える値はクランプされる。"""
+        from gfo.http import _MAX_RETRY_AFTER
+
+        assert HttpClient._parse_retry_after("999999") == _MAX_RETRY_AFTER
+        assert HttpClient._parse_retry_after("301") == _MAX_RETRY_AFTER
+        assert HttpClient._parse_retry_after("300") == 300
+        assert HttpClient._parse_retry_after("299") == 299

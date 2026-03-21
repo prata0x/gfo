@@ -81,9 +81,86 @@ class TestHandleDelete:
             package_cmd.handle_delete(args, fmt="table")
         adapter.delete_package.assert_called_once_with("npm", "test-pkg", "1.0.0")
 
+    def test_delete_confirm_yes(self, capsys):
+        """builtins.input を "y" にパッチ → delete_package() が呼び出される。"""
+        from unittest.mock import patch
+
+        with patch_adapter("gfo.commands.package") as adapter:
+            args = make_args(package_type="npm", name="test-pkg", version="1.0.0", yes=False)
+            with patch("builtins.input", return_value="y"):
+                package_cmd.handle_delete(args, fmt="table")
+        adapter.delete_package.assert_called_once_with("npm", "test-pkg", "1.0.0")
+        out = capsys.readouterr().out
+        assert "Deleted" in out
+
+    def test_delete_confirm_no(self, capsys):
+        """builtins.input を "n" にパッチ → "Aborted." 出力、delete_package 未呼び出し。"""
+        from unittest.mock import patch
+
+        with patch_adapter("gfo.commands.package") as adapter:
+            args = make_args(package_type="npm", name="test-pkg", version="1.0.0", yes=False)
+            with patch("builtins.input", return_value="n"):
+                package_cmd.handle_delete(args, fmt="table")
+        adapter.delete_package.assert_not_called()
+        out = capsys.readouterr().out
+        assert "Aborted" in out
+
+    def test_delete_confirm_empty(self, capsys):
+        """builtins.input を "" にパッチ → Aborted (y/yes 以外は拒否)。"""
+        from unittest.mock import patch
+
+        with patch_adapter("gfo.commands.package") as adapter:
+            args = make_args(package_type="npm", name="test-pkg", version="1.0.0", yes=False)
+            with patch("builtins.input", return_value=""):
+                package_cmd.handle_delete(args, fmt="table")
+        adapter.delete_package.assert_not_called()
+        out = capsys.readouterr().out
+        assert "Aborted" in out
+
+    def test_delete_success_message(self, capsys):
+        """削除成功メッセージの出力内容検証。"""
+        with patch_adapter("gfo.commands.package"):
+            args = make_args(package_type="npm", name="test-pkg", version="1.0.0", yes=True)
+            package_cmd.handle_delete(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "Deleted" in out
+        assert "npm/test-pkg@1.0.0" in out
+
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.package") as adapter:
             adapter.delete_package.side_effect = HttpError(403, "Forbidden")
             args = make_args(package_type="npm", name="test-pkg", version="1.0.0", yes=True)
             with pytest.raises(HttpError):
                 package_cmd.handle_delete(args, fmt="table")
+
+
+class TestHandleListEdgeCases:
+    """handle_list の追加エッジケーステスト。"""
+
+    def test_list_empty(self, capsys):
+        """空リスト: テーブル出力でエラーなし。"""
+        with patch_adapter("gfo.commands.package") as adapter:
+            adapter.list_packages.return_value = []
+            args = make_args(type=None, limit=30)
+            package_cmd.handle_list(args, fmt="table")
+        adapter.list_packages.assert_called_once_with(package_type=None, limit=30)
+
+    def test_list_with_type_filter(self):
+        """package_type 引数が伝搬される。"""
+        with patch_adapter("gfo.commands.package") as adapter:
+            adapter.list_packages.return_value = [SAMPLE_PACKAGE]
+            args = make_args(type="npm", limit=10)
+            package_cmd.handle_list(args, fmt="table")
+        adapter.list_packages.assert_called_once_with(package_type="npm", limit=10)
+
+
+class TestHandleViewEdgeCases:
+    """handle_view の追加エッジケーステスト。"""
+
+    def test_view_with_version(self):
+        """version 引数が伝搬される。"""
+        with patch_adapter("gfo.commands.package") as adapter:
+            adapter.get_package.return_value = SAMPLE_PACKAGE
+            args = make_args(package_type="npm", name="test-pkg", version="2.0.0")
+            package_cmd.handle_view(args, fmt="table")
+        adapter.get_package.assert_called_once_with("npm", "test-pkg", version="2.0.0")

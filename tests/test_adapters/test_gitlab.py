@@ -3729,3 +3729,22 @@ class TestWebhookActiveField:
             warnings.simplefilter("always")
             gitlab_adapter.update_webhook(1, active=True)
             assert any("active" in str(warning.message) for warning in w)
+
+
+# --- created_at 異常値テスト ---
+
+
+class TestToIssueMissingCreatedAt:
+    def test_to_issue_missing_created_at(self):
+        """created_at が欠落している場合は GfoError が送出される。"""
+        data = _issue_data()
+        del data["created_at"]
+        with pytest.raises(GfoError, match="missing field"):
+            GitLabAdapter._to_issue(data)
+
+    def test_to_issue_empty_created_at(self):
+        """created_at が空文字列の場合、Issue は created_at="" で生成される（KeyError にならない）。"""
+        data = _issue_data()
+        data["created_at"] = ""
+        issue = GitLabAdapter._to_issue(data)
+        assert issue.created_at == ""
