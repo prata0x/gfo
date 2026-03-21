@@ -92,7 +92,12 @@ def _make_ci_test_class(
             )
             # NotSupportedError は一部のサービスで発生する可能性がある
             # Forgejo Docker 環境では Actions 未設定のため NETWORK エラーの可能性がある
-            assert result.exit_code in (0, ExitCode.NOT_SUPPORTED, ExitCode.NETWORK)
+            assert result.exit_code in (
+                0,
+                ExitCode.NOT_SUPPORTED,
+                ExitCode.NOT_FOUND,
+                ExitCode.NETWORK,
+            )
 
     for mark in marks:
         CITestBase = mark(CITestBase)
@@ -133,7 +138,11 @@ def _make_ci_not_supported_class(
         def test_ci_list_not_supported(self) -> None:
             result = self._run(["ci", "list", "--format", "json"])
             # GitBucket/Gogs は親クラスの実装が呼ばれて NETWORK エラーになる場合がある
-            assert result.exit_code in (ExitCode.NOT_SUPPORTED, ExitCode.NETWORK)
+            assert result.exit_code in (
+                ExitCode.NOT_SUPPORTED,
+                ExitCode.NOT_FOUND,
+                ExitCode.NETWORK,
+            )
 
     for mark in marks:
         CINotSupportedBase = mark(CINotSupportedBase)

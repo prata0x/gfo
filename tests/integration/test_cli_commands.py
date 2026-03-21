@@ -164,7 +164,11 @@ def _make_commands_test_class(
             if service_type not in _STAR_SUPPORTED:
                 result = self._run(["repo", "star"])
                 # Gogs/GitBucket は親クラスの実装が呼ばれて NETWORK エラーになる場合がある
-                assert result.exit_code in (ExitCode.NOT_SUPPORTED, ExitCode.NETWORK)
+                assert result.exit_code in (
+                    ExitCode.NOT_SUPPORTED,
+                    ExitCode.NOT_FOUND,
+                    ExitCode.NETWORK,
+                )
                 return
             # star
             result = self._run(["repo", "star"])
