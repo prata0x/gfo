@@ -1507,12 +1507,38 @@ def _pre_parse_format(argv: list[str] | None) -> str | None:
     return None
 
 
+_GLOBAL_FLAGS = {"--format", "--jq"}
+
+
+def _hoist_global_flags(argv: list[str]) -> list[str]:
+    """--format/--jq をサブコマンドの前に移動して argparse が認識できるようにする。"""
+    hoisted: list[str] = []
+    rest: list[str] = []
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if arg in _GLOBAL_FLAGS and i + 1 < len(argv):
+            hoisted.extend([arg, argv[i + 1]])
+            i += 2
+        elif any(arg.startswith(f + "=") for f in _GLOBAL_FLAGS):
+            hoisted.append(arg)
+            i += 1
+        else:
+            rest.append(arg)
+            i += 1
+    return hoisted + rest
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI エントリポイント。"""
     _ensure_utf8_stdio()
     parser, subparser_map = create_parser()
 
     try:
+        if argv is not None:
+            argv = _hoist_global_flags(argv)
+        else:
+            argv = _hoist_global_flags(sys.argv[1:])
         args = parser.parse_args(argv)
     except ConfigError as err:
         pre_fmt = _pre_parse_format(argv)

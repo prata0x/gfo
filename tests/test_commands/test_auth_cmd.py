@@ -542,8 +542,8 @@ def test_get_adapter_returns_adapter():
     mock_config = MagicMock()
     mock_adapter = MagicMock()
     with (
-        patch("gfo.commands.resolve_project_config", return_value=mock_config),
-        patch("gfo.commands.create_adapter", return_value=mock_adapter),
+        patch("gfo.config.resolve_project_config", return_value=mock_config),
+        patch("gfo.adapter.registry.create_adapter", return_value=mock_adapter),
     ):
         result = get_adapter()
     assert result is mock_adapter
@@ -554,8 +554,8 @@ def test_get_adapter_with_config_returns_tuple():
     mock_config = MagicMock()
     mock_adapter = MagicMock()
     with (
-        patch("gfo.commands.resolve_project_config", return_value=mock_config),
-        patch("gfo.commands.create_adapter", return_value=mock_adapter),
+        patch("gfo.config.resolve_project_config", return_value=mock_config),
+        patch("gfo.adapter.registry.create_adapter", return_value=mock_adapter),
     ):
         adapter, config = get_adapter_with_config()
     assert adapter is mock_adapter

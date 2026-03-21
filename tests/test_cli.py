@@ -10,6 +10,7 @@ import pytest
 from gfo.cli import (
     _DISPATCH,
     _ensure_utf8_stdio,
+    _hoist_global_flags,
     _positive_int,
     _pre_parse_format,
     _resolve_format,
@@ -1375,3 +1376,49 @@ class TestGpgKeyViewStringId:
         parser, _ = create_parser()
         args = parser.parse_args(["gpg-key", "view", "def456"])
         assert args.id == "def456"
+
+
+# ── _hoist_global_flags のテスト ──
+
+
+def test_hoist_global_flags_no_flags():
+    assert _hoist_global_flags(["repo", "view"]) == ["repo", "view"]
+
+
+def test_hoist_global_flags_format_after_subcommand():
+    result = _hoist_global_flags(["repo", "view", "--format", "json"])
+    assert result == ["--format", "json", "repo", "view"]
+
+
+def test_hoist_global_flags_jq_after_subcommand():
+    result = _hoist_global_flags(["pr", "list", "--jq", ".[].title"])
+    assert result == ["--jq", ".[].title", "pr", "list"]
+
+
+def test_hoist_global_flags_equals_syntax():
+    result = _hoist_global_flags(["repo", "view", "--format=json"])
+    assert result == ["--format=json", "repo", "view"]
+
+
+def test_hoist_global_flags_already_before():
+    """既にサブコマンドの前にある場合もそのまま動作する。"""
+    result = _hoist_global_flags(["--format", "json", "repo", "view"])
+    assert result == ["--format", "json", "repo", "view"]
+
+
+def test_hoist_global_flags_preserves_other_args():
+    result = _hoist_global_flags(
+        ["pr", "list", "--state", "open", "--format", "json", "--limit", "5"]
+    )
+    assert result == ["--format", "json", "pr", "list", "--state", "open", "--limit", "5"]
+
+
+def test_hoist_main_format_after_subcommand():
+    """main() が --format をサブコマンド後に配置しても正しく解析する。"""
+    handler = MagicMock()
+    with patch.dict(_DISPATCH, {("pr", "list"): handler}):
+        exit_code = main(["pr", "list", "--format", "json"])
+    assert exit_code == 0
+    handler.assert_called_once()
+    _, kwargs = handler.call_args
+    assert kwargs["fmt"] == "json"

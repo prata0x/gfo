@@ -2,15 +2,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import gfo.adapter.registry
+import gfo.config
 from gfo.adapter.base import GitServiceAdapter
-from gfo.adapter.registry import create_adapter
-from gfo.config import ProjectConfig, resolve_project_config
+from gfo.config import ProjectConfig
 
 
 def get_adapter() -> GitServiceAdapter:
     """設定を解決してアダプターインスタンスを返す共通ヘルパー。"""
-    config = resolve_project_config()
-    return create_adapter(config)
+    config = gfo.config.resolve_project_config()
+    return gfo.adapter.registry.create_adapter(config)
 
 
 def get_adapter_with_config() -> tuple[GitServiceAdapter, ProjectConfig]:
@@ -18,8 +19,8 @@ def get_adapter_with_config() -> tuple[GitServiceAdapter, ProjectConfig]:
 
     service_type 等の設定値を参照しつつアダプターを使用するハンドラ向け。
     """
-    config = resolve_project_config()
-    return create_adapter(config), config
+    config = gfo.config.resolve_project_config()
+    return gfo.adapter.registry.create_adapter(config), config
 
 
 @dataclass(frozen=True, slots=True)

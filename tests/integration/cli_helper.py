@@ -86,8 +86,8 @@ def run_cli(
         sys.stderr = captured_err
 
         with (
-            patch("gfo.commands.get_adapter", return_value=adapter),
-            patch("gfo.commands.get_adapter_with_config", return_value=(adapter, config)),
+            patch("gfo.config.resolve_project_config", return_value=config),
+            patch("gfo.adapter.registry.create_adapter", return_value=adapter),
         ):
             exit_code = main(argv)
     finally:

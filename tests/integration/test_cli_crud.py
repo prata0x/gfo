@@ -183,7 +183,6 @@ def _make_label_lifecycle_class(
                 [
                     "label",
                     "create",
-                    "--name",
                     "cli-test-label",
                     "--color",
                     "00ff00",
@@ -203,7 +202,7 @@ def _make_label_lifecycle_class(
             assert "cli-test-label" in names
 
         def test_03_label_delete(self) -> None:
-            result = self._run(["label", "delete", "--name", "cli-test-label"])
+            result = self._run(["label", "delete", "cli-test-label"])
             assert result.exit_code == 0
             self.__class__._label_created = False
 
