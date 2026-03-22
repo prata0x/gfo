@@ -12,6 +12,7 @@ from gfo.commands import (
     get_adapter,
     get_adapter_with_config,
     parse_service_spec,
+    read_file_arg,
 )
 from gfo.exceptions import ConfigError, NotSupportedError
 
@@ -53,8 +54,7 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue create のハンドラ。"""
     if getattr(args, "body_file", None):
-        with open(args.body_file) as f:
-            args.body = f.read()
+        args.body = read_file_arg(args.body_file)
     title = (args.title or "").strip()
     adapter, config = get_adapter_with_config()
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 
-from gfo.commands import get_adapter
+from gfo.commands import get_adapter, read_file_arg
 from gfo.exceptions import GfoError
 from gfo.i18n import _
 from gfo.output import output
@@ -34,13 +34,7 @@ def handle_set(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
     else:
         if args.file is None:
             raise GfoError(_("Specify --value, --env-var, or --file."))
-        try:
-            with open(args.file) as f:
-                value = f.read().strip()
-        except FileNotFoundError:
-            raise GfoError(_("File not found: {file}").format(file=args.file))
-        except PermissionError:
-            raise GfoError(_("Permission denied: {file}").format(file=args.file))
+        value = read_file_arg(args.file).strip()
     scope = getattr(args, "org", None)
     secret = adapter.set_secret(args.name, value, scope=scope)
     output(secret, fmt=fmt, jq=jq)

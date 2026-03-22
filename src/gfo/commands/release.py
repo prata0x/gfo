@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from gfo.commands import get_adapter
+from gfo.commands import get_adapter, read_file_arg
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
 from gfo.output import output
@@ -43,8 +43,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     notes = args.notes or ""
     notes_file = getattr(args, "notes_file", None)
     if notes_file:
-        with open(notes_file) as f:
-            notes = f.read()
+        notes = read_file_arg(notes_file)
     release = adapter.create_release(
         tag=tag,
         title=title,
@@ -106,8 +105,7 @@ def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     notes = args.notes
     notes_file = getattr(args, "notes_file", None)
     if notes_file:
-        with open(notes_file) as f:
-            notes = f.read()
+        notes = read_file_arg(notes_file)
     release = adapter.update_release(
         tag=tag,
         title=args.title,

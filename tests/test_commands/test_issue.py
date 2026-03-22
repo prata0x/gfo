@@ -11,7 +11,7 @@ import pytest
 from gfo.adapter.base import Issue
 from gfo.commands import issue as issue_cmd
 from gfo.config import ProjectConfig
-from gfo.exceptions import ConfigError, HttpError
+from gfo.exceptions import ConfigError, GfoError, HttpError
 from tests.test_commands.conftest import make_args, patch_adapter
 
 
@@ -368,6 +368,24 @@ class TestHandleCreate:
 
         call_kwargs = adapter.create_issue.call_args.kwargs
         assert call_kwargs["body"] == "Inline body"
+
+    def test_body_file_not_found_raises_gfo_error(self):
+        """存在しないファイルを --body-file に指定すると GfoError を送出する。"""
+        config = _make_config("github")
+        adapter = _make_adapter(self.issue)
+        args = make_args(
+            title="New Issue",
+            body="",
+            assignee=None,
+            label=None,
+            milestone=None,
+            type=None,
+            priority=None,
+            body_file="nonexistent.txt",
+        )
+        with _patch_all(config, adapter):
+            with pytest.raises(GfoError, match="File not found"):
+                issue_cmd.handle_create(args, fmt="table")
 
 
 class TestHandleCreateTitleValidation:

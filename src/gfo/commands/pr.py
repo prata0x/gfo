@@ -6,7 +6,7 @@ import argparse
 import json
 
 import gfo.git_util
-from gfo.commands import get_adapter
+from gfo.commands import get_adapter, read_file_arg
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
 from gfo.output import format_table, output
@@ -39,8 +39,7 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr create のハンドラ。"""
     if getattr(args, "body_file", None):
-        with open(args.body_file) as f:
-            args.body = f.read()
+        args.body = read_file_arg(args.body_file)
     adapter = get_adapter()
     head = args.head or gfo.git_util.get_current_branch()
     base = args.base or gfo.git_util.get_default_branch()

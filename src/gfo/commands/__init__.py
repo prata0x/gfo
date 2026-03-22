@@ -183,3 +183,21 @@ def create_adapter_from_spec(spec: ServiceSpec) -> GitServiceAdapter:
         if spec.project_key:
             kwargs["project_key"] = spec.project_key
     return adapter_cls(client, spec.owner, spec.repo, **kwargs)
+
+
+def read_file_arg(path: str) -> str:
+    """ファイルパスまたは '-'(stdin) からテキストを読み込む。"""
+    import sys
+
+    from gfo.exceptions import GfoError
+    from gfo.i18n import _
+
+    if path == "-":
+        return sys.stdin.read()
+    try:
+        with open(path) as f:
+            return f.read()
+    except FileNotFoundError:
+        raise GfoError(_("File not found: {file}").format(file=path))
+    except PermissionError:
+        raise GfoError(_("Permission denied: {file}").format(file=path))

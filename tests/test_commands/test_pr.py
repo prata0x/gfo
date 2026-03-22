@@ -8,7 +8,7 @@ import pytest
 
 from gfo.adapter.base import CheckRun, PullRequestCommit, PullRequestFile
 from gfo.commands import pr as pr_cmd
-from gfo.exceptions import ConfigError, NotFoundError
+from gfo.exceptions import ConfigError, GfoError, NotFoundError
 from tests.test_commands.conftest import make_args, patch_adapter
 
 
@@ -370,6 +370,20 @@ class TestHandleCreate:
             pr_cmd.handle_create(args, fmt="table")
         call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
         assert call_kwargs["body"] == "Inline body"
+
+    def test_body_file_not_found_raises_gfo_error(self, sample_config, mock_adapter):
+        """存在しないファイルを --body-file に指定すると GfoError を送出する。"""
+        args = make_args(
+            head="feature/x",
+            base="main",
+            title="My PR",
+            body="",
+            draft=False,
+            body_file="nonexistent.txt",
+        )
+        with _patch_all(sample_config, mock_adapter):
+            with pytest.raises(GfoError, match="File not found"):
+                pr_cmd.handle_create(args, fmt="table")
 
 
 class TestHandleCreateTitleValidation:

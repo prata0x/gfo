@@ -10,7 +10,7 @@ import pytest
 
 from gfo.adapter.base import Release, ReleaseAsset
 from gfo.commands import release as release_cmd
-from gfo.exceptions import ConfigError
+from gfo.exceptions import ConfigError, GfoError
 from tests.test_commands.conftest import make_args
 
 
@@ -390,6 +390,20 @@ class TestHandleCreate:
         call_kwargs = self.adapter.create_release.call_args.kwargs
         assert call_kwargs["notes"] == "Inline notes"
 
+    def test_notes_file_not_found_raises_gfo_error(self, sample_config):
+        """存在しないファイルを --notes-file に指定すると GfoError を送出する。"""
+        args = make_args(
+            tag="v1.0.0",
+            title="Release",
+            notes="",
+            draft=False,
+            prerelease=False,
+            notes_file="nonexistent.txt",
+        )
+        with _patch_all(sample_config, self.adapter):
+            with pytest.raises(GfoError, match="File not found"):
+                release_cmd.handle_create(args, fmt="table")
+
     def test_generate_notes_passed_to_adapter(self, sample_config):
         """--generate-notes フラグがアダプターに渡される。"""
         args = make_args(
@@ -564,6 +578,20 @@ class TestHandleEdit:
 
         call_kwargs = self.adapter.update_release.call_args.kwargs
         assert call_kwargs["notes"] == "Inline notes"
+
+    def test_notes_file_not_found_raises_gfo_error(self, sample_config):
+        """存在しないファイルを --notes-file に指定すると GfoError を送出する。"""
+        args = make_args(
+            tag="v1.0.0",
+            title=None,
+            notes=None,
+            draft=None,
+            prerelease=None,
+            notes_file="nonexistent.txt",
+        )
+        with _patch_all(sample_config, self.adapter):
+            with pytest.raises(GfoError, match="File not found"):
+                release_cmd.handle_edit(args, fmt="table")
 
     def test_new_tag_passed_to_adapter(self, sample_config):
         args = make_args(
