@@ -327,13 +327,12 @@ class TestHandleCreate:
         call_kwargs = adapter.create_issue.call_args.kwargs
         assert call_kwargs["title"] == "Bug Report"
 
-    def test_body_file_overrides_body(self):
+    def test_body_file_overrides_body(self, tmp_path):
         """--body-file が指定されたらファイル内容を body として使用する。"""
-        import io
-
         config = _make_config("github")
         adapter = _make_adapter(self.issue)
-        body_file = io.StringIO("Body from file")
+        body_path = tmp_path / "body.md"
+        body_path.write_text("Body from file")
         args = make_args(
             title="New Issue",
             body="",
@@ -342,7 +341,7 @@ class TestHandleCreate:
             milestone=None,
             type=None,
             priority=None,
-            body_file=body_file,
+            body_file=str(body_path),
         )
         with _patch_all(config, adapter):
             issue_cmd.handle_create(args, fmt="table")

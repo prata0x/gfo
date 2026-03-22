@@ -339,13 +339,17 @@ class TestHandleCreate:
         assert call_kwargs["labels"] is None
         assert call_kwargs["milestone"] is None
 
-    def test_body_file_overrides_body(self, sample_config, mock_adapter, capsys):
+    def test_body_file_overrides_body(self, sample_config, mock_adapter, capsys, tmp_path):
         """--body-file が指定されたらファイル内容を body として使用する。"""
-        import io
-
-        body_file = io.StringIO("Body from file")
+        body_path = tmp_path / "body.md"
+        body_path.write_text("Body from file")
         args = make_args(
-            head="feature/x", base="main", title="My PR", body="", draft=False, body_file=body_file
+            head="feature/x",
+            base="main",
+            title="My PR",
+            body="",
+            draft=False,
+            body_file=str(body_path),
         )
         with _patch_all(sample_config, mock_adapter):
             pr_cmd.handle_create(args, fmt="table")

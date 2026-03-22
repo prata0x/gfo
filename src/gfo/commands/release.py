@@ -19,13 +19,17 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         webbrowser.open(adapter.get_web_url("release"))
         return
     adapter = get_adapter()
-    releases = adapter.list_releases(limit=args.limit)
     draft = getattr(args, "draft", None)
+    prerelease = getattr(args, "prerelease", None)
+    has_filter = draft is not None or prerelease is not None
+    limit: int = 0 if has_filter else (args.limit or 30)
+    releases = adapter.list_releases(limit=limit)
     if draft is not None:
         releases = [r for r in releases if r.draft == draft]
-    prerelease = getattr(args, "prerelease", None)
     if prerelease is not None:
         releases = [r for r in releases if r.prerelease == prerelease]
+    if has_filter and args.limit:
+        releases = releases[: args.limit]
     output(releases, fmt=fmt, fields=["tag", "title", "draft", "prerelease"], jq=jq)
 
 
@@ -39,8 +43,8 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     notes = args.notes or ""
     notes_file = getattr(args, "notes_file", None)
     if notes_file:
-        notes = notes_file.read()
-        notes_file.close()
+        with open(notes_file) as f:
+            notes = f.read()
     release = adapter.create_release(
         tag=tag,
         title=title,
@@ -102,8 +106,8 @@ def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     notes = args.notes
     notes_file = getattr(args, "notes_file", None)
     if notes_file:
-        notes = notes_file.read()
-        notes_file.close()
+        with open(notes_file) as f:
+            notes = f.read()
     release = adapter.update_release(
         tag=tag,
         title=args.title,

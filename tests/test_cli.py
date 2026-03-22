@@ -125,8 +125,9 @@ def test_parser_pr_create_body_file(tmp_path):
     f.write_text("PR body from file")
     args = parser.parse_args(["pr", "create", "--title", "My PR", "--body-file", str(f)])
     assert args.body_file is not None
-    content = args.body_file.read()
-    args.body_file.close()
+    assert args.body_file == str(f)
+    with open(args.body_file) as fh:
+        content = fh.read()
     assert content == "PR body from file"
 
 
@@ -136,7 +137,7 @@ def test_parser_pr_create_body_file_short_flag(tmp_path):
     f.write_text("PR body from file")
     args = parser.parse_args(["pr", "create", "--title", "My PR", "-F", str(f)])
     assert args.body_file is not None
-    args.body_file.close()
+    assert args.body_file == str(f)
 
 
 def test_parser_pr_view():
@@ -190,8 +191,9 @@ def test_parser_issue_create_body_file(tmp_path):
     f.write_text("Issue body from file")
     args = parser.parse_args(["issue", "create", "--title", "Bug", "--body-file", str(f)])
     assert args.body_file is not None
-    content = args.body_file.read()
-    args.body_file.close()
+    assert args.body_file == str(f)
+    with open(args.body_file) as fh:
+        content = fh.read()
     assert content == "Issue body from file"
 
 

@@ -356,18 +356,17 @@ class TestHandleCreate:
         call_kwargs = self.adapter.create_release.call_args.kwargs
         assert call_kwargs["target"] is None
 
-    def test_notes_file_overrides_notes(self, sample_config):
+    def test_notes_file_overrides_notes(self, sample_config, tmp_path):
         """--notes-file が指定されたらファイル内容を notes として使用する。"""
-        import io
-
-        notes_file = io.StringIO("Notes from file")
+        notes_path = tmp_path / "notes.md"
+        notes_path.write_text("Notes from file")
         args = make_args(
             tag="v1.0.0",
             title="Release",
             notes="",
             draft=False,
             prerelease=False,
-            notes_file=notes_file,
+            notes_file=str(notes_path),
         )
         with _patch_all(sample_config, self.adapter):
             release_cmd.handle_create(args, fmt="table")
@@ -532,18 +531,17 @@ class TestHandleEdit:
         assert isinstance(data, list)
         assert data[0]["tag"] == "v1.0.0"
 
-    def test_notes_file_overrides_notes(self, sample_config):
+    def test_notes_file_overrides_notes(self, sample_config, tmp_path):
         """--notes-file が指定されたらファイル内容を notes として使用する。"""
-        import io
-
-        notes_file = io.StringIO("Notes from file")
+        notes_path = tmp_path / "notes.md"
+        notes_path.write_text("Notes from file")
         args = make_args(
             tag="v1.0.0",
             title=None,
             notes=None,
             draft=None,
             prerelease=None,
-            notes_file=notes_file,
+            notes_file=str(notes_path),
         )
         with _patch_all(sample_config, self.adapter):
             release_cmd.handle_edit(args, fmt="table")

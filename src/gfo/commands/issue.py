@@ -49,8 +49,8 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue create のハンドラ。"""
     if getattr(args, "body_file", None):
-        args.body = args.body_file.read()
-        args.body_file.close()
+        with open(args.body_file) as f:
+            args.body = f.read()
     title = (args.title or "").strip()
     adapter, config = get_adapter_with_config()
 
@@ -320,7 +320,7 @@ def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
             "assigned": [dataclasses.asdict(i) for i in assigned],
         }
         json_str = json.dumps(data, indent=2, ensure_ascii=False, default=str)
-        if jq:
+        if jq is not None:
             from gfo.output import apply_jq_filter
 
             print(apply_jq_filter(json_str, jq))

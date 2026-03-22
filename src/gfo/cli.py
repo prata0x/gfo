@@ -204,9 +204,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_create = pr_sub.add_parser("create", help=_("Create pull request"))
     pr_create.add_argument("--title", "-t", help=_("Title"))
     pr_create.add_argument("--body", "-b", default="", help=_("Body"))
-    pr_create.add_argument(
-        "--body-file", "-F", type=argparse.FileType("r"), help=_("Read body from file")
-    )
+    pr_create.add_argument("--body-file", "-F", help=_("Read body from file"))
     pr_create.add_argument("--base", "-B", help=_("Base branch"))
     pr_create.add_argument("--head", "-H", help=_("Head branch"))
     pr_create.add_argument("--draft", "-d", action="store_true", help=_("Create as draft"))
@@ -352,9 +350,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_create = issue_sub.add_parser("create", help=_("Create issue"))
     issue_create.add_argument("--title", "-t", required=True, help=_("Title"))
     issue_create.add_argument("--body", "-b", default="", help=_("Body"))
-    issue_create.add_argument(
-        "--body-file", "-F", type=argparse.FileType("r"), help=_("Read body from file")
-    )
+    issue_create.add_argument("--body-file", "-F", help=_("Read body from file"))
     issue_create.add_argument("--assignee", "-a", help=_("Assignee"))
     issue_create.add_argument("--label", "-l", help=_("Label"))
     issue_create.add_argument("--milestone", "-m", help=_("Milestone name"))
@@ -617,7 +613,6 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "--notes-file",
         "-F",
         dest="notes_file",
-        type=argparse.FileType("r"),
         help=_("Read release notes from file"),
     )
     release_create.add_argument("--draft", "-d", action="store_true", help=_("Create as draft"))
@@ -647,7 +642,6 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "--notes-file",
         "-F",
         dest="notes_file",
-        type=argparse.FileType("r"),
         help=_("Read release notes from file"),
     )
     release_edit.add_argument(

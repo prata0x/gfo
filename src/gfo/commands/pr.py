@@ -39,8 +39,8 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr create のハンドラ。"""
     if getattr(args, "body_file", None):
-        args.body = args.body_file.read()
-        args.body_file.close()
+        with open(args.body_file) as f:
+            args.body = f.read()
     adapter = get_adapter()
     head = args.head or gfo.git_util.get_current_branch()
     base = args.base or gfo.git_util.get_default_branch()
@@ -258,7 +258,7 @@ def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
             "assigned": [dataclasses.asdict(pr) for pr in assigned],
         }
         json_str = json.dumps(data, indent=2, ensure_ascii=False, default=str)
-        if jq:
+        if jq is not None:
             from gfo.output import apply_jq_filter
 
             print(apply_jq_filter(json_str, jq))
