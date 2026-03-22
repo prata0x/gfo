@@ -98,7 +98,7 @@ def output(
     if not items:
         if fmt == "json":
             json_str = "[]"
-            if jq:
+            if jq is not None:
                 print(apply_jq_filter(json_str, jq))
             else:
                 print(json_str)
@@ -113,7 +113,7 @@ def output(
 
     if fmt == "json":
         json_str = format_json(items)
-        if jq:
+        if jq is not None:
             print(apply_jq_filter(json_str, jq))
         else:
             print(json_str)

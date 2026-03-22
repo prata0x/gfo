@@ -44,7 +44,7 @@ def handle_api(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
     resp = client.request(method, path, json=json_data, headers=headers)
     body = resp.text
 
-    if jq:
+    if jq is not None:
         print(apply_jq_filter(body, jq))
     else:
         print(body)

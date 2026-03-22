@@ -484,7 +484,7 @@ def _build_command_schema(
 
 def _print_json(json_str: str, jq: str | None) -> None:
     """JSON 文字列を出力する。jq 式があれば適用する。"""
-    if jq:
+    if jq is not None:
         print(apply_jq_filter(json_str, jq))
     else:
         print(json_str)

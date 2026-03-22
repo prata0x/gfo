@@ -273,7 +273,7 @@ def handle_languages(args: argparse.Namespace, *, fmt: str, jq: str | None = Non
     adapter = get_adapter()
     languages = adapter.get_languages()
     json_str = json.dumps(languages, indent=2, ensure_ascii=False)
-    if jq:
+    if jq is not None:
         print(apply_jq_filter(json_str, jq))
     else:
         print(json_str)
@@ -302,7 +302,7 @@ def handle_topics(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         raise ConfigError(_("Unknown topics action: {action}").format(action=action))
 
     json_str = json.dumps(topics, indent=2, ensure_ascii=False)
-    if jq:
+    if jq is not None:
         print(apply_jq_filter(json_str, jq))
     else:
         print(json_str)
