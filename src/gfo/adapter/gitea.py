@@ -2141,7 +2141,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             for t in results
         ]
 
-    def add_time_entry(self, issue_number: int, duration: int) -> TimeEntry:
+    def add_time_entry(self, issue_number: int, duration: int | float) -> TimeEntry:
         resp = self._client.post(
             f"{self._repos_path()}/issues/{issue_number}/times",
             json={"time": duration},

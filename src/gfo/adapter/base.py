@@ -1529,7 +1529,7 @@ class GitServiceAdapter(ABC):
     def list_time_entries(self, issue_number: int) -> list[TimeEntry]:
         raise NotSupportedError(self.service_name, "issue time list")
 
-    def add_time_entry(self, issue_number: int, duration: int) -> TimeEntry:
+    def add_time_entry(self, issue_number: int, duration: int | float) -> TimeEntry:
         raise NotSupportedError(self.service_name, "issue time add")
 
     def delete_time_entry(self, issue_number: int, entry_id: int | str) -> None:

@@ -165,3 +165,13 @@ class TestHandleViewEdgeCases:
             with _patch("gfo.output.apply_jq_filter", return_value='"feature/test"') as mock_jq:
                 branch_cmd.handle_view(args, fmt="json", jq=".[0].name")
                 mock_jq.assert_called_once()
+
+
+class TestHandleDeleteSuccessMessage:
+    def test_delete_prints_success_message(self, capsys):
+        """handle_delete が成功メッセージにブランチ名を含む。"""
+        with patch_adapter("gfo.commands.branch"):
+            args = make_args(name="feature/old")
+            branch_cmd.handle_delete(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "feature/old" in out

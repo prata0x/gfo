@@ -109,3 +109,23 @@ class TestHandleRemove:
             with pytest.raises(HttpError) as exc_info:
                 collab_cmd.handle_remove(args, fmt="table")
             assert exc_info.value.status_code == 404
+
+
+class TestHandleAddSuccessMessage:
+    def test_add_prints_success_message(self, capsys):
+        """handle_add が成功メッセージに username を含む。"""
+        with patch_adapter("gfo.commands.collaborator"):
+            args = make_args(username="charlie", permission="write")
+            collab_cmd.handle_add(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "charlie" in out
+
+
+class TestHandleRemoveSuccessMessage:
+    def test_remove_prints_success_message(self, capsys):
+        """handle_remove が成功メッセージに username を含む。"""
+        with patch_adapter("gfo.commands.collaborator"):
+            args = make_args(username="charlie")
+            collab_cmd.handle_remove(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "charlie" in out

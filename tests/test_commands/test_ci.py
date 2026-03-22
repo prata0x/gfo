@@ -68,6 +68,14 @@ class TestHandleCancel:
             ci_cmd.handle_cancel(args, fmt="table")
         adapter.cancel_pipeline.assert_called_once_with("456")
 
+    def test_cancel_prints_success_message(self, capsys):
+        """handle_cancel が成功メッセージに id を含む。"""
+        with patch_adapter("gfo.commands.ci"):
+            args = make_args(id="456")
+            ci_cmd.handle_cancel(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "456" in out
+
 
 class TestHandleDelete:
     def test_calls_delete_pipeline_run(self):

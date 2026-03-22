@@ -493,7 +493,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
         return results[:limit] if limit > 0 else results
 
-    def create_issue(  # type: ignore[override]
+    def create_issue(  # type: ignore[override]  # work_item_type 追加引数
         self,
         *,
         title: str,

@@ -140,3 +140,23 @@ class TestHandleEdit:
             args = make_args(id=999, url=None, event=None, secret=None, active=None)
             with pytest.raises(HttpError):
                 webhook_cmd.handle_edit(args, fmt="table")
+
+
+class TestHandleDeleteSuccessMessage:
+    def test_delete_prints_success_message(self, capsys):
+        """handle_delete が成功メッセージに id を含む。"""
+        with patch_adapter("gfo.commands.webhook"):
+            args = make_args(id=42)
+            webhook_cmd.handle_delete(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "42" in out
+
+
+class TestHandleTestSuccessMessage:
+    def test_test_prints_success_message(self, capsys):
+        """handle_test が成功メッセージに id を含む。"""
+        with patch_adapter("gfo.commands.webhook"):
+            args = make_args(id=42)
+            webhook_cmd.handle_test(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "42" in out

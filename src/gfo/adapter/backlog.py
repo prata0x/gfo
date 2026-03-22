@@ -293,7 +293,7 @@ class BacklogAdapter(GitServiceAdapter):
         results = paginate_offset(self._client, "/issues", params=params, limit=limit)
         return [self._to_issue(r) for r in results]
 
-    def create_issue(  # type: ignore[override]
+    def create_issue(  # type: ignore[override]  # issue_type, priority 追加引数
         self,
         *,
         title: str,

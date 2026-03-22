@@ -164,3 +164,13 @@ class TestHandleViewEdgeCases:
             with _patch("gfo.output.apply_jq_filter", return_value='"v1.0.0"') as mock_jq:
                 tag_cmd.handle_view(args, fmt="json", jq=".[0].name")
                 mock_jq.assert_called_once()
+
+
+class TestHandleDeleteSuccessMessage:
+    def test_delete_prints_success_message(self, capsys):
+        """handle_delete が成功メッセージにタグ名を含む。"""
+        with patch_adapter("gfo.commands.tag"):
+            args = make_args(name="v1.0.0")
+            tag_cmd.handle_delete(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "v1.0.0" in out

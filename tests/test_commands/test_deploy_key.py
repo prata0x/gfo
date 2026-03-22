@@ -83,3 +83,11 @@ class TestHandleDelete:
             args = make_args(id=1)
             deploy_key_cmd.handle_delete(args, fmt="table")
         adapter.delete_deploy_key.assert_called_once_with(key_id=1)
+
+    def test_delete_prints_success_message(self, capsys):
+        """handle_delete が成功メッセージに id を含む。"""
+        with patch_adapter("gfo.commands.deploy_key"):
+            args = make_args(id=99)
+            deploy_key_cmd.handle_delete(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "99" in out

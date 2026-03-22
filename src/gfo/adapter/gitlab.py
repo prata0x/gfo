@@ -2410,7 +2410,7 @@ class GitLabAdapter(GitServiceAdapter):
             return [TimeEntry(id=0, user="", duration=total, created_at="")]
         return []
 
-    def add_time_entry(self, issue_number: int, duration: int) -> TimeEntry:
+    def add_time_entry(self, issue_number: int, duration: int | float) -> TimeEntry:
         # GitLab accepts human-readable format like "1h30m" or seconds
         self._client.post(
             f"{self._project_path()}/issues/{issue_number}/add_spent_time",

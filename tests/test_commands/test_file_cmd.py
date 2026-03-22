@@ -147,3 +147,42 @@ class TestHandleDelete:
             with pytest.raises(HttpError) as exc_info:
                 file_cmd.handle_delete(args, fmt="table")
             assert exc_info.value.status_code == 403
+
+
+class TestHandlePutSuccessMessage:
+    def test_put_prints_success_message_with_sha(self, capsys):
+        """handle_put が commit SHA ありの場合、path と sha を出力に含む。"""
+        with patch_adapter("gfo.commands.file") as adapter:
+            adapter.get_file_content.return_value = ("old content", "abc123")
+            adapter.create_or_update_file.return_value = "def456"
+            args = make_args(path="readme.md", message="Update", branch=None)
+            with patch("gfo.commands.file.sys.stdin") as mock_stdin:
+                mock_stdin.read.return_value = "new content"
+                file_cmd.handle_put(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "readme.md" in out
+        assert "def456" in out
+
+    def test_put_prints_success_message_without_sha(self, capsys):
+        """handle_put が commit SHA なしの場合、path を含み commit を含まない。"""
+        with patch_adapter("gfo.commands.file") as adapter:
+            adapter.get_file_content.side_effect = NotFoundError()
+            adapter.create_or_update_file.return_value = None
+            args = make_args(path="new.txt", message="Add file", branch=None)
+            with patch("gfo.commands.file.sys.stdin") as mock_stdin:
+                mock_stdin.read.return_value = "hello"
+                file_cmd.handle_put(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "new.txt" in out
+        assert "commit" not in out
+
+
+class TestHandleDeleteSuccessMessage:
+    def test_delete_prints_success_message(self, capsys):
+        """handle_delete が成功メッセージに path を含む。"""
+        with patch_adapter("gfo.commands.file") as adapter:
+            adapter.get_file_content.return_value = ("content", "deadbeef")
+            args = make_args(path="old.txt", message="Remove file", branch=None)
+            file_cmd.handle_delete(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "old.txt" in out

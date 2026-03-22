@@ -179,3 +179,25 @@ Severity: **Low**
 
 推奨:
 - `disallow_untyped_defs = true` に段階的に移行し、型安全性を向上させる。
+
+---
+
+## コミット対応表
+
+| Issue | コミット | 概要 |
+|---|---|---|
+| I-1 | `6dca0a6` | `if jq:` → `if jq is not None:` に修正 |
+| I-2, I-5 | `d3315fd` | 書き込み/削除ハンドラに成功メッセージ追加 + `file put` の戻り値活用 |
+| I-3 | `d3315fd` | `release list` の limit をフィルタ後に適用（I-2 と同コミット） |
+| I-4 | `4bd5c50` | `argparse.FileType` を廃止しファイルパス文字列で受け取るよう変更 |
+| I-6 | `d3315fd` | `GogsAdapter.create_or_update_file` の戻り値型を `str \| None` に修正 |
+| I-10 | `c7235e0` | mypy strict モード導入（`disallow_untyped_defs = true`） |
+
+### 統合レビュー修正
+
+| ID | コミット | 概要 |
+|---|---|---|
+| H-1 | `ead8633` | `read_file_arg` ヘルパー追加、`--body-file`/`--notes-file` のエラーハンドリング統一 |
+| M-1 | *(本ブランチ未コミット)* | `add_time_entry` の `duration` 型を `int \| float` に統一 |
+| L-1 | *(本ブランチ未コミット)* | I-2 で追加した成功メッセージ 11 箇所のテスト追加 |
+| L-2 | *(本ブランチ未コミット)* | `type: ignore[override]` に理由コメント追記 |

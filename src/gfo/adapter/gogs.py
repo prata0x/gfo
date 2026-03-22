@@ -661,7 +661,7 @@ class GogsAdapter(GiteaAdapter):
     def list_time_entries(self, issue_number: int) -> list[TimeEntry]:
         raise NotSupportedError("Gogs", "time tracking operations")
 
-    def add_time_entry(self, issue_number: int, duration: int) -> TimeEntry:
+    def add_time_entry(self, issue_number: int, duration: int | float) -> TimeEntry:
         raise NotSupportedError("Gogs", "time tracking operations")
 
     def delete_time_entry(self, issue_number: int, entry_id: int | str) -> None:
