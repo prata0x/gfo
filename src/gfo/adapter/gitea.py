@@ -148,13 +148,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 raise GfoError(f"Label not found: {name}")
         return ids
 
-    def _resolve_milestone_id_by_title(self, title: str) -> int:
-        """milestone タイトルから ID を解決する。"""
-        for ms in self.list_milestones():
-            if ms.title == title:
-                return ms.number
-        raise GfoError(f"Milestone not found: {title}")
-
     def get_pull_request(self, number: int) -> PullRequest:
         resp = self._client.get(f"{self._repos_path()}/pulls/{number}")
         return self._to_pull_request(resp.json())
@@ -240,7 +233,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         label: str | None = None,
         milestone: str | None = None,
         due_date: str | None = None,
-        **kwargs,
+        **kwargs: object,
     ) -> Issue:
         payload: dict = {"title": title, "body": body}
         if assignee is not None:
@@ -550,7 +543,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.patch(f"{self._repos_path()}/releases/{release_id}", json=payload)
         return self._to_release(resp.json())
 
-    def get_latest_release(self):
+    def get_latest_release(self) -> Release:
         results = paginate_link_header(
             self._client,
             f"{self._repos_path()}/releases",
@@ -563,12 +556,14 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             raise NotFoundError()
         return self._to_release(results[0])
 
-    def list_release_assets(self, *, tag):
+    def list_release_assets(self, *, tag: str) -> list[ReleaseAsset]:
         resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
         assets = resp.json().get("assets") or []
         return [self._to_release_asset(a) for a in assets]
 
-    def upload_release_asset(self, *, tag, file_path, name=None):
+    def upload_release_asset(
+        self, *, tag: str, file_path: str, name: str | None = None
+    ) -> ReleaseAsset:
         resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
         release_id = resp.json()["id"]
         resp = self._client.upload_multipart(
@@ -578,7 +573,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         )
         return self._to_release_asset(resp.json())
 
-    def download_release_asset(self, *, tag, asset_id, output_dir):
+    def download_release_asset(self, *, tag: str, asset_id: int | str, output_dir: str) -> str:
         import os
 
         from gfo.exceptions import GfoError
@@ -600,7 +595,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.download_file(url, output_path)
         return output_path
 
-    def delete_release_asset(self, *, tag, asset_id):
+    def delete_release_asset(self, *, tag: str, asset_id: int | str) -> None:
         resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
         release_id = resp.json()["id"]
         self._client.delete(f"{self._repos_path()}/releases/{release_id}/assets/{asset_id}")

@@ -10,8 +10,12 @@ from __future__ import annotations
 
 import json
 import urllib.parse
+from typing import TYPE_CHECKING
 
 from gfo.exceptions import GfoError, NotSupportedError
+
+if TYPE_CHECKING:
+    import requests
 from gfo.http import paginate_link_header
 
 from .base import (
@@ -35,7 +39,6 @@ from .base import (
     Tag,
     TagProtection,
     Variable,
-    WikiPage,
 )
 from .github import GitHubAdapter
 from .registry import register
@@ -47,7 +50,7 @@ class GitBucketAdapter(GitHubAdapter):
 
     # --- ヘルパー ---
 
-    def _parse_response(self, resp) -> dict:
+    def _parse_response(self, resp: requests.Response) -> dict:
         """GitBucket の create 系 API が返す二重エンコード JSON を解析する。"""
         data = resp.json()
         if isinstance(data, str):
@@ -142,14 +145,8 @@ class GitBucketAdapter(GitHubAdapter):
     def update_pull_request_branch(self, number: int) -> None:
         raise NotSupportedError("GitBucket", "pr update-branch")
 
-    def enable_auto_merge(self, number: int, *, merge_method: str | None = None) -> None:
-        raise NotSupportedError("GitBucket", "pr auto-merge")
-
     def dismiss_review(self, number: int, review_id: int, *, message: str = "") -> None:
         raise NotSupportedError("GitBucket", "review dismiss")
-
-    def mark_pull_request_ready(self, number: int) -> None:
-        raise NotSupportedError("GitBucket", "pr ready")
 
     # --- Issue ---
 
@@ -290,29 +287,6 @@ class GitBucketAdapter(GitHubAdapter):
 
     def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
         raise NotSupportedError("GitBucket", "search operations")
-
-    # --- Wiki（GitBucket 未実装）---
-
-    def list_wiki_pages(self, *, limit: int = 30) -> list[WikiPage]:
-        raise NotSupportedError("GitBucket", "wiki operations")
-
-    def get_wiki_page(self, page_id: int | str) -> WikiPage:
-        raise NotSupportedError("GitBucket", "wiki operations")
-
-    def create_wiki_page(self, *, title: str, content: str) -> WikiPage:
-        raise NotSupportedError("GitBucket", "wiki operations")
-
-    def update_wiki_page(
-        self,
-        page_id: int | str,
-        *,
-        title: str | None = None,
-        content: str | None = None,
-    ) -> WikiPage:
-        raise NotSupportedError("GitBucket", "wiki operations")
-
-    def delete_wiki_page(self, page_id: int | str) -> None:
-        raise NotSupportedError("GitBucket", "wiki operations")
 
     # --- Review（Reviews API なし）---
 

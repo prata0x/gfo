@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import base64
 import json as _json
+from typing import TYPE_CHECKING
 from urllib.parse import quote, urlparse
 
 import requests
 
 from gfo.exceptions import GfoError, NotSupportedError
 from gfo.http import paginate_top_skip
+
+if TYPE_CHECKING:
+    from gfo.http import HttpClient
 
 from .base import (
     Branch,
@@ -71,8 +75,15 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     service_name = "Azure DevOps"
 
     def __init__(
-        self, client, owner: str, repo: str, *, organization: str, project_key: str, **kwargs
-    ):
+        self,
+        client: HttpClient,
+        owner: str,
+        repo: str,
+        *,
+        organization: str,
+        project_key: str,
+        **kwargs: object,
+    ) -> None:
         super().__init__(client, owner, repo, **kwargs)
         self._org = organization
         self._project = project_key
@@ -482,7 +493,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
         return results[:limit] if limit > 0 else results
 
-    def create_issue(
+    def create_issue(  # type: ignore[override]
         self,
         *,
         title: str,
@@ -492,7 +503,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         milestone: str | None = None,
         due_date: str | None = None,
         work_item_type: str = "Task",
-        **kwargs,
+        **kwargs: object,
     ) -> Issue:
         self._warn_unsupported_params("issue create", milestone=milestone)
         patch_ops = [
@@ -1633,7 +1644,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     # --- Issue Dependencies (Work Item Links) ---
 
-    def list_issue_dependencies(self, number):
+    def list_issue_dependencies(self, number: int) -> list[Issue]:
         resp = self._client.get(
             f"{self._wit_path()}/workitems/{number}", params={"$expand": "relations"}
         )
@@ -1648,7 +1659,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                     deps.append(dep)
         return deps
 
-    def add_issue_dependency(self, number, depends_on):
+    def add_issue_dependency(self, number: int, depends_on: int) -> None:
         parsed = urlparse(self._client.base_url)
         base = f"{parsed.scheme}://{parsed.hostname}"
         if parsed.port:
@@ -1667,7 +1678,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             headers={"Content-Type": "application/json-patch+json"},
         )
 
-    def remove_issue_dependency(self, number, depends_on):
+    def remove_issue_dependency(self, number: int, depends_on: int) -> None:
         resp = self._client.get(
             f"{self._wit_path()}/workitems/{number}", params={"$expand": "relations"}
         )
@@ -1687,7 +1698,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     # --- Issue Timeline (Work Item Updates) ---
 
-    def get_issue_timeline(self, number, *, limit=30):
+    def get_issue_timeline(self, number: int, *, limit: int = 30) -> list[TimelineEvent]:
         resp = self._client.get(f"{self._wit_path()}/workitems/{number}/updates")
         updates = resp.json().get("value") or []
         events = []
@@ -1716,7 +1727,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     # --- Search PRs ---
 
-    def search_pull_requests(self, query, *, state=None, limit=30):
+    def search_pull_requests(
+        self, query: str, *, state: str | None = None, limit: int = 30
+    ) -> list[PullRequest]:
         params = {"searchCriteria.includeLinks": "false"}
         if state and state != "all":
             api_state = _PR_STATE_TO_API.get(state, state)
@@ -1736,7 +1749,15 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     # --- Search Commits ---
 
-    def search_commits(self, query, *, author=None, since=None, until=None, limit=30):
+    def search_commits(
+        self,
+        query: str,
+        *,
+        author: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        limit: int = 30,
+    ) -> list[Commit]:
         params = {}
         if author:
             params["searchCriteria.author"] = author
@@ -1764,7 +1785,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     # --- Time Tracking (Completed Work) ---
 
-    def add_time_entry(self, issue_number, duration):
+    def add_time_entry(self, issue_number: int, duration: int | float) -> TimeEntry:
         hours = duration / 3600
         patch = [
             {"op": "add", "path": "/fields/Microsoft.VSTS.Scheduling.CompletedWork", "value": hours}
@@ -1774,4 +1795,4 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             json=patch,
             headers={"Content-Type": "application/json-patch+json"},
         )
-        return TimeEntry(id=0, user="", duration=duration, created_at="")
+        return TimeEntry(id=0, user="", duration=int(duration), created_at="")

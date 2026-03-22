@@ -144,7 +144,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         if assignees:
             patch_payload["assignees"] = assignees
         if milestone:
-            patch_payload["milestone"] = self._resolve_milestone_number(milestone)
+            patch_payload["milestone"] = self._resolve_milestone_id_by_title(milestone)
         if patch_payload:
             self._client.patch(f"{self._repos_path()}/issues/{pr.number}", json=patch_payload)
         if reviewers:
@@ -152,13 +152,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         if patch_payload or reviewers:
             return self.get_pull_request(pr.number)
         return pr
-
-    def _resolve_milestone_number(self, title: str) -> int:
-        """milestone タイトルから number を解決する。"""
-        for ms in self.list_milestones():
-            if ms.title == title:
-                return ms.number
-        raise GfoError(f"Milestone not found: {title}")
 
     def get_pull_request(self, number: int) -> PullRequest:
         resp = self._client.get(f"{self._repos_path()}/pulls/{number}")
@@ -224,7 +217,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         if author is not None:
             params["creator"] = author
         if milestone is not None:
-            params["milestone"] = self._resolve_milestone_number(milestone)
+            params["milestone"] = self._resolve_milestone_id_by_title(milestone)
         needs_client_filter = bool(search)
         fetch_limit = 0 if needs_client_filter else limit
         results = paginate_link_header(
@@ -255,7 +248,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         label: str | None = None,
         milestone: str | None = None,
         due_date: str | None = None,
-        **kwargs,
+        **kwargs: object,
     ) -> Issue:
         self._warn_unsupported_params("issue create", due_date=due_date)
         payload: dict = {"title": title, "body": body}
@@ -264,7 +257,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         if label is not None:
             payload["labels"] = [label]
         if milestone is not None:
-            payload["milestone"] = self._resolve_milestone_number(milestone)
+            payload["milestone"] = self._resolve_milestone_id_by_title(milestone)
         resp = self._client.post(f"{self._repos_path()}/issues", json=payload)
         return self._to_issue(resp.json())
 
@@ -577,16 +570,18 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.patch(f"{self._repos_path()}/releases/{release_id}", json=payload)
         return self._to_release(resp.json())
 
-    def get_latest_release(self):
+    def get_latest_release(self) -> Release:
         resp = self._client.get(f"{self._repos_path()}/releases/latest")
         return self._to_release(resp.json())
 
-    def list_release_assets(self, *, tag):
+    def list_release_assets(self, *, tag: str) -> list[ReleaseAsset]:
         resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
         assets = resp.json().get("assets") or []
         return [self._to_release_asset(a) for a in assets]
 
-    def upload_release_asset(self, *, tag, file_path, name=None):
+    def upload_release_asset(
+        self, *, tag: str, file_path: str, name: str | None = None
+    ) -> ReleaseAsset:
         import re
 
         resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
@@ -596,7 +591,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.upload_file_absolute(upload_url, file_path, name=name)
         return self._to_release_asset(resp.json())
 
-    def download_release_asset(self, *, tag, asset_id, output_dir):
+    def download_release_asset(self, *, tag: str, asset_id: int | str, output_dir: str) -> str:
         import os
 
         from gfo.exceptions import GfoError
@@ -610,7 +605,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.download_file(url, output_path, headers={"Accept": "application/octet-stream"})
         return output_path
 
-    def delete_release_asset(self, *, tag, asset_id):
+    def delete_release_asset(self, *, tag: str, asset_id: int | str) -> None:
         self._client.delete(f"{self._repos_path()}/releases/assets/{asset_id}")
 
     def update_release_asset(
@@ -785,7 +780,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                     updated -= set(remove_assignees)
                 issue_payload["assignees"] = sorted(updated)
         if milestone is not None:
-            issue_payload["milestone"] = self._resolve_milestone_number(milestone)
+            issue_payload["milestone"] = self._resolve_milestone_id_by_title(milestone)
         if issue_payload:
             self._client.patch(f"{self._repos_path()}/issues/{number}", json=issue_payload)
             resp = self._client.get(f"{self._repos_path()}/pulls/{number}")
@@ -961,7 +956,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                     updated -= set(remove_assignees)
                 payload["assignees"] = sorted(updated)
         if milestone is not None:
-            payload["milestone"] = self._resolve_milestone_number(milestone)
+            payload["milestone"] = self._resolve_milestone_id_by_title(milestone)
         resp = self._client.patch(f"{self._repos_path()}/issues/{number}", json=payload)
         return self._to_issue(resp.json())
 

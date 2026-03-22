@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import urllib.parse
+from typing import TYPE_CHECKING
 
 from gfo.exceptions import GfoError, NotSupportedError
+
+if TYPE_CHECKING:
+    from gfo.http import HttpClient
 from gfo.http import paginate_offset
 
 from .base import (
@@ -35,7 +39,9 @@ _STATUS_MERGED_ID = 5  # merged（PR 固定値; カスタムの場合は動的�
 class BacklogAdapter(GitServiceAdapter):
     service_name = "Backlog"
 
-    def __init__(self, client, owner: str, repo: str, *, project_key: str, **kwargs):
+    def __init__(
+        self, client: HttpClient, owner: str, repo: str, *, project_key: str, **kwargs: object
+    ) -> None:
         super().__init__(client, owner, repo, **kwargs)
         self._project_key = project_key
         self._project_id: int | None = None
@@ -287,7 +293,7 @@ class BacklogAdapter(GitServiceAdapter):
         results = paginate_offset(self._client, "/issues", params=params, limit=limit)
         return [self._to_issue(r) for r in results]
 
-    def create_issue(
+    def create_issue(  # type: ignore[override]
         self,
         *,
         title: str,
@@ -298,7 +304,7 @@ class BacklogAdapter(GitServiceAdapter):
         due_date: str | None = None,
         issue_type: int | None = None,
         priority: int | None = None,
-        **kwargs,
+        **kwargs: object,
     ) -> Issue:
         self._warn_unsupported_params("issue create", milestone=milestone)
         project_id = self._ensure_project_id()
@@ -929,7 +935,7 @@ class BacklogAdapter(GitServiceAdapter):
 
     # --- Time Tracking ---
 
-    def add_time_entry(self, issue_number, duration):
+    def add_time_entry(self, issue_number: int, duration: int | float) -> TimeEntry:
         hours = round(duration / 3600, 2)
         self._client.patch(f"/issues/{issue_number}", json={"actualHours": hours})
-        return TimeEntry(id=0, user="", duration=duration, created_at="")
+        return TimeEntry(id=0, user="", duration=int(duration), created_at="")

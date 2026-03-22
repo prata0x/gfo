@@ -9,6 +9,7 @@ from gfo.exceptions import NotSupportedError
 
 from .base import (
     Artifact,
+    Branch,
     BranchProtection,
     CheckRun,
     Comment,
@@ -332,7 +333,7 @@ class GogsAdapter(GiteaAdapter):
 
     # --- Branch（Gogs 0.13: POST/DELETE 未対応）---
 
-    def create_branch(self, *, name: str, ref: str):
+    def create_branch(self, *, name: str, ref: str) -> Branch:
         raise NotSupportedError("Gogs", "branch creation")
 
     def delete_branch(self, *, name: str) -> None:
@@ -364,7 +365,7 @@ class GogsAdapter(GiteaAdapter):
         message: str,
         sha: str | None = None,
         branch: str | None = None,
-    ) -> None:
+    ) -> str | None:
         raise NotSupportedError("Gogs", "file write operations")
 
     def delete_file(

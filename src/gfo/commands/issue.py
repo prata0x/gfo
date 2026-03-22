@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from gfo.commands import (
     create_adapter_from_spec,
@@ -13,6 +14,9 @@ from gfo.commands import (
     parse_service_spec,
 )
 from gfo.exceptions import ConfigError, NotSupportedError
+
+if TYPE_CHECKING:
+    from gfo.adapter.base import GitServiceAdapter
 from gfo.i18n import _
 from gfo.output import output
 
@@ -376,7 +380,7 @@ def handle_develop(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
     output(branch, fmt=fmt, jq=jq)
 
 
-def _sync_labels(src, dst) -> set[str]:
+def _sync_labels(src: GitServiceAdapter, dst: GitServiceAdapter) -> set[str]:
     """ソース側のラベルをターゲット側に同期し、利用可能なラベル名セットを返す。"""
     try:
         src_labels = src.list_labels()
@@ -401,7 +405,13 @@ def _sync_labels(src, dst) -> set[str]:
     return dst_label_names
 
 
-def _migrate_one_issue(src, dst, number, available_labels, src_spec_str) -> MigrateResult:
+def _migrate_one_issue(
+    src: GitServiceAdapter,
+    dst: GitServiceAdapter,
+    number: int,
+    available_labels: set[str],
+    src_spec_str: str,
+) -> MigrateResult:
     """単一の Issue を移行する。"""
     try:
         issue = src.get_issue(number)

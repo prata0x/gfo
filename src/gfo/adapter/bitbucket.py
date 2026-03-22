@@ -297,7 +297,7 @@ class BitbucketAdapter(GitServiceAdapter):
         label: str | None = None,
         milestone: str | None = None,
         due_date: str | None = None,
-        **kwargs,
+        **kwargs: object,
     ) -> Issue:
         self._warn_unsupported_params("issue create", milestone=milestone, due_date=due_date)
         payload: dict = {"title": title, "content": {"raw": body}}
@@ -1549,7 +1549,9 @@ class BitbucketAdapter(GitServiceAdapter):
             )
         return out
 
-    def search_pull_requests(self, query, *, state=None, limit=30):
+    def search_pull_requests(
+        self, query: str, *, state: str | None = None, limit: int = 30
+    ) -> list[PullRequest]:
         params = {}
         if query:
             params["q"] = f'title ~ "{query}"'

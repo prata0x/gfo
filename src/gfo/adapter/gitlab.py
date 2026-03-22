@@ -360,7 +360,7 @@ class GitLabAdapter(GitServiceAdapter):
         label: str | None = None,
         milestone: str | None = None,
         due_date: str | None = None,
-        **kwargs,
+        **kwargs: object,
     ) -> Issue:
         payload: dict = {"title": title, "description": body}
         if assignee is not None:
@@ -671,7 +671,7 @@ class GitLabAdapter(GitServiceAdapter):
         )
         return self._to_release(resp.json())
 
-    def get_latest_release(self):
+    def get_latest_release(self) -> Release:
         results = paginate_page_param(
             self._client,
             f"{self._project_path()}/releases",
@@ -685,7 +685,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- Release Assets ---
 
-    def list_release_assets(self, *, tag):
+    def list_release_assets(self, *, tag: str) -> list[ReleaseAsset]:
         results = paginate_page_param(
             self._client,
             f"{self._project_path()}/releases/{quote(tag, safe='')}/assets/links",
@@ -702,7 +702,9 @@ class GitLabAdapter(GitServiceAdapter):
             for r in results
         ]
 
-    def upload_release_asset(self, *, tag, file_path, name=None):
+    def upload_release_asset(
+        self, *, tag: str, file_path: str, name: str | None = None
+    ) -> ReleaseAsset:
         import os
 
         fname = name or os.path.basename(file_path)
@@ -727,7 +729,7 @@ class GitLabAdapter(GitServiceAdapter):
             created_at="",
         )
 
-    def download_release_asset(self, *, tag, asset_id, output_dir):
+    def download_release_asset(self, *, tag: str, asset_id: int | str, output_dir: str) -> str:
         import os
 
         resp = self._client.get(
@@ -742,7 +744,7 @@ class GitLabAdapter(GitServiceAdapter):
         self._client.download_file(url, output_path)
         return output_path
 
-    def delete_release_asset(self, *, tag, asset_id):
+    def delete_release_asset(self, *, tag: str, asset_id: int | str) -> None:
         self._client.delete(
             f"{self._project_path()}/releases/{quote(tag, safe='')}/assets/links/{asset_id}"
         )

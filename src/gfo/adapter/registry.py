@@ -2,17 +2,23 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import TYPE_CHECKING
+
 from gfo.adapter.base import GitServiceAdapter
 from gfo.config import ProjectConfig
 from gfo.exceptions import ConfigError, UnsupportedServiceError
 
+if TYPE_CHECKING:
+    from gfo.http import HttpClient
+
 _REGISTRY: dict[str, type[GitServiceAdapter]] = {}
 
 
-def register(service_type: str):
+def register(service_type: str) -> Callable[[type[GitServiceAdapter]], type[GitServiceAdapter]]:
     """デコレータ。アダプタークラスをレジストリに登録する。"""
 
-    def decorator(cls):
+    def decorator(cls: type[GitServiceAdapter]) -> type[GitServiceAdapter]:
         _REGISTRY[service_type] = cls
         return cls
 
@@ -26,7 +32,7 @@ def get_adapter_class(service_type: str) -> type[GitServiceAdapter]:
     return _REGISTRY[service_type]
 
 
-def create_http_client(service_type: str, api_url: str, token: str):
+def create_http_client(service_type: str, api_url: str, token: str) -> HttpClient:
     """サービス種別・API URL・トークンから HttpClient インスタンスを生成する。"""
     from gfo.http import HttpClient
 
@@ -71,7 +77,7 @@ def create_adapter(config: ProjectConfig) -> GitServiceAdapter:
     token = gfo.auth.resolve_token(config.host, config.service_type)
     service_type = config.service_type
 
-    kwargs: dict = {}
+    kwargs: dict[str, object] = {}
 
     if service_type == "backlog":
         kwargs["project_key"] = config.project_key

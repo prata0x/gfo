@@ -1,5 +1,7 @@
 """gfo の全カスタム例外を集約するモジュール。"""
 
+from __future__ import annotations
+
 from enum import IntEnum
 
 from gfo.i18n import _
