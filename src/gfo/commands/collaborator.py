@@ -6,6 +6,7 @@ import argparse
 import json
 
 from gfo.commands import get_adapter
+from gfo.i18n import _
 from gfo.output import apply_jq_filter
 
 
@@ -28,9 +29,11 @@ def handle_add(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
     """gfo collaborator add <username> のハンドラ。"""
     adapter = get_adapter()
     adapter.add_collaborator(username=args.username, permission=args.permission)
+    print(_("Added collaborator '{username}'.").format(username=args.username))
 
 
 def handle_remove(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo collaborator remove <username> のハンドラ。"""
     adapter = get_adapter()
     adapter.remove_collaborator(username=args.username)
+    print(_("Removed collaborator '{username}'.").format(username=args.username))

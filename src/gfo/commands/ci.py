@@ -28,6 +28,7 @@ def handle_cancel(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo ci cancel <id> のハンドラ。"""
     adapter = get_adapter()
     adapter.cancel_pipeline(args.id)
+    print(_("Canceled pipeline run '{id}'.").format(id=args.id))
 
 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

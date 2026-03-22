@@ -8,6 +8,7 @@ import sys
 
 from gfo.commands import get_adapter
 from gfo.exceptions import NotFoundError
+from gfo.i18n import _
 from gfo.output import apply_jq_filter
 
 
@@ -34,20 +35,25 @@ def handle_put(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
     # SHA が必要な場合は既存ファイルから取得
     sha: str | None = None
     try:
-        _, sha = adapter.get_file_content(args.path, ref=args.branch)
+        _content, sha = adapter.get_file_content(args.path, ref=args.branch)
     except NotFoundError:
         sha = None
-    adapter.create_or_update_file(
+    commit_sha = adapter.create_or_update_file(
         args.path,
         content=content,
         message=args.message,
         sha=sha,
         branch=args.branch,
     )
+    if commit_sha:
+        print(_("Updated file '{path}' (commit: {sha}).").format(path=args.path, sha=commit_sha))
+    else:
+        print(_("Updated file '{path}'.").format(path=args.path))
 
 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo file delete <path> --message TEXT のハンドラ。"""
     adapter = get_adapter()
-    _, sha = adapter.get_file_content(args.path, ref=args.branch)
+    _content, sha = adapter.get_file_content(args.path, ref=args.branch)
     adapter.delete_file(args.path, sha=sha, message=args.message, branch=args.branch)
+    print(_("Deleted file '{path}'.").format(path=args.path))
