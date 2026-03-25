@@ -393,9 +393,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return self.list_topics()
 
     def list_contributors(self, *, limit: int = 30) -> list[Contributor]:
-        # /repos/{owner}/{repo}/contributors は Gitea 1.22+ で利用可能
-        # GitHub 互換のレスポンス形式（login, contributions）を返す
-        # 未実装バージョンの場合はフォールバックなしで NotSupportedError
+        # Gitea / Forgejo は /repos/{owner}/{repo}/contributors を未実装
+        # エンドポイントが追加された場合に備えて試行し、404 なら NotSupportedError
         from gfo.exceptions import NotSupportedError
 
         try:

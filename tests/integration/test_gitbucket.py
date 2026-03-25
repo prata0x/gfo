@@ -519,10 +519,19 @@ class TestGitBucketIntegration:
 
     def test_40_file_crud(self) -> None:
         """ファイルの作成・取得・更新・削除テスト。"""
+        # GitBucket は delete_file 未対応のため、前回テストのファイルが残る場合がある
+        # 冪等にするため既存ファイルの sha を取得してから create_or_update する
+        try:
+            _, existing_sha = self.adapter.get_file_content(
+                "gfo-test-file.txt", ref=self.config.test_branch
+            )
+        except Exception:
+            existing_sha = None
         self.adapter.create_or_update_file(
             "gfo-test-file.txt",
             content="hello gfo",
             message="test: create gfo-test-file.txt",
+            sha=existing_sha,
             branch=self.config.test_branch,
         )
         content, sha = self.adapter.get_file_content(

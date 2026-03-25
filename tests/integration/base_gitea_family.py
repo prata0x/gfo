@@ -11,7 +11,7 @@ import time
 import pytest
 
 from gfo.adapter.base import Repository
-from gfo.exceptions import GfoError, HttpError
+from gfo.exceptions import GfoError, HttpError, NotSupportedError
 from tests.integration.conftest import (
     TEST_SSH_PUBLIC_KEY,
     ServiceTestConfig,
@@ -126,10 +126,9 @@ class GiteaFamilyIntegrationBase:
         self.adapter.update_repository(delete_branch_on_merge=False)
 
     def test_02c_repo_contributors(self) -> None:
-        contributors = self.adapter.list_contributors(limit=10)
-        assert isinstance(contributors, list)
-        assert len(contributors) >= 1
-        assert contributors[0].commits >= 1
+        # Gitea / Forgejo は contributors API を未実装（Swagger spec で確認済み）
+        with pytest.raises(NotSupportedError):
+            self.adapter.list_contributors(limit=10)
 
     # --- Phase 2: Label ---
 
