@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gfo 0.2.0\n"
+"Project-Id-Version: gfo 0.7.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-17 00:00+0900\n"
-"PO-Revision-Date: 2026-03-17 00:00+0900\n"
+"POT-Creation-Date: 2026-03-25 00:00+0900\n"
+"PO-Revision-Date: 2026-03-25 00:00+0900\n"
 "Last-Translator: \n"
 "Language-Team: Japanese\n"
 "Language: ja\n"
@@ -1335,3 +1335,755 @@ msgstr "Webhook シークレット"
 
 msgid "Workflow name or file"
 msgstr "ワークフロー名またはファイル"
+
+# --- v0.7.0 追加分 ---
+
+msgid "  No issues found."
+msgstr "  Issue が見つかりません。"
+
+msgid "  No pull requests found."
+msgstr "  プルリクエストが見つかりません。"
+
+msgid "(none)"
+msgstr "（なし）"
+
+msgid "--from is required."
+msgstr "--from は必須です。"
+
+msgid "--repo and --remote are mutually exclusive."
+msgstr "--repo と --remote は同時に指定できません。"
+
+msgid "--repo value must not be empty. Use URL or HOST/OWNER/REPO format."
+msgstr "--repo の値は空にできません。URL または HOST/OWNER/REPO 形式で指定してください。"
+
+msgid "--subject/--body are ignored when --auto is used."
+msgstr "--auto 使用時は --subject/--body は無視されます。"
+
+msgid "ACCOUNT"
+msgstr "アカウント名"
+
+msgid "Account name"
+msgstr "アカウント名"
+
+msgid "Account name to associate"
+msgstr "関連付けるアカウント名"
+
+msgid "Account name to remove"
+msgstr "削除するアカウント名"
+
+msgid "Activate"
+msgstr "有効化"
+
+msgid "Add assignee"
+msgstr "担当者を追加"
+
+msgid "Add label"
+msgstr "ラベルを追加"
+
+msgid "Added collaborator '{username}'."
+msgstr "コラボレーター '{username}' を追加しました。"
+
+msgid "Added dependency #{depends_on} to issue #{number}."
+msgstr "Issue #{number} に依存関係 #{depends_on} を追加しました。"
+
+msgid "Added reviewers to PR #{number}."
+msgstr "PR #{number} にレビュアーを追加しました。"
+
+msgid "Allow merge commits"
+msgstr "マージコミットを許可"
+
+msgid "Allow rebase merging"
+msgstr "リベースマージを許可"
+
+msgid "Allow squash merging"
+msgstr "スカッシュマージを許可"
+
+msgid "Archived repository '{repo_name}'."
+msgstr "リポジトリ '{repo_name}' をアーカイブしました。"
+
+msgid "Are you sure you want to archive repository '{repo_name}'? [y/N]: "
+msgstr "リポジトリ '{repo_name}' をアーカイブしますか？ [y/N]: "
+
+msgid "Are you sure you want to delete package '{type}/{name}@{version}'? [y/N]: "
+msgstr "パッケージ '{type}/{name}@{version}' を削除しますか？ [y/N]: "
+
+msgid "Artifact ID"
+msgstr "アーティファクト ID"
+
+msgid "Assigned to you"
+msgstr "自分にアサインされたもの"
+
+msgid "Assignee username (repeatable)"
+msgstr "担当者のユーザー名（複数指定可）"
+
+msgid "Auto-generate release notes"
+msgstr "リリースノートを自動生成する"
+
+msgid "Azure DevOps requires 'org/project/repo' format, got: {part}"
+msgstr "Azure DevOps は 'org/project/repo' 形式が必要ですが、'{part}' が指定されました"
+
+msgid "Base branch (default: default branch)"
+msgstr "ベースブランチ（デフォルト: デフォルトブランチ）"
+
+msgid "Body:"
+msgstr "本文:"
+
+msgid "Branch name (default: issue-{number}-{slug})"
+msgstr "ブランチ名（デフォルト: issue-{number}-{slug}）"
+
+msgid "Branch to sync"
+msgstr "同期するブランチ"
+
+msgid "Canceled pipeline run '{id}'."
+msgstr "パイプライン実行 '{id}' をキャンセルしました。"
+
+msgid "Cannot parse --repo value: {value}. Use URL or HOST/OWNER/REPO format."
+msgstr "--repo の値を解析できません: {value}。URL または HOST/OWNER/REPO 形式で指定してください。"
+
+msgid "Check that git is installed and the repository exists."
+msgstr "git がインストールされていること、リポジトリが存在することを確認してください。"
+
+msgid "Check your network connection and try again."
+msgstr "ネットワーク接続を確認して再試行してください。"
+
+msgid "Check your token with 'gfo auth status'."
+msgstr "'gfo auth status' でトークンを確認してください。"
+
+msgid "Cloned {count} labels from '{source}'."
+msgstr "'{source}' から {count} 個のラベルをクローンしました。"
+
+msgid "Closed PR #{number}."
+msgstr "PR #{number} をクローズしました。"
+
+msgid "Closed issue #{number}."
+msgstr "Issue #{number} をクローズしました。"
+
+msgid "Closed milestone '{number}'."
+msgstr "マイルストーン '{number}' をクローズしました。"
+
+msgid "Config key (e.g. defaults.output)"
+msgstr "設定キー（例: defaults.output）"
+
+msgid "Config key to remove"
+msgstr "削除する設定キー"
+
+msgid "Convert to draft"
+msgstr "ドラフトに変換する"
+
+msgid "Could not detect host. Use --host option: gfo auth logout --host <host>"
+msgstr "ホストを検出できません。--host オプションを使用してください: gfo auth logout --host <host>"
+
+msgid "Could not detect host. Use --host option: gfo auth switch --host <host> ACCOUNT"
+msgstr "ホストを検出できません。--host オプションを使用してください: gfo auth switch --host <host> ACCOUNT"
+
+msgid "Could not detect host. Use --host option: gfo auth token --host <host>"
+msgstr "ホストを検出できません。--host オプションを使用してください: gfo auth token --host <host>"
+
+msgid "Create a branch for an issue"
+msgstr "Issue 用のブランチを作成する"
+
+msgid "Create a merge commit"
+msgstr "マージコミットを作成する"
+
+msgid "Created by you"
+msgstr "自分が作成したもの"
+
+msgid "Deactivate"
+msgstr "無効化"
+
+msgid "Delete branch after merge"
+msgstr "マージ後にブランチを削除する"
+
+msgid "Delete branch on merge"
+msgstr "マージ時にブランチを削除"
+
+msgid "Delete pipeline run"
+msgstr "パイプライン実行を削除する"
+
+msgid "Deleted GPG key '{id}'."
+msgstr "GPG 鍵 '{id}' を削除しました。"
+
+msgid "Deleted asset '{asset_id}'."
+msgstr "アセット '{asset_id}' を削除しました。"
+
+msgid "Deleted branch '{branch}'."
+msgstr "ブランチ '{branch}' を削除しました。"
+
+msgid "Deleted branch '{name}'."
+msgstr "ブランチ '{name}' を削除しました。"
+
+msgid "Deleted comment '{comment_id}'."
+msgstr "コメント '{comment_id}' を削除しました。"
+
+msgid "Deleted deploy key '{id}'."
+msgstr "デプロイキー '{id}' を削除しました。"
+
+msgid "Deleted file '{path}'."
+msgstr "ファイル '{path}' を削除しました。"
+
+msgid "Deleted organization '{name}'."
+msgstr "組織 '{name}' を削除しました。"
+
+msgid "Deleted package '{type}/{name}@{version}'."
+msgstr "パッケージ '{type}/{name}@{version}' を削除しました。"
+
+msgid "Deleted pipeline run '{id}'."
+msgstr "パイプライン実行 '{id}' を削除しました。"
+
+msgid "Deleted push mirror '{name}'."
+msgstr "プッシュミラー '{name}' を削除しました。"
+
+msgid "Deleted tag '{name}'."
+msgstr "タグ '{name}' を削除しました。"
+
+msgid "Deleted tag protection '{id}'."
+msgstr "タグ保護 '{id}' を削除しました。"
+
+msgid "Deleted time entry '{entry_id}'."
+msgstr "作業時間エントリ '{entry_id}' を削除しました。"
+
+msgid "Deleted webhook '{id}'."
+msgstr "Webhook '{id}' を削除しました。"
+
+msgid "Deleted wiki page '{id}'."
+msgstr "Wiki ページ '{id}' を削除しました。"
+
+msgid "Disable auto-merge"
+msgstr "自動マージを無効にする"
+
+msgid "Disable workflow"
+msgstr "ワークフローを無効にする"
+
+msgid "Disabled auto-merge for PR #{number}."
+msgstr "PR #{number} の自動マージを無効にしました。"
+
+msgid "Disabled workflow '{id}'."
+msgstr "ワークフロー '{id}' を無効にしました。"
+
+msgid "Disallow merge commits"
+msgstr "マージコミットを禁止"
+
+msgid "Disallow rebase merging"
+msgstr "リベースマージを禁止"
+
+msgid "Disallow squash merging"
+msgstr "スカッシュマージを禁止"
+
+msgid "Dismissed review '{review_id}' on PR #{number}."
+msgstr "PR #{number} のレビュー '{review_id}' を却下しました。"
+
+msgid "Download artifact"
+msgstr "アーティファクトをダウンロードする"
+
+msgid "Download pipeline logs to file"
+msgstr "パイプラインのログをファイルにダウンロードする"
+
+msgid "Downloaded: {path}"
+msgstr "ダウンロード完了: {path}"
+
+msgid "Draft: yes"
+msgstr "ドラフト: はい"
+
+msgid "Due date (YYYY-MM-DD)"
+msgstr "期日（YYYY-MM-DD）"
+
+msgid "Edit asset"
+msgstr "アセットを編集する"
+
+msgid "Edit comment"
+msgstr "コメントを編集する"
+
+msgid "Edit issue"
+msgstr "Issue を編集する"
+
+msgid "Edit label"
+msgstr "ラベルを編集する"
+
+msgid "Edit milestone"
+msgstr "マイルストーンを編集する"
+
+msgid "Edit organization"
+msgstr "組織を編集する"
+
+msgid "Edit pull request"
+msgstr "プルリクエストを編集する"
+
+msgid "Edit release"
+msgstr "リリースを編集する"
+
+msgid "Edit repository settings"
+msgstr "リポジトリの設定を編集する"
+
+msgid "Edit tag protection rule"
+msgstr "タグ保護ルールを編集する"
+
+msgid "Edit webhook"
+msgstr "Webhook を編集する"
+
+msgid "Edit wiki page"
+msgstr "Wiki ページを編集する"
+
+msgid "Enable workflow"
+msgstr "ワークフローを有効にする"
+
+msgid "Enabled auto-merge for PR #{number}."
+msgstr "PR #{number} の自動マージを有効にしました。"
+
+msgid "Enabled workflow '{id}'."
+msgstr "ワークフロー '{id}' を有効にしました。"
+
+msgid "Filter by base branch"
+msgstr "ベースブランチでフィルタ"
+
+msgid "Filter by head branch"
+msgstr "ヘッドブランチでフィルタ"
+
+msgid "Filter by milestone"
+msgstr "マイルストーンでフィルタ"
+
+msgid "Filter by title/description"
+msgstr "タイトル/説明でフィルタ"
+
+msgid "Filter by visibility"
+msgstr "可視性でフィルタ"
+
+msgid "Filter draft PRs only"
+msgstr "ドラフト PR のみ表示"
+
+msgid "Filter draft releases only"
+msgstr "ドラフトリリースのみ表示"
+
+msgid "Filter non-draft PRs only"
+msgstr "ドラフト以外の PR のみ表示"
+
+msgid "Filter non-draft releases only"
+msgstr "ドラフト以外のリリースのみ表示"
+
+msgid "Filter non-prerelease only"
+msgstr "プレリリース以外のみ表示"
+
+msgid "Filter prerelease only"
+msgstr "プレリリースのみ表示"
+
+msgid "Fork synced with upstream."
+msgstr "フォークをアップストリームと同期しました。"
+
+msgid "Generate shell completion script"
+msgstr "シェル補完スクリプトを生成する"
+
+msgid "Get a config value"
+msgstr "設定値を取得する"
+
+msgid "Head:  {head} -> Base: {base}"
+msgstr "ヘッド: {head} → ベース: {base}"
+
+msgid "Host"
+msgstr "ホスト"
+
+msgid "Host to logout from"
+msgstr "ログアウトするホスト"
+
+msgid "Initialize with README"
+msgstr "README で初期化する"
+
+msgid "Invalid JSON in --data: {err}"
+msgstr "--data の JSON が不正です: {err}"
+
+msgid "Invalid compare spec. Use 'base...head' or 'base..head'."
+msgstr "比較指定が不正です。'base...head' または 'base..head' を使用してください。"
+
+msgid "Invalid header format: '{h}'. Use 'Key: Value'."
+msgstr "ヘッダー形式が不正です: '{h}'。'Key: Value' を使用してください。"
+
+msgid "Invalid input format: '{item}'. Expected KEY=VALUE."
+msgstr "入力形式が不正です: '{item}'。KEY=VALUE 形式で指定してください。"
+
+msgid "Invalid repo format. Expected 'owner/name'."
+msgstr "リポジトリ形式が不正です。'owner/name' 形式で指定してください。"
+
+msgid "Issue template name"
+msgstr "Issue テンプレート名"
+
+msgid "Keep branch on merge"
+msgstr "マージ時にブランチを保持"
+
+msgid "Key not found: {key}"
+msgstr "キーが見つかりません: {key}"
+
+msgid "Label name (repeatable)"
+msgstr "ラベル名（複数指定可）"
+
+msgid "List all config values"
+msgstr "すべての設定値を一覧表示する"
+
+msgid "List artifacts"
+msgstr "アーティファクトの一覧"
+
+msgid "List repository contributors"
+msgstr "リポジトリのコントリビューターの一覧"
+
+msgid "List workflows"
+msgstr "ワークフローの一覧"
+
+msgid "Lock issue conversation"
+msgstr "Issue の会話をロックする"
+
+msgid "Lock pull request conversation"
+msgstr "プルリクエストの会話をロックする"
+
+msgid "Lock reason"
+msgstr "ロック理由"
+
+msgid "Locked PR #{number}."
+msgstr "PR #{number} をロックしました。"
+
+msgid "Locked issue #{number}."
+msgstr "Issue #{number} をロックしました。"
+
+msgid "Logged out account '{account}' from {host}"
+msgstr "{host} のアカウント '{account}' をログアウトしました"
+
+msgid "Logged out from {host}"
+msgstr "{host} からログアウトしました"
+
+msgid "Manage CI artifacts"
+msgstr "CI アーティファクトを管理する"
+
+msgid "Manage CI workflows"
+msgstr "CI ワークフローを管理する"
+
+msgid "Manage PR comments"
+msgstr "PR コメントを管理する"
+
+msgid "Manage PR reviews"
+msgstr "PR レビューを管理する"
+
+msgid "Manage configuration"
+msgstr "設定を管理する"
+
+msgid "Manage issue comments"
+msgstr "Issue コメントを管理する"
+
+msgid "Marked PR #{number} as ready for review."
+msgstr "PR #{number} をレビュー可能にしました。"
+
+msgid "Merge commit body"
+msgstr "マージコミット本文"
+
+msgid "Merge commit title"
+msgstr "マージコミットタイトル"
+
+msgid "Merged PR #{number}."
+msgstr "PR #{number} をマージしました。"
+
+msgid "Milestone"
+msgstr "マイルストーン"
+
+msgid "Milestone name"
+msgstr "マイルストーン名"
+
+msgid "Mirror sync triggered."
+msgstr "ミラー同期をトリガーしました。"
+
+msgid "Network error."
+msgstr "ネットワークエラー。"
+
+msgid "New tag name"
+msgstr "新しいタグ名"
+
+msgid "No assets match pattern '{pattern}'."
+msgstr "パターン '{pattern}' に一致するアセットがありません。"
+
+msgid "No configuration set."
+msgstr "設定が登録されていません。"
+
+msgid "Open in browser"
+msgstr "ブラウザで開く"
+
+msgid "Open in browser after creating"
+msgstr "作成後にブラウザで開く"
+
+msgid "Organization scope"
+msgstr "組織スコープ"
+
+msgid "Output directory"
+msgstr "出力ディレクトリ"
+
+msgid "Pinned issue '{number}'."
+msgstr "Issue '{number}' をピン留めしました。"
+
+msgid "Pipeline run ID"
+msgstr "パイプライン実行 ID"
+
+msgid "Please try again later."
+msgstr "しばらくしてから再試行してください。"
+
+msgid "Poll interval in seconds"
+msgstr "ポーリング間隔（秒）"
+
+msgid "Preview without creating"
+msgstr "作成せずにプレビューする"
+
+msgid "Print authentication token"
+msgstr "認証トークンを表示する"
+
+msgid "Read body from file"
+msgstr "ファイルから本文を読み込む"
+
+msgid "Read release notes from file"
+msgstr "ファイルからリリースノートを読み込む"
+
+msgid "Rebase and merge"
+msgstr "リベースしてマージする"
+
+msgid "Remove a config value"
+msgstr "設定値を削除する"
+
+msgid "Remove assignee"
+msgstr "担当者を解除"
+
+msgid "Remove label"
+msgstr "ラベルを解除"
+
+msgid "Remove saved token"
+msgstr "保存されたトークンを削除する"
+
+msgid "Removed collaborator '{username}'."
+msgstr "コラボレーター '{username}' を削除しました。"
+
+msgid "Removed dependency #{depends_on} from issue #{number}."
+msgstr "Issue #{number} から依存関係 #{depends_on} を削除しました。"
+
+msgid "Removed reaction '{reaction}' from issue #{number}."
+msgstr "Issue #{number} からリアクション '{reaction}' を削除しました。"
+
+msgid "Removed reviewers from PR #{number}."
+msgstr "PR #{number} からレビュアーを削除しました。"
+
+msgid "Rename repository"
+msgstr "リポジトリ名を変更する"
+
+msgid "Reopened PR #{number}."
+msgstr "PR #{number} をリオープンしました。"
+
+msgid "Reopened issue #{number}."
+msgstr "Issue #{number} をリオープンしました。"
+
+msgid "Reopened milestone '{number}'."
+msgstr "マイルストーン '{number}' をリオープンしました。"
+
+msgid "Reviewer username (repeatable)"
+msgstr "レビュアーのユーザー名（複数指定可）"
+
+msgid "Run 'gfo auth login --host {host}'"
+msgstr "'gfo auth login --host {host}' を実行してください"
+
+msgid "Search code"
+msgstr "コードを検索する"
+
+msgid "Set a config value"
+msgstr "設定値を変更する"
+
+msgid "Show config file path"
+msgstr "設定ファイルのパスを表示する"
+
+msgid "Show issues related to you"
+msgstr "自分に関連する Issue を表示する"
+
+msgid "Show only archived repositories"
+msgstr "アーカイブ済みリポジトリのみ表示"
+
+msgid "Show status of pull requests related to you"
+msgstr "自分に関連するプルリクエストのステータスを表示する"
+
+msgid "Specify --asset-id or --pattern."
+msgstr "--asset-id または --pattern を指定してください。"
+
+msgid "Specify --number, --numbers, or --all."
+msgstr "--number、--numbers、または --all を指定してください。"
+
+msgid "Specify a subcommand: create"
+msgstr "サブコマンドを指定してください: create"
+
+msgid "Specify a subcommand: list, add, delete"
+msgstr "サブコマンドを指定してください: list, add, delete"
+
+msgid "Specify a subcommand: list, add, remove"
+msgstr "サブコマンドを指定してください: list, add, remove"
+
+msgid "Specify a subcommand: list, add, remove, set"
+msgstr "サブコマンドを指定してください: list, add, remove, set"
+
+msgid "Specify a subcommand: list, add, remove, sync"
+msgstr "サブコマンドを指定してください: list, add, remove, sync"
+
+msgid "Specify a subcommand: list, download"
+msgstr "サブコマンドを指定してください: list, download"
+
+msgid "Specify a subcommand: list, enable, disable"
+msgstr "サブコマンドを指定してください: list, enable, disable"
+
+msgid "Specify a subcommand: list, upload, download, edit, delete"
+msgstr "サブコマンドを指定してください: list, upload, download, edit, delete"
+
+msgid "Specify target repository (URL or HOST/OWNER/REPO)"
+msgstr "対象リポジトリを指定する（URL または HOST/OWNER/REPO）"
+
+msgid "Squash and merge"
+msgstr "スカッシュしてマージする"
+
+msgid "Starred repository '{owner}/{repo}'."
+msgstr "リポジトリ '{owner}/{repo}' にスターを付けました。"
+
+msgid "Subscribe to issue notifications"
+msgstr "Issue の通知を購読する"
+
+msgid "Subscribe to pull request notifications"
+msgstr "プルリクエストの通知を購読する"
+
+msgid "Subscribed to PR #{number}."
+msgstr "PR #{number} の通知を購読しました。"
+
+msgid "Subscribed to issue #{number}."
+msgstr "Issue #{number} の通知を購読しました。"
+
+msgid "Switch active account"
+msgstr "アクティブなアカウントを切り替える"
+
+msgid "Switched to account '{account}' for {host}"
+msgstr "{host} のアカウントを '{account}' に切り替えました"
+
+msgid "Sync fork with upstream"
+msgstr "フォークをアップストリームと同期する"
+
+msgid "Target branch or commit SHA"
+msgstr "対象ブランチまたはコミット SHA"
+
+msgid "Target shell"
+msgstr "対象シェル"
+
+msgid "Template '{name}' not found. Available: {available}"
+msgstr "テンプレート '{name}' が見つかりません。利用可能: {available}"
+
+msgid "Tested webhook '{id}'."
+msgstr "Webhook '{id}' をテストしました。"
+
+msgid "Timed out after {timeout} seconds."
+msgstr "{timeout} 秒後にタイムアウトしました。"
+
+msgid "Timeout in seconds (0 for unlimited)"
+msgstr "タイムアウト秒数（0 で無制限）"
+
+msgid "Title: {title}"
+msgstr "タイトル: {title}"
+
+msgid "Token saved for {host} (account: {account})"
+msgstr "{host} のトークンを保存しました（アカウント: {account}）"
+
+msgid "Transferred repository '{repo_name}' to '{new_owner}'."
+msgstr "リポジトリ '{repo_name}' を '{new_owner}' に移転しました。"
+
+msgid "Unarchive repository"
+msgstr "リポジトリのアーカイブを解除する"
+
+msgid "Unarchived repository '{repo_name}'."
+msgstr "リポジトリ '{repo_name}' のアーカイブを解除しました。"
+
+msgid "Unknown SaaS service type '{service_type}' with no default host."
+msgstr "不明な SaaS サービス種別 '{service_type}'（デフォルトホストなし）。"
+
+msgid "Unknown topics action: {action}"
+msgstr "不明なトピック操作: {action}"
+
+msgid "Unlock issue conversation"
+msgstr "Issue の会話のロックを解除する"
+
+msgid "Unlock pull request conversation"
+msgstr "プルリクエストの会話のロックを解除する"
+
+msgid "Unlocked PR #{number}."
+msgstr "PR #{number} のロックを解除しました。"
+
+msgid "Unlocked issue #{number}."
+msgstr "Issue #{number} のロックを解除しました。"
+
+msgid "Unpinned issue '{number}'."
+msgstr "Issue '{number}' のピン留めを解除しました。"
+
+msgid "Unstarred repository '{owner}/{repo}'."
+msgstr "リポジトリ '{owner}/{repo}' のスターを外しました。"
+
+msgid "Unsubscribe from issue notifications"
+msgstr "Issue の通知購読を解除する"
+
+msgid "Unsubscribe from pull request notifications"
+msgstr "プルリクエストの通知購読を解除する"
+
+msgid "Unsubscribed from PR #{number}."
+msgstr "PR #{number} の通知購読を解除しました。"
+
+msgid "Unsubscribed from issue #{number}."
+msgstr "Issue #{number} の通知購読を解除しました。"
+
+msgid "Unsupported shell: {shell}. Use bash, zsh, or fish."
+msgstr "未対応のシェル: {shell}。bash、zsh、fish を使用してください。"
+
+msgid "Updated branch for PR #{number}."
+msgstr "PR #{number} のブランチを更新しました。"
+
+msgid "Updated file '{path}' (commit: {sha})."
+msgstr "ファイル '{path}' を更新しました（コミット: {sha}）。"
+
+msgid "Updated file '{path}'."
+msgstr "ファイル '{path}' を更新しました。"
+
+msgid "Use commit info for title and body"
+msgstr "コミット情報をタイトルと本文に使用する"
+
+msgid "Use specified account name for token resolution"
+msgstr "トークン解決に使用するアカウント名を指定する"
+
+msgid "Value to set"
+msgstr "設定する値"
+
+msgid "View GPG key details"
+msgstr "GPG 鍵の詳細"
+
+msgid "View SSH key details"
+msgstr "SSH 鍵の詳細"
+
+msgid "View branch details"
+msgstr "ブランチの詳細"
+
+msgid "View deploy key details"
+msgstr "デプロイキーの詳細"
+
+msgid "View tag details"
+msgstr "タグの詳細"
+
+msgid "Warning: could not create label '{name}' on target."
+msgstr "警告: 移行先にラベル '{name}' を作成できませんでした。"
+
+msgid "Warning: repository renamed. The git remote URL may have changed."
+msgstr "警告: リポジトリ名が変更されました。git リモート URL が変わっている可能性があります。"
+
+msgid "Warning: target service does not support labels."
+msgstr "警告: 移行先のサービスはラベルをサポートしていません。"
+
+msgid "Watch pipeline status"
+msgstr "パイプラインのステータスを監視する"
+
+msgid "Workflow ID"
+msgstr "ワークフロー ID"
+
+msgid "comment action required: list, create, edit, delete"
+msgstr "コメントのアクションを指定してください: list, create, edit, delete"
+
+msgid "review action required: list, create, dismiss"
+msgstr "レビューのアクションを指定してください: list, create, dismiss"
+
+msgid "tag must not be empty."
+msgstr "タグは空にできません。"
+
+msgid "tag must not be empty. Specify a tag or use --latest."
+msgstr "タグは空にできません。タグを指定するか --latest を使用してください。"
