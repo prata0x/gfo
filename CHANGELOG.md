@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.0] - 2026-03-25
+
+### Added
+- CLI short options: added 75 shorthand flags across all subcommands
+- `read_file_arg` helper: unified file reading for `--body-file` / `--notes-file` options with consistent error handling
+- mypy strict mode: enabled `disallow_untyped_defs = true` for full type safety
+- Success messages for write/delete handlers (`file put`, `file delete`, `branch delete`, `tag delete`, `webhook delete`, etc.)
+
+### Fixed
+- `GiteaAdapter.create_issue`: label names are now resolved to IDs via `_resolve_label_ids()` (Gitea API requires integer IDs)
+- `--jq` filter: fixed empty string check from `if jq:` to `if jq is not None:` to allow valid jq expressions
+- `argparse.FileType` replaced with file path strings to avoid premature file handle issues
+- `add_time_entry` duration type unified to `int | float` across all adapters
+- Integration tests: fixed `test_02c_repo_contributors` for Gitea/Forgejo (API not implemented), fixed `test_40_file_crud` idempotency for GitBucket
+
 ## [0.6.0] - 2026-03-22
 
 ### Added

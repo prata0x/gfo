@@ -1,5 +1,20 @@
 # 変更履歴
 
+## [0.7.0] - 2026-03-25
+
+### 追加
+- CLI 短縮オプション: 全サブコマンドに 75 個のショートフラグを追加
+- `read_file_arg` ヘルパー: `--body-file` / `--notes-file` のファイル読み込みを統一し、エラーハンドリングを共通化
+- mypy strict モード: `disallow_untyped_defs = true` を有効化し型安全性を強化
+- 書き込み/削除ハンドラに成功メッセージを追加（`file put`, `file delete`, `branch delete`, `tag delete`, `webhook delete` 等）
+
+### 修正
+- `GiteaAdapter.create_issue`: ラベル名を `_resolve_label_ids()` で ID に変換するよう修正（Gitea API は整数 ID を要求）
+- `--jq` フィルタ: 空文字列チェックを `if jq:` から `if jq is not None:` に修正
+- `argparse.FileType` を廃止しファイルパス文字列で受け取るよう変更
+- `add_time_entry` の `duration` 型を全アダプターで `int | float` に統一
+- 統合テスト: Gitea/Forgejo の `test_02c_repo_contributors`（API 未実装）、GitBucket の `test_40_file_crud`（冪等性）を修正
+
 ## [0.6.0] - 2026-03-22
 
 ### 追加
