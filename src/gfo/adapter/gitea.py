@@ -239,7 +239,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         if assignee is not None:
             payload["assignees"] = [assignee]
         if label is not None:
-            payload["labels"] = [label]
+            payload["labels"] = self._resolve_label_ids([label])
         if milestone is not None:
             payload["milestone"] = self._resolve_milestone_id_by_title(milestone)
         if due_date is not None:

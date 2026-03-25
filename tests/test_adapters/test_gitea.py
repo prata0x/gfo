@@ -848,6 +848,11 @@ class TestCreateIssue:
 
     def test_create_with_assignee_and_label(self, mock_responses, gitea_adapter):
         mock_responses.add(
+            responses.GET,
+            f"{REPOS}/labels",
+            json=[{"id": 7, "name": "bug", "color": "#d73a4a"}],
+        )
+        mock_responses.add(
             responses.POST,
             f"{REPOS}/issues",
             json=_issue_data(),
@@ -858,9 +863,9 @@ class TestCreateIssue:
             assignee="dev1",
             label="bug",
         )
-        req_body = json.loads(mock_responses.calls[0].request.body)
+        req_body = json.loads(mock_responses.calls[1].request.body)
         assert req_body["assignees"] == ["dev1"]
-        assert req_body["labels"] == ["bug"]
+        assert req_body["labels"] == [7]
 
     def test_create_with_due_date(self, mock_responses, gitea_adapter):
         mock_responses.add(
