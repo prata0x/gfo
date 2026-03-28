@@ -10,7 +10,7 @@ from gfo.config import (
     get_host_config,
     save_project_config,
 )
-from gfo.detect import DetectResult, detect_from_url, detect_service
+from gfo.detect import DetectResult, detect_from_url, detect_service, normalize_host
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 from gfo.git_util import get_remote_url, git_config_set
 from gfo.i18n import _
@@ -42,6 +42,8 @@ def _handle_non_interactive(args: argparse.Namespace) -> None:
     """--non-interactive モードの処理。"""
     service_type = getattr(args, "type", None)
     host = getattr(args, "host", None)
+    if host:
+        host = normalize_host(host)
 
     if not service_type:
         raise ConfigError(_("--type is required in non-interactive mode."))
@@ -157,7 +159,7 @@ def _handle_interactive(args: argparse.Namespace) -> None:
                     service_type=repr(service_type), valid=valid
                 )
             )
-        host = input(_("Host: ")).strip()
+        host = normalize_host(input(_("Host: ")).strip())
         if not host:
             raise ConfigError(_("host cannot be empty."))
         api_url_input = input(_("API URL (leave blank for default): ")).strip()

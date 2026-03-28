@@ -10,6 +10,7 @@ from gfo.detect import (
     detect_from_url,
     detect_service,
     get_known_service_type,
+    normalize_host,
     probe_unknown_host,
 )
 from gfo.exceptions import ConfigError, DetectionError
@@ -773,3 +774,26 @@ class TestDetectServiceRepoOverride:
             assert r.service_type == "forgejo"
         finally:
             cli_repo.reset(token)
+
+
+# ── normalize_host テスト ──
+
+
+class TestNormalizeHost:
+    def test_plain_hostname(self):
+        assert normalize_host("github.com") == "github.com"
+
+    def test_https_url(self):
+        assert normalize_host("https://forgejo.example.com") == "forgejo.example.com"
+
+    def test_https_url_with_trailing_slash(self):
+        assert normalize_host("https://forgejo.example.com/") == "forgejo.example.com"
+
+    def test_http_url(self):
+        assert normalize_host("http://gitea.local:3000") == "gitea.local"
+
+    def test_uppercase_normalized(self):
+        assert normalize_host("GitHub.COM") == "github.com"
+
+    def test_trailing_slash_stripped(self):
+        assert normalize_host("forgejo.example.com/") == "forgejo.example.com"

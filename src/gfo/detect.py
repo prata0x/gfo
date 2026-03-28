@@ -7,11 +7,21 @@ import os
 import re
 import warnings
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
 import requests
 
 from gfo.exceptions import DetectionError
 from gfo.git_util import _mask_credentials, get_remote_url, git_config_get
+
+
+def normalize_host(value: str) -> str:
+    """ホスト文字列を正規化する。URL が渡された場合はホスト名部分を抽出する。"""
+    if "://" in value:
+        parsed = urlparse(value)
+        return (parsed.hostname or value).lower()
+    return value.strip().rstrip("/").lower()
+
 
 _VERIFY_SSL = os.environ.get("GFO_INSECURE", "").lower() not in ("1", "true", "yes")
 

@@ -8,6 +8,7 @@ import sys
 
 import gfo.auth
 import gfo.detect
+from gfo.detect import normalize_host
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 from gfo.i18n import _
 
@@ -15,7 +16,7 @@ from gfo.i18n import _
 def handle_login(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo auth login のハンドラ。"""
     if args.host:
-        host = args.host
+        host = normalize_host(args.host)
     else:
         try:
             result = gfo.detect.detect_service()
@@ -87,7 +88,7 @@ def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 def handle_switch(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo auth switch のハンドラ。"""
     if args.host:
-        host = args.host
+        host = normalize_host(args.host)
     else:
         try:
             result = gfo.detect.detect_service()
@@ -104,7 +105,7 @@ def handle_switch(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 def handle_token(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo auth token のハンドラ。"""
     if args.host:
-        host = args.host
+        host = normalize_host(args.host)
         # service_type を解決: ユーザー設定 > 既知ホスト > プローブ > 空文字フォールバック
         from gfo.config import get_host_config
         from gfo.detect import get_known_service_type, probe_unknown_host
@@ -136,7 +137,7 @@ def handle_token(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
 def handle_logout(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo auth logout のハンドラ。"""
     if args.host:
-        host = args.host
+        host = normalize_host(args.host)
     else:
         try:
             result = gfo.detect.detect_service()

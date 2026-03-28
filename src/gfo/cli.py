@@ -125,7 +125,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "--non-interactive", action="store_true", help=_("Run in non-interactive mode")
     )
     init_parser.add_argument("--type", help=_("Service type"))
-    init_parser.add_argument("--host", help=_("Host URL"))
+    init_parser.add_argument("--host", help=_("Hostname (e.g. github.com)"))
     init_parser.add_argument("--api-url", help=_("API base URL"))
     init_parser.add_argument("--project-key", help=_("Project key"))
     init_parser.add_argument("--account", help=_("Account name to associate"))
@@ -136,7 +136,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     )
     auth_sub = auth_parser.add_subparsers(dest="subcommand")
     login_parser = auth_sub.add_parser("login", help=_("Login to service"))
-    login_parser.add_argument("--host", help=_("Host URL"))
+    login_parser.add_argument("--host", help=_("Hostname (e.g. github.com)"))
     login_parser.add_argument("--token", help=_("Authentication token"))
     login_parser.add_argument("--account", default="default", help=_("Account name"))
     auth_sub.add_parser("status", help=_("Show authentication status"))
@@ -445,12 +445,12 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_create.add_argument(
         "--readme", action="store_true", default=False, help=_("Initialize with README")
     )
-    repo_create.add_argument("--host", help=_("Host URL"))
+    repo_create.add_argument("--host", help=_("Hostname (e.g. github.com)"))
     repo_clone = repo_sub.add_parser("clone", help=_("Clone repository"))
     repo_clone.add_argument(
         "repo", help=_("Repository (owner/name)")
     )  # ハンドラは args.repo を参照
-    repo_clone.add_argument("--host", help=_("Host URL"))
+    repo_clone.add_argument("--host", help=_("Hostname (e.g. github.com)"))
     repo_clone.add_argument(
         "--project", help=_("Project name (Azure DevOps)")
     )  # Azure DevOps 用プロジェクト名

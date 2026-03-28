@@ -1066,8 +1066,8 @@ msgstr "HTTP メソッド"
 msgid "Head branch"
 msgstr "ヘッドブランチ"
 
-msgid "Host URL"
-msgstr "ホスト URL"
+msgid "Hostname (e.g. github.com)"
+msgstr "ホスト名（例: github.com）"
 
 msgid "Input parameter (key=value)"
 msgstr "入力パラメータ (key=value)"
@@ -1452,8 +1452,6 @@ msgstr "パイプライン実行 '{id}' をキャンセルしました。"
 msgid "Cannot parse --repo value: {value}. Use URL or HOST/OWNER/REPO format."
 msgstr "--repo の値を解析できません: {value}。URL または HOST/OWNER/REPO 形式で指定してください。"
 
-msgid "Check that git is installed and the repository exists."
-msgstr "git がインストールされていること、リポジトリが存在することを確認してください。"
 
 msgid "Check your network connection and try again."
 msgstr "ネットワーク接続を確認して再試行してください。"
@@ -1937,9 +1935,6 @@ msgstr "サブコマンドを指定してください: list, enable, disable"
 
 msgid "Specify a subcommand: list, upload, download, edit, delete"
 msgstr "サブコマンドを指定してください: list, upload, download, edit, delete"
-
-msgid "Specify target repository (URL or HOST/OWNER/REPO)"
-msgstr "対象リポジトリを指定する（URL または HOST/OWNER/REPO）"
 
 msgid "Squash and merge"
 msgstr "スカッシュしてマージする"
