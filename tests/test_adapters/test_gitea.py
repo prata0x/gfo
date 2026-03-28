@@ -1994,7 +1994,47 @@ class TestCreateReview:
         review = gitea_adapter.create_review(1, state="approve")
         assert isinstance(review, Review)
         req_body = json.loads(mock_responses.calls[0].request.body)
-        assert req_body["event"] == "APPROVE"
+        assert req_body["event"] == "APPROVED"
+
+    def test_request_changes(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pulls/1/reviews",
+            json={
+                "id": 21,
+                "state": "CHANGES_REQUESTED",
+                "body": "要修正",
+                "user": {"login": "reviewer"},
+                "html_url": "",
+                "submitted_at": "2025-01-01T00:00:00Z",
+            },
+            status=200,
+        )
+        review = gitea_adapter.create_review(1, state="REQUEST_CHANGES", body="要修正")
+        assert review.state == "changes_requested"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["event"] == "REQUEST_CHANGES"
+        assert req_body["body"] == "要修正"
+
+    def test_comment(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/pulls/1/reviews",
+            json={
+                "id": 22,
+                "state": "COMMENTED",
+                "body": "LGTM",
+                "user": {"login": "reviewer"},
+                "html_url": "",
+                "submitted_at": "2025-01-01T00:00:00Z",
+            },
+            status=200,
+        )
+        review = gitea_adapter.create_review(1, state="COMMENT", body="LGTM")
+        assert review.state == "commented"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["event"] == "COMMENT"
+        assert req_body["body"] == "LGTM"
 
 
 # --- Branch 系 ---

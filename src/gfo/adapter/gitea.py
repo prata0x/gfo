@@ -933,8 +933,12 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         )
         return [self._to_review(r) for r in results]
 
+    # Gitea/Forgejo API は "APPROVED" を要求（GitHub は "APPROVE"）
+    _REVIEW_EVENT_MAP: dict[str, str] = {"APPROVE": "APPROVED"}
+
     def create_review(self, number: int, *, state: str, body: str = "") -> Review:
-        payload: dict = {"event": state.upper()}
+        event = self._REVIEW_EVENT_MAP.get(state.upper(), state.upper())
+        payload: dict = {"event": event}
         if body:
             payload["body"] = body
         resp = self._client.post(
