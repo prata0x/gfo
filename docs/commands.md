@@ -10,6 +10,7 @@ Available for all commands.
 | `--jq EXPRESSION` | Apply jq filter to JSON output (implicitly enables `--format json`) | — |
 | `--remote REMOTE` | Use specified git remote instead of origin (defaults to `origin`, falls back to first available remote) | — |
 | `--repo REPO` | Specify target repository directly (URL or `HOST/OWNER/REPO`). Mutually exclusive with `--remote` | — |
+| `--account ACCOUNT` | Account name for multi-account token resolution (see `gfo auth login --account`) | — |
 | `--version` | Show version and exit | — |
 
 ---
