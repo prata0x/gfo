@@ -80,6 +80,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
 
     parser = _GfoArgumentParser(
         prog="gfo",
+        usage="gfo [options] <command> [args]",
         add_help=False,
         description=_(
             "Git Forge Operator v{version} — manage GitHub, GitLab, Bitbucket, "
@@ -126,8 +127,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
             "  org              Organizations (list, create, members)\n"
             "  package          Packages (list, view, delete)\n"
             "  browse           Open repository in browser\n"
-            "  api              Send raw API requests\n"
-            "  batch            Batch operations\n"
+            "  api              Send raw API requests (e.g. gfo api GET /repos/o/r)\n"
+            "  batch            Batch PR operations (create multiple PRs)\n"
             "  schema           Show JSON Schema for commands\n"
             "\n"
             "Getting started:\n"
@@ -140,9 +141,15 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
             "  gfo pr list -R github.com/o/r   List PRs of another repo (no init required)\n"
             "  gfo pr list --format json       Output as JSON\n"
             "\n"
+            "Supported forges:\n"
+            "  GitHub, GitLab, Gitea, Forgejo, Bitbucket,\n"
+            "  Azure DevOps, Gogs, GitBucket, Backlog\n"
+            "\n"
             "Environment variables (checked after 'gfo auth login' tokens):\n"
-            "  GITHUB_TOKEN, GITLAB_TOKEN, GITEA_TOKEN, etc.  Service-specific tokens\n"
-            "  GFO_TOKEN                                      Fallback for any service\n"
+            "  GITHUB_TOKEN      GitHub          GITEA_TOKEN       Gitea/Forgejo/Gogs\n"
+            "  GITLAB_TOKEN      GitLab          GITBUCKET_TOKEN   GitBucket\n"
+            "  BITBUCKET_TOKEN   Bitbucket       BACKLOG_API_KEY   Backlog\n"
+            "  AZURE_DEVOPS_PAT  Azure DevOps    GFO_TOKEN         Fallback (any service)\n"
             "\n"
             "Run 'gfo <command> -h' for details on each command."
         ),
@@ -153,7 +160,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "--format",
         choices=["table", "json", "plain"],
         default=None,
-        help=_("Output format (default: table)"),
+        help=_("Output format: table (default), json, plain (values only, one per line)"),
     )
     parser.add_argument(
         "--jq",
@@ -192,7 +199,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         dest="global_account",
         default=None,
         metavar="ACCOUNT",
-        help=_("Use specified account name for token resolution (see 'gfo auth login --account')"),
+        help=_("Account name for multi-account token resolution (see 'gfo auth login --account')"),
     )
 
     subparsers = parser.add_subparsers(dest="command", help=argparse.SUPPRESS)
