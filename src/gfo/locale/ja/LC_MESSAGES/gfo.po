@@ -20,8 +20,14 @@ msgstr ""
 msgid "Git Forge Operator — manage GitHub, GitLab, Gitea, Forgejo, Bitbucket, Azure DevOps, Gogs, GitBucket, and Backlog from a unified CLI"
 msgstr "Git Forge Operator — GitHub, GitLab, Gitea, Forgejo, Bitbucket, Azure DevOps, Gogs, GitBucket, Backlog を統一 CLI で操作"
 
-msgid "Getting started:\n  gfo init                        Initialize config (auto-detects from remote URL)\n  gfo auth login                  Register authentication token\n\nExamples:\n  gfo pr list                     List pull requests\n  gfo issue create -t 'Bug'       Create an issue\n  gfo pr list -R github.com/o/r   List PRs of another repo (no init required)\n  gfo pr list --format json       Output as JSON"
-msgstr "はじめに:\n  gfo init                        設定を初期化（remote URL から自動検出）\n  gfo auth login                  認証トークンを登録\n\n使用例:\n  gfo pr list                     PR の一覧\n  gfo issue create -t 'Bug'       Issue を作成\n  gfo pr list -R github.com/o/r   別リポジトリの PR を表示（init 不要）\n  gfo pr list --format json       JSON で出力"
+msgid "Commands:\n  Setup:       init, auth, completion, config\n  Workflow:    pr, issue, issue-template, ci, status, notification\n  Repository:  repo, branch, tag, file, release, label, milestone, wiki\n  Security:    collaborator, deploy-key, ssh-key, gpg-key, secret, variable,\n               branch-protect, tag-protect\n  Other:       user, search, org, package, browse, api, batch, schema\n\nGetting started:\n  gfo init                        Initialize config (auto-detects from remote URL)\n  gfo auth login                  Register authentication token\n\nExamples:\n  gfo pr list                     List pull requests\n  gfo issue create -t 'Bug'       Create an issue\n  gfo pr list -R github.com/o/r   List PRs of another repo (no init required)\n  gfo pr list --format json       Output as JSON\n\nEnvironment variables:\n  GITHUB_TOKEN, GITLAB_TOKEN, GITEA_TOKEN, etc.  Service-specific auth tokens\n  GFO_TOKEN                       Fallback token for any service"
+msgstr "コマンド:\n  セットアップ:  init, auth, completion, config\n  ワークフロー:  pr, issue, issue-template, ci, status, notification\n  リポジトリ:    repo, branch, tag, file, release, label, milestone, wiki\n  セキュリティ:  collaborator, deploy-key, ssh-key, gpg-key, secret, variable,\n                 branch-protect, tag-protect\n  その他:        user, search, org, package, browse, api, batch, schema\n\nはじめに:\n  gfo init                        設定を初期化（remote URL から自動検出）\n  gfo auth login                  認証トークンを登録\n\n使用例:\n  gfo pr list                     PR の一覧\n  gfo issue create -t 'Bug'       Issue を作成\n  gfo pr list -R github.com/o/r   別リポジトリの PR を表示（init 不要）\n  gfo pr list --format json       JSON で出力\n\n環境変数:\n  GITHUB_TOKEN, GITLAB_TOKEN, GITEA_TOKEN 等    サービス別の認証トークン\n  GFO_TOKEN                       全サービス共通のフォールバックトークン"
+
+msgid "Show help and exit"
+msgstr "ヘルプを表示して終了"
+
+msgid "Show version and exit"
+msgstr "バージョンを表示して終了"
 
 msgid "Output format (default: table)"
 msgstr "出力形式（デフォルト: table）"

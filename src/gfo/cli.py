@@ -80,11 +80,20 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
 
     parser = _GfoArgumentParser(
         prog="gfo",
+        add_help=False,
         description=_(
             "Git Forge Operator — manage GitHub, GitLab, Gitea, Forgejo, "
             "Bitbucket, Azure DevOps, Gogs, GitBucket, and Backlog from a unified CLI"
         ),
         epilog=_(
+            "Commands:\n"
+            "  Setup:       init, auth, completion, config\n"
+            "  Workflow:    pr, issue, issue-template, ci, status, notification\n"
+            "  Repository:  repo, branch, tag, file, release, label, milestone, wiki\n"
+            "  Security:    collaborator, deploy-key, ssh-key, gpg-key, secret, variable,\n"
+            "               branch-protect, tag-protect\n"
+            "  Other:       user, search, org, package, browse, api, batch, schema\n"
+            "\n"
             "Getting started:\n"
             "  gfo init                        Initialize config (auto-detects from remote URL)\n"
             "  gfo auth login                  Register authentication token\n"
@@ -93,10 +102,15 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
             "  gfo pr list                     List pull requests\n"
             "  gfo issue create -t 'Bug'       Create an issue\n"
             "  gfo pr list -R github.com/o/r   List PRs of another repo (no init required)\n"
-            "  gfo pr list --format json       Output as JSON"
+            "  gfo pr list --format json       Output as JSON\n"
+            "\n"
+            "Environment variables:\n"
+            "  GITHUB_TOKEN, GITLAB_TOKEN, GITEA_TOKEN, etc.  Service-specific auth tokens\n"
+            "  GFO_TOKEN                       Fallback token for any service"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    parser.add_argument("-h", "--help", action="help", help=_("Show help and exit"))
     parser.add_argument(
         "--format",
         choices=["table", "json", "plain"],
@@ -109,7 +123,12 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         default=None,
         help=_("Apply jq expression to JSON output (implicitly enables --format json)"),
     )
-    parser.add_argument("--version", action="version", version=f"gfo {__version__}")
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"gfo {__version__}",
+        help=_("Show version and exit"),
+    )
 
     parser.add_argument(
         "--remote",
@@ -137,7 +156,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         help=_("Use specified account name for token resolution"),
     )
 
-    subparsers = parser.add_subparsers(dest="command")
+    subparsers = parser.add_subparsers(dest="command", help=argparse.SUPPRESS)
     subparser_map: dict[str, argparse.ArgumentParser] = {}
 
     # gfo init
