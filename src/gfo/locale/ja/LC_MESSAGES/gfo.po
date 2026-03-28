@@ -1339,6 +1339,15 @@ msgstr "ワークフロー名またはファイル"
 msgid "Config key (e.g. defaults.output, hosts.\"gitlab.example.com\".type). Keys containing dots must be quoted."
 msgstr "設定キー（例: defaults.output, hosts.\"gitlab.example.com\".type）。ドットを含むキーは引用符で囲んでください。"
 
+msgid "Run this command inside a git repository, or use '--repo HOST/OWNER/REPO' to specify the target directly."
+msgstr "git リポジトリ内でコマンドを実行するか、'--repo HOST/OWNER/REPO' で対象を直接指定してください。"
+
+msgid "Run 'gfo init --non-interactive --type <type> --host <host>' or use '--repo HOST/OWNER/REPO' to specify directly."
+msgstr "'gfo init --non-interactive --type <type> --host <host>' を実行するか、'--repo HOST/OWNER/REPO' で直接指定してください。"
+
+msgid "Specify target repository (URL or HOST/OWNER/REPO). Bypasses git remote detection and 'gfo init' requirement"
+msgstr "対象リポジトリを指定する（URL または HOST/OWNER/REPO）。git remote 検出と 'gfo init' を省略できます"
+
 # --- v0.7.0 追加分 ---
 
 msgid "  No issues found."

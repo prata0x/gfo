@@ -101,7 +101,10 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         dest="global_repo",
         default=None,
         metavar="REPO",
-        help=_("Specify target repository (URL or HOST/OWNER/REPO)"),
+        help=_(
+            "Specify target repository (URL or HOST/OWNER/REPO). "
+            "Bypasses git remote detection and 'gfo init' requirement"
+        ),
     )
     parser.add_argument(
         "--account",

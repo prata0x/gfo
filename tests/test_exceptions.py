@@ -241,7 +241,8 @@ class TestHint:
 
     def test_detection_error_hint(self):
         err = DetectionError()
-        assert err.hint == "Run 'gfo init' to configure manually."
+        assert "--non-interactive" in err.hint
+        assert "--repo HOST/OWNER/REPO" in err.hint
 
     def test_authentication_error_hint(self):
         err = AuthenticationError(401)

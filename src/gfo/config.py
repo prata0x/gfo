@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
+from gfo.i18n import _
 
 
 @dataclass(frozen=True)
@@ -342,10 +343,18 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
         organization = detect_result.organization
         project_key = detect_result.project
 
+    _init_hint = _(
+        "Run 'gfo init --non-interactive --type <type> --host <host>' "
+        "or use '--repo HOST/OWNER/REPO' to specify directly."
+    )
     if not saved_type:
-        raise ConfigError("Could not resolve service type.")
+        err = ConfigError("Could not resolve service type.")
+        err.hint = _init_hint
+        raise err
     if not saved_host:
-        raise ConfigError("Could not resolve host.")
+        err = ConfigError("Could not resolve host.")
+        err.hint = _init_hint
+        raise err
 
     # git config から owner / repo を上書き（bare リポジトリや CI 環境向け）
     # ただし --repo / --remote 指定時は上書きしない

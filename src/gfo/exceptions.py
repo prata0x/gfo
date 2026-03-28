@@ -36,7 +36,10 @@ class GitCommandError(GfoError):
 
     def __init__(self, message: str):
         super().__init__(_("Git error: {message}").format(message=message))
-        self.hint = _("Check that git is installed and the repository exists.")
+        self.hint = _(
+            "Run this command inside a git repository, "
+            "or use '--repo HOST/OWNER/REPO' to specify the target directly."
+        )
 
 
 class DetectionError(GfoError):
@@ -51,7 +54,10 @@ class DetectionError(GfoError):
             msg += f" {message}"
         msg += " " + _("Run 'gfo init' to configure manually.")
         super().__init__(msg)
-        self.hint = _("Run 'gfo init' to configure manually.")
+        self.hint = _(
+            "Run 'gfo init --non-interactive --type <type> --host <host>' "
+            "or use '--repo HOST/OWNER/REPO' to specify directly."
+        )
 
 
 class ConfigError(GfoError):
