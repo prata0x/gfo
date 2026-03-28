@@ -348,23 +348,25 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
         raise ConfigError("Could not resolve host.")
 
     # git config から owner / repo を上書き（bare リポジトリや CI 環境向け）
-    owner_override = gfo.git_util.git_config_get("gfo.owner", cwd=cwd)
-    if owner_override:
-        owner = owner_override
-    repo_override = gfo.git_util.git_config_get("gfo.repo", cwd=cwd)
-    if repo_override:
-        repo = repo_override
+    # ただし --repo / --remote 指定時は上書きしない
+    if not override_active:
+        owner_override = gfo.git_util.git_config_get("gfo.owner", cwd=cwd)
+        if owner_override:
+            owner = owner_override
+        repo_override = gfo.git_util.git_config_get("gfo.repo", cwd=cwd)
+        if repo_override:
+            repo = repo_override
 
-    # git config から organization / project_key を上書き
-    org_override = gfo.git_util.git_config_get("gfo.organization", cwd=cwd)
-    if org_override:
-        organization = org_override
-    pk_override = gfo.git_util.git_config_get("gfo.project-key", cwd=cwd)
-    if pk_override:
-        project_key = pk_override
+        # git config から organization / project_key を上書き
+        org_override = gfo.git_util.git_config_get("gfo.organization", cwd=cwd)
+        if org_override:
+            organization = org_override
+        pk_override = gfo.git_util.git_config_get("gfo.project-key", cwd=cwd)
+        if pk_override:
+            project_key = pk_override
 
     # 4. api_url の解決
-    api_url = gfo.git_util.git_config_get("gfo.api-url", cwd=cwd)
+    api_url = gfo.git_util.git_config_get("gfo.api-url", cwd=cwd) if not override_active else None
     if not api_url:
         host_cfg = get_host_config(saved_host)
         if host_cfg and "api_url" in host_cfg:

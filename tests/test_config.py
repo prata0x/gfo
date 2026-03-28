@@ -869,6 +869,36 @@ def test_resolve_repo_override_skips_git_config_shortcut():
         cli_repo.reset(token)
 
 
+def test_resolve_repo_override_not_overridden_by_git_config_owner():
+    """--repo 指定時に git config の gfo.owner/gfo.repo で上書きされない。"""
+    from gfo._context import cli_repo
+    from gfo.detect import DetectResult
+
+    git_cfg = {
+        "gfo.type": "gitea",
+        "gfo.host": "gitea.local",
+        "gfo.api-url": None,
+        "gfo.organization": None,
+        "gfo.project-key": None,
+        "gfo.owner": "config-owner",
+        "gfo.repo": "config-repo",
+    }
+    detect_result = DetectResult(
+        service_type="github", host="github.com", owner="cli-owner", repo="cli-repo"
+    )
+    token = cli_repo.set("github.com/cli-owner/cli-repo")
+    try:
+        with (
+            patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
+            patch("gfo.detect.detect_service", return_value=detect_result),
+        ):
+            cfg = resolve_project_config()
+        assert cfg.owner == "cli-owner"
+        assert cfg.repo == "cli-repo"
+    finally:
+        cli_repo.reset(token)
+
+
 # ── get_config_value ──
 
 
