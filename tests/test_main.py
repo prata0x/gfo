@@ -13,6 +13,7 @@ def test_python_m_gfo_no_args():
         capture_output=True,
         stdin=subprocess.DEVNULL,
         text=True,
+        encoding="utf-8",
     )
     assert result.returncode == 1
     assert "gfo" in result.stdout  # help テキスト
@@ -25,6 +26,7 @@ def test_python_m_gfo_version():
         capture_output=True,
         stdin=subprocess.DEVNULL,
         text=True,
+        encoding="utf-8",
     )
     assert result.returncode == 0
     assert "gfo" in result.stdout

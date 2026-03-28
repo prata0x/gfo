@@ -78,8 +78,31 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         (parser, subparser_map): メインパーサーと {コマンド名: サブパーサー} の辞書。
     """
 
-    parser = _GfoArgumentParser(prog="gfo", description=_("Git Forge Operator"))
-    parser.add_argument("--format", choices=["table", "json", "plain"], default=None)
+    parser = _GfoArgumentParser(
+        prog="gfo",
+        description=_(
+            "Git Forge Operator — manage GitHub, GitLab, Gitea, Forgejo, "
+            "Bitbucket, Azure DevOps, Gogs, GitBucket, and Backlog from a unified CLI"
+        ),
+        epilog=_(
+            "Getting started:\n"
+            "  gfo init                        Initialize config (auto-detects from remote URL)\n"
+            "  gfo auth login                  Register authentication token\n"
+            "\n"
+            "Examples:\n"
+            "  gfo pr list                     List pull requests\n"
+            "  gfo issue create -t 'Bug'       Create an issue\n"
+            "  gfo pr list -R github.com/o/r   List PRs of another repo (no init required)\n"
+            "  gfo pr list --format json       Output as JSON"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--format",
+        choices=["table", "json", "plain"],
+        default=None,
+        help=_("Output format (default: table)"),
+    )
     parser.add_argument(
         "--jq",
         metavar="EXPRESSION",

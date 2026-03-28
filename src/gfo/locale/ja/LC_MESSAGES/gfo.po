@@ -17,8 +17,14 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 # cli.py
-msgid "Git Forge Operator"
-msgstr "Git Forge Operator"
+msgid "Git Forge Operator — manage GitHub, GitLab, Gitea, Forgejo, Bitbucket, Azure DevOps, Gogs, GitBucket, and Backlog from a unified CLI"
+msgstr "Git Forge Operator — GitHub, GitLab, Gitea, Forgejo, Bitbucket, Azure DevOps, Gogs, GitBucket, Backlog を統一 CLI で操作"
+
+msgid "Getting started:\n  gfo init                        Initialize config (auto-detects from remote URL)\n  gfo auth login                  Register authentication token\n\nExamples:\n  gfo pr list                     List pull requests\n  gfo issue create -t 'Bug'       Create an issue\n  gfo pr list -R github.com/o/r   List PRs of another repo (no init required)\n  gfo pr list --format json       Output as JSON"
+msgstr "はじめに:\n  gfo init                        設定を初期化（remote URL から自動検出）\n  gfo auth login                  認証トークンを登録\n\n使用例:\n  gfo pr list                     PR の一覧\n  gfo issue create -t 'Bug'       Issue を作成\n  gfo pr list -R github.com/o/r   別リポジトリの PR を表示（init 不要）\n  gfo pr list --format json       JSON で出力"
+
+msgid "Output format (default: table)"
+msgstr "出力形式（デフォルト: table）"
 
 msgid "Apply jq expression to JSON output (implicitly enables --format json)"
 msgstr "JSON 出力に jq 式でフィルタをかける（--format json を暗黙的に有効化）"
