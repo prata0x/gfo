@@ -1,5 +1,23 @@
 # 変更履歴
 
+## [0.8.0] - 2026-03-29
+
+### 追加
+- i18n: 日本語翻訳 250 エントリを追加し全 `_()` 文字列をカバー
+- `gfo -h` ヘルプ出力を再設計: サブコマンドのグルーピング・説明、はじめにセクション、使用例、対応サービス一覧、環境変数の完全リスト
+- `config get/set/unset` ヘルプ: ドット含みキーの引用符ルールを追記
+- `commands.md` / `commands.ja.md`: 短縮オプション 75 件をドキュメントに追記
+
+### 修正
+- `GiteaAdapter.create_review`: `APPROVE` ではなく `APPROVED` イベント名を送信するよう修正（Gitea/Forgejo API の要件）
+- `-R`/`--repo` 指定時に git config の `gfo.owner`/`gfo.repo` で上書きされる問題を修正
+- Gogs 検出: バージョン `0.x` を Gogs として正しく判別（従来は Gitea と誤検出）
+- `--remote`, `--repo`, `-R` フラグをグローバルフラグとしてホイストし、サブコマンドの後に配置しても動作するよう修正
+- git リポジトリ検出: `"can only be used inside a git repository"` エラーメッセージの認識を追加
+- `normalize_host`: URL 形式でポート付きホストを渡した場合にポート番号を保持するよう修正（例: `http://localhost:3000`）
+- `--host` オプション: `init`, `auth login/switch/token/logout` で URL からホスト名を自動抽出
+- エラーメッセージに `--non-interactive` と `--repo HOST/OWNER/REPO` の使用例を追記
+
 ## [0.7.0] - 2026-03-25
 
 ### 追加

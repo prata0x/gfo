@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.8.0] - 2026-03-29
+
+### Added
+- i18n: added 250 Japanese translation entries covering all `_()` strings
+- `gfo -h` help output redesigned: grouped subcommands with descriptions, getting started section, usage examples, supported forges list, complete environment variable reference
+- `config get/set/unset` help: added quoting rules for dot-containing keys
+- `commands.md` / `commands.ja.md`: added 75 short option flags to documentation
+
+### Fixed
+- `GiteaAdapter.create_review`: send `APPROVED` event name instead of `APPROVE` (Gitea/Forgejo API requirement)
+- `-R`/`--repo` override: git config `gfo.owner`/`gfo.repo` no longer overrides the CLI-specified repository
+- Gogs detection: version `0.x` is now correctly identified as Gogs (previously misdetected as Gitea)
+- `--remote`, `--repo`, `-R` flags: now hoisted as global flags so they work after subcommands
+- Git repository detection: recognize `"can only be used inside a git repository"` error message
+- `normalize_host`: preserve port number when URL format is passed (e.g. `http://localhost:3000`)
+- `--host` option: automatically extract hostname from URLs across `init`, `auth login/switch/token/logout`
+- Error messages: include `--non-interactive` and `--repo HOST/OWNER/REPO` usage hints
+
 ## [0.7.0] - 2026-03-25
 
 ### Added
