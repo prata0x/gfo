@@ -1729,7 +1729,7 @@ def _pre_parse_format(argv: list[str] | None) -> str | None:
     return None
 
 
-_GLOBAL_FLAGS = {"--format", "--jq", "--remote", "--repo", "-R"}
+_GLOBAL_FLAGS = {"--format", "--jq", "--remote", "--repo", "-R", "--account"}
 
 
 def _hoist_global_flags(argv: list[str]) -> list[str]:

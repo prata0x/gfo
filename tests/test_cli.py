@@ -1447,6 +1447,26 @@ def test_hoist_global_flags_multiple_globals():
     assert result == ["--remote", "upstream", "--format", "json", "pr", "list"]
 
 
+def test_hoist_global_flags_account_after_subcommand():
+    result = _hoist_global_flags(["api", "GET", "/repos/o/r", "--account", "claude"])
+    assert result == ["--account", "claude", "api", "GET", "/repos/o/r"]
+
+
+def test_hoist_global_flags_account_and_repo():
+    result = _hoist_global_flags(
+        ["api", "GET", "/repos/o/r", "--account", "claude", "-R", "forgejo.example.com/o/r"]
+    )
+    assert result == [
+        "--account",
+        "claude",
+        "-R",
+        "forgejo.example.com/o/r",
+        "api",
+        "GET",
+        "/repos/o/r",
+    ]
+
+
 def test_hoist_main_format_after_subcommand():
     """main() が --format をサブコマンド後に配置しても正しく解析する。"""
     handler = MagicMock()
