@@ -35,7 +35,11 @@ def run_git(*args: str, cwd: str | None = None) -> str:
         raise GitCommandError(f"git command timed out after {_DEFAULT_TIMEOUT}s") from e
     if result.returncode != 0:
         stderr_text = result.stderr.strip()
-        if "not a git repository" in stderr_text.lower():
+        stderr_lower = stderr_text.lower()
+        if (
+            "not a git repository" in stderr_lower
+            or "can only be used inside a git repository" in stderr_lower
+        ):
             raise GitCommandError(
                 "Not inside a git repository. Run 'git init' or change to a git directory."
             )

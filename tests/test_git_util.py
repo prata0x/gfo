@@ -53,6 +53,16 @@ class TestRunGit:
             git_util.run_git("status")
 
     @patch("gfo.git_util.subprocess.run")
+    def test_local_only_inside_git_repo_friendly_message(self, mock_run):
+        """'can only be used inside a git repository' を含む stderr もユーザーフレンドリーメッセージに変換。"""
+        mock_run.return_value = _mock_result(
+            stderr="fatal: --local can only be used inside a git repository",
+            returncode=128,
+        )
+        with pytest.raises(GitCommandError, match="Not inside a git repository"):
+            git_util.run_git("config", "--local", "gfo.type")
+
+    @patch("gfo.git_util.subprocess.run")
     def test_file_not_found_raises_git_command_error(self, mock_run):
         """git コマンドが存在しない場合 FileNotFoundError → GitCommandError。"""
         mock_run.side_effect = FileNotFoundError("No such file: git")
