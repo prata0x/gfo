@@ -82,9 +82,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         prog="gfo",
         add_help=False,
         description=_(
-            "Git Forge Operator — manage GitHub, GitLab, Gitea, Forgejo, "
-            "Bitbucket, Azure DevOps, Gogs, GitBucket, and Backlog from a unified CLI"
-        ),
+            "Git Forge Operator v{version} — manage GitHub, GitLab, Bitbucket, "
+            "and 6 more forges from a unified CLI"
+        ).format(version=__version__),
         epilog=_(
             "Setup:\n"
             "  init             Initialize config (auto-detects from remote URL)\n"
@@ -93,38 +93,38 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
             "  config           Manage configuration\n"
             "\n"
             "Workflow:\n"
-            "  pr               Manage pull requests\n"
-            "  issue            Manage issues\n"
-            "  issue-template   Manage issue templates\n"
-            "  ci               Manage CI pipelines\n"
-            "  status           Manage commit statuses\n"
-            "  notification     Manage notifications\n"
+            "  pr               Pull requests (list, create, merge, review)\n"
+            "  issue            Issues (list, create, close, comment)\n"
+            "  issue-template   List issue templates\n"
+            "  ci               CI pipelines (list, view, trigger, logs)\n"
+            "  status           Commit statuses (list, create)\n"
+            "  notification     Notifications (list, read)\n"
             "\n"
             "Repository:\n"
-            "  repo             Manage repositories\n"
-            "  branch           Manage branches\n"
-            "  tag              Manage tags\n"
-            "  file             Manage repository files\n"
-            "  release          Manage releases\n"
-            "  label            Manage labels\n"
-            "  milestone        Manage milestones\n"
-            "  wiki             Manage wiki pages\n"
+            "  repo             Repositories (list, create, clone, edit, delete)\n"
+            "  branch           Branches (list, create, delete)\n"
+            "  tag              Tags (list, create, delete)\n"
+            "  file             Repository files (get, put, delete)\n"
+            "  release          Releases (list, create, edit, delete)\n"
+            "  label            Labels (list, create, edit, clone)\n"
+            "  milestone        Milestones (list, create, edit, close)\n"
+            "  wiki             Wiki pages (list, create, edit, delete)\n"
             "\n"
             "Security:\n"
-            "  collaborator     Manage collaborators\n"
-            "  deploy-key       Manage deploy keys\n"
-            "  ssh-key          Manage SSH keys\n"
-            "  gpg-key          Manage GPG keys\n"
-            "  secret           Manage secrets\n"
-            "  variable         Manage variables\n"
-            "  branch-protect   Manage branch protection rules\n"
-            "  tag-protect      Manage tag protection rules\n"
+            "  collaborator     Collaborators (list, add, remove)\n"
+            "  deploy-key       Deploy keys (list, create, delete)\n"
+            "  ssh-key          SSH keys (list, create, delete)\n"
+            "  gpg-key          GPG keys (list, create, delete)\n"
+            "  secret           Secrets (list, set, delete)\n"
+            "  variable         Variables (list, set, get, delete)\n"
+            "  branch-protect   Branch protection rules (list, set, remove)\n"
+            "  tag-protect      Tag protection rules (list, create, delete)\n"
             "\n"
             "Other:\n"
             "  user             User commands (whoami)\n"
-            "  search           Search resources\n"
-            "  org              Manage organizations\n"
-            "  package          Manage packages\n"
+            "  search           Search (repos, issues, prs, commits, code)\n"
+            "  org              Organizations (list, create, members)\n"
+            "  package          Packages (list, view, delete)\n"
             "  browse           Open repository in browser\n"
             "  api              Send raw API requests\n"
             "  batch            Batch operations\n"
@@ -173,7 +173,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         dest="global_remote",
         default=None,
         metavar="REMOTE",
-        help=_("Use specified git remote instead of origin"),
+        help=_("Use specified git remote instead of origin (mutually exclusive with --repo)"),
     )
     parser.add_argument(
         "--repo",
@@ -192,7 +192,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         dest="global_account",
         default=None,
         metavar="ACCOUNT",
-        help=_("Use specified account name for token resolution"),
+        help=_("Use specified account name for token resolution (see 'gfo auth login --account')"),
     )
 
     subparsers = parser.add_subparsers(dest="command", help=argparse.SUPPRESS)
