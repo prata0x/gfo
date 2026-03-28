@@ -789,8 +789,14 @@ class TestNormalizeHost:
     def test_https_url_with_trailing_slash(self):
         assert normalize_host("https://forgejo.example.com/") == "forgejo.example.com"
 
-    def test_http_url(self):
-        assert normalize_host("http://gitea.local:3000") == "gitea.local"
+    def test_http_url_with_port(self):
+        assert normalize_host("http://gitea.local:3000") == "gitea.local:3000"
+
+    def test_https_url_with_port(self):
+        assert normalize_host("https://forgejo.example.com:3001") == "forgejo.example.com:3001"
+
+    def test_https_url_default_port_omitted(self):
+        assert normalize_host("https://forgejo.example.com") == "forgejo.example.com"
 
     def test_uppercase_normalized(self):
         assert normalize_host("GitHub.COM") == "github.com"

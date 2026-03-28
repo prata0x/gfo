@@ -16,10 +16,13 @@ from gfo.git_util import _mask_credentials, get_remote_url, git_config_get
 
 
 def normalize_host(value: str) -> str:
-    """ホスト文字列を正規化する。URL が渡された場合はホスト名部分を抽出する。"""
+    """ホスト文字列を正規化する。URL が渡された場合はホスト名:ポート部分を抽出する。"""
     if "://" in value:
         parsed = urlparse(value)
-        return (parsed.hostname or value).lower()
+        hostname = parsed.hostname or value
+        if parsed.port:
+            return f"{hostname.lower()}:{parsed.port}"
+        return hostname.lower()
     return value.strip().rstrip("/").lower()
 
 
