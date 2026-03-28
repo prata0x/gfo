@@ -157,14 +157,18 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "config", help=_("Manage configuration")
     )
     config_sub = config_parser.add_subparsers(dest="subcommand")
+    _config_key_help = _(
+        'Config key (e.g. defaults.output, hosts."gitlab.example.com".type). '
+        "Keys containing dots must be quoted."
+    )
     config_get = config_sub.add_parser("get", help=_("Get a config value"))
-    config_get.add_argument("key", help=_("Config key (e.g. defaults.output)"))
+    config_get.add_argument("key", help=_config_key_help)
     config_set = config_sub.add_parser("set", help=_("Set a config value"))
-    config_set.add_argument("key", help=_("Config key (e.g. defaults.output)"))
+    config_set.add_argument("key", help=_config_key_help)
     config_set.add_argument("value", help=_("Value to set"))
     config_sub.add_parser("list", help=_("List all config values"))
     config_unset = config_sub.add_parser("unset", help=_("Remove a config value"))
-    config_unset.add_argument("key", help=_("Config key to remove"))
+    config_unset.add_argument("key", help=_config_key_help)
     config_sub.add_parser("path", help=_("Show config file path"))
 
     # gfo pr → サブサブコマンド

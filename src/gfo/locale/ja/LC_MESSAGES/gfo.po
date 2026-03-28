@@ -1336,6 +1336,9 @@ msgstr "Webhook シークレット"
 msgid "Workflow name or file"
 msgstr "ワークフロー名またはファイル"
 
+msgid "Config key (e.g. defaults.output, hosts.\"gitlab.example.com\".type). Keys containing dots must be quoted."
+msgstr "設定キー（例: defaults.output, hosts.\"gitlab.example.com\".type）。ドットを含むキーは引用符で囲んでください。"
+
 # --- v0.7.0 追加分 ---
 
 msgid "  No issues found."
