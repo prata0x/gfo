@@ -1737,12 +1737,20 @@ _ACCOUNT_CONFLICT_COMMANDS = {"auth", "init"}
 
 def _hoist_global_flags(argv: list[str]) -> list[str]:
     """グローバルオプションをサブコマンドの前に移動して argparse が認識できるようにする。"""
-    # サブコマンドを特定（最初の非フラグ引数）
+    # サブコマンドを特定（値付きフラグの値をスキップしつつ最初の非フラグ引数を探す）
     subcommand = None
+    skip_next = False
     for arg in argv:
-        if not arg.startswith("-"):
-            subcommand = arg
-            break
+        if skip_next:
+            skip_next = False
+            continue
+        if arg in _GLOBAL_FLAGS:
+            skip_next = True
+            continue
+        if arg.startswith("-"):
+            continue
+        subcommand = arg
+        break
 
     flags = _GLOBAL_FLAGS
     if subcommand in _ACCOUNT_CONFLICT_COMMANDS:

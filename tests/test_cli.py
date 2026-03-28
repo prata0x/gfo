@@ -1485,6 +1485,19 @@ def test_hoist_global_flags_auth_other_flags_still_hoisted():
     assert result == ["--format", "json", "auth", "status"]
 
 
+def test_hoist_global_flags_skips_flag_value_for_subcommand_detection():
+    """グローバルフラグの値をサブコマンドと誤認しない。"""
+    result = _hoist_global_flags(["--format", "json", "auth", "login", "--account", "work"])
+    # auth が正しくサブコマンドとして検出され、--account はホイストされない
+    assert result == ["--format", "json", "auth", "login", "--account", "work"]
+
+
+def test_hoist_global_flags_skips_eq_flag_value_for_subcommand_detection():
+    """--flag=value 形式でもサブコマンド検出が正しく動作する。"""
+    result = _hoist_global_flags(["--format=json", "auth", "login", "--account", "work"])
+    assert result == ["--format=json", "auth", "login", "--account", "work"]
+
+
 def test_hoist_main_format_after_subcommand():
     """main() が --format をサブコマンド後に配置しても正しく解析する。"""
     handler = MagicMock()
