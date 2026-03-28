@@ -1467,6 +1467,24 @@ def test_hoist_global_flags_account_and_repo():
     ]
 
 
+def test_hoist_global_flags_account_not_hoisted_for_auth():
+    """auth サブコマンドでは --account をホイストしない。"""
+    result = _hoist_global_flags(["auth", "login", "--account", "work"])
+    assert result == ["auth", "login", "--account", "work"]
+
+
+def test_hoist_global_flags_account_not_hoisted_for_init():
+    """init サブコマンドでは --account をホイストしない。"""
+    result = _hoist_global_flags(["init", "--account", "personal"])
+    assert result == ["init", "--account", "personal"]
+
+
+def test_hoist_global_flags_auth_other_flags_still_hoisted():
+    """auth でも --format 等はホイストされる。"""
+    result = _hoist_global_flags(["auth", "status", "--format", "json"])
+    assert result == ["--format", "json", "auth", "status"]
+
+
 def test_hoist_main_format_after_subcommand():
     """main() が --format をサブコマンド後に配置しても正しく解析する。"""
     handler = MagicMock()

@@ -1731,18 +1731,32 @@ def _pre_parse_format(argv: list[str] | None) -> str | None:
 
 _GLOBAL_FLAGS = {"--format", "--jq", "--remote", "--repo", "-R", "--account"}
 
+# auth/init は独自の --account を持つためホイスト対象から除外
+_ACCOUNT_CONFLICT_COMMANDS = {"auth", "init"}
+
 
 def _hoist_global_flags(argv: list[str]) -> list[str]:
     """グローバルオプションをサブコマンドの前に移動して argparse が認識できるようにする。"""
+    # サブコマンドを特定（最初の非フラグ引数）
+    subcommand = None
+    for arg in argv:
+        if not arg.startswith("-"):
+            subcommand = arg
+            break
+
+    flags = _GLOBAL_FLAGS
+    if subcommand in _ACCOUNT_CONFLICT_COMMANDS:
+        flags = flags - {"--account"}
+
     hoisted: list[str] = []
     rest: list[str] = []
     i = 0
     while i < len(argv):
         arg = argv[i]
-        if arg in _GLOBAL_FLAGS and i + 1 < len(argv):
+        if arg in flags and i + 1 < len(argv):
             hoisted.extend([arg, argv[i + 1]])
             i += 2
-        elif any(arg.startswith(f + "=") for f in _GLOBAL_FLAGS):
+        elif any(arg.startswith(f + "=") for f in flags):
             hoisted.append(arg)
             i += 1
         else:
