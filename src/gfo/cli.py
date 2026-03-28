@@ -1634,11 +1634,11 @@ def _pre_parse_format(argv: list[str] | None) -> str | None:
     return None
 
 
-_GLOBAL_FLAGS = {"--format", "--jq"}
+_GLOBAL_FLAGS = {"--format", "--jq", "--remote", "--repo", "-R"}
 
 
 def _hoist_global_flags(argv: list[str]) -> list[str]:
-    """--format/--jq をサブコマンドの前に移動して argparse が認識できるようにする。"""
+    """グローバルオプションをサブコマンドの前に移動して argparse が認識できるようにする。"""
     hoisted: list[str] = []
     rest: list[str] = []
     i = 0

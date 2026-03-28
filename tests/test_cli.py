@@ -1422,6 +1422,31 @@ def test_hoist_global_flags_preserves_other_args():
     assert result == ["--format", "json", "pr", "list", "--state", "open", "--limit", "5"]
 
 
+def test_hoist_global_flags_remote_after_subcommand():
+    result = _hoist_global_flags(["pr", "list", "--remote", "upstream"])
+    assert result == ["--remote", "upstream", "pr", "list"]
+
+
+def test_hoist_global_flags_repo_after_subcommand():
+    result = _hoist_global_flags(["pr", "list", "--repo", "github.com/owner/repo"])
+    assert result == ["--repo", "github.com/owner/repo", "pr", "list"]
+
+
+def test_hoist_global_flags_R_after_subcommand():
+    result = _hoist_global_flags(["pr", "list", "-R", "github.com/owner/repo"])
+    assert result == ["-R", "github.com/owner/repo", "pr", "list"]
+
+
+def test_hoist_global_flags_repo_equals_syntax():
+    result = _hoist_global_flags(["pr", "list", "--repo=github.com/owner/repo"])
+    assert result == ["--repo=github.com/owner/repo", "pr", "list"]
+
+
+def test_hoist_global_flags_multiple_globals():
+    result = _hoist_global_flags(["pr", "list", "--remote", "upstream", "--format", "json"])
+    assert result == ["--remote", "upstream", "--format", "json", "pr", "list"]
+
+
 def test_hoist_main_format_after_subcommand():
     """main() が --format をサブコマンド後に配置しても正しく解析する。"""
     handler = MagicMock()
