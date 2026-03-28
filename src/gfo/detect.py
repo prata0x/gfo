@@ -210,14 +210,18 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
                 # Gitea は go_version / go-version キーを持つ（Gogs は持たない）
                 if "go-version" in data or "go_version" in data:
                     return "gitea"
-                # Gogs は version のみ持ち、go_version/forgejo を持たない
+                # version のみでキー判別できない場合、バージョン番号で区別
+                # Gogs: 0.x.x / Gitea・Forgejo: 1.x.x 以上
                 if (
                     "version" in data
                     and "go-version" not in data
                     and "go_version" not in data
                     and "forgejo" not in data
                 ):
-                    return "gogs"
+                    ver = data.get("version", "")
+                    if isinstance(ver, str) and ver.startswith("0."):
+                        return "gogs"
+                    return "gitea"
     except (requests.RequestException, ValueError):
         # ValueError: resp.json() が非 JSON レスポンスを受け取った場合
         pass

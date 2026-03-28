@@ -339,6 +339,39 @@ class TestProbeUnknownHost:
         assert probe_unknown_host("git.example.com") == "gogs"
 
     @responses.activate
+    def test_gogs_version_0_12(self):
+        """Gogs 0.12.x は gogs として検出される。"""
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v1/version",
+            json={"version": "0.12.3"},
+            status=200,
+        )
+        assert probe_unknown_host("git.example.com") == "gogs"
+
+    @responses.activate
+    def test_minimal_response_version_1_detected_as_gitea(self):
+        """go_version も forgejo キーもない 1.x レスポンスは gitea として検出される。"""
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v1/version",
+            json={"version": "1.19.0"},
+            status=200,
+        )
+        assert probe_unknown_host("git.example.com") == "gitea"
+
+    @responses.activate
+    def test_minimal_response_version_2_detected_as_gitea(self):
+        """バージョン 2.x の最小レスポンスは gitea として検出される。"""
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v1/version",
+            json={"version": "2.0.0"},
+            status=200,
+        )
+        assert probe_unknown_host("git.example.com") == "gitea"
+
+    @responses.activate
     def test_gitlab_detected(self):
         responses.add(
             responses.GET,
