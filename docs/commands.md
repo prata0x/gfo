@@ -193,16 +193,16 @@ gfo pr list [--state {open,closed,merged,all}] [--limit N] [--author USER] [--la
 
 | Option | Default | Description |
 |---|---|---|
-| `--state` | `open` | PR state to display |
-| `--limit` | `30` | Maximum number of results |
-| `--author` | — | Filter by author |
-| `--label`, `-l` | — | Filter by label |
-| `--assignee`, `-a` | — | Filter by assignee |
-| `--search`, `-S` | — | Filter by title/description |
-| `--base`, `-B` | — | Filter by base branch |
-| `--head`, `-H` | — | Filter by head branch |
-| `--draft` / `--no-draft` | — | Filter by draft status |
-| `--milestone` | — | Filter by milestone |
+| `--state` / `-s` | `open` | PR state to display |
+| `--limit` / `-L` | `30` | Maximum number of results |
+| `--author` / `-A` | — | Filter by author |
+| `--label` / `-l` | — | Filter by label |
+| `--assignee` / `-a` | — | Filter by assignee |
+| `--search` / `-S` | — | Filter by title/description |
+| `--base` / `-B` | — | Filter by base branch |
+| `--head` / `-H` | — | Filter by head branch |
+| `--draft` / `-d` / `--no-draft` | — | Filter by draft status |
+| `--milestone` / `-m` | — | Filter by milestone |
 
 ```bash
 gfo pr list
@@ -219,18 +219,18 @@ gfo pr create [--title TITLE] [--body BODY] [--body-file FILE] [--base BRANCH] [
 
 | Option | Description |
 |---|---|
-| `--title` | PR title (interactive input if omitted) |
-| `--body` | PR body |
-| `--body-file`, `-F` | Read body from file |
-| `--base` | Target branch (default branch if omitted) |
-| `--head` | Source branch (current branch if omitted) |
-| `--draft` | Create as draft PR |
-| `--reviewer` | Reviewer username (repeatable) |
-| `--assignee` | Assignee username (repeatable) |
-| `--label` | Label name (repeatable) |
-| `--milestone` | Milestone name |
-| `--fill` | Use commit info for title and body |
-| `--web`, `-w` | Open the created PR in browser |
+| `--title` / `-t` | PR title (interactive input if omitted) |
+| `--body` / `-b` | PR body |
+| `--body-file` / `-F` | Read body from file |
+| `--base` / `-B` | Target branch (default branch if omitted) |
+| `--head` / `-H` | Source branch (current branch if omitted) |
+| `--draft` / `-d` | Create as draft PR |
+| `--reviewer` / `-r` | Reviewer username (repeatable) |
+| `--assignee` / `-a` | Assignee username (repeatable) |
+| `--label` / `-l` | Label name (repeatable) |
+| `--milestone` / `-m` | Milestone name |
+| `--fill` / `-f` | Use commit info for title and body |
+| `--web` / `-w` | Open the created PR in browser |
 | `--dry-run` | Print what would be created without actually creating |
 
 ```bash
@@ -260,12 +260,12 @@ gfo pr merge NUMBER [--merge | --squash | --rebase] [--delete-branch] [--subject
 
 | Option | Description |
 |---|---|
-| `--merge` | Create a merge commit (default) |
-| `--squash` | Squash and merge |
-| `--rebase` | Rebase and merge |
-| `--delete-branch`, `-d` | Delete branch after merge |
-| `--subject` | Merge commit title |
-| `--body` | Merge commit body |
+| `--merge` / `-m` | Create a merge commit (default) |
+| `--squash` / `-s` | Squash and merge |
+| `--rebase` / `-r` | Rebase and merge |
+| `--delete-branch` / `-d` | Delete branch after merge |
+| `--subject` / `-t` | Merge commit title |
+| `--body` / `-b` | Merge commit body |
 | `--auto` | Enable auto-merge (merges automatically when conditions are met) |
 | `--disable-auto` | Disable auto-merge |
 
@@ -368,15 +368,15 @@ gfo pr edit NUMBER [--title TITLE] [--body BODY] [--base BRANCH] [--add-label LA
 
 | Option | Description |
 |---|---|
-| `--title` | Title |
-| `--body` | Body |
-| `--base` | Base branch |
+| `--title` / `-t` | Title |
+| `--body` / `-b` | Body |
+| `--base` / `-B` | Base branch |
 | `--add-label` | Add label (repeatable) |
 | `--remove-label` | Remove label (repeatable) |
 | `--add-assignee` | Add assignee (repeatable) |
 | `--remove-assignee` | Remove assignee (repeatable) |
-| `--milestone` | Milestone name |
-| `--draft` / `--ready` | Switch between draft and ready state |
+| `--milestone` / `-m` | Milestone name |
+| `--draft` / `-d` / `--ready` | Switch between draft and ready state |
 
 ```bash
 gfo pr edit 42 --title "Updated title"
@@ -574,13 +574,13 @@ gfo issue list [--state {open,closed,all}] [--assignee USER] [--label LABEL] [--
 
 | Option | Default | Description |
 |---|---|---|
-| `--state` | `open` | Issue state to display |
-| `--assignee` | — | Filter by assignee |
-| `--label` | — | Filter by label |
-| `--author` | — | Filter by author |
-| `--milestone` | — | Filter by milestone |
-| `--search`, `-S` | — | Filter by title/description |
-| `--limit` | `30` | Maximum number of results |
+| `--state` / `-s` | `open` | Issue state to display |
+| `--assignee` / `-a` | — | Filter by assignee |
+| `--label` / `-l` | — | Filter by label |
+| `--author` / `-A` | — | Filter by author |
+| `--milestone` / `-m` | — | Filter by milestone |
+| `--search` / `-S` | — | Filter by title/description |
+| `--limit` / `-L` | `30` | Maximum number of results |
 
 ```bash
 gfo issue list
@@ -597,17 +597,17 @@ gfo issue create --title TITLE [--body BODY] [--body-file FILE] [--assignee USER
 
 | Option | Required | Description |
 |---|---|---|
-| `--title` | **Required** | Issue title |
-| `--body` | — | Issue body |
-| `--body-file`, `-F` | — | Read body from file |
-| `--assignee` | — | Assignee |
-| `--label` | — | Label |
-| `--milestone` | — | Milestone name |
+| `--title` / `-t` | **Required** | Issue title |
+| `--body` / `-b` | — | Issue body |
+| `--body-file` / `-F` | — | Read body from file |
+| `--assignee` / `-a` | — | Assignee |
+| `--label` / `-l` | — | Label |
+| `--milestone` / `-m` | — | Milestone name |
 | `--type` | — | Issue type (Azure DevOps: `Task`, `Bug`, etc.) |
 | `--priority` | — | Priority (for services that use numeric priority, e.g., Backlog) |
 | `--due-date` | — | Due date (YYYY-MM-DD format, for services that support it) |
 | `--template` | — | Issue template name |
-| `--web`, `-w` | — | Open the created issue in browser |
+| `--web` / `-w` | — | Open the created issue in browser |
 
 ```bash
 gfo issue create --title "Bug: login fails"
@@ -743,8 +743,8 @@ gfo issue develop NUMBER [--name BRANCH] [--base BRANCH]
 
 | Option | Description |
 |---|---|
-| `--name` | Branch name (default: `issue-{number}-{slug}`) |
-| `--base` | Base branch (default: default branch) |
+| `--name` / `-n` | Branch name (default: `issue-{number}-{slug}`) |
+| `--base` / `-B` | Base branch (default: default branch) |
 
 ```bash
 gfo issue develop 10
@@ -761,15 +761,15 @@ gfo issue edit NUMBER [--title TITLE] [--body BODY] [--assignee USER] [--label L
 
 | Option | Description |
 |---|---|
-| `--title` | Title |
-| `--body` | Body |
-| `--assignee` | Assignee (replace) |
-| `--label` | Label (replace) |
+| `--title` / `-t` | Title |
+| `--body` / `-b` | Body |
+| `--assignee` / `-a` | Assignee (replace) |
+| `--label` / `-l` | Label (replace) |
 | `--add-label` | Add label (repeatable) |
 | `--remove-label` | Remove label (repeatable) |
 | `--add-assignee` | Add assignee (repeatable) |
 | `--remove-assignee` | Remove assignee (repeatable) |
-| `--milestone` | Milestone name |
+| `--milestone` / `-m` | Milestone name |
 | `--due-date` | Due date (YYYY-MM-DD format, empty string to clear) |
 
 ```bash
@@ -957,7 +957,7 @@ gfo repo list [--owner OWNER] [--archived] [--visibility public|private|internal
 |---|---|
 | `--owner OWNER` | Filter by repository owner |
 | `--archived` | Show only archived repositories |
-| `--visibility`, `-V` | Filter by visibility (`public`, `private`, `internal`) |
+| `--visibility` / `-V` | Filter by visibility (`public`, `private`, `internal`) |
 | `--limit N` | Maximum number of results (default: 30) |
 
 ```bash
@@ -1016,7 +1016,7 @@ gfo repo view alice/my-project
 gfo repo delete [--yes]
 ```
 
-Deletes the current repository. Without `--yes`, a confirmation prompt is shown.
+Deletes the current repository. Without `--yes` / `-y`, a confirmation prompt is shown.
 
 ```bash
 gfo repo delete --yes
@@ -1088,7 +1088,7 @@ gfo repo archive [--yes]
 
 | Option | Description |
 |---|---|
-| `--yes`, `-y` | Skip confirmation prompt |
+| `--yes` / `-y` | Skip confirmation prompt |
 
 ### gfo repo unarchive
 
@@ -1151,9 +1151,9 @@ gfo repo migrate CLONE_URL --name NAME [--private] [--description DESC] [--mirro
 | Option | Required | Description |
 |---|---|---|
 | `CLONE_URL` | **Required** | Clone URL of the source repository |
-| `--name` | **Required** | Name of the repository to create |
+| `--name` / `-n` | **Required** | Name of the repository to create |
 | `--private` | — | Create as a private repository |
-| `--description` | — | Repository description |
+| `--description` / `-d` | — | Repository description |
 | `--mirror` | — | Create as a mirror repository |
 | `--auth-token` | — | Authentication token for private repositories |
 
@@ -1178,7 +1178,7 @@ gfo repo mirror sync
 | Option | Description |
 |---|---|
 | `URL` | Mirror destination repository URL |
-| `--interval` | Sync interval (e.g., `8h0m0s`) |
+| `--interval` / `-i` | Sync interval (e.g., `8h0m0s`) |
 | `MIRROR_ID` | Mirror ID |
 
 ```bash
@@ -1201,7 +1201,7 @@ gfo repo transfer NEW_OWNER [--yes]
 | Option | Description |
 |---|---|
 | `NEW_OWNER` | Destination user or organization name |
-| `--yes`, `-y` | Skip confirmation prompt |
+| `--yes` / `-y` | Skip confirmation prompt |
 
 ```bash
 gfo repo transfer new-owner
@@ -1220,7 +1220,7 @@ gfo repo sync [--branch BRANCH]
 
 | Option | Description |
 |---|---|
-| `--branch`, `-b` | Branch to sync (default branch if omitted) |
+| `--branch` / `-b` | Branch to sync (default branch if omitted) |
 
 ```bash
 gfo repo sync
@@ -1260,8 +1260,8 @@ gfo release list [--limit N] [--draft | --no-draft] [--prerelease | --no-prerele
 | Option | Description |
 |---|---|
 | `--limit N` | Maximum number of results (default: 30) |
-| `--draft` / `--no-draft` | Filter draft only / exclude drafts |
-| `--prerelease` / `--no-prerelease` | Filter prerelease only / exclude prereleases |
+| `--draft` / `-d` / `--no-draft` | Filter draft only / exclude drafts |
+| `--prerelease` / `-p` / `--no-prerelease` | Filter prerelease only / exclude prereleases |
 
 ```bash
 gfo release list
@@ -1277,11 +1277,11 @@ gfo release create TAG [--title TITLE] [--notes NOTES] [--notes-file FILE] [--dr
 
 | Option | Description |
 |---|---|
-| `--title` | Release title |
-| `--notes` | Release notes |
-| `--notes-file` | Read release notes from file |
-| `--draft` | Create as draft |
-| `--prerelease` | Mark as prerelease |
+| `--title` / `-t` | Release title |
+| `--notes` / `-n` | Release notes |
+| `--notes-file` / `-F` | Read release notes from file |
+| `--draft` / `-d` | Create as draft |
+| `--prerelease` / `-p` | Mark as prerelease |
 | `--target` | Target branch or commit SHA |
 | `--generate-notes` | Auto-generate release notes (GitHub/GitLab) |
 
@@ -1331,11 +1331,11 @@ gfo release edit TAG [--title TITLE] [--notes NOTES] [--notes-file FILE] [--draf
 
 | Option | Description |
 |---|---|
-| `--title` | Release title |
-| `--notes` | Release notes |
-| `--notes-file`, `-F` | Read release notes from file |
-| `--draft` / `--no-draft` | Toggle draft status |
-| `--prerelease` / `--no-prerelease` | Toggle prerelease status |
+| `--title` / `-t` | Release title |
+| `--notes` / `-n` | Release notes |
+| `--notes-file` / `-F` | Read release notes from file |
+| `--draft` / `-d` / `--no-draft` | Toggle draft status |
+| `--prerelease` / `-p` / `--no-prerelease` | Toggle prerelease status |
 | `--tag` | New tag name (GitHub, Gitea, Forgejo) |
 | `--target` | Target branch or commit SHA (GitHub, Gitea, Forgejo) |
 
@@ -1381,7 +1381,7 @@ gfo label list
 gfo label create NAME [--color COLOR] [--description DESC]
 ```
 
-`--color` is specified as a 6-digit hex value in `RRGGBB` format (without `#`).
+`--color` / `-c` is specified as a 6-digit hex value in `RRGGBB` format (without `#`).
 
 ```bash
 gfo label create bug --color ff0000 --description "Something is broken"
@@ -1406,9 +1406,9 @@ gfo label edit NAME [--name NEW_NAME] [--color COLOR] [--description DESC]
 
 | Option | Description |
 |---|---|
-| `--name` | New name for the label |
-| `--color` | Color (`RRGGBB` format, without `#`) |
-| `--description` | Description |
+| `--name` / `-n` | New name for the label |
+| `--color` / `-c` | Color (`RRGGBB` format, without `#`) |
+| `--description` / `-d` | Description |
 
 ```bash
 gfo label edit bug --color 00ff00
@@ -1492,10 +1492,10 @@ gfo milestone edit NUMBER [--title TITLE] [--description DESC] [--due DATE] [--s
 
 | Option | Description |
 |---|---|
-| `--title` | Title |
-| `--description` | Description |
+| `--title` / `-t` | Title |
+| `--description` / `-d` | Description |
 | `--due` | Due date (`YYYY-MM-DD` format) |
-| `--state` | State (`open` / `closed`) |
+| `--state` / `-s` | State (`open` / `closed`) |
 
 ```bash
 gfo milestone edit 1 --title "v2.0 Release"
@@ -1917,8 +1917,8 @@ gfo ci watch ID [--interval N] [--timeout N]
 
 | Option | Default | Description |
 |---|---|---|
-| `--interval`, `-i` | `5` | Poll interval in seconds |
-| `--timeout`, `-t` | `1800` | Timeout in seconds (0 for unlimited) |
+| `--interval` / `-i` | `5` | Poll interval in seconds |
+| `--timeout` / `-t` | `1800` | Timeout in seconds (0 for unlimited) |
 
 ```bash
 gfo ci watch 12345678
@@ -1936,7 +1936,7 @@ gfo ci download ID [--job JOB] [--dir DIR]
 
 | Option | Default | Description |
 |---|---|---|
-| `--job`, `-j` | — | Job name or ID |
+| `--job` / `-j` | — | Job name or ID |
 | `--dir` | `.` | Output directory |
 
 ```bash
@@ -1975,7 +1975,7 @@ gfo ci artifact download RUN_ID ARTIFACT_ID [--dir DIR]
 
 | Option | Default | Description |
 |---|---|---|
-| `--limit` | `30` | Maximum number of results |
+| `--limit` / `-L` | `30` | Maximum number of results |
 | `--dir` | `.` | Output directory |
 
 ```bash
@@ -2290,7 +2290,7 @@ gfo org edit NAME [--display-name NAME] [--description DESC]
 | Option | Description |
 |---|---|
 | `--display-name` | Display name |
-| `--description` | Description |
+| `--description` / `-d` | Description |
 
 ```bash
 gfo org edit my-org --display-name "My Organization"
@@ -2551,8 +2551,8 @@ gfo api <METHOD> <PATH> [--data JSON] [--header HEADER]
 |---|---|
 | `METHOD` | HTTP method (GET, POST, PUT, PATCH, DELETE) |
 | `PATH` | API path (e.g., `/repos/owner/repo`) |
-| `--data`, `-d` | Request body as JSON string |
-| `--header`, `-H` | HTTP header (can be repeated, format: `Key: Value`) |
+| `--data` / `-d` | Request body as JSON string |
+| `--header` / `-H` | HTTP header (can be repeated, format: `Key: Value`) |
 
 **Examples:**
 
@@ -2618,7 +2618,7 @@ Manually trigger a pipeline / workflow.
 
 > **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
 >
-> **Note**: `--workflow` is required for GitHub / Gitea.
+> **Note**: `--workflow` / `-w` is required for GitHub / Gitea.
 
 ```
 gfo ci trigger --ref REF [--workflow WORKFLOW] [--input KEY=VALUE ...]
@@ -2627,8 +2627,8 @@ gfo ci trigger --ref REF [--workflow WORKFLOW] [--input KEY=VALUE ...]
 | Option | Required | Description |
 |---|---|---|
 | `--ref` | **Required** | Target branch or tag |
-| `--workflow`, `-w` | Required for GitHub/Gitea | Workflow name or filename |
-| `--input`, `-i` | — | Input parameters (`KEY=VALUE` format, can be specified multiple times) |
+| `--workflow` / `-w` | Required for GitHub/Gitea | Workflow name or filename |
+| `--input` / `-i` | — | Input parameters (`KEY=VALUE` format, can be specified multiple times) |
 
 ```bash
 gfo ci trigger --ref main --workflow ci.yml
@@ -2662,7 +2662,7 @@ gfo ci logs ID [--job JOB_ID]
 
 | Option | Description |
 |---|---|
-| `--job`, `-j` | Get logs for a specific job only (all jobs combined if omitted) |
+| `--job` / `-j` | Get logs for a specific job only (all jobs combined if omitted) |
 
 ```bash
 gfo ci logs 12345678
@@ -2746,7 +2746,7 @@ gfo package list [--type TYPE] [--limit N]
 | Option | Description |
 |---|---|
 | `--type` | Filter by package type (e.g., `npm`, `maven`, `docker`, `pypi`, `nuget`, `rubygems`) |
-| `--limit` | Maximum number of results |
+| `--limit` / `-L` | Maximum number of results |
 
 ```bash
 gfo package list
@@ -2781,7 +2781,7 @@ gfo package delete PACKAGE_TYPE NAME VERSION [--yes]
 | `PACKAGE_TYPE` | Package type (e.g., `npm`, `maven`, `docker`) |
 | `NAME` | Package name |
 | `VERSION` | Version to delete |
-| `--yes`, `-y` | Skip confirmation prompt |
+| `--yes` / `-y` | Skip confirmation prompt |
 
 ```bash
 gfo package delete npm my-package 1.0.0
@@ -2805,7 +2805,7 @@ gfo org create NAME [--display-name NAME] [--description DESC]
 | Option | Description |
 |---|---|
 | `--display-name` | Display name |
-| `--description` | Description |
+| `--description` / `-d` | Description |
 
 ```bash
 gfo org create my-new-org
@@ -2820,7 +2820,7 @@ gfo org delete NAME [--yes]
 
 | Option | Description |
 |---|---|
-| `--yes`, `-y` | Skip confirmation prompt |
+| `--yes` / `-y` | Skip confirmation prompt |
 
 ```bash
 gfo org delete old-org
@@ -2865,11 +2865,11 @@ gfo batch pr create --repos SPECS --title TITLE --head BRANCH [options]
 | Option | Description | Default |
 |---|---|---|
 | `--repos` | Target repositories (comma-separated, `service:owner/repo` format) | (required) |
-| `--title` | PR title | (required) |
-| `--body` | PR body | `""` |
-| `--head` | Source branch | (required) |
-| `--base` | Target branch | `main` |
-| `--draft` | Create as draft PR | — |
+| `--title` / `-t` | PR title | (required) |
+| `--body` / `-b` | PR body | `""` |
+| `--head` / `-H` | Source branch | (required) |
+| `--base` / `-B` | Target branch | `main` |
+| `--draft` / `-d` | Create as draft PR | — |
 | `--dry-run` | Validate only, do not create PRs | — |
 
 Repository specification uses the same SERVICE_SPEC format as `gfo issue migrate`.
