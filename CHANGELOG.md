@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.9.0] - 2026-04-06
+
+### Added
+- `repo create`: support organization repositories via `org/repo` name format (e.g. `gfo repo create my-org/my-repo --private`)
+- `repo create`: added `--internal` visibility flag for GitHub/GitLab organization repositories
+- `repo migrate`: support organization repositories via `org/repo` format in `--name`
+- `repo migrate`: added `--public` and `--internal` visibility flags (previously only `--private` existed)
+
+### Fixed
+- `--account` flag: now correctly hoisted as a global flag, except for `auth`/`init` subcommands which have their own `--account`
+- `_hoist_global_flags`: subcommand detection no longer mistakes global flag values as subcommand names (e.g. `--format json auth` no longer misidentifies `json` as the subcommand)
+
+### Breaking Changes
+- `Repository.private: bool` replaced with `Repository.visibility: str` (`"public"`, `"private"`, `"internal"`)
+- `repo list` output column changed from `private` to `visibility`
+- `create_repository` / `migrate_repository` adapter method signatures changed: `private: bool` replaced with `visibility: str`, `organization: str | None` added
+
 ## [0.8.0] - 2026-03-29
 
 ### Added

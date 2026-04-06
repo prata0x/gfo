@@ -1,5 +1,22 @@
 # 変更履歴
 
+## [0.9.0] - 2026-04-06
+
+### 追加
+- `repo create`: `org/repo` 形式の name で組織リポジトリの作成に対応（例: `gfo repo create my-org/my-repo --private`）
+- `repo create`: GitHub/GitLab 組織リポジトリ向けに `--internal` visibility フラグを追加
+- `repo migrate`: `--name` に `org/repo` 形式を指定して組織にリポジトリを移行可能に
+- `repo migrate`: `--public` および `--internal` visibility フラグを追加（従来は `--private` のみ）
+
+### 修正
+- `--account` フラグをグローバルフラグとして正しくホイスト（`auth`/`init` サブコマンドは独自の `--account` を持つため除外）
+- `_hoist_global_flags`: グローバルフラグの値をサブコマンドと誤認する問題を修正（例: `--format json auth` で `json` をサブコマンドと誤認しなくなった）
+
+### 破壊的変更
+- `Repository.private: bool` を `Repository.visibility: str`（`"public"`, `"private"`, `"internal"`）に変更
+- `repo list` の出力カラムが `private` から `visibility` に変更
+- `create_repository` / `migrate_repository` アダプターメソッドのシグネチャ変更: `private: bool` → `visibility: str`、`organization: str | None` を追加
+
 ## [0.8.0] - 2026-03-29
 
 ### 追加
