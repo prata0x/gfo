@@ -147,7 +147,7 @@ class BacklogAdapter(GitServiceAdapter):
                 name=data["name"],
                 full_name=data.get("displayName", data["name"]),
                 description=data.get("description"),
-                private=True,
+                visibility="private",
                 default_branch=None,
                 clone_url=data.get("httpUrl", ""),
                 url=data.get("httpUrl", "").removesuffix(".git"),
@@ -405,9 +405,16 @@ class BacklogAdapter(GitServiceAdapter):
         return [self._to_repository(r) for r in results]
 
     def create_repository(
-        self, *, name: str, private: bool = False, description: str = "", auto_init: bool = False
+        self,
+        *,
+        name: str,
+        visibility: str = "public",
+        description: str = "",
+        auto_init: bool = False,
+        organization: str | None = None,
     ) -> Repository:
         self._warn_unsupported_params("repo create", auto_init=auto_init)
+        # visibility, organization は Backlog ではプロジェクトスコープのため無視
         payload: dict = {"name": name}
         if description:
             payload["description"] = description

@@ -372,12 +372,26 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return [self._to_repository(r) for r in results]
 
     def create_repository(
-        self, *, name: str, private: bool = False, description: str = "", auto_init: bool = False
+        self,
+        *,
+        name: str,
+        visibility: str = "public",
+        description: str = "",
+        auto_init: bool = False,
+        organization: str | None = None,
     ) -> Repository:
-        payload = {"name": name, "private": private, "description": description}
+        payload: dict = {"name": name, "description": description}
+        if visibility == "internal":
+            payload["visibility"] = "internal"
+        else:
+            payload["private"] = visibility == "private"
         if auto_init:
             payload["auto_init"] = True
-        resp = self._client.post("/user/repos", json=payload)
+        if organization is not None:
+            path = f"/orgs/{quote(organization, safe='')}/repos"
+        else:
+            path = "/user/repos"
+        resp = self._client.post(path, json=payload)
         return self._to_repository(resp.json())
 
     def get_repository(self, owner: str | None = None, name: str | None = None) -> Repository:
@@ -479,20 +493,24 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         clone_url: str,
         name: str,
         *,
-        private: bool = False,
+        visibility: str = "public",
         description: str = "",
         mirror: bool = False,
         auth_token: str | None = None,
+        organization: str | None = None,
     ) -> Repository:
         # リポジトリ作成
-        repo = self.create_repository(name=name, private=private, description=description)
+        repo = self.create_repository(
+            name=name, visibility=visibility, description=description, organization=organization
+        )
         # Source Import API
         payload: dict = {"vcs": "git", "vcs_url": clone_url}
         if auth_token:
             payload["vcs_username"] = "x-access-token"
             payload["vcs_password"] = auth_token
+        owner, repo_name = repo.full_name.split("/", 1)
         self._client.put(
-            f"/repos/{quote(self._owner, safe='')}/{quote(name, safe='')}/import",
+            f"/repos/{quote(owner, safe='')}/{quote(repo_name, safe='')}/import",
             json=payload,
         )
         return repo

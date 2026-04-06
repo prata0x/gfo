@@ -189,7 +189,7 @@ class TestToRepository:
         repo = BacklogAdapter._to_repository(_repo_data())
         assert repo.name == "test-repo"
         assert repo.full_name == "TEST/test-repo"
-        assert repo.private is True
+        assert repo.visibility == "private"
         assert "test-repo" in repo.clone_url
 
 

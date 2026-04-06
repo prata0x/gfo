@@ -226,14 +226,21 @@ def test_parser_repo_create_private():
     parser, _ = create_parser()
     args = parser.parse_args(["repo", "create", "my-repo", "--private"])
     assert args.name == "my-repo"
-    assert args.private is True
+    assert args.visibility == "private"
 
 
 def test_parser_repo_create_public():
     parser, _ = create_parser()
     args = parser.parse_args(["repo", "create", "my-repo", "--public"])
     assert args.name == "my-repo"
-    assert args.private is False
+    assert args.visibility == "public"
+
+
+def test_parser_repo_create_internal():
+    parser, _ = create_parser()
+    args = parser.parse_args(["repo", "create", "my-org/my-repo", "--internal"])
+    assert args.name == "my-org/my-repo"
+    assert args.visibility == "internal"
 
 
 def test_parser_repo_create_requires_visibility():

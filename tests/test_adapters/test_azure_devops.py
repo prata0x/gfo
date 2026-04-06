@@ -220,7 +220,7 @@ class TestToRepository:
         repo = azure_devops_adapter._to_repository(_repo_data(), "test-project")
         assert repo.name == "test-repo"
         assert repo.full_name == "test-project/test-repo"
-        assert repo.private is True
+        assert repo.visibility == "private"
         assert repo.default_branch == "main"
         assert "test-repo" in repo.clone_url
 

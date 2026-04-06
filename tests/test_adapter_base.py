@@ -146,20 +146,20 @@ class TestRepository:
             name="gfo",
             full_name="owner/gfo",
             description="A tool",
-            private=False,
+            visibility="public",
             default_branch="main",
             clone_url="https://example.com/gfo.git",
             url="https://example.com/gfo",
         )
         assert repo.full_name == "owner/gfo"
-        assert repo.private is False
+        assert repo.visibility == "public"
 
     def test_optional_fields(self):
         repo = Repository(
             name="gfo",
             full_name="owner/gfo",
             description=None,
-            private=True,
+            visibility="private",
             default_branch=None,
             clone_url="https://example.com/gfo.git",
             url="https://example.com/gfo",
@@ -172,7 +172,7 @@ class TestRepository:
             name="gfo",
             full_name="owner/gfo",
             description=None,
-            private=False,
+            visibility="public",
             default_branch="main",
             clone_url="c",
             url="u",
@@ -251,7 +251,7 @@ class TestGitServiceAdapterDeleteDefaults:
             def list_repositories(self, *, owner=None, limit=30):
                 return []
 
-            def create_repository(self, *, name, private=False, description=""): ...
+            def create_repository(self, *, name, visibility="public", description=""): ...
             def get_repository(self, owner=None, name=None): ...
             def list_releases(self, *, limit=30):
                 return []

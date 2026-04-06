@@ -77,12 +77,12 @@ def _issue_data(*, number=1, state="open", has_pr=False):
     return data
 
 
-def _repo_data(*, name="test-repo", full_name="test-owner/test-repo"):
+def _repo_data(*, name="test-repo", full_name="test-owner/test-repo", private=False):
     return {
         "name": name,
         "full_name": full_name,
         "description": "A test repo",
-        "private": False,
+        "private": private,
         "default_branch": "main",
         "clone_url": f"https://gitea.example.com/{full_name}.git",
         "html_url": f"https://gitea.example.com/{full_name}",
@@ -152,7 +152,7 @@ class TestToRepository:
         repo = GiteaAdapter._to_repository(_repo_data())
         assert repo.name == "test-repo"
         assert repo.full_name == "test-owner/test-repo"
-        assert repo.private is False
+        assert repo.visibility == "public"
 
 
 class TestToRelease:
@@ -1018,6 +1018,23 @@ class TestCreateRepository:
         assert isinstance(repo, Repository)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["name"] == "test-repo"
+
+    def test_create_org_repo(self, mock_responses, gitea_adapter):
+        """組織リポジトリを作成する。"""
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/orgs/my-org/repos",
+            json=_repo_data(),
+            status=201,
+        )
+        gitea_adapter.create_repository(name="new-repo", organization="my-org")
+        # POST 先が /orgs/my-org/repos であること
+        assert "/orgs/my-org/repos" in mock_responses.calls[0].request.url
+
+    def test_create_internal_raises(self, gitea_adapter):
+        """internal visibility は Gitea で未サポート。"""
+        with pytest.raises(NotSupportedError):
+            gitea_adapter.create_repository(name="new-repo", visibility="internal")
 
 
 class TestGetRepository:
@@ -3400,7 +3417,7 @@ class TestMigrateRepository:
         repo = gitea_adapter.migrate_repository(
             "https://github.com/old/repo.git",
             "migrated",
-            private=True,
+            visibility="private",
             mirror=True,
             description="desc",
             auth_token="tok",
@@ -3414,6 +3431,23 @@ class TestMigrateRepository:
         assert body["description"] == "desc"
         assert body["auth_token"] == "tok"
         assert body["repo_owner"] == "test-owner"
+
+    @responses.activate
+    def test_migrate_org_repo(self, gitea_adapter):
+        """組織にリポジトリを migrate する。"""
+        responses.add(
+            responses.POST,
+            f"{BASE}/repos/migrate",
+            json=_repo_data(full_name="my-org/migrated"),
+            status=201,
+        )
+        gitea_adapter.migrate_repository(
+            "https://other.com/repo.git", "migrated", organization="my-org"
+        )
+        import json as json_mod
+
+        req_body = json_mod.loads(responses.calls[0].request.body)
+        assert req_body["repo_owner"] == "my-org"
 
 
 # ── C-01: download_release_asset パストラバーサル防止 ──

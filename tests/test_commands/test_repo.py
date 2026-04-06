@@ -19,7 +19,7 @@ def sample_repo():
         name="test-repo",
         full_name="test-owner/test-repo",
         description="A test repo",
-        private=False,
+        visibility="public",
         default_branch="main",
         clone_url="https://github.com/test-owner/test-repo.git",
         url="https://github.com/test-owner/test-repo",
@@ -244,16 +244,36 @@ class TestResolveHostWithoutRepo:
                 repo_cmd._resolve_host_without_repo("unknown.example.com")
 
 
+class TestParseCreateName:
+    def test_simple_name(self):
+        org, name = repo_cmd._parse_create_name("my-repo")
+        assert org is None
+        assert name == "my-repo"
+
+    def test_org_name(self):
+        org, name = repo_cmd._parse_create_name("my-org/my-repo")
+        assert org == "my-org"
+        assert name == "my-repo"
+
+    def test_empty_org_raises(self):
+        with pytest.raises(ConfigError, match="Invalid name format"):
+            repo_cmd._parse_create_name("/my-repo")
+
+    def test_empty_name_raises(self):
+        with pytest.raises(ConfigError, match="Invalid name format"):
+            repo_cmd._parse_create_name("my-org/")
+
+
 class TestHandleCreate:
     def test_calls_create_repository(self, capsys):
         args = make_args(
-            host="github.com", name="new-repo", private=False, description="", readme=False
+            host="github.com", name="new-repo", visibility="public", description="", readme=False
         )
         mock_repo = Repository(
             name="new-repo",
             full_name="test-owner/new-repo",
             description="",
-            private=False,
+            visibility="public",
             default_branch="main",
             clone_url="https://github.com/test-owner/new-repo.git",
             url="https://github.com/test-owner/new-repo",
@@ -276,21 +296,22 @@ class TestHandleCreate:
 
         mock_adapter.create_repository.assert_called_once_with(
             name="new-repo",
-            private=False,
+            visibility="public",
             description="",
             auto_init=False,
+            organization=None,
         )
 
     def test_calls_create_with_readme(self, capsys):
         """--readme フラグが auto_init=True として渡される。"""
         args = make_args(
-            host="github.com", name="new-repo", private=False, description="", readme=True
+            host="github.com", name="new-repo", visibility="public", description="", readme=True
         )
         mock_repo = Repository(
             name="new-repo",
             full_name="test-owner/new-repo",
             description="",
-            private=False,
+            visibility="public",
             default_branch="main",
             clone_url="https://github.com/test-owner/new-repo.git",
             url="https://github.com/test-owner/new-repo",
@@ -313,20 +334,25 @@ class TestHandleCreate:
 
         mock_adapter.create_repository.assert_called_once_with(
             name="new-repo",
-            private=False,
+            visibility="public",
             description="",
             auto_init=True,
+            organization=None,
         )
 
     def test_outputs_created_repository(self, capsys):
         args = make_args(
-            host="github.com", name="new-repo", private=True, description="desc", readme=False
+            host="github.com",
+            name="new-repo",
+            visibility="private",
+            description="desc",
+            readme=False,
         )
         mock_repo = Repository(
             name="new-repo",
             full_name="test-owner/new-repo",
             description="desc",
-            private=True,
+            visibility="private",
             default_branch="main",
             clone_url="https://github.com/test-owner/new-repo.git",
             url="https://github.com/test-owner/new-repo",
@@ -363,7 +389,7 @@ class TestHandleCreate:
             name="new-repo",
             full_name="MY_PROJECT/new-repo",
             description="",
-            private=False,
+            visibility="public",
             default_branch="main",
             clone_url="https://example.backlog.com/git/MY_PROJECT/new-repo.git",
             url="https://example.backlog.com/git/MY_PROJECT/new-repo",
@@ -372,7 +398,9 @@ class TestHandleCreate:
         mock_adapter.create_repository.return_value = mock_repo
         mock_adapter_cls = MagicMock(return_value=mock_adapter)
 
-        args = make_args(host="example.backlog.com", name="new-repo", private=False, description="")
+        args = make_args(
+            host="example.backlog.com", name="new-repo", visibility="public", description=""
+        )
 
         with (
             patch(
@@ -403,7 +431,9 @@ class TestHandleCreate:
         mock_cfg.service_type = "backlog"
         mock_cfg.project_key = None
 
-        args = make_args(host="example.backlog.com", name="new-repo", private=False, description="")
+        args = make_args(
+            host="example.backlog.com", name="new-repo", visibility="public", description=""
+        )
 
         with (
             patch(
@@ -423,7 +453,9 @@ class TestHandleCreate:
 
     def test_backlog_config_error_on_resolve_raises_helpful_message(self):
         """プロジェクト設定取得が失敗かつ project_key が取得できない場合 ConfigError。"""
-        args = make_args(host="example.backlog.com", name="new-repo", private=False, description="")
+        args = make_args(
+            host="example.backlog.com", name="new-repo", visibility="public", description=""
+        )
 
         with (
             patch(
@@ -456,7 +488,7 @@ class TestHandleCreate:
             name="new-repo",
             full_name="my-project/new-repo",
             description="",
-            private=True,
+            visibility="private",
             default_branch="main",
             clone_url="https://dev.azure.com/my-org/my-project/_git/new-repo",
             url="https://dev.azure.com/my-org/my-project/_git/new-repo",
@@ -465,7 +497,7 @@ class TestHandleCreate:
         mock_adapter.create_repository.return_value = mock_repo
         mock_adapter_cls = MagicMock(return_value=mock_adapter)
 
-        args = make_args(host="dev.azure.com", name="new-repo", private=False, description="")
+        args = make_args(host="dev.azure.com", name="new-repo", visibility="public", description="")
 
         with (
             patch(
@@ -497,7 +529,7 @@ class TestHandleCreate:
         mock_cfg.organization = None
         mock_cfg.project_key = "my-project"
 
-        args = make_args(host="dev.azure.com", name="new-repo", private=False, description="")
+        args = make_args(host="dev.azure.com", name="new-repo", visibility="public", description="")
 
         with (
             patch(
@@ -515,6 +547,98 @@ class TestHandleCreate:
         ):
             with pytest.raises(ConfigError, match="organization"):
                 repo_cmd.handle_create(args, fmt="table")
+
+    def test_org_repo_creation(self, capsys):
+        """org/name 形式で組織リポジトリを作成する。"""
+        args = make_args(
+            host="github.com",
+            name="my-org/new-repo",
+            visibility="private",
+            description="",
+            readme=False,
+        )
+        mock_repo = Repository(
+            name="new-repo",
+            full_name="my-org/new-repo",
+            description="",
+            visibility="private",
+            default_branch="main",
+            clone_url="https://github.com/my-org/new-repo.git",
+            url="https://github.com/my-org/new-repo",
+        )
+        mock_adapter = MagicMock()
+        mock_adapter.create_repository.return_value = mock_repo
+        mock_adapter_cls = MagicMock(return_value=mock_adapter)
+
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("github.com", "github"),
+            ),
+            patch("gfo.commands.repo.resolve_token", return_value="test-token"),
+            patch("gfo.commands.repo.build_default_api_url", return_value="https://api.github.com"),
+            patch("gfo.commands.repo.create_http_client"),
+            patch("gfo.commands.repo.get_adapter_class", return_value=mock_adapter_cls),
+        ):
+            repo_cmd.handle_create(args, fmt="table")
+
+        mock_adapter.create_repository.assert_called_once_with(
+            name="new-repo",
+            visibility="private",
+            description="",
+            auto_init=False,
+            organization="my-org",
+        )
+
+    def test_internal_requires_org(self):
+        """--internal は org/name 形式が必要。"""
+        args = make_args(
+            host="github.com", name="solo-repo", visibility="internal", description="", readme=False
+        )
+        with pytest.raises(ConfigError, match="--internal requires an organization"):
+            repo_cmd.handle_create(args, fmt="table")
+
+    def test_internal_with_org(self, capsys):
+        """--internal + org/name で成功する。"""
+        args = make_args(
+            host="github.com",
+            name="my-org/new-repo",
+            visibility="internal",
+            description="",
+            readme=False,
+        )
+        mock_repo = Repository(
+            name="new-repo",
+            full_name="my-org/new-repo",
+            description="",
+            visibility="internal",
+            default_branch="main",
+            clone_url="https://github.com/my-org/new-repo.git",
+            url="https://github.com/my-org/new-repo",
+        )
+        mock_adapter = MagicMock()
+        mock_adapter.create_repository.return_value = mock_repo
+        mock_adapter_cls = MagicMock(return_value=mock_adapter)
+
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("github.com", "github"),
+            ),
+            patch("gfo.commands.repo.resolve_token", return_value="test-token"),
+            patch("gfo.commands.repo.build_default_api_url", return_value="https://api.github.com"),
+            patch("gfo.commands.repo.create_http_client"),
+            patch("gfo.commands.repo.get_adapter_class", return_value=mock_adapter_cls),
+        ):
+            repo_cmd.handle_create(args, fmt="table")
+
+        mock_adapter.create_repository.assert_called_once_with(
+            name="new-repo",
+            visibility="internal",
+            description="",
+            auto_init=False,
+            organization="my-org",
+        )
 
 
 class TestHandleClone:
@@ -1113,7 +1237,7 @@ class TestHandleMigrate:
         args = make_args(
             clone_url="https://github.com/old-owner/old-repo.git",
             name="new-repo",
-            private=False,
+            visibility="public",
             description="",
             mirror=False,
             auth_token=None,
@@ -1124,10 +1248,11 @@ class TestHandleMigrate:
         adapter.migrate_repository.assert_called_once_with(
             "https://github.com/old-owner/old-repo.git",
             "new-repo",
-            private=False,
+            visibility="public",
             description="",
             mirror=False,
             auth_token=None,
+            organization=None,
         )
         out = capsys.readouterr().out
         assert "test-repo" in out
@@ -1138,7 +1263,7 @@ class TestHandleMigrate:
         args = make_args(
             clone_url="https://github.com/old/repo.git",
             name="new-repo",
-            private=True,
+            visibility="private",
             description="migrated",
             mirror=True,
             auth_token="tok",
@@ -1158,7 +1283,7 @@ class TestHandleMigrate:
         args = make_args(
             clone_url="https://github.com/old/repo.git",
             name="new-repo",
-            private=False,
+            visibility="public",
             description="",
             mirror=False,
             auth_token=None,
@@ -1166,6 +1291,44 @@ class TestHandleMigrate:
         with patch("gfo.commands.repo.get_adapter", return_value=adapter):
             with pytest.raises(HttpError):
                 repo_cmd.handle_migrate(args, fmt="table")
+
+    def test_org_repo_migration(self, sample_config, sample_repo, capsys):
+        """org/name 形式で組織にリポジトリを migrate する。"""
+        adapter = MagicMock()
+        adapter.migrate_repository.return_value = sample_repo
+        args = make_args(
+            clone_url="https://github.com/old/repo.git",
+            name="my-org/new-repo",
+            visibility="private",
+            description="",
+            mirror=False,
+            auth_token=None,
+        )
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_migrate(args, fmt="table")
+
+        adapter.migrate_repository.assert_called_once_with(
+            "https://github.com/old/repo.git",
+            "new-repo",
+            visibility="private",
+            description="",
+            mirror=False,
+            auth_token=None,
+            organization="my-org",
+        )
+
+    def test_migrate_internal_requires_org(self, sample_config):
+        """migrate で --internal は org/name 形式が必要。"""
+        args = make_args(
+            clone_url="https://github.com/old/repo.git",
+            name="solo-repo",
+            visibility="internal",
+            description="",
+            mirror=False,
+            auth_token=None,
+        )
+        with pytest.raises(ConfigError, match="--internal requires an organization"):
+            repo_cmd.handle_migrate(args, fmt="table")
 
 
 # --- Phase 5: star / unstar / mirror / transfer ---

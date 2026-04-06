@@ -123,7 +123,7 @@ class BitbucketAdapter(GitServiceAdapter):
                 name=data["slug"],
                 full_name=data["full_name"],
                 description=data.get("description"),
-                private=data.get("is_private", False),
+                visibility="private" if data.get("is_private", False) else "public",
                 default_branch=data.get("mainbranch", {}).get("name")
                 if data.get("mainbranch")
                 else None,
@@ -352,12 +352,22 @@ class BitbucketAdapter(GitServiceAdapter):
         return [self._to_repository(r) for r in results]
 
     def create_repository(
-        self, *, name: str, private: bool = False, description: str = "", auto_init: bool = False
+        self,
+        *,
+        name: str,
+        visibility: str = "public",
+        description: str = "",
+        auto_init: bool = False,
+        organization: str | None = None,
     ) -> Repository:
+        if visibility == "internal":
+            raise NotSupportedError(self.service_name, "internal visibility")
         self._warn_unsupported_params("repo create", auto_init=auto_init)
-        payload = {"scm": "git", "is_private": private, "description": description}
+        is_private = visibility == "private"
+        owner = organization if organization else self._owner
+        payload = {"scm": "git", "is_private": is_private, "description": description}
         resp = self._client.post(
-            f"/repositories/{quote(self._owner, safe='')}/{quote(name, safe='')}", json=payload
+            f"/repositories/{quote(owner, safe='')}/{quote(name, safe='')}", json=payload
         )
         return self._to_repository(resp.json())
 

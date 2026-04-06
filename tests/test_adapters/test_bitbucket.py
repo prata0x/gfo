@@ -155,7 +155,7 @@ class TestToRepository:
         repo = BitbucketAdapter._to_repository(_repo_data())
         assert repo.name == "test-repo"
         assert repo.full_name == "test-workspace/test-repo"
-        assert repo.private is False
+        assert repo.visibility == "public"
         assert repo.default_branch == "main"
         assert "https" in repo.clone_url
 
@@ -819,6 +819,23 @@ class TestCreateRepository:
         )
         bitbucket_adapter.create_repository(name="my/repo")
         assert "%2F" in mock_responses.calls[0].request.url
+
+    def test_create_org_repo(self, mock_responses, bitbucket_adapter):
+        """組織（ワークスペース）リポジトリを作成する。"""
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/repositories/my-workspace/new-repo",
+            json=_repo_data(slug="new-repo", full_name="my-workspace/new-repo"),
+            status=201,
+        )
+        bitbucket_adapter.create_repository(name="new-repo", organization="my-workspace")
+        # URL の owner 部分が my-workspace であること
+        assert "/my-workspace/" in mock_responses.calls[0].request.url
+
+    def test_create_internal_raises(self, bitbucket_adapter):
+        """internal visibility は Bitbucket で未サポート。"""
+        with pytest.raises(NotSupportedError):
+            bitbucket_adapter.create_repository(name="new-repo", visibility="internal")
 
 
 class TestGetRepository:

@@ -7,7 +7,7 @@ from urllib.parse import quote
 
 import requests
 
-from gfo.exceptions import GfoError, NotFoundError
+from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 from gfo.http import paginate_link_header
 
 from .base import (
@@ -311,12 +311,25 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return [self._to_repository(r) for r in results]
 
     def create_repository(
-        self, *, name: str, private: bool = False, description: str = "", auto_init: bool = False
+        self,
+        *,
+        name: str,
+        visibility: str = "public",
+        description: str = "",
+        auto_init: bool = False,
+        organization: str | None = None,
     ) -> Repository:
-        payload = {"name": name, "private": private, "description": description}
+        if visibility == "internal":
+            raise NotSupportedError(self.service_name, "internal visibility")
+        private = visibility == "private"
+        payload: dict = {"name": name, "private": private, "description": description}
         if auto_init:
             payload["auto_init"] = True
-        resp = self._client.post("/user/repos", json=payload)
+        if organization:
+            path = f"/orgs/{quote(organization, safe='')}/repos"
+        else:
+            path = "/user/repos"
+        resp = self._client.post(path, json=payload)
         return self._to_repository(resp.json())
 
     def get_repository(self, owner: str | None = None, name: str | None = None) -> Repository:
@@ -395,7 +408,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def list_contributors(self, *, limit: int = 30) -> list[Contributor]:
         # Gitea / Forgejo は /repos/{owner}/{repo}/contributors を未実装
         # エンドポイントが追加された場合に備えて試行し、404 なら NotSupportedError
-        from gfo.exceptions import NotSupportedError
 
         try:
             results = paginate_link_header(
@@ -449,15 +461,20 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         clone_url: str,
         name: str,
         *,
-        private: bool = False,
+        visibility: str = "public",
         description: str = "",
         mirror: bool = False,
         auth_token: str | None = None,
+        organization: str | None = None,
     ) -> Repository:
+        if visibility == "internal":
+            raise NotSupportedError(self.service_name, "internal visibility")
+        private = visibility == "private"
+        repo_owner = organization if organization else self._owner
         payload: dict = {
             "clone_addr": clone_url,
             "repo_name": name,
-            "repo_owner": self._owner,
+            "repo_owner": repo_owner,
             "private": private,
             "mirror": mirror,
             "service": "git",

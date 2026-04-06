@@ -55,12 +55,12 @@ def _issue_data(*, number=1, state="open"):
     }
 
 
-def _repo_data():
+def _repo_data(*, private=False):
     return {
         "name": "test-repo",
         "full_name": "test-owner/test-repo",
         "description": "A test repo",
-        "private": False,
+        "private": private,
         "default_branch": "main",
         "clone_url": "https://gitbucket.example.com/test-owner/test-repo.git",
         "html_url": "https://gitbucket.example.com/test-owner/test-repo",

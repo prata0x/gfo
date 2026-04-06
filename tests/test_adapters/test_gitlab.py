@@ -75,13 +75,15 @@ def _issue_data(*, iid=1, state="opened"):
     }
 
 
-def _repo_data(*, name="test-repo", path_with_namespace="test-owner/test-repo"):
+def _repo_data(
+    *, name="test-repo", path_with_namespace="test-owner/test-repo", visibility="public"
+):
     return {
         "name": name,
         "path": name,
         "path_with_namespace": path_with_namespace,
         "description": "A test repo",
-        "visibility": "public",
+        "visibility": visibility,
         "default_branch": "main",
         "http_url_to_repo": f"https://gitlab.com/{path_with_namespace}.git",
         "web_url": f"https://gitlab.com/{path_with_namespace}",
@@ -259,7 +261,7 @@ class TestToRepository:
         repo = GitLabAdapter._to_repository(_repo_data())
         assert repo.name == "test-repo"
         assert repo.full_name == "test-owner/test-repo"
-        assert repo.private is False
+        assert repo.visibility == "public"
 
 
 class TestToRelease:
@@ -968,6 +970,32 @@ class TestCreateRepository:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["name"] == "test-repo"
         assert req_body["visibility"] == "public"
+
+    def test_create_org_repo(self, mock_responses, gitlab_adapter):
+        """組織（グループ）リポジトリを作成する。"""
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/projects",
+            json=_repo_data(),
+            status=201,
+        )
+        gitlab_adapter.create_repository(
+            name="new-repo", visibility="private", organization="my-group"
+        )
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["namespace_path"] == "my-group"
+
+    def test_create_internal_repo(self, mock_responses, gitlab_adapter):
+        """internal visibility のリポジトリを作成する。"""
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/projects",
+            json=_repo_data(visibility="internal"),
+            status=201,
+        )
+        gitlab_adapter.create_repository(name="new-repo", visibility="internal")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["visibility"] == "internal"
 
 
 class TestGetRepository:
@@ -3590,7 +3618,7 @@ class TestMigrateRepository:
         repo = gitlab_adapter.migrate_repository(
             "https://github.com/old/repo.git",
             "migrated",
-            private=True,
+            visibility="private",
             mirror=True,
             description="migrated repo",
         )
@@ -3620,6 +3648,26 @@ class TestMigrateRepository:
 
         body = json_mod.loads(responses.calls[0].request.body)
         assert "oauth2:tok@" in body["import_url"]
+
+    @responses.activate
+    def test_migrate_org_repo(self, gitlab_adapter):
+        """組織（グループ）にリポジトリを migrate する。"""
+        responses.add(
+            responses.POST,
+            f"{BASE}/projects",
+            json=_repo_data(name="migrated", path_with_namespace="my-group/migrated"),
+            status=201,
+        )
+        repo = gitlab_adapter.migrate_repository(
+            "https://github.com/old/repo.git",
+            "migrated",
+            organization="my-group",
+        )
+        assert repo.name == "migrated"
+        import json as json_mod
+
+        body = json_mod.loads(responses.calls[0].request.body)
+        assert body["namespace_path"] == "my-group"
 
 
 # ── C-01: download_release_asset パストラバーサル防止 ──
