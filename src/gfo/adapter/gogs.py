@@ -566,10 +566,11 @@ class GogsAdapter(GiteaAdapter):
         clone_url: str,
         name: str,
         *,
-        private: bool = False,
+        visibility: str = "public",
         description: str = "",
         mirror: bool = False,
         auth_token: str | None = None,
+        organization: str | None = None,
     ) -> Repository:
         raise NotSupportedError("Gogs", "repo migrate")
 

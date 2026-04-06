@@ -970,12 +970,18 @@ gfo repo list --visibility private
 ### gfo repo create
 
 ```
-gfo repo create NAME (--private | --public) [--description DESC] [--host HOST] [--readme]
+gfo repo create NAME (--private | --public | --internal) [--description DESC] [--host HOST] [--readme]
 ```
+
+`NAME` accepts `org/repo` format to create a repository under an organization. If only `repo` is given, a personal repository is created.
+
+`--internal` is only available for organization repositories (`org/repo` format).
 
 ```bash
 gfo repo create my-new-repo --private --description "My project"
 gfo repo create my-new-repo --public --host gitea.example.com
+gfo repo create my-org/my-repo --private
+gfo repo create my-org/my-repo --internal
 ```
 
 > **Note**: Azure DevOps and Backlog require `gfo init` configuration beforehand.
@@ -1146,14 +1152,16 @@ Import (migrate) an external repository.
 > **Supported services**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
 
 ```
-gfo repo migrate CLONE_URL --name NAME [--private] [--description DESC] [--mirror] [--auth-token TOKEN]
+gfo repo migrate CLONE_URL --name NAME [--private | --public | --internal] [--description DESC] [--mirror] [--auth-token TOKEN]
 ```
 
 | Option | Required | Description |
 |---|---|---|
 | `CLONE_URL` | **Required** | Clone URL of the source repository |
-| `--name` / `-n` | **Required** | Name of the repository to create |
+| `--name` / `-n` | **Required** | Name of the repository to create (`org/repo` format for organization repositories) |
 | `--private` | — | Create as a private repository |
+| `--public` | — | Create as a public repository (default) |
+| `--internal` | — | Create as an internal repository (organization only) |
 | `--description` / `-d` | — | Repository description |
 | `--mirror` | — | Create as a mirror repository |
 | `--auth-token` | — | Authentication token for private repositories |
@@ -1161,6 +1169,7 @@ gfo repo migrate CLONE_URL --name NAME [--private] [--description DESC] [--mirro
 ```bash
 gfo repo migrate https://github.com/other/repo.git --name my-repo
 gfo repo migrate https://github.com/other/private-repo.git --name imported --private --auth-token ghp_xxxx
+gfo repo migrate https://github.com/other/repo.git --name my-org/imported --internal
 ```
 
 ### gfo repo mirror

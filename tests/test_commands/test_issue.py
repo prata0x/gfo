@@ -1243,7 +1243,7 @@ class TestHandleDevelop:
             name="test-repo",
             full_name="test-owner/test-repo",
             description=None,
-            private=False,
+            visibility="public",
             default_branch=default_branch,
             clone_url="https://github.com/test-owner/test-repo.git",
             url="https://github.com/test-owner/test-repo",

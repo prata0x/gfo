@@ -72,7 +72,7 @@ class StubAdapter(GitServiceAdapter):
     def list_repositories(self, *, owner=None, limit=30):
         return []
 
-    def create_repository(self, *, name, private=False, description=""):
+    def create_repository(self, *, name, visibility="public", description=""):
         return None  # type: ignore[return-value]
 
     def get_repository(self, owner=None, name=None):

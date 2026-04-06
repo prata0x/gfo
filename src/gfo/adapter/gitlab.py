@@ -120,7 +120,7 @@ class GitLabAdapter(GitServiceAdapter):
                 name=data["path"],
                 full_name=data["path_with_namespace"],
                 description=data.get("description"),
-                private=data.get("visibility") == "private",
+                visibility=data.get("visibility", "private"),
                 default_branch=data.get("default_branch"),
                 clone_url=data["http_url_to_repo"],
                 url=data["web_url"],
@@ -435,12 +435,19 @@ class GitLabAdapter(GitServiceAdapter):
         return [self._to_repository(r) for r in results]
 
     def create_repository(
-        self, *, name: str, private: bool = False, description: str = "", auto_init: bool = False
+        self,
+        *,
+        name: str,
+        visibility: str = "public",
+        description: str = "",
+        auto_init: bool = False,
+        organization: str | None = None,
     ) -> Repository:
-        visibility = "private" if private else "public"
         payload: dict = {"name": name, "visibility": visibility, "description": description}
         if auto_init:
             payload["initialize_with_readme"] = True
+        if organization is not None:
+            payload["namespace_path"] = organization
         resp = self._client.post("/projects", json=payload)
         return self._to_repository(resp.json())
 
@@ -568,20 +575,23 @@ class GitLabAdapter(GitServiceAdapter):
         clone_url: str,
         name: str,
         *,
-        private: bool = False,
+        visibility: str = "public",
         description: str = "",
         mirror: bool = False,
         auth_token: str | None = None,
+        organization: str | None = None,
     ) -> Repository:
         payload: dict = {
             "name": name,
             "import_url": clone_url,
-            "visibility": "private" if private else "public",
+            "visibility": visibility,
         }
         if description:
             payload["description"] = description
         if mirror:
             payload["mirror"] = True
+        if organization is not None:
+            payload["namespace_path"] = organization
         if auth_token:
             payload["import_url"] = clone_url.replace("://", f"://oauth2:{auth_token}@")
         try:

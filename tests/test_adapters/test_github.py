@@ -76,12 +76,16 @@ def _issue_data(*, number=1, state="open", has_pr=False):
     return data
 
 
-def _repo_data(*, name="test-repo", full_name="test-owner/test-repo"):
+def _repo_data(
+    *, name="test-repo", full_name="test-owner/test-repo", private=False, visibility=None
+):
+    v = visibility if visibility is not None else ("private" if private else "public")
     return {
         "name": name,
         "full_name": full_name,
         "description": "A test repo",
-        "private": False,
+        "private": private,
+        "visibility": v,
         "default_branch": "main",
         "clone_url": f"https://github.com/{full_name}.git",
         "html_url": f"https://github.com/{full_name}",
@@ -232,7 +236,7 @@ class TestToRepository:
         repo = GitHubAdapter._to_repository(_repo_data())
         assert repo.name == "test-repo"
         assert repo.full_name == "test-owner/test-repo"
-        assert repo.private is False
+        assert repo.visibility == "public"
 
 
 class TestToRelease:
@@ -976,6 +980,43 @@ class TestCreateRepository:
         assert isinstance(repo, Repository)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["name"] == "test-repo"
+
+    def test_create_org_repo(self, mock_responses, github_adapter):
+        """組織リポジトリを作成する。"""
+        mock_responses.add(
+            responses.POST,
+            "https://api.github.com/orgs/my-org/repos",
+            json=_repo_data(name="new-repo", full_name="my-org/new-repo"),
+            status=201,
+        )
+        repo = github_adapter.create_repository(
+            name="new-repo", visibility="private", organization="my-org"
+        )
+        assert isinstance(repo, Repository)
+        assert repo.name == "new-repo"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["name"] == "new-repo"
+        assert req_body["private"] is True
+
+    def test_create_internal_org_repo(self, mock_responses, github_adapter):
+        """組織で internal visibility のリポジトリを作成する。"""
+        mock_responses.add(
+            responses.POST,
+            "https://api.github.com/orgs/my-org/repos",
+            json=_repo_data(
+                name="internal-repo",
+                full_name="my-org/internal-repo",
+                private=False,
+                visibility="internal",
+            ),
+            status=201,
+        )
+        repo = github_adapter.create_repository(
+            name="internal-repo", visibility="internal", organization="my-org"
+        )
+        assert repo.visibility == "internal"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["visibility"] == "internal"
 
 
 class TestGetRepository:
@@ -3304,7 +3345,7 @@ class TestMigrateRepository:
         responses.add(
             responses.POST,
             "https://api.github.com/user/repos",
-            json=_repo_data(name="migrated"),
+            json=_repo_data(name="migrated", full_name="test-owner/migrated"),
             status=201,
         )
         responses.add(
@@ -3321,7 +3362,7 @@ class TestMigrateRepository:
         responses.add(
             responses.POST,
             "https://api.github.com/user/repos",
-            json=_repo_data(name="migrated"),
+            json=_repo_data(name="migrated", full_name="test-owner/migrated"),
             status=201,
         )
         responses.add(
@@ -3342,6 +3383,26 @@ class TestMigrateRepository:
         body = json_mod.loads(responses.calls[1].request.body)
         assert body["vcs_username"] == "x-access-token"
         assert body["vcs_password"] == "secret-token"
+
+    @responses.activate
+    def test_migrate_org_repo(self, github_adapter):
+        """組織にリポジトリを migrate する。"""
+        responses.add(
+            responses.POST,
+            "https://api.github.com/orgs/my-org/repos",
+            json=_repo_data(name="migrated", full_name="my-org/migrated"),
+            status=201,
+        )
+        responses.add(
+            responses.PUT,
+            "https://api.github.com/repos/my-org/migrated/import",
+            json={"status": "importing"},
+            status=201,
+        )
+        repo = github_adapter.migrate_repository(
+            "https://other.com/old/repo.git", "migrated", organization="my-org"
+        )
+        assert repo.name == "migrated"
 
 
 # --- Phase 5: Reaction / Search / Star / Transfer / Pin / Timeline ---

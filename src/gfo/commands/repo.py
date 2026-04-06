@@ -31,7 +31,7 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         archived=getattr(args, "archived", None),
         visibility=getattr(args, "visibility", None),
     )
-    output(repos, fmt=fmt, fields=["name", "full_name", "private", "description"], jq=jq)
+    output(repos, fmt=fmt, fields=["name", "full_name", "visibility", "description"], jq=jq)
 
 
 def _resolve_host_without_repo(args_host: str | None) -> tuple[str, str]:
@@ -77,25 +77,51 @@ def _resolve_host_without_repo(args_host: str | None) -> tuple[str, str]:
     return host, service_type
 
 
+def _parse_create_name(name: str) -> tuple[str | None, str]:
+    """'org/repo' または 'repo' 形式の名前をパースする。
+
+    Returns:
+        (organization, repo_name) のタプル。org なしの場合 organization は None。
+    """
+    if "/" in name:
+        org, repo_name = name.split("/", 1)
+        if not org or not repo_name:
+            raise ConfigError(
+                _(
+                    "Invalid name format '{name}'. Expected 'org/repo' with non-empty org and repo."
+                ).format(name=name)
+            )
+        return org, repo_name
+    return None, name
+
+
 def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo create のハンドラ。"""
+    org, repo_name = _parse_create_name(args.name)
+    visibility = args.visibility
+
+    if visibility == "internal" and org is None:
+        raise ConfigError(
+            _("--internal requires an organization. Use 'org/name' format for the repository name.")
+        )
+
     host, service_type = _resolve_host_without_repo(getattr(args, "host", None))
 
     # Azure DevOps と Backlog は API URL 構築・アダプター生成に organization/project_key が必要。
     # 現在のプロジェクト設定から取得を試みる（git リポジトリ外では ConfigError が発生する）。
-    organization: str | None = None
+    azure_org: str | None = None
     project_key: str | None = None
     if service_type in ("azure-devops", "backlog"):
         try:
             cfg = resolve_project_config()
             if cfg.service_type == service_type:
-                organization = cfg.organization
+                azure_org = cfg.organization
                 project_key = cfg.project_key
         except ConfigError:
             pass
 
     token = resolve_token(host, service_type)
-    api_url = build_default_api_url(service_type, host, organization, project_key)
+    api_url = build_default_api_url(service_type, host, azure_org, project_key)
 
     client = create_http_client(service_type, api_url, token)
     adapter_cls = get_adapter_class(service_type)
@@ -109,21 +135,22 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
             )
         extra_kwargs["project_key"] = project_key
     elif service_type == "azure-devops":
-        if not organization or not project_key:
+        if not azure_org or not project_key:
             raise ConfigError(
                 _(
                     "Azure DevOps requires an organization and a project. Run 'gfo init' first to configure."
                 )
             )
-        extra_kwargs["organization"] = organization
+        extra_kwargs["organization"] = azure_org
         extra_kwargs["project_key"] = project_key
 
     adapter = adapter_cls(client, "", "", **extra_kwargs)
     repo = adapter.create_repository(
-        name=args.name,
-        private=args.private,
+        name=repo_name,
+        visibility=visibility,
         description=getattr(args, "description", "") or "",
         auto_init=getattr(args, "readme", False),
+        organization=org,
     )
     output(repo, fmt=fmt, jq=jq)
 
@@ -334,14 +361,23 @@ def handle_compare(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
 
 def handle_migrate(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo migrate のハンドラ。"""
+    org, repo_name = _parse_create_name(args.name)
+    visibility = getattr(args, "visibility", "public") or "public"
+
+    if visibility == "internal" and org is None:
+        raise ConfigError(
+            _("--internal requires an organization. Use 'org/name' format for the repository name.")
+        )
+
     adapter = get_adapter()
     repo = adapter.migrate_repository(
         args.clone_url,
-        args.name,
-        private=getattr(args, "private", False),
+        repo_name,
+        visibility=visibility,
         description=getattr(args, "description", "") or "",
         mirror=getattr(args, "mirror", False),
         auth_token=getattr(args, "auth_token", None),
+        organization=org,
     )
     output(repo, fmt=fmt, jq=jq)
 

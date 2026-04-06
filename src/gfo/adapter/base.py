@@ -74,7 +74,7 @@ class Repository:
     name: str
     full_name: str  # "owner/repo"
     description: str | None
-    private: bool
+    visibility: str  # "public" | "private" | "internal"
     default_branch: str | None
     clone_url: str
     url: str
@@ -454,7 +454,7 @@ class GitHubLikeAdapter(ABC):
             name=data["name"],
             full_name=data["full_name"],
             description=data.get("description"),
-            private=data["private"],
+            visibility=data.get("visibility") or ("private" if data.get("private") else "public"),
             default_branch=data.get("default_branch"),
             clone_url=data["clone_url"],
             url=data["html_url"],
@@ -834,7 +834,13 @@ class GitServiceAdapter(ABC):
 
     @abstractmethod
     def create_repository(
-        self, *, name: str, private: bool = False, description: str = "", auto_init: bool = False
+        self,
+        *,
+        name: str,
+        visibility: str = "public",
+        description: str = "",
+        auto_init: bool = False,
+        organization: str | None = None,
     ) -> Repository: ...
 
     @abstractmethod
@@ -911,10 +917,11 @@ class GitServiceAdapter(ABC):
         clone_url: str,
         name: str,
         *,
-        private: bool = False,
+        visibility: str = "public",
         description: str = "",
         mirror: bool = False,
         auth_token: str | None = None,
+        organization: str | None = None,
     ) -> Repository:
         raise NotSupportedError(self.service_name, "repo migrate")
 

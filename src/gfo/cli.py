@@ -525,10 +525,17 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         help=_("Filter by visibility"),
     )
     repo_create = repo_sub.add_parser("create", help=_("Create repository"))
-    repo_create.add_argument("name", help=_("Repository name"))
+    repo_create.add_argument("name", help=_("Repository name or org/name"))
     _repo_create_visibility = repo_create.add_mutually_exclusive_group(required=True)
-    _repo_create_visibility.add_argument("--private", dest="private", action="store_true")
-    _repo_create_visibility.add_argument("--public", dest="private", action="store_false")
+    _repo_create_visibility.add_argument(
+        "--private", dest="visibility", action="store_const", const="private"
+    )
+    _repo_create_visibility.add_argument(
+        "--public", dest="visibility", action="store_const", const="public"
+    )
+    _repo_create_visibility.add_argument(
+        "--internal", dest="visibility", action="store_const", const="internal"
+    )
     repo_create.add_argument("--description", "-d", default="", help=_("Description"))
     repo_create.add_argument(
         "--readme", action="store_true", default=False, help=_("Initialize with README")
@@ -655,8 +662,18 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     # gfo repo migrate
     repo_migrate = repo_sub.add_parser("migrate", help=_("Migrate repository from URL"))
     repo_migrate.add_argument("clone_url", help=_("Clone URL of source repository"))
-    repo_migrate.add_argument("--name", "-n", required=True, help=_("Repository name"))
-    repo_migrate.add_argument("--private", action="store_true", help=_("Create as private"))
+    repo_migrate.add_argument("--name", "-n", required=True, help=_("Repository name or org/name"))
+    _repo_migrate_visibility = repo_migrate.add_mutually_exclusive_group()
+    _repo_migrate_visibility.add_argument(
+        "--private", dest="visibility", action="store_const", const="private"
+    )
+    _repo_migrate_visibility.add_argument(
+        "--public", dest="visibility", action="store_const", const="public"
+    )
+    _repo_migrate_visibility.add_argument(
+        "--internal", dest="visibility", action="store_const", const="internal"
+    )
+    repo_migrate.set_defaults(visibility="public")
     repo_migrate.add_argument("--description", "-d", default="", help=_("Description"))
     repo_migrate.add_argument("--mirror", action="store_true", help=_("Create as mirror"))
     repo_migrate.add_argument(

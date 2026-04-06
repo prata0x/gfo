@@ -970,12 +970,18 @@ gfo repo list --visibility private
 ### gfo repo create
 
 ```
-gfo repo create NAME (--private | --public) [--description DESC] [--host HOST]
+gfo repo create NAME (--private | --public | --internal) [--description DESC] [--host HOST] [--readme]
 ```
+
+`NAME` は `org/repo` 形式で組織配下にリポジトリを作成できます。`repo` のみの場合は個人リポジトリを作成します。
+
+`--internal` は組織リポジトリ（`org/repo` 形式）でのみ使用できます。
 
 ```bash
 gfo repo create my-new-repo --private --description "My project"
 gfo repo create my-new-repo --public --host gitea.example.com
+gfo repo create my-org/my-repo --private
+gfo repo create my-org/my-repo --internal
 ```
 
 > **注意**: Azure DevOps と Backlog は事前に `gfo init` で設定が必要です。
@@ -1146,14 +1152,16 @@ gfo repo compare <base>..<head>
 > **対応サービス**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
 
 ```
-gfo repo migrate CLONE_URL --name NAME [--private] [--description DESC] [--mirror] [--auth-token TOKEN]
+gfo repo migrate CLONE_URL --name NAME [--private | --public | --internal] [--description DESC] [--mirror] [--auth-token TOKEN]
 ```
 
 | オプション | 必須 | 説明 |
 |---|---|---|
 | `CLONE_URL` | **必須** | インポート元リポジトリの clone URL |
-| `--name` / `-n` | **必須** | 作成するリポジトリ名 |
+| `--name` / `-n` | **必須** | 作成するリポジトリ名（組織リポジトリは `org/repo` 形式） |
 | `--private` | — | 非公開リポジトリとして作成 |
+| `--public` | — | 公開リポジトリとして作成（デフォルト） |
+| `--internal` | — | internal リポジトリとして作成（組織のみ） |
 | `--description` / `-d` | — | リポジトリの説明 |
 | `--mirror` | — | ミラーリポジトリとして作成 |
 | `--auth-token` | — | プライベートリポジトリの認証トークン |
@@ -1161,6 +1169,7 @@ gfo repo migrate CLONE_URL --name NAME [--private] [--description DESC] [--mirro
 ```bash
 gfo repo migrate https://github.com/other/repo.git --name my-repo
 gfo repo migrate https://github.com/other/private-repo.git --name imported --private --auth-token ghp_xxxx
+gfo repo migrate https://github.com/other/repo.git --name my-org/imported --internal
 ```
 
 ### gfo repo mirror

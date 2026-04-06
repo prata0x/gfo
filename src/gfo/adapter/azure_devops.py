@@ -155,7 +155,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 name=data["name"],
                 full_name=f"{project}/{data['name']}",
                 description=(data.get("project") or {}).get("description"),
-                private=True,
+                visibility="private",
                 default_branch=_strip_refs_prefix(data.get("defaultBranch") or ""),
                 clone_url=data.get("remoteUrl", ""),
                 url=data.get("webUrl", ""),
@@ -600,10 +600,17 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         return [self._to_repository(r, self._project) for r in results]
 
     def create_repository(
-        self, *, name: str, private: bool = False, description: str = "", auto_init: bool = False
+        self,
+        *,
+        name: str,
+        visibility: str = "public",
+        description: str = "",
+        auto_init: bool = False,
+        organization: str | None = None,
     ) -> Repository:
         self._warn_unsupported_params("repo create", auto_init=auto_init)
         # project はベース URL に含まれるため payload には含めない
+        # visibility, organization は Azure DevOps ではプロジェクトスコープのため無視
         payload = {"name": name}
         resp = self._client.post("/git/repositories", json=payload)
         return self._to_repository(resp.json(), self._project)
@@ -687,13 +694,16 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         clone_url: str,
         name: str,
         *,
-        private: bool = False,
+        visibility: str = "public",
         description: str = "",
         mirror: bool = False,
         auth_token: str | None = None,
+        organization: str | None = None,
     ) -> Repository:
         # まずリポジトリを作成
-        repo = self.create_repository(name=name, private=private, description=description)
+        repo = self.create_repository(
+            name=name, visibility=visibility, description=description, organization=organization
+        )
         # Import Request
         payload: dict = {"parameters": {"gitSource": {"url": clone_url}}}
         if auth_token:
