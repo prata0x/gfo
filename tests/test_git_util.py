@@ -277,41 +277,73 @@ class TestGitFetch:
 class TestGitCheckoutBranch:
     @patch("gfo.git_util.subprocess.run")
     def test_new_branch_created_when_not_exists(self, mock_run):
-        """`checkout -b` が成功した場合はそのまま終了する。"""
-        mock_run.return_value = _mock_result()
-        git_util.git_checkout_branch("pr-42")
-        mock_run.assert_called_once_with(
-            ["git", "checkout", "-b", "pr-42", "FETCH_HEAD"],
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=30,
-            cwd=None,
-            shell=False,
-        )
-
-    @patch("gfo.git_util.subprocess.run")
-    def test_falls_back_to_checkout_when_branch_already_exists(self, mock_run):
-        """`checkout -b` が "already exists" エラーの場合は `checkout branch` にフォールバック。"""
+        """rev-parse が失敗（ブランチ不在）→ checkout -b で新規作成。"""
+        # 1 回目: rev-parse 失敗（returncode != 0）、2 回目: checkout -b 成功
         mock_run.side_effect = [
-            _mock_result(stderr="fatal: A branch named 'pr-42' already exists.", returncode=128),
+            _mock_result(stderr="fatal: Needed a single revision", returncode=128),
             _mock_result(),
         ]
         git_util.git_checkout_branch("pr-42")
         assert mock_run.call_count == 2
-        second_call_args = mock_run.call_args_list[1]
-        assert second_call_args.args[0] == ["git", "checkout", "pr-42"]
+        # 1 回目は rev-parse、2 回目は checkout -b
+        assert mock_run.call_args_list[0].args[0] == [
+            "git",
+            "rev-parse",
+            "--verify",
+            "refs/heads/pr-42",
+        ]
+        assert mock_run.call_args_list[1].args[0] == [
+            "git",
+            "checkout",
+            "-b",
+            "pr-42",
+            "FETCH_HEAD",
+        ]
 
     @patch("gfo.git_util.subprocess.run")
-    def test_reraises_other_git_errors(self, mock_run):
-        """`checkout -b` が "already exists" 以外のエラーの場合は再送出する（R34-02）。"""
-        mock_run.return_value = _mock_result(
-            stderr="error: Your local changes to the following files would be overwritten",
-            returncode=1,
-        )
+    def test_switches_to_existing_branch(self, mock_run):
+        """rev-parse が成功（ブランチ既存）→ checkout {branch} にスイッチ。"""
+        mock_run.side_effect = [
+            _mock_result(stdout="abc123\n"),  # rev-parse 成功
+            _mock_result(),  # checkout 成功
+        ]
+        git_util.git_checkout_branch("pr-42")
+        assert mock_run.call_count == 2
+        assert mock_run.call_args_list[1].args[0] == ["git", "checkout", "pr-42"]
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_locale_independent(self, mock_run):
+        """rev-parse はメッセージ文字列に依存しないため、日本語環境でも動作する。
+
+        旧実装は git のエラーメッセージに含まれる "already exists" を文字列マッチ
+        していたため、LC_ALL=ja_JP.UTF-8 等で git のメッセージが翻訳されると
+        既存ブランチを検出できずエラーになっていた。
+        """
+        # 日本語環境を想定: rev-parse は returncode のみで判定するので
+        # stderr が日本語でも動作する
+        mock_run.side_effect = [
+            _mock_result(stderr="fatal: 単一のリビジョンが必要です", returncode=128),
+            _mock_result(),
+        ]
+        git_util.git_checkout_branch("pr-42")
+        # ブランチ不在として扱われ checkout -b が実行される
+        assert mock_run.call_args_list[1].args[0][:3] == ["git", "checkout", "-b"]
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_reraises_checkout_b_errors(self, mock_run):
+        """ブランチ不在で checkout -b 自体が失敗した場合は GitCommandError を再送出する。"""
+        mock_run.side_effect = [
+            _mock_result(
+                stderr="fatal: Needed a single revision", returncode=128
+            ),  # rev-parse 失敗
+            _mock_result(
+                stderr="error: Your local changes to the following files would be overwritten",
+                returncode=1,
+            ),  # checkout -b 失敗
+        ]
         with pytest.raises(GitCommandError):
             git_util.git_checkout_branch("pr-42")
-        assert mock_run.call_count == 1
+        assert mock_run.call_count == 2
 
 
 class TestGitCheckoutNewBranch:

@@ -139,14 +139,19 @@ def git_checkout_new_branch(branch: str, start: str = "FETCH_HEAD", cwd: str | N
 
 
 def git_checkout_branch(branch: str, start: str = "FETCH_HEAD", cwd: str | None = None) -> None:
-    """ブランチが存在しなければ新規作成、存在すれば既存ブランチにスイッチする。"""
+    """ブランチが存在しなければ新規作成、存在すれば既存ブランチにスイッチする。
+
+    既存ブランチの判定には git rev-parse --verify を使う。
+    旧実装は git のエラーメッセージに "already exists" が含まれるかで判定していたが、
+    git のメッセージは LC_ALL によって翻訳されるため日本語環境等で機能しなかった。
+    """
     try:
+        run_git("rev-parse", "--verify", f"refs/heads/{branch}", cwd=cwd)
+        # ブランチが存在する → 既存ブランチへスイッチ
+        run_git("checkout", branch, cwd=cwd)
+    except GitCommandError:
+        # ブランチが存在しない → 新規作成
         run_git("checkout", "-b", branch, start, cwd=cwd)
-    except GitCommandError as e:
-        if "already exists" in str(e).lower():
-            run_git("checkout", branch, cwd=cwd)
-        else:
-            raise
 
 
 def git_clone(url: str, dest: str | None = None, cwd: str | None = None) -> None:
