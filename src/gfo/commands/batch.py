@@ -6,7 +6,7 @@ import argparse
 from dataclasses import dataclass
 
 from gfo.commands import create_adapter_from_spec, parse_service_spec
-from gfo.exceptions import ConfigError
+from gfo.exceptions import ConfigError, GfoError
 from gfo.i18n import _
 from gfo.output import output
 
@@ -34,6 +34,7 @@ def handle_batch_pr(args: argparse.Namespace, *, fmt: str, jq: str | None = None
         spec_str = spec_str.strip()
         if not spec_str:
             continue
+        spec = None  # ループの except で再利用するためあらかじめ宣言
         try:
             spec = parse_service_spec(spec_str)
             adapter = create_adapter_from_spec(spec)
@@ -59,13 +60,14 @@ def handle_batch_pr(args: argparse.Namespace, *, fmt: str, jq: str | None = None
                     repo=repo_label, number=pr.number, url=pr.url, status="created", error=None
                 )
             )
-        except Exception as e:
-            repo_label = spec_str
-            try:
-                spec = parse_service_spec(spec_str)
+        except GfoError as e:
+            # GfoError 系（HttpError / NetworkError / ConfigError / AuthError 等）のみ
+            # 「failed」として記録する。AttributeError / TypeError / KeyError などの
+            # プログラミングエラーは握りつぶさず再 raise する（実装バグを隠さない）。
+            if spec is not None:
                 repo_label = f"{spec.service_type}:{spec.owner}/{spec.repo}"
-            except Exception:  # nosec B110 - best-effort label extraction on failure
-                pass
+            else:
+                repo_label = spec_str
             results.append(
                 BatchPrResult(repo=repo_label, number=None, url=None, status="failed", error=str(e))
             )
