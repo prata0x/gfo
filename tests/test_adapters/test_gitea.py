@@ -3177,6 +3177,32 @@ class TestListContributorsGitea:
         with pytest.raises(NotSupportedError):
             gitea_adapter.list_contributors()
 
+    def test_auth_error_propagates(self, mock_responses, gitea_adapter):
+        """401 を NotSupportedError に潰さず AuthenticationError として伝播させる。"""
+        from gfo.exceptions import AuthenticationError
+
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/contributors",
+            json={"message": "unauthorized"},
+            status=401,
+        )
+        with pytest.raises(AuthenticationError):
+            gitea_adapter.list_contributors()
+
+    def test_server_error_propagates(self, mock_responses, gitea_adapter):
+        """5xx を NotSupportedError に潰さず ServerError として伝播させる。"""
+        from gfo.exceptions import ServerError
+
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/contributors",
+            json={"message": "internal"},
+            status=500,
+        )
+        with pytest.raises(ServerError):
+            gitea_adapter.list_contributors()
+
 
 class TestArchiveRepositoryGitea:
     @responses.activate

@@ -418,7 +418,10 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def list_contributors(self, *, limit: int = 30) -> list[Contributor]:
         # Gitea / Forgejo は /repos/{owner}/{repo}/contributors を未実装
-        # エンドポイントが追加された場合に備えて試行し、404 なら NotSupportedError
+        # エンドポイントが追加された場合に備えて試行し、404 のみ NotSupportedError。
+        # 認証エラー・5xx・ネットワーク断は本来の例外として伝播させる（誤って
+        # 「機能未対応」と報告すると問題の切り分けができなくなるため）。
+        from gfo.exceptions import NotFoundError
 
         try:
             results = paginate_link_header(
@@ -427,7 +430,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 limit=limit,
                 per_page_key="limit",
             )
-        except Exception:
+        except NotFoundError:
             raise NotSupportedError(self.service_name, "repo contributors")
         return [
             Contributor(
