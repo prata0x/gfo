@@ -9,6 +9,7 @@ from gfo.config import (
     build_default_api_url,
     get_host_config,
     save_project_config,
+    validate_api_url,
 )
 from gfo.detect import DetectResult, detect_from_url, detect_service, normalize_host
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
@@ -79,6 +80,9 @@ def _handle_non_interactive(args: argparse.Namespace) -> None:
         api_url = build_default_api_url(
             service_type, host, organization=detect_result.organization, project=project_key
         )
+
+    # 平文 http:// の api_url は PAT 漏えいリスクのため拒否（localhost / opt-in を除く）
+    validate_api_url(api_url)
 
     config = ProjectConfig(
         service_type=service_type,
@@ -196,6 +200,9 @@ def _handle_interactive(args: argparse.Namespace) -> None:
                             "Could not build API URL for {service_type}: {e}. Use --api-url to specify the URL manually."
                         ).format(service_type=service_type, e=e)
                     ) from e
+
+    # 平文 http:// の api_url は PAT 漏えいリスクのため拒否（localhost / opt-in を除く）
+    validate_api_url(api_url)
 
     config = ProjectConfig(
         service_type=service_type,
