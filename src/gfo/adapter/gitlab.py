@@ -607,11 +607,19 @@ class GitLabAdapter(GitServiceAdapter):
             payload["namespace_path"] = organization
         if auth_token:
             payload["import_url"] = clone_url.replace("://", f"://oauth2:{auth_token}@")
+        # auth_token は import_url に embed されるため、サーバー応答エラー本文や
+        # ネットワーク例外文字列に漏れうる。例外型を保ったまま args 全体を
+        # マスクして再 raise する。GfoError 系・NetworkError・予期しない例外まで含めて
+        # auth_token が含まれていれば *** に置換する。
         try:
             resp = self._client.post("/projects", json=payload)
-        except GfoError as e:
+        except Exception as e:
             if auth_token:
-                raise type(e)(str(e).replace(auth_token, "***")) from e.__cause__
+                new_args = tuple(
+                    a.replace(auth_token, "***") if isinstance(a, str) else a for a in e.args
+                )
+                if new_args != e.args:
+                    e.args = new_args
             raise
         return self._to_repository(resp.json())
 
