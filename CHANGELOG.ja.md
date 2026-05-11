@@ -1,5 +1,40 @@
 # 変更履歴
 
+## [0.10.0] - 2026-05-12
+
+### 追加
+- `auth login`: `--token-stdin`（標準入力から読み込み、CI 推奨）と `--token-file PATH` オプションを追加
+- `GFO_ALLOW_INSECURE_HTTP` 環境変数: `api_url` での `http://` を opt-in で許可（`localhost` / `127.0.0.1` / `::1` 以外）
+- `GFO_ALLOW_PRIVATE_HOSTS` 環境変数: プライベート / ループバック / リンクローカル IP への API プローブを opt-in で許可（社内 Gitea/GitLab 自動検出に必要）
+- `GFO_MAX_DOWNLOAD_BYTES` 環境変数: ストリーミングダウンロードのサイズ上限（既定 5 GiB、`0` で無制限）
+
+### 修正
+- `pr list --state merged`（GitHub / Gitea）: closed PR が大量にある場合に件数が不足する不具合を修正。全 closed PR をページネートしてからフィルタするよう変更
+- `_resolve_label_ids`（Gitea）: サーバー実装に依存する `limit=0` 挙動に頼らず全ラベルをページネートするよう修正
+- `_resolve_user_ids`（GitLab）: 未解決ユーザーを警告で握りつぶさず `GfoError` を送出（assignee/reviewer 同期のサイレント部分失敗を防止）
+- `list_contributors`（Gitea）: `NotFoundError` のみキャッチし、認証/サーバー/ネットワークエラーは伝播（未対応と誤報告しないよう修正）
+- `list_pull_request_files` / `list_requested_reviewers`（Azure DevOps）: `.get()` 前にレスポンスが `dict` であることを検証し、想定外の型は `GfoError` で送出
+- `detect_service`: remote URL が取得できない場合に保存済み git config にフォールバック（bare リポジトリ / origin 未設定 CI で動作）
+- `gfo config set/get` のキーに閉じ引用符がないとき、素の `ValueError` ではなく `ConfigError` を送出
+- `git_checkout_branch`: locale 依存の stderr マッチを廃止し `git rev-parse --verify` で判定（非英語ロケールでも動作）
+- `repo compare`（GitLab）: `additions` / `deletions` の行数カウントを実装（従来は常に `0`）
+- `batch pr create`: 例外捕捉を `GfoError` 系に絞り、プログラミングバグを「failed」として握りつぶさず顕在化させるよう変更
+
+### セキュリティ
+- `download_file`: クロスオリジン URL からのダウンロード時に認証ヘッダ / Cookie / 認証パラメータを送らない（GitLab `direct_asset_url` 等の外部ホストへの PAT 漏えい防止）
+- `download_file`: `GFO_MAX_DOWNLOAD_BYTES`（既定 5 GiB）の上限を強制し、超過時は部分書き込みファイルを削除（悪意あるサーバーによる DoS 抑止）
+- `download_release_asset` / `download_artifact` / `download_run_logs`: `Path.is_relative_to` による厳格な path traversal 防御、ユーザー入力 ID の basename 正規化を追加
+- `GitLab.migrate_repository`: 例外型を保ったまま `args` を書き換え、全例外パスで `auth_token` をマスク
+- `HttpError`: エラーメッセージ中のレスポンス body を 4096 文字で切り詰め（巨大 body による DoS 防止）
+- `detect.py` プローブ: `/api/*/version` プローブでリダイレクトを無効化（リダイレクト経由の情報漏えい防止）
+- `auth login --token`: プロセスリストから可視で安全でない旨の警告を表示（`--token-stdin` / `--token-file` を推奨）
+
+### 破壊的変更
+- `api_url` は既定で `https://` のみ受理（従来: スキーム不問）。`GFO_ALLOW_INSECURE_HTTP=1` で平文 HTTP を opt-in 許可、`localhost` / `127.0.0.1` / `::1` は常に許可
+- 未知ホストのサービス検出で、プライベート / ループバック / リンクローカル IP へのプローブを既定で拒否。`GFO_ALLOW_PRIVATE_HOSTS=1` で復元可能（社内 Gitea/GitLab 自動検出に必要）
+- `GFO_INSECURE` はクラウドサービス（github.com / gitlab.com / bitbucket.org / dev.azure.com / *.backlog.com / *.backlog.jp / *.visualstudio.com）の TLS 検証を無効化しなくなった。設定時、起動時に stderr に警告を表示
+- `auth login --token TOKEN`: 非推奨化（警告を出しつつ動作は維持）。`--token-stdin` / `--token-file` への移行を推奨
+
 ## [0.9.0] - 2026-04-06
 
 ### 追加

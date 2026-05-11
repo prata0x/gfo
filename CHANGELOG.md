@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.10.0] - 2026-05-12
+
+### Added
+- `auth login`: added `--token-stdin` (read from stdin, recommended for CI) and `--token-file PATH` options
+- `GFO_ALLOW_INSECURE_HTTP` environment variable: opt-in to allow `http://` for `api_url` (other than `localhost` / `127.0.0.1` / `::1`)
+- `GFO_ALLOW_PRIVATE_HOSTS` environment variable: opt-in to allow API probing of private / loopback / link-local IPs (needed for internal Gitea/GitLab auto-detection)
+- `GFO_MAX_DOWNLOAD_BYTES` environment variable: cap on streaming download size (default 5 GiB; `0` for unlimited)
+
+### Fixed
+- `pr list --state merged` (GitHub / Gitea): no longer undercounts when many closed PRs exist; paginates through all closed PRs before filtering
+- `_resolve_label_ids` (Gitea): paginate all labels instead of relying on server-dependent `limit=0` behavior
+- `_resolve_user_ids` (GitLab): raise `GfoError` for unresolved usernames instead of silently warning (prevents silent partial assignee/reviewer sync)
+- `list_contributors` (Gitea): only catch `NotFoundError`; propagate auth / server / network errors instead of misreporting as unsupported
+- `list_pull_request_files` / `list_requested_reviewers` (Azure DevOps): validate response is `dict` before `.get()`, raise `GfoError` on unexpected type
+- `detect_service`: fall back to saved git config when remote URL cannot be retrieved (works in bare repos / CI without origin)
+- `gfo config set/get` with unmatched quote in key: raise `ConfigError` instead of bare `ValueError`
+- `git_checkout_branch`: replace locale-dependent stderr match with `git rev-parse --verify` (works under non-English locale)
+- `repo compare` (GitLab): implement `additions` / `deletions` line counts (previously always `0`)
+- `batch pr create`: narrow exception catch to `GfoError` so programming bugs surface instead of being recorded as "failed"
+
+### Security
+- `download_file`: strip auth headers / cookies / auth params when downloading from a cross-origin URL (prevents PAT leakage to GitLab `direct_asset_url` external hosts)
+- `download_file`: enforce `GFO_MAX_DOWNLOAD_BYTES` ceiling (default 5 GiB) and delete partial file on overflow (mitigates malicious-server DoS)
+- `download_release_asset` / `download_artifact` / `download_run_logs`: stricter path traversal guard using `Path.is_relative_to`, basename normalization for user-supplied IDs
+- `GitLab.migrate_repository`: mask `auth_token` in every exception path (preserves exception type while rewriting `args`)
+- `HttpError`: truncate response body at 4096 chars in error messages (prevents huge-body DoS)
+- `detect.py` probes: disable redirects on `/api/*/version` probes (avoids redirect-based information disclosure)
+- `auth login --token`: emit insecure warning (argv visible in process list); prefer `--token-stdin` / `--token-file`
+
+### Breaking Changes
+- `api_url` accepts only `https://` by default (was: any scheme). Use `GFO_ALLOW_INSECURE_HTTP=1` to opt in to plain HTTP; `localhost` / `127.0.0.1` / `::1` are always permitted
+- Unknown-host service detection no longer probes private / loopback / link-local IPs by default. Set `GFO_ALLOW_PRIVATE_HOSTS=1` to restore (needed for internal Gitea/GitLab auto-detection)
+- `GFO_INSECURE` no longer disables TLS verification for cloud-hosted services (github.com, gitlab.com, bitbucket.org, dev.azure.com, *.backlog.com / *.backlog.jp, *.visualstudio.com); a warning is printed to stderr on startup when set
+- `auth login --token TOKEN`: deprecated (still works with a warning); migrate to `--token-stdin` / `--token-file`
+
 ## [0.9.0] - 2026-04-06
 
 ### Added
