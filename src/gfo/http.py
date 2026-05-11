@@ -5,6 +5,7 @@ from __future__ import annotations
 import email.utils
 import os
 import re
+import sys
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -16,7 +17,41 @@ import requests
 import gfo.exceptions
 
 _MAX_RETRY_AFTER = 300
-_VERIFY_SSL = os.environ.get("GFO_INSECURE", "").lower() not in ("1", "true", "yes")
+_INSECURE_ENV = os.environ.get("GFO_INSECURE", "").lower() in ("1", "true", "yes")
+_VERIFY_SSL = not _INSECURE_ENV
+
+# クラウド固定ホストでは GFO_INSECURE を無視して常に TLS 検証する。
+# 自己署名証明書ユーザーが意図せずクラウドホストの認証情報を MITM に晒すのを防ぐ。
+_CLOUD_HOSTS_TLS_FORCED = {
+    "github.com",
+    "api.github.com",
+    "uploads.github.com",
+    "gitlab.com",
+    "bitbucket.org",
+    "api.bitbucket.org",
+    "dev.azure.com",
+}
+_CLOUD_HOST_SUFFIXES_TLS_FORCED = (".backlog.com", ".backlog.jp", ".visualstudio.com")
+
+
+def _is_cloud_host_tls_forced(host: str | None) -> bool:
+    """クラウド固定ホスト（GFO_INSECURE で TLS 無効化を許さないホスト）かを判定する。"""
+    if not host:
+        return False
+    h = host.lower()
+    if h in _CLOUD_HOSTS_TLS_FORCED:
+        return True
+    return any(h.endswith(s) for s in _CLOUD_HOST_SUFFIXES_TLS_FORCED)
+
+
+if _INSECURE_ENV:
+    # 起動時警告: クラウド固定ホストでは無効化されない旨をユーザーに通知する。
+    print(
+        "Warning: GFO_INSECURE is set; TLS verification is disabled for self-hosted hosts. "
+        "Cloud-hosted services (github.com, gitlab.com, bitbucket.org, dev.azure.com, "
+        "*.backlog.com/jp, *.visualstudio.com) still enforce TLS verification.",
+        file=sys.stderr,
+    )
 
 
 class HttpClient:
@@ -47,7 +82,12 @@ class HttpClient:
         self._default_params: dict[str, str] = default_params or {}
         self._max_retries = max_retries
         self._session = requests.Session()
-        self._session.verify = _VERIFY_SSL
+        # クラウド固定ホストでは GFO_INSECURE を無視して常に TLS 検証する
+        base_host = urlparse(self._base_url).hostname
+        if _is_cloud_host_tls_forced(base_host):
+            self._session.verify = True
+        else:
+            self._session.verify = _VERIFY_SSL
         if auth_header:
             self._session.headers.update(auth_header)
         if basic_auth:

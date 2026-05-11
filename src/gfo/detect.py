@@ -26,7 +26,16 @@ def normalize_host(value: str) -> str:
     return value.strip().rstrip("/").lower()
 
 
-_VERIFY_SSL = os.environ.get("GFO_INSECURE", "").lower() not in ("1", "true", "yes")
+# GFO_INSECURE は self-hosted のみ有効化対象。クラウド固定ホストでは無視する。
+# クラウドホスト判定は gfo.http に集約してあるため、ホストごとに動的解決する。
+from gfo.http import _is_cloud_host_tls_forced as _http_cloud_check  # noqa: E402
+
+
+def _verify_for_host(host: str) -> bool:
+    """指定ホストに対する verify フラグを返す。クラウド固定ホストは常に True。"""
+    if _http_cloud_check(host):
+        return True
+    return os.environ.get("GFO_INSECURE", "").lower() not in ("1", "true", "yes")
 
 
 # ── データクラス ──
@@ -209,7 +218,7 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
     #   Forgejo {"version": "...", "forgejo": "...", "go_version": "..."}  (>= 1.20)
     #           {"version": "...", "go_version": "...", "source_url": "..."}  (旧版 Forgejo)
     try:
-        resp = requests.get(f"{base}/api/v1/version", timeout=5, verify=_VERIFY_SSL)
+        resp = requests.get(f"{base}/api/v1/version", timeout=5, verify=_verify_for_host(host))
         if resp.status_code == 200:
             data = resp.json()
             if isinstance(data, dict):
@@ -241,7 +250,7 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
 
     # 2. GitLab (v4)
     try:
-        resp = requests.get(f"{base}/api/v4/version", timeout=5, verify=_VERIFY_SSL)
+        resp = requests.get(f"{base}/api/v4/version", timeout=5, verify=_verify_for_host(host))
         if resp.status_code == 200:
             return "gitlab"
     except requests.RequestException:
@@ -249,7 +258,7 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
 
     # 3. GitBucket (v3)
     try:
-        resp = requests.get(f"{base}/api/v3/", timeout=5, verify=_VERIFY_SSL)
+        resp = requests.get(f"{base}/api/v3/", timeout=5, verify=_verify_for_host(host))
         if resp.status_code == 200:
             return "gitbucket"
     except requests.RequestException:
