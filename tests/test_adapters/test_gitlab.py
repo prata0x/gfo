@@ -4077,3 +4077,94 @@ class TestPackagesGitLab:
         )
         with pytest.raises(NotFoundError):
             gitlab_adapter.delete_package("npm", "mypkg", "1.0")
+
+
+class TestReleaseAssetsUploadDownloadGitLab:
+    """GitLab の upload_release_asset / download_release_asset 多段フロー。
+
+    upload は uploads → release link の 2 段、download は asset link 取得 → 別 URL ダウンロード。
+    """
+
+    def test_upload_release_asset_two_step(self, mock_responses, gitlab_adapter, tmp_path):
+        # Step 1: project uploads
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/uploads",
+            json={"full_path": "/uploads/abc/app.zip", "url": "/uploads/abc/app.zip"},
+            status=201,
+        )
+        # Step 2: release link 作成
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/releases/v1.0/assets/links",
+            json={
+                "id": 7,
+                "name": "app.zip",
+                "url": "https://gitlab.com/uploads/abc/app.zip",
+                "direct_asset_url": "https://gitlab.com/uploads/abc/app.zip",
+            },
+            status=201,
+        )
+        f = tmp_path / "app.zip"
+        f.write_bytes(b"binary")
+        asset = gitlab_adapter.upload_release_asset(tag="v1.0", file_path=str(f))
+        assert asset.id == 7
+        assert asset.name == "app.zip"
+
+    def test_download_release_asset(self, mock_responses, gitlab_adapter, tmp_path):
+        """link メタ取得 → direct_asset_url からダウンロードの 2 段フロー（同一オリジン）。"""
+        # link メタ
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/releases/v1.0/assets/links/7",
+            json={
+                "name": "app.zip",
+                "url": "https://gitlab.com/api/v4/projects/test-owner%2Ftest-repo/releases/v1.0/downloads/app.zip",
+                "direct_asset_url": "https://gitlab.com/api/v4/projects/test-owner%2Ftest-repo/releases/v1.0/downloads/app.zip",
+            },
+            status=200,
+        )
+        # 実ダウンロード（同一オリジンなので auth ヘッダ含めて送られる）
+        mock_responses.add(
+            responses.GET,
+            "https://gitlab.com/api/v4/projects/test-owner%2Ftest-repo/releases/v1.0/downloads/app.zip",
+            body=b"PK\x03\x04",
+            status=200,
+        )
+        result = gitlab_adapter.download_release_asset(
+            tag="v1.0", asset_id=7, output_dir=str(tmp_path)
+        )
+        import os
+
+        assert os.path.basename(result) == "app.zip"
+        assert os.path.exists(result)
+
+    def test_download_release_asset_external_url_no_auth(
+        self, mock_responses, gitlab_adapter, tmp_path
+    ):
+        """direct_asset_url が外部 URL の場合、認証ヘッダを送らずダウンロード。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/releases/v1.0/assets/links/8",
+            json={
+                "name": "external.zip",
+                "url": "https://external.example.com/external.zip",
+                "direct_asset_url": "https://external.example.com/external.zip",
+            },
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            "https://external.example.com/external.zip",
+            body=b"data",
+            status=200,
+        )
+        result = gitlab_adapter.download_release_asset(
+            tag="v1.0", asset_id=8, output_dir=str(tmp_path)
+        )
+        # 外部 URL リクエストには PRIVATE-TOKEN が含まれないことを確認
+        external_call = mock_responses.calls[-1]
+        assert "PRIVATE-TOKEN" not in external_call.request.headers
+        import os
+
+        assert os.path.basename(result) == "external.zip"

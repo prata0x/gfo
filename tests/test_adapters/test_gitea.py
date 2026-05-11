@@ -3990,3 +3990,83 @@ class TestPackagesGitea:
         )
         gitea_adapter.delete_package("container", "mypkg", "1.0")
         assert mock_responses.calls[0].request.method == "DELETE"
+
+
+class TestReleaseAssetsUploadDownloadGitea:
+    """Gitea の upload_release_asset / download_release_asset 多段フロー。"""
+
+    def test_upload_release_asset(self, mock_responses, gitea_adapter, tmp_path):
+        """tags → release_id → upload の 2 段フローを検証。"""
+        # Step 1: タグから release_id を取得
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0",
+            json={"id": 42, "tag_name": "v1.0"},
+            status=200,
+        )
+        # Step 2: multipart で attachment アップロード
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/releases/42/assets",
+            json={
+                "id": 100,
+                "name": "app.zip",
+                "size": 0,
+                "browser_download_url": "https://x/y",
+                "created_at": "2025-01-01T00:00:00Z",
+            },
+            status=201,
+        )
+        f = tmp_path / "app.zip"
+        f.write_bytes(b"binary")
+        asset = gitea_adapter.upload_release_asset(tag="v1.0", file_path=str(f))
+        assert asset.id == 100
+        assert asset.name == "app.zip"
+
+    def test_download_release_asset(self, mock_responses, gitea_adapter, tmp_path):
+        """tags → release_id → meta → download の 3 段フローを検証。
+
+        実装はメタの browser_download_url を優先し、無ければ
+        {base}/releases/{release_id}/assets/{asset_id} を URL として組み立てる。
+        """
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0",
+            json={"id": 42},
+            status=200,
+        )
+        # 2 回目: メタ取得（同じ URL を 3 回目でダウンロードに再利用）
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/42/assets/7",
+            json={"name": "app.zip"},
+            status=200,
+        )
+        # 3 回目: ダウンロード（同じ URL を `responses` は順次消費する）
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/42/assets/7",
+            body=b"PK\x03\x04",
+            status=200,
+        )
+        result = gitea_adapter.download_release_asset(
+            tag="v1.0", asset_id=7, output_dir=str(tmp_path)
+        )
+        import os
+
+        assert os.path.basename(result) == "app.zip"
+        assert os.path.exists(result)
+
+    def test_upload_release_asset_tag_not_found(self, mock_responses, gitea_adapter, tmp_path):
+        """タグが見つからない場合は NotFoundError。"""
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/missing",
+            status=404,
+        )
+        f = tmp_path / "app.zip"
+        f.write_bytes(b"x")
+        with pytest.raises(NotFoundError):
+            gitea_adapter.upload_release_asset(tag="missing", file_path=str(f))
