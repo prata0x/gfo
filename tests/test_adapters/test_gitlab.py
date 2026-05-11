@@ -3781,6 +3781,31 @@ class TestMigrateRepositoryTokenMask:
             )
         assert "super-secret-token" not in str(exc_info.value)
 
+    @responses.activate
+    def test_token_masked_on_network_error(self, gitlab_adapter):
+        """NetworkError 経路でも auth_token がマスクされる。"""
+        import requests
+
+        from gfo.exceptions import NetworkError
+
+        # requests.RequestException を発生させる
+        responses.add(
+            responses.POST,
+            f"{BASE}/projects",
+            body=requests.ConnectionError(
+                "Failed to connect: https://oauth2:super-secret-token@github.com/x.git"
+            ),
+        )
+        with pytest.raises(NetworkError) as exc_info:
+            gitlab_adapter.migrate_repository(
+                "https://github.com/old/repo.git",
+                "migrated",
+                auth_token="super-secret-token",
+            )
+        # NetworkError の args 全体でマスクされていること
+        assert "super-secret-token" not in str(exc_info.value)
+        assert "***" in str(exc_info.value)
+
 
 class TestUpdateOrganization:
     def test_update_display_name(self, mock_responses, gitlab_adapter):
