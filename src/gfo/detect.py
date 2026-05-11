@@ -250,7 +250,12 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
     #   Forgejo {"version": "...", "forgejo": "...", "go_version": "..."}  (>= 1.20)
     #           {"version": "...", "go_version": "...", "source_url": "..."}  (旧版 Forgejo)
     try:
-        resp = requests.get(f"{base}/api/v1/version", timeout=5, verify=_verify_for_host(host))
+        resp = requests.get(
+            f"{base}/api/v1/version",
+            timeout=5,
+            verify=_verify_for_host(host),
+            allow_redirects=False,
+        )
         if resp.status_code == 200:
             data = resp.json()
             if isinstance(data, dict):
@@ -282,7 +287,12 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
 
     # 2. GitLab (v4)
     try:
-        resp = requests.get(f"{base}/api/v4/version", timeout=5, verify=_verify_for_host(host))
+        resp = requests.get(
+            f"{base}/api/v4/version",
+            timeout=5,
+            verify=_verify_for_host(host),
+            allow_redirects=False,
+        )
         if resp.status_code == 200:
             return "gitlab"
     except requests.RequestException:
@@ -290,7 +300,9 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
 
     # 3. GitBucket (v3)
     try:
-        resp = requests.get(f"{base}/api/v3/", timeout=5, verify=_verify_for_host(host))
+        resp = requests.get(
+            f"{base}/api/v3/", timeout=5, verify=_verify_for_host(host), allow_redirects=False
+        )
         if resp.status_code == 200:
             return "gitbucket"
     except requests.RequestException:
