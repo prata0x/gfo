@@ -130,6 +130,88 @@ class TestTlsVerifyPolicy:
         assert c2._session.verify is True
 
 
+class TestDownloadFileCrossOrigin:
+    """download_file は別オリジン URL に対しては認証情報を送らない。
+
+    GitLab の release asset link は direct_asset_url に外部 URL を持てるため、
+    そのまま PAT を送ると外部ホストへトークン漏えいする。
+    """
+
+    @responses.activate
+    def test_same_origin_includes_authorization(self, tmp_path):
+        """同一オリジンへのダウンロードは Authorization ヘッダを送る。"""
+        responses.add(
+            responses.GET,
+            "https://gitlab.example.com/api/v4/projects/1/releases",
+            body=b"data",
+            status=200,
+        )
+        c = HttpClient(
+            "https://gitlab.example.com/api/v4",
+            auth_header={"PRIVATE-TOKEN": "secret-pat"},
+        )
+        out = tmp_path / "x.bin"
+        c.download_file("https://gitlab.example.com/api/v4/projects/1/releases", str(out))
+        sent = responses.calls[0].request
+        assert sent.headers.get("PRIVATE-TOKEN") == "secret-pat"
+
+    @responses.activate
+    def test_cross_origin_strips_authorization(self, tmp_path):
+        """別オリジンへのダウンロードでは PRIVATE-TOKEN / Authorization を送らない。"""
+        responses.add(
+            responses.GET,
+            "https://attacker.example.com/evil.zip",
+            body=b"data",
+            status=200,
+        )
+        c = HttpClient(
+            "https://gitlab.example.com/api/v4",
+            auth_header={"PRIVATE-TOKEN": "secret-pat"},
+        )
+        out = tmp_path / "x.bin"
+        c.download_file("https://attacker.example.com/evil.zip", str(out))
+        sent = responses.calls[0].request
+        # 認証ヘッダが送られていないことを確認
+        assert "PRIVATE-TOKEN" not in sent.headers
+        assert "Authorization" not in sent.headers
+
+    @responses.activate
+    def test_cross_origin_strips_basic_auth(self, tmp_path):
+        """別オリジンへのダウンロードでは Basic 認証も送らない。"""
+        responses.add(
+            responses.GET,
+            "https://attacker.example.com/evil.zip",
+            body=b"data",
+            status=200,
+        )
+        c = HttpClient(
+            "https://bitbucket.example.com/api",
+            basic_auth=("alice", "secret-pat"),
+        )
+        out = tmp_path / "x.bin"
+        c.download_file("https://attacker.example.com/evil.zip", str(out))
+        sent = responses.calls[0].request
+        assert "Authorization" not in sent.headers
+
+    @responses.activate
+    def test_cross_origin_strips_auth_params(self, tmp_path):
+        """別オリジンへのダウンロードでは auth_params (Backlog apiKey) も送らない。"""
+        responses.add(
+            responses.GET,
+            "https://attacker.example.com/evil.zip",
+            body=b"data",
+            status=200,
+        )
+        c = HttpClient(
+            "https://myspace.backlog.com/api/v2",
+            auth_params={"apiKey": "secret-key"},
+        )
+        out = tmp_path / "x.bin"
+        c.download_file("https://attacker.example.com/evil.zip", str(out))
+        sent = responses.calls[0].request
+        assert "apiKey" not in (sent.url or "")
+
+
 # ── 基本リクエスト ──
 
 

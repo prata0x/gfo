@@ -44,6 +44,14 @@ def _is_cloud_host_tls_forced(host: str | None) -> bool:
     return any(h.endswith(s) for s in _CLOUD_HOST_SUFFIXES_TLS_FORCED)
 
 
+def _verify_for_url(url: str) -> bool:
+    """指定 URL に対する TLS 検証フラグを返す。クラウド固定ホストでは常に True。"""
+    target_host = urlparse(url).hostname
+    if _is_cloud_host_tls_forced(target_host):
+        return True
+    return _VERIFY_SSL
+
+
 if _INSECURE_ENV:
     # 起動時警告: クラウド固定ホストでは無効化されない旨をユーザーに通知する。
     print(
@@ -172,19 +180,37 @@ class HttpClient:
     def download_file(
         self, url: str, output_path: str, *, headers: dict | None = None, timeout: int = 300
     ) -> None:
-        """ストリーミングダウンロード。"""
-        merged_params = {**self._default_params, **self._auth_params}
-        merged_headers = dict(self._session.headers)
-        if headers:
-            merged_headers.update(headers)
+        """ストリーミングダウンロード。
+
+        URL が base_url と別オリジンの場合は認証ヘッダ / Cookie / auth_params を
+        一切送信しない（GitLab release link の direct_asset_url 等が外部 URL を
+        持ちうるため、PAT が外部ホストに漏えいするのを防ぐ）。
+        """
+        same_origin = _validate_same_origin(self._base_url, url)
         try:
-            resp = self._session.get(
-                url,
-                params=merged_params,
-                headers=merged_headers,
-                stream=True,
-                timeout=timeout,
-            )
+            if same_origin:
+                merged_params = {**self._default_params, **self._auth_params}
+                merged_headers = dict(self._session.headers)
+                if headers:
+                    merged_headers.update(headers)
+                resp = self._session.get(
+                    url,
+                    params=merged_params,
+                    headers=merged_headers,
+                    stream=True,
+                    timeout=timeout,
+                )
+            else:
+                # 別オリジン: 認証情報を送らない。Session 経由だと Authorization /
+                # Cookie が自動付与されるため、requests.get を直接呼ぶ。
+                ext_headers = dict(headers) if headers else {}
+                resp = requests.get(
+                    url,
+                    headers=ext_headers,
+                    stream=True,
+                    timeout=timeout,
+                    verify=_verify_for_url(url),
+                )
         except requests.RequestException as e:
             raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
         self._handle_response(resp)
