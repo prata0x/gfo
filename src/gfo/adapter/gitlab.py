@@ -547,21 +547,35 @@ class GitLabAdapter(GitServiceAdapter):
         data = resp.json()
         commits = data.get("commits") or []
         diffs = data.get("diffs") or []
-        files = tuple(
-            CompareFile(
-                filename=d.get("new_path") or d.get("old_path") or "",
-                status="added"
-                if d.get("new_file")
-                else "deleted"
-                if d.get("deleted_file")
-                else "renamed"
-                if d.get("renamed_file")
-                else "modified",
-                additions=0,
-                deletions=0,
+
+        def _count_diff_lines(diff_text: str) -> tuple[int, int]:
+            additions = 0
+            deletions = 0
+            for line in diff_text.splitlines():
+                if line.startswith("+") and not line.startswith("+++"):
+                    additions += 1
+                elif line.startswith("-") and not line.startswith("---"):
+                    deletions += 1
+            return additions, deletions
+
+        files_list = []
+        for d in diffs:
+            adds, dels = _count_diff_lines(d.get("diff", ""))
+            files_list.append(
+                CompareFile(
+                    filename=d.get("new_path") or d.get("old_path") or "",
+                    status="added"
+                    if d.get("new_file")
+                    else "deleted"
+                    if d.get("deleted_file")
+                    else "renamed"
+                    if d.get("renamed_file")
+                    else "modified",
+                    additions=adds,
+                    deletions=dels,
+                )
             )
-            for d in diffs
-        )
+        files = tuple(files_list)
         return CompareResult(
             total_commits=len(commits),
             ahead_by=len(commits),
