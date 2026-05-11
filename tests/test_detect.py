@@ -283,6 +283,43 @@ class TestGetKnownServiceType:
 # ── API プローブテスト ──
 
 
+class TestProbeUnknownHostPrivateIp:
+    """probe_unknown_host はプライベート IP への SSRF プローブを拒否する。"""
+
+    def test_loopback_rejected(self, monkeypatch):
+        """127.0.0.1 / localhost は既定で拒否される。"""
+        monkeypatch.delenv("GFO_ALLOW_PRIVATE_HOSTS", raising=False)
+        assert probe_unknown_host("127.0.0.1") is None
+        assert probe_unknown_host("localhost") is None
+
+    def test_private_range_rejected(self, monkeypatch):
+        """RFC1918 プライベートレンジは既定で拒否される。"""
+        monkeypatch.delenv("GFO_ALLOW_PRIVATE_HOSTS", raising=False)
+        assert probe_unknown_host("10.0.0.1") is None
+        assert probe_unknown_host("192.168.1.1") is None
+        assert probe_unknown_host("172.16.0.1") is None
+
+    def test_link_local_rejected(self, monkeypatch):
+        """リンクローカル（クラウドメタデータの 169.254.169.254 含む）は拒否される。"""
+        monkeypatch.delenv("GFO_ALLOW_PRIVATE_HOSTS", raising=False)
+        assert probe_unknown_host("169.254.169.254") is None
+
+    @responses.activate
+    def test_opt_in_allows_private(self, monkeypatch):
+        """GFO_ALLOW_PRIVATE_HOSTS=1 を設定すると私設ネットへのプローブを許可。"""
+        monkeypatch.setenv("GFO_ALLOW_PRIVATE_HOSTS", "1")
+        responses.add(
+            responses.GET,
+            "https://192.168.1.1/api/v1/version",
+            json={"version": "1.0", "go-version": "go1.20"},
+            status=200,
+        )
+        # localhost を解決できる場合はプローブが実行される（404 でフォールバック）
+        # 192.168.1.1 は IP リテラルなので DNS 不要
+        result = probe_unknown_host("192.168.1.1")
+        assert result == "gitea"
+
+
 class TestProbeUnknownHost:
     @responses.activate
     def test_forgejo_detected(self):

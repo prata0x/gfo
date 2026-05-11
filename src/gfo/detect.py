@@ -207,8 +207,40 @@ def detect_from_url(remote_url: str) -> DetectResult:
 # ── API プローブ ──
 
 
+def _is_private_host(host: str) -> bool:
+    """ホスト名/IP がプライベートレンジ・ループバック・リンクローカルかを判定する。
+
+    ホスト名の場合は socket.gethostbyname で IP 解決し、ipaddress で判定する。
+    DNS 解決失敗時は False（プローブを試みる）。
+    """
+    import ipaddress
+    import socket
+
+    if not host:
+        return False
+    # ホスト名から : ポート分離
+    h = host.split(":", 1)[0]
+    try:
+        ip_str = socket.gethostbyname(h)
+        ip = ipaddress.ip_address(ip_str)
+    except (OSError, ValueError):
+        return False
+    return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
+
+
 def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
-    """未知ホストに対して API プローブを実行し、サービス種別を返す。"""
+    """未知ホストに対して API プローブを実行し、サービス種別を返す。
+
+    SSRF プローブを防ぐため、プライベート IP / ループバック / リンクローカル /
+    予約レンジへのプローブは既定で拒否する（None を返す）。
+    GFO_ALLOW_PRIVATE_HOSTS=1 を設定すると opt-in で許可する。
+    """
+    if _is_private_host(host) and os.environ.get("GFO_ALLOW_PRIVATE_HOSTS", "").lower() not in (
+        "1",
+        "true",
+        "yes",
+    ):
+        return None
     base = f"{scheme}://{host}"
 
     # 1. Gitea/Forgejo/Gogs (v1)
