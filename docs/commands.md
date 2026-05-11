@@ -22,7 +22,7 @@ Initialize gfo configuration for a repository. Auto-detects the service from the
 > **Supported services**: All services
 
 ```
-gfo init [--non-interactive] [--type TYPE] [--host HOST] [--api-url URL] [--project-key KEY]
+gfo init [--non-interactive] [--type TYPE] [--host HOST] [--api-url URL] [--project-key KEY] [--account ACCOUNT]
 ```
 
 | Option | Required | Description |
@@ -32,6 +32,7 @@ gfo init [--non-interactive] [--type TYPE] [--host HOST] [--api-url URL] [--proj
 | `--host HOST` | Required with `--non-interactive` | Hostname (e.g., `github.com`, `gitea.example.com`) |
 | `--api-url URL` | — | API base URL (auto-constructed if omitted) |
 | `--project-key KEY` | — | Project key (Azure DevOps / Backlog) |
+| `--account ACCOUNT` | — | Account name to associate with this repository (saved to `gfo.account`) |
 
 **Examples:**
 
@@ -1001,7 +1002,7 @@ gfo repo clone REPO [--host HOST] [--project PROJECT]
 ```bash
 gfo repo clone alice/my-project
 gfo repo clone alice/my-project --host gitea.example.com
-gfo repo clone my-repo --host dev.azure.com --project MyProject
+gfo repo clone my-org/my-repo --host dev.azure.com --project MyProject
 ```
 
 ### gfo repo view
@@ -1205,12 +1206,13 @@ Transfer a repository to another owner (user or organization).
 > **Supported services**: GitHub, GitLab, Gitea, Forgejo
 
 ```
-gfo repo transfer NEW_OWNER [--yes]
+gfo repo transfer NEW_OWNER [--team-id ID] [--yes]
 ```
 
 | Option | Description |
 |---|---|
 | `NEW_OWNER` | Destination user or organization name |
+| `--team-id ID` | Team ID to grant access (GitHub only) |
 | `--yes` / `-y` | Skip confirmation prompt |
 
 ```bash
@@ -2140,12 +2142,12 @@ Show revision history of a wiki page.
 > **Supported services**: Gitea, Forgejo
 
 ```
-gfo wiki revisions ID [--limit N]
+gfo wiki revisions ID
 ```
 
 ```bash
 gfo wiki revisions 1
-gfo wiki revisions "Getting-Started" --limit 10
+gfo wiki revisions "Getting-Started"
 ```
 
 ---

@@ -84,30 +84,28 @@ gfo auth status
 | `gfo pr` | `list`, `create`, `view`, `merge`, `close`, `reopen`, `checkout`, `edit`, `diff`, `checks`, `files`, `commits`, `reviewers`, `update-branch`, `ready`, `status`, `subscribe`, `unsubscribe`, `lock`, `unlock`, `comment`, `review` | プルリクエスト操作 |
 | `gfo issue` | `list`, `create`, `view`, `close`, `reopen`, `delete`, `edit`, `status`, `develop`, `subscribe`, `unsubscribe`, `reaction`, `depends`, `timeline`, `pin`, `unpin`, `time`, `migrate`, `lock`, `unlock`, `comment` | Issue 操作 |
 | `gfo issue-template` | `list` | Issue テンプレート一覧 |
-| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `edit`, `archive`, `unarchive`, `languages`, `topics`, `compare`, `migrate`, `mirror`, `transfer`, `star`, `unstar`, `sync` | リポジトリ操作 |
+| `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `edit`, `archive`, `unarchive`, `languages`, `topics`, `compare`, `contributors`, `migrate`, `mirror`, `transfer`, `star`, `unstar`, `sync` | リポジトリ操作 |
 | `gfo release` | `list`, `create`, `view`, `edit`, `delete`, `asset` | リリース管理 |
-| `gfo label` | `list`, `create`, `update`, `delete`, `clone` | ラベル管理 |
-| `gfo milestone` | `list`, `create`, `view`, `update`, `close`, `reopen`, `delete` | マイルストーン管理 |
-| `gfo comment` | `list`, `create`, `update`, `delete` | PR / Issue コメント操作 |
-| `gfo review` | `list`, `create`, `dismiss` | PR レビュー操作 |
-| `gfo branch` | `list`, `create`, `delete` | ブランチ操作 |
-| `gfo tag` | `list`, `create`, `delete` | タグ操作 |
+| `gfo label` | `list`, `create`, `edit`, `delete`, `clone` | ラベル管理 |
+| `gfo milestone` | `list`, `create`, `view`, `edit`, `close`, `reopen`, `delete` | マイルストーン管理 |
+| `gfo branch` | `list`, `create`, `view`, `delete` | ブランチ操作 |
+| `gfo tag` | `list`, `create`, `view`, `delete` | タグ操作 |
 | `gfo status` | `list`, `create` | コミットステータス操作 |
 | `gfo file` | `get`, `put`, `delete` | リポジトリ内ファイル操作 |
-| `gfo webhook` | `list`, `create`, `delete`, `test` | Webhook 管理 |
-| `gfo deploy-key` | `list`, `create`, `delete` | デプロイキー管理 |
+| `gfo webhook` | `list`, `create`, `edit`, `delete`, `test` | Webhook 管理 |
+| `gfo deploy-key` | `list`, `create`, `view`, `delete` | デプロイキー管理 |
 | `gfo collaborator` | `list`, `add`, `remove` | コラボレーター管理 |
 | `gfo ci` | `list`, `view`, `cancel`, `trigger`, `retry`, `logs`, `delete`, `download`, `watch`, `workflow`, `artifact` | CI/CD ジョブ操作 |
 | `gfo user` | `whoami` | 認証ユーザー情報表示 |
 | `gfo search` | `repos`, `issues`, `prs`, `commits`, `code` | リポジトリ・Issue・PR・コミット・コード検索 |
-| `gfo wiki` | `list`, `view`, `create`, `update`, `delete`, `revisions` | Wiki 操作 |
+| `gfo wiki` | `list`, `view`, `create`, `edit`, `delete`, `revisions` | Wiki 操作 |
 | `gfo browse` | — | リポジトリをブラウザで開く |
 | `gfo branch-protect` | `list`, `view`, `set`, `remove` | ブランチ保護ルール管理 |
 | `gfo tag-protect` | `list`, `create`, `delete` | タグ保護ルール管理 |
 | `gfo notification` | `list`, `read` | 通知管理 |
 | `gfo org` | `list`, `view`, `members`, `repos`, `create`, `delete` | 組織管理 |
-| `gfo ssh-key` | `list`, `create`, `delete` | SSH 鍵管理 |
-| `gfo gpg-key` | `list`, `create`, `delete` | GPG 鍵管理 |
+| `gfo ssh-key` | `list`, `create`, `view`, `delete` | SSH 鍵管理 |
+| `gfo gpg-key` | `list`, `create`, `view`, `delete` | GPG 鍵管理 |
 | `gfo secret` | `list`, `set`, `delete` | CI/CD シークレット管理 |
 | `gfo variable` | `list`, `set`, `get`, `delete` | CI/CD 変数管理 |
 | `gfo package` | `list`, `view`, `delete` | パッケージ管理 |
@@ -127,6 +125,7 @@ gfo auth status
 | `--jq EXPRESSION` | JSON 出力に jq フィルタを適用（`--format json` を暗黙有効化） | — |
 | `--remote REMOTE` | origin 以外の git remote を使用（未指定時は `origin`、`origin` が存在しない場合は最初に見つかったリモートにフォールバック） | — |
 | `--repo REPO` | 対象リポジトリを直接指定（URL または `HOST/OWNER/REPO` 形式）。`--remote` と排他 | — |
+| `--account ACCOUNT` | 使用するアカウントを指定（`gfo.account` および `config.toml` を上書き） | — |
 | `--version` | バージョン表示 | — |
 
 ## 設定

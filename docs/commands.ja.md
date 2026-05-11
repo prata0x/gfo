@@ -22,7 +22,7 @@
 > **対応サービス**: 全サービス
 
 ```
-gfo init [--non-interactive] [--type TYPE] [--host HOST] [--api-url URL] [--project-key KEY]
+gfo init [--non-interactive] [--type TYPE] [--host HOST] [--api-url URL] [--project-key KEY] [--account ACCOUNT]
 ```
 
 | オプション | 必須 | 説明 |
@@ -32,6 +32,7 @@ gfo init [--non-interactive] [--type TYPE] [--host HOST] [--api-url URL] [--proj
 | `--host HOST` | `--non-interactive` 時必須 | ホスト名（例: `github.com`, `gitea.example.com`） |
 | `--api-url URL` | — | API ベース URL（省略時は自動構築） |
 | `--project-key KEY` | — | プロジェクトキー（Azure DevOps / Backlog） |
+| `--account ACCOUNT` | — | このリポジトリに紐付けるアカウント名（`gfo.account` に保存） |
 
 **例:**
 
@@ -1001,7 +1002,7 @@ gfo repo clone REPO [--host HOST] [--project PROJECT]
 ```bash
 gfo repo clone alice/my-project
 gfo repo clone alice/my-project --host gitea.example.com
-gfo repo clone my-repo --host dev.azure.com --project MyProject
+gfo repo clone my-org/my-repo --host dev.azure.com --project MyProject
 ```
 
 ### gfo repo view
@@ -1205,12 +1206,13 @@ gfo repo mirror sync        # 全ミラーを同期
 > **対応サービス**: GitHub, GitLab, Gitea, Forgejo
 
 ```
-gfo repo transfer NEW_OWNER [--yes]
+gfo repo transfer NEW_OWNER [--team-id ID] [--yes]
 ```
 
 | オプション | 説明 |
 |---|---|
 | `NEW_OWNER` | 移譲先のユーザー名または組織名 |
+| `--team-id ID` | アクセスを付与するチーム ID（GitHub 限定） |
 | `--yes` / `-y` | 確認プロンプトをスキップ |
 
 ```bash
@@ -2140,12 +2142,12 @@ Wiki ページの変更履歴を表示します。
 > **対応サービス**: Gitea, Forgejo
 
 ```
-gfo wiki revisions ID [--limit N]
+gfo wiki revisions ID
 ```
 
 ```bash
 gfo wiki revisions 1
-gfo wiki revisions "Getting-Started" --limit 10
+gfo wiki revisions "Getting-Started"
 ```
 
 ---
