@@ -91,6 +91,56 @@ class TestHandleLogin:
         captured = capsys.readouterr()
         assert "account: work" in captured.out
 
+    def test_login_with_token_stdin(self, capsys, monkeypatch):
+        """--token-stdin で stdin からトークンを読み込む（argv 経由でないため安全）。"""
+        from io import StringIO
+
+        args = make_args(host="github.com", token=None, account="default", token_stdin=True)
+        monkeypatch.setattr("sys.stdin", StringIO("stdin-token\n"))
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.save_token") as mock_save:
+            auth_cmd.handle_login(args, fmt="table")
+
+        mock_save.assert_called_once_with("github.com", "stdin-token", account="default")
+        captured = capsys.readouterr()
+        # --token 由来でないので警告は出ない
+        assert "Warning" not in captured.err
+
+    def test_login_with_token_file(self, tmp_path, capsys):
+        """--token-file でファイルからトークンを読み込む。"""
+        token_path = tmp_path / "token.txt"
+        token_path.write_text("file-token\n", encoding="utf-8")
+        args = make_args(
+            host="github.com", token=None, account="default", token_file=str(token_path)
+        )
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.save_token") as mock_save:
+            auth_cmd.handle_login(args, fmt="table")
+
+        mock_save.assert_called_once_with("github.com", "file-token", account="default")
+        captured = capsys.readouterr()
+        assert "Warning" not in captured.err
+
+    def test_login_token_stdin_empty_raises(self, monkeypatch):
+        """--token-stdin で空トークンが渡されたら ConfigError。"""
+        from io import StringIO
+
+        args = make_args(host="github.com", token=None, account="default", token_stdin=True)
+        monkeypatch.setattr("sys.stdin", StringIO("\n"))
+        with pytest.raises(ConfigError, match="Empty token"):
+            auth_cmd.handle_login(args, fmt="table")
+
+    def test_login_token_file_not_found(self):
+        """--token-file で読めないファイルなら ConfigError。"""
+        args = make_args(
+            host="github.com",
+            token=None,
+            account="default",
+            token_file="/no/such/path.txt",
+        )
+        with pytest.raises(ConfigError, match="Cannot read token file"):
+            auth_cmd.handle_login(args, fmt="table")
+
 
 class TestHandleLogin_ErrorCases:
     """handle_login のエラー・境界ケースのテスト。"""

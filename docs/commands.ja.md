@@ -66,13 +66,15 @@ gfo init --non-interactive --type backlog --host myspace.backlog.com --project-k
 トークンをインタラクティブに入力し `credentials.toml` に保存します。
 
 ```
-gfo auth login [--host HOST] [--token TOKEN] [--account ACCOUNT]
+gfo auth login [--host HOST] [--token-stdin | --token-file PATH | --token TOKEN] [--account ACCOUNT]
 ```
 
 | オプション | 説明 |
 |---|---|
 | `--host HOST` | ホスト名（省略時は `gfo init` の設定から自動解決） |
-| `--token TOKEN` | トークンを直接指定（省略時は対話入力） |
+| `--token-stdin` | 標準入力からトークンを読み込む（スクリプト/CI 推奨） |
+| `--token-file PATH` | ファイルからトークンを読み込む |
+| `--token TOKEN` | トークンを直接指定（プロセス一覧から見えるため非推奨） |
 | `--account ACCOUNT` | アカウント名（デフォルト: `default`）。ホストごとに複数トークンを管理する場合に使用。 |
 
 **例:**

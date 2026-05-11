@@ -225,7 +225,21 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     auth_sub = auth_parser.add_subparsers(dest="subcommand")
     login_parser = auth_sub.add_parser("login", help=_("Login to service"))
     login_parser.add_argument("--host", help=_("Hostname (e.g. github.com)"))
-    login_parser.add_argument("--token", help=_("Authentication token"))
+    login_parser.add_argument(
+        "--token",
+        help=_("Authentication token (insecure - visible in process list; use --token-stdin)"),
+    )
+    login_parser.add_argument(
+        "--token-stdin",
+        dest="token_stdin",
+        action="store_true",
+        help=_("Read token from stdin (recommended for scripts)"),
+    )
+    login_parser.add_argument(
+        "--token-file",
+        dest="token_file",
+        help=_("Read token from file (path)"),
+    )
     login_parser.add_argument("--account", default="default", help=_("Account name"))
     auth_sub.add_parser("status", help=_("Show authentication status"))
     auth_switch = auth_sub.add_parser("switch", help=_("Switch active account"))
