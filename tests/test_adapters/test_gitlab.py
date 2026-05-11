@@ -548,6 +548,30 @@ class TestCreatePullRequest:
         req_body = json.loads(mock_responses.calls[1].request.body)
         assert req_body["assignee_ids"] == [30]
 
+    def test_create_with_unknown_reviewer_raises(self, mock_responses, gitlab_adapter):
+        """解決できない reviewer 名を渡すと GfoError を送出する（旧実装は警告で握りつぶしていた）。"""
+        mock_responses.add(responses.GET, f"{BASE}/users", json=[], status=200)
+        with pytest.raises(GfoError, match="GitLab user.*not found.*nonexistent"):
+            gitlab_adapter.create_pull_request(
+                title="MR !1",
+                body="desc",
+                base="main",
+                head="feature",
+                reviewers=["nonexistent"],
+            )
+
+    def test_create_with_unknown_assignee_raises(self, mock_responses, gitlab_adapter):
+        """解決できない assignee 名を渡すと GfoError を送出する。"""
+        mock_responses.add(responses.GET, f"{BASE}/users", json=[], status=200)
+        with pytest.raises(GfoError, match="GitLab user.*not found"):
+            gitlab_adapter.create_pull_request(
+                title="MR !1",
+                body="desc",
+                base="main",
+                head="feature",
+                assignees=["typo-user"],
+            )
+
     def test_create_with_labels(self, mock_responses, gitlab_adapter):
         mock_responses.add(responses.POST, f"{PROJECT}/merge_requests", json=_mr_data(), status=201)
         gitlab_adapter.create_pull_request(
