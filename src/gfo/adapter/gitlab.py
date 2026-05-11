@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-import warnings
 from urllib.parse import quote
 
 import requests
@@ -1222,19 +1221,21 @@ class GitLabAdapter(GitServiceAdapter):
     def _resolve_user_ids(self, usernames: list[str]) -> list[int]:
         """ユーザー名のリストをユーザー ID のリストに変換する。
 
-        解決できなかったユーザー名については警告を発する。
+        解決できなかったユーザー名がある場合は GfoError を送出する。
+        警告で握りつぶすと remove/assignee の同期で「削除されたつもりが残る」
+        サイレント失敗を招くため。
         """
         ids: list[int] = []
+        unresolved: list[str] = []
         for name in usernames:
             resp = self._client.get("/users", params={"username": name})
             users = resp.json()
             if users:
                 ids.append(users[0]["id"])
             else:
-                warnings.warn(
-                    f"GitLab user '{name}' not found, skipping",
-                    stacklevel=2,
-                )
+                unresolved.append(name)
+        if unresolved:
+            raise GfoError(f"GitLab user(s) not found: {', '.join(unresolved)}")
         return ids
 
     def request_reviewers(self, number: int, reviewers: list[str]) -> None:
