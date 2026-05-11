@@ -65,6 +65,71 @@ class TestHttpClientInit:
             )
 
 
+class TestTlsVerifyPolicy:
+    """GFO_INSECURE 環境変数の挙動。クラウド固定ホストでは無効化されない。"""
+
+    def test_self_hosted_respects_gfo_insecure(self, monkeypatch):
+        """self-hosted ホストでは GFO_INSECURE=1 が反映される。"""
+        monkeypatch.setenv("GFO_INSECURE", "1")
+        # _VERIFY_SSL はモジュールロード時に評価されるため、ここでは
+        # _is_cloud_host_tls_forced の判定ロジック自体を検証する
+        from gfo.http import _is_cloud_host_tls_forced
+
+        assert _is_cloud_host_tls_forced("internal.example.com") is False
+        assert _is_cloud_host_tls_forced("gitea.local") is False
+
+    def test_cloud_hosts_are_protected(self):
+        """クラウド固定ホストでは _is_cloud_host_tls_forced が True を返す。"""
+        from gfo.http import _is_cloud_host_tls_forced
+
+        # 主要クラウドホスト
+        assert _is_cloud_host_tls_forced("github.com") is True
+        assert _is_cloud_host_tls_forced("api.github.com") is True
+        assert _is_cloud_host_tls_forced("uploads.github.com") is True
+        assert _is_cloud_host_tls_forced("gitlab.com") is True
+        assert _is_cloud_host_tls_forced("bitbucket.org") is True
+        assert _is_cloud_host_tls_forced("api.bitbucket.org") is True
+        assert _is_cloud_host_tls_forced("dev.azure.com") is True
+        # サフィックスマッチ
+        assert _is_cloud_host_tls_forced("myspace.backlog.com") is True
+        assert _is_cloud_host_tls_forced("myspace.backlog.jp") is True
+        assert _is_cloud_host_tls_forced("dev.myorg.visualstudio.com") is True
+
+    def test_case_insensitive(self):
+        """大文字小文字を区別せず判定する。"""
+        from gfo.http import _is_cloud_host_tls_forced
+
+        assert _is_cloud_host_tls_forced("GitHub.com") is True
+        assert _is_cloud_host_tls_forced("MYSPACE.BACKLOG.COM") is True
+
+    def test_none_returns_false(self):
+        from gfo.http import _is_cloud_host_tls_forced
+
+        assert _is_cloud_host_tls_forced(None) is False
+        assert _is_cloud_host_tls_forced("") is False
+
+    def test_cloud_host_client_always_verifies(self, monkeypatch):
+        """クラウドホストの HttpClient は GFO_INSECURE 関係なく verify=True。"""
+        # _VERIFY_SSL はモジュールロード時に決まるため monkeypatch で直接差し替える
+        import gfo.http
+
+        monkeypatch.setattr(gfo.http, "_VERIFY_SSL", False)
+        c = HttpClient("https://github.com")
+        assert c._session.verify is True
+
+    def test_self_hosted_client_uses_verify_ssl(self, monkeypatch):
+        """self-hosted ホストの HttpClient は _VERIFY_SSL 値に従う。"""
+        import gfo.http
+
+        monkeypatch.setattr(gfo.http, "_VERIFY_SSL", False)
+        c = HttpClient("https://internal.example.com")
+        assert c._session.verify is False
+
+        monkeypatch.setattr(gfo.http, "_VERIFY_SSL", True)
+        c2 = HttpClient("https://internal.example.com")
+        assert c2._session.verify is True
+
+
 # ── 基本リクエスト ──
 
 
