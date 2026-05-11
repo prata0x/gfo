@@ -3538,6 +3538,40 @@ class TestCompareGitLab:
         assert len(result.files) == 1
         assert result.files[0].status == "modified"
 
+    @responses.activate
+    def test_compare_counts_diff_lines(self, gitlab_adapter):
+        """diff フィールドから +/- 行数を集計して additions/deletions に反映すること。"""
+        diff_text = (
+            "--- a/a.py\n"
+            "+++ b/a.py\n"
+            "@@ -1,3 +1,4 @@\n"
+            " context\n"
+            "+added line 1\n"
+            "+added line 2\n"
+            "-removed line\n"
+        )
+        responses.add(
+            responses.GET,
+            f"{PROJECT}/repository/compare",
+            json={
+                "commits": [{"id": "abc"}],
+                "diffs": [
+                    {
+                        "new_path": "a.py",
+                        "old_path": "a.py",
+                        "new_file": False,
+                        "deleted_file": False,
+                        "renamed_file": False,
+                        "diff": diff_text,
+                    }
+                ],
+            },
+            status=200,
+        )
+        result = gitlab_adapter.compare("main", "feature")
+        assert result.files[0].additions == 2
+        assert result.files[0].deletions == 1
+
 
 class TestGetLatestReleaseGitLab:
     @responses.activate
