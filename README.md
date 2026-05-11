@@ -75,6 +75,17 @@ gfo auth status
 
 See [docs/authentication.md](docs/authentication.md) for token creation instructions for each service (required scopes/permissions).
 
+### Security-related Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `GFO_INSECURE` | unset | Disable TLS verification for self-hosted hosts. Cloud-hosted services always enforce TLS. |
+| `GFO_ALLOW_INSECURE_HTTP` | unset | Allow `http://` for `api_url` (other than `localhost` / `127.0.0.1` / `::1`). |
+| `GFO_ALLOW_PRIVATE_HOSTS` | unset | Allow API probing of unknown hosts that resolve to private / loopback / link-local IPs (needed for internal Gitea / GitLab auto-detection). |
+| `GFO_MAX_DOWNLOAD_BYTES` | `5368709120` (5 GiB) | Maximum size for streaming downloads (assets, artifacts, logs). `0` for unlimited. |
+
+See [docs/authentication.md](docs/authentication.md#security-related-environment-variables) for details and usage examples.
+
 ## Commands
 
 | Command | Subcommands | Description |
