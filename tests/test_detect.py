@@ -452,6 +452,24 @@ class TestDetectService:
         r = detect_service()
         assert r.service_type == "gitea"
 
+    @patch("gfo.detect.get_remote_url")
+    @patch("gfo.detect.git_config_get")
+    def test_saved_config_fallback_without_remote(self, mock_config_get, mock_remote):
+        """gfo init 済み（saved_type/host あり）で remote 取得が失敗した場合、
+        saved 値だけで DetectResult を返すこと（CI/bare repo で gfo auth が動くため）。"""
+        from gfo.exceptions import GitCommandError
+
+        def config_side(key, cwd=None):
+            return {"gfo.type": "gitea", "gfo.host": "git.example.com"}.get(key)
+
+        mock_config_get.side_effect = config_side
+        mock_remote.side_effect = GitCommandError("No such remote 'origin'")
+        r = detect_service()
+        assert r.service_type == "gitea"
+        assert r.host == "git.example.com"
+        assert r.owner == ""
+        assert r.repo == ""
+
     @patch("gfo.detect.get_remote_url", return_value="https://github.com/owner/repo.git")
     @patch("gfo.detect.git_config_get", return_value=None)
     def test_known_host(self, mock_config_get, mock_remote):

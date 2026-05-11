@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 import requests
 
-from gfo.exceptions import DetectionError
+from gfo.exceptions import DetectionError, GitCommandError
 from gfo.git_util import _mask_credentials, get_remote_url, git_config_get
 
 
@@ -305,7 +305,15 @@ def detect_service(cwd: str | None = None) -> DetectResult:
         saved_type = git_config_get("gfo.type", cwd=cwd)
         saved_host = git_config_get("gfo.host", cwd=cwd)
         if saved_type and saved_host:
-            remote_url = get_remote_url(cwd=cwd)
+            try:
+                remote_url = get_remote_url(cwd=cwd)
+            except GitCommandError:
+                # remote が存在しない（bare repo / CI で `git init` 直後 / リモート未設定）
+                # 場合でも、`gfo init` で保存済みの saved_type/host だけで auth 系コマンドが
+                # 動くようにフォールバックする。owner/repo は空文字で返す（auth login/token/
+                # status 等は host のみあれば成立し、owner/repo を要求するコマンドは別途
+                # ConfigError になる）。
+                return DetectResult(service_type=saved_type, host=saved_host, owner="", repo="")
             result = detect_from_url(remote_url)
             # URL パース結果と git config 設定が食い違う場合に警告
             if result.service_type is not None and result.service_type != saved_type:
