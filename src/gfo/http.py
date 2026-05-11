@@ -20,6 +20,20 @@ _MAX_RETRY_AFTER = 300
 # HttpError 例外メッセージに載せるレスポンス body の上限（バイト換算ではなく文字数）。
 # 巨大エラーボディが例外文字列・JSON 出力・ターミナルを圧迫するのを防ぐ。
 _MAX_ERROR_BODY_CHARS = 4096
+
+
+def _max_download_bytes() -> int:
+    """GFO_MAX_DOWNLOAD_BYTES の値を返す。未設定なら 5 GiB。0 は無制限。"""
+    val = os.environ.get("GFO_MAX_DOWNLOAD_BYTES", "").strip()
+    if not val:
+        return 5 * 1024 * 1024 * 1024  # 5 GiB
+    try:
+        n = int(val)
+    except ValueError:
+        return 5 * 1024 * 1024 * 1024
+    return max(0, n)
+
+
 _INSECURE_ENV = os.environ.get("GFO_INSECURE", "").lower() in ("1", "true", "yes")
 _VERIFY_SSL = not _INSECURE_ENV
 
@@ -217,8 +231,25 @@ class HttpClient:
         except requests.RequestException as e:
             raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
         self._handle_response(resp)
+        # 累積バイト数が GFO_MAX_DOWNLOAD_BYTES（既定 5 GiB）を超えたら中断する。
+        # 悪意のサーバや侵害された CDN が無限ストリームを返した際の DoS 防止。
+        max_bytes = _max_download_bytes()
+        total = 0
         with open(output_path, "wb") as f:
             for chunk in resp.iter_content(chunk_size=8192):
+                if not chunk:
+                    continue
+                total += len(chunk)
+                if max_bytes > 0 and total > max_bytes:
+                    # 部分書き込みファイルは残さない
+                    try:
+                        f.close()
+                        os.unlink(output_path)
+                    except OSError:
+                        pass
+                    raise gfo.exceptions.GfoError(
+                        f"Download exceeded GFO_MAX_DOWNLOAD_BYTES ({max_bytes} bytes); aborted."
+                    )
                 f.write(chunk)
 
     def upload_file(

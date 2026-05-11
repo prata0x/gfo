@@ -130,6 +130,42 @@ class TestTlsVerifyPolicy:
         assert c2._session.verify is True
 
 
+class TestDownloadFileSizeLimit:
+    """download_file は GFO_MAX_DOWNLOAD_BYTES を超えたら中断する。"""
+
+    @responses.activate
+    def test_within_limit_succeeds(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("GFO_MAX_DOWNLOAD_BYTES", "1024")
+        responses.add(
+            responses.GET,
+            f"{BASE}/file.bin",
+            body=b"X" * 512,
+            status=200,
+        )
+        c = HttpClient(BASE)
+        out = tmp_path / "x.bin"
+        c.download_file(f"{BASE}/file.bin", str(out))
+        assert out.stat().st_size == 512
+
+    @responses.activate
+    def test_exceeds_limit_aborts(self, tmp_path, monkeypatch):
+        from gfo.exceptions import GfoError
+
+        monkeypatch.setenv("GFO_MAX_DOWNLOAD_BYTES", "100")
+        responses.add(
+            responses.GET,
+            f"{BASE}/big.bin",
+            body=b"X" * 1024,
+            status=200,
+        )
+        c = HttpClient(BASE)
+        out = tmp_path / "big.bin"
+        with pytest.raises(GfoError, match="exceeded GFO_MAX_DOWNLOAD_BYTES"):
+            c.download_file(f"{BASE}/big.bin", str(out))
+        # 部分書き込みファイルは削除される
+        assert not out.exists()
+
+
 class TestErrorBodyTruncation:
     """HttpError の body は大きすぎる場合に切り詰められる。"""
 
