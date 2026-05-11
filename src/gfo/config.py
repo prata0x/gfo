@@ -140,7 +140,12 @@ def _parse_key_parts(key: str) -> list[str]:
         ch = key[i]
         if ch == '"':
             # 引用符の開始 → 対応する閉じ引用符まで読む
-            end = key.index('"', i + 1)
+            try:
+                end = key.index('"', i + 1)
+            except ValueError:
+                # 閉じ引用符がない不正入力は ConfigError に変換する
+                # （素の ValueError だと CLI で "Unexpected error" 扱いになる）
+                raise ConfigError(f"Invalid quoted key: missing closing quote in {key!r}") from None
             parts.append(key[i + 1 : end])
             i = end + 1
             # 直後のドットをスキップ
