@@ -148,8 +148,8 @@ msgstr "未対応のサービス種別: {service_type}"
 msgid "No results found."
 msgstr "結果が見つかりません。"
 
-msgid "jq command not found. Install it from https://stedolan.github.io/jq/"
-msgstr "jq コマンドが見つかりません。https://stedolan.github.io/jq/ からインストールしてください。"
+msgid "jq command not found. Install it from https://jqlang.github.io/jq/"
+msgstr "jq コマンドが見つかりません。https://jqlang.github.io/jq/ からインストールしてください。"
 
 msgid "jq filter error: {error}"
 msgstr "jq フィルタエラー: {error}"

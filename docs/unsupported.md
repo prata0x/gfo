@@ -52,7 +52,6 @@ API 対応サービス数が 1 のもの。
 | `pr merge --admin` | Azure DevOps | 明示パラメータは Azure DevOps のみ |
 | `issue list --mention` | GitHub | GitHub のみ |
 | `issue create/edit --confidential` | GitLab | GitLab のみ |
-| `repo create --internal` | GitLab | GitLab（+ GitHub Enterprise）固有 |
 | `repo list --language` | GitHub | GitHub の検索 API のみ |
 | `release create/edit --latest` | GitHub | GitHub のみ |
 | `release create --discussion-category` | GitHub | GitHub のみ |

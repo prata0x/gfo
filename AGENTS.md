@@ -30,7 +30,7 @@
 ## 技術スタック
 
 - **ランタイム依存**: `requests` のみ
-- **開発依存**: `pytest`, `responses`（HTTP モック）, `pytest-cov`
+- **開発依存**: `pytest`, `responses`（HTTP モック）, `pytest-cov`, `ruff`, `bandit`, `mypy`, `types-requests`, `pre-commit`
 - **ビルド**: `hatchling`
 - **テスト**: `pytest --cov=gfo --cov-report=term-missing`（設定済み）
 
@@ -47,11 +47,15 @@ src/gfo/
 │   ├── registry.py      # @register デコレータ, create_adapter()
 │   ├── github.py / gitlab.py / bitbucket.py / azure_devops.py
 │   ├── backlog.py / gitea.py / forgejo.py / gogs.py / gitbucket.py
-└── commands/
-    ├── init.py / auth_cmd.py / pr.py / issue.py
-    ├── repo.py / release.py / label.py / milestone.py
-    ├── package.py
-    └── schema.py
+└── commands/             # 30+ サブコマンドモジュール
+    ├── init.py / auth_cmd.py / config_cmd.py / completion.py
+    ├── pr.py / issue.py / issue_template.py / comment.py / review.py
+    ├── repo.py / release.py / label.py / milestone.py / wiki.py
+    ├── branch.py / branch_protect.py / tag.py / tag_protect.py / file.py
+    ├── webhook.py / deploy_key.py / ssh_key.py / gpg_key.py / collaborator.py
+    ├── ci.py / status.py / search.py / org.py / user.py / notification.py
+    ├── secret.py / variable.py / package.py / browse.py
+    ├── api.py / batch.py / schema.py
 
 tests/
 ├── conftest.py / test_adapter_base.py / test_auth.py / test_cli.py / test_config.py

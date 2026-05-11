@@ -86,28 +86,26 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 | `gfo issue-template` | `list` | Issue template listing |
 | `gfo repo` | `list`, `create`, `clone`, `view`, `delete`, `fork`, `edit`, `archive`, `unarchive`, `languages`, `topics`, `compare`, `contributors`, `migrate`, `mirror`, `transfer`, `star`, `unstar`, `sync` | Repository operations |
 | `gfo release` | `list`, `create`, `view`, `edit`, `delete`, `asset` | Release management |
-| `gfo label` | `list`, `create`, `update`, `delete`, `clone` | Label management |
-| `gfo milestone` | `list`, `create`, `view`, `update`, `close`, `reopen`, `delete` | Milestone management |
-| `gfo comment` | `list`, `create`, `update`, `delete` | PR / Issue comment operations |
-| `gfo review` | `list`, `create`, `dismiss` | PR review operations |
-| `gfo branch` | `list`, `create`, `delete` | Branch operations |
-| `gfo tag` | `list`, `create`, `delete` | Tag operations |
+| `gfo label` | `list`, `create`, `edit`, `delete`, `clone` | Label management |
+| `gfo milestone` | `list`, `create`, `view`, `edit`, `close`, `reopen`, `delete` | Milestone management |
+| `gfo branch` | `list`, `create`, `view`, `delete` | Branch operations |
+| `gfo tag` | `list`, `create`, `view`, `delete` | Tag operations |
 | `gfo status` | `list`, `create` | Commit status operations |
 | `gfo file` | `get`, `put`, `delete` | Repository file operations |
-| `gfo webhook` | `list`, `create`, `delete`, `test` | Webhook management |
-| `gfo deploy-key` | `list`, `create`, `delete` | Deploy key management |
+| `gfo webhook` | `list`, `create`, `edit`, `delete`, `test` | Webhook management |
+| `gfo deploy-key` | `list`, `create`, `view`, `delete` | Deploy key management |
 | `gfo collaborator` | `list`, `add`, `remove` | Collaborator management |
 | `gfo ci` | `list`, `view`, `cancel`, `trigger`, `retry`, `logs`, `delete`, `download`, `watch`, `workflow`, `artifact` | CI/CD job operations |
 | `gfo user` | `whoami` | Display authenticated user info |
 | `gfo search` | `repos`, `issues`, `prs`, `commits`, `code` | Search repositories / issues / PRs / commits / code |
-| `gfo wiki` | `list`, `view`, `create`, `update`, `delete`, `revisions` | Wiki operations |
+| `gfo wiki` | `list`, `view`, `create`, `edit`, `delete`, `revisions` | Wiki operations |
 | `gfo browse` | — | Open repository in browser |
 | `gfo branch-protect` | `list`, `view`, `set`, `remove` | Branch protection rule management |
 | `gfo tag-protect` | `list`, `create`, `delete` | Tag protection rule management |
 | `gfo notification` | `list`, `read` | Notification management |
 | `gfo org` | `list`, `view`, `members`, `repos`, `create`, `delete` | Organization management |
-| `gfo ssh-key` | `list`, `create`, `delete` | SSH key management |
-| `gfo gpg-key` | `list`, `create`, `delete` | GPG key management |
+| `gfo ssh-key` | `list`, `create`, `view`, `delete` | SSH key management |
+| `gfo gpg-key` | `list`, `create`, `view`, `delete` | GPG key management |
 | `gfo secret` | `list`, `set`, `delete` | CI/CD secret management |
 | `gfo variable` | `list`, `set`, `get`, `delete` | CI/CD variable management |
 | `gfo package` | `list`, `view`, `delete` | Package management |
@@ -127,6 +125,7 @@ See [docs/commands.md](docs/commands.md) for detailed options and examples for e
 | `--jq EXPRESSION` | Apply jq filter to JSON output (implicitly enables `--format json`) | — |
 | `--remote REMOTE` | Use specified git remote instead of origin (defaults to `origin`, falls back to first available remote) | — |
 | `--repo REPO` | Specify target repository directly (URL or `HOST/OWNER/REPO`). Mutually exclusive with `--remote` | — |
+| `--account ACCOUNT` | Use specified account (overrides `gfo.account` and `config.toml`) | — |
 | `--version` | Show version | — |
 
 ## Configuration
