@@ -3873,3 +3873,120 @@ class TestClientFilterLimit:
         result = gitea_adapter.list_repositories(archived=False, limit=1)
         assert len(result) == 1
         assert result[0].name == "active-repo"
+
+
+# --- Packages ---
+
+
+class TestPackagesGitea:
+    """Gitea の list_packages / get_package / delete_package。"""
+
+    def test_list_packages_basic(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/packages/test-owner",
+            json=[
+                {
+                    "name": "mypkg",
+                    "type": "container",
+                    "version": "1.0",
+                    "owner": {"login": "test-owner"},
+                    "html_url": f"{BASE.replace('/api/v1', '')}/test-owner/-/packages/container/mypkg/1.0",
+                    "created_at": "2025-01-01T00:00:00Z",
+                }
+            ],
+            status=200,
+        )
+        pkgs = gitea_adapter.list_packages()
+        assert len(pkgs) == 1
+        assert pkgs[0].name == "mypkg"
+        assert pkgs[0].type == "container"
+        assert pkgs[0].version == "1.0"
+
+    def test_list_packages_filtered_by_type(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/packages/test-owner",
+            json=[],
+            status=200,
+        )
+        gitea_adapter.list_packages(package_type="npm")
+        sent = mock_responses.calls[0].request
+        assert "type=npm" in sent.url
+
+    def test_list_packages_empty(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/packages/test-owner",
+            json=[],
+            status=200,
+        )
+        assert gitea_adapter.list_packages() == []
+
+    def test_get_package_with_version(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/packages/test-owner/container/mypkg/1.0",
+            json={
+                "name": "mypkg",
+                "type": "container",
+                "version": "1.0",
+                "html_url": "x",
+                "created_at": "2025-01-01T00:00:00Z",
+            },
+            status=200,
+        )
+        p = gitea_adapter.get_package("container", "mypkg", version="1.0")
+        assert p.name == "mypkg"
+        assert p.version == "1.0"
+
+    def test_get_package_not_found(self, mock_responses, gitea_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/packages/test-owner/container/missing/1.0",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.get_package("container", "missing", version="1.0")
+
+    def test_get_package_without_version_uses_list(self, mock_responses, gitea_adapter):
+        """version 未指定時は list から最初の一致を返す。"""
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/packages/test-owner",
+            json=[
+                {
+                    "name": "mypkg",
+                    "type": "container",
+                    "version": "2.0",
+                    "html_url": "x",
+                    "created_at": "2025-01-01T00:00:00Z",
+                }
+            ],
+            status=200,
+        )
+        p = gitea_adapter.get_package("container", "mypkg")
+        assert p.version == "2.0"
+
+    def test_get_package_without_version_empty_raises(self, mock_responses, gitea_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/packages/test-owner",
+            json=[],
+            status=200,
+        )
+        with pytest.raises(NotFoundError):
+            gitea_adapter.get_package("container", "missing")
+
+    def test_delete_package(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{BASE}/packages/test-owner/container/mypkg/1.0",
+            status=204,
+        )
+        gitea_adapter.delete_package("container", "mypkg", "1.0")
+        assert mock_responses.calls[0].request.method == "DELETE"
