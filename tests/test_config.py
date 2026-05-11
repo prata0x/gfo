@@ -1102,6 +1102,70 @@ def test_parse_key_parts_missing_closing_quote_raises_config_error():
         _parse_key_parts('hosts."gitlab.example.com.type')
 
 
+# ── validate_api_url ──
+
+
+class TestValidateApiUrl:
+    def test_https_accepted(self):
+        from gfo.config import validate_api_url
+
+        validate_api_url("https://gitea.example.com/api/v1")  # 例外を投げない
+
+    def test_empty_accepted(self):
+        """空文字列は OK（未設定扱い）。"""
+        from gfo.config import validate_api_url
+
+        validate_api_url("")
+
+    def test_http_external_rejected(self):
+        from gfo.config import validate_api_url
+        from gfo.exceptions import ConfigError
+
+        with pytest.raises(ConfigError, match="must use https"):
+            validate_api_url("http://gitea.example.com/api/v1")
+
+    def test_http_localhost_accepted(self):
+        from gfo.config import validate_api_url
+
+        validate_api_url("http://localhost:3000/api/v1")
+        validate_api_url("http://127.0.0.1:3000/api/v1")
+
+    def test_http_opt_in_allowed(self, monkeypatch):
+        from gfo.config import validate_api_url
+
+        monkeypatch.setenv("GFO_ALLOW_INSECURE_HTTP", "1")
+        validate_api_url("http://internal.lan/api/v1")
+
+    def test_invalid_scheme_rejected(self):
+        from gfo.config import validate_api_url
+        from gfo.exceptions import ConfigError
+
+        with pytest.raises(ConfigError, match="http:// or https://"):
+            validate_api_url("ftp://example.com/api/v1")
+
+
+class TestSetConfigValueApiUrl:
+    def test_set_api_url_rejects_http(self, tmp_path, monkeypatch):
+        from gfo import config
+        from gfo.exceptions import ConfigError
+
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+        with pytest.raises(ConfigError, match="must use https"):
+            config.set_config_value('hosts."gitea.example.com".api_url', "http://gitea.example.com")
+
+    def test_set_api_url_accepts_https(self, tmp_path, monkeypatch):
+        from gfo import config
+
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+        config.set_config_value(
+            'hosts."gitea.example.com".api_url', "https://gitea.example.com/api/v1"
+        )
+        assert (
+            config.get_config_value('hosts."gitea.example.com".api_url')
+            == "https://gitea.example.com/api/v1"
+        )
+
+
 # ── 非 ASCII round-trip (#4-B) ──
 
 

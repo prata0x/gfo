@@ -26,6 +26,38 @@ class ProjectConfig:
     project_key: str | None = None  # Backlog / Azure DevOps
 
 
+# ── api_url の安全性チェック ──
+
+
+def validate_api_url(value: str) -> None:
+    """api_url が安全か検証する。http:// は localhost / opt-in 環境変数でのみ許可。
+
+    認証ヘッダや PAT を載せたまま http:// で通信すると LAN/Wi-Fi 盗聴で
+    漏えいするため、既定で https:// のみ許可する。開発用に localhost のみ
+    例外で http を許可、それ以外で http を使う場合は環境変数
+    GFO_ALLOW_INSECURE_HTTP=1 を要求する。
+    """
+    if not value:
+        return
+    from urllib.parse import urlparse
+
+    parsed = urlparse(value)
+    if parsed.scheme == "https":
+        return
+    if parsed.scheme == "http":
+        host = (parsed.hostname or "").lower()
+        if host in ("localhost", "127.0.0.1", "::1"):
+            return
+        if os.environ.get("GFO_ALLOW_INSECURE_HTTP", "").lower() in ("1", "true", "yes"):
+            return
+        raise ConfigError(
+            f"api_url must use https:// (got: {value}). "
+            "For localhost development use http://localhost/..., "
+            "or set GFO_ALLOW_INSECURE_HTTP=1 to bypass (insecure)."
+        )
+    raise ConfigError(f"api_url must use http:// or https:// (got: {value})")
+
+
 # ── パス ──
 
 
@@ -192,6 +224,10 @@ def set_config_value(key: str, value: str) -> None:
     parts = _parse_key_parts(key)
     if len(parts) < 2:
         raise ConfigError(f"Key must have at least two parts (e.g. defaults.output), got: {key}")
+
+    # api_url を設定するキーの場合、平文 http:// を拒否する（PAT 漏えい防止）。
+    if parts[-1] == "api_url":
+        validate_api_url(value)
 
     cfg = load_user_config()
 
