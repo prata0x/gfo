@@ -3956,3 +3956,124 @@ class TestToIssueMissingCreatedAt:
         data["created_at"] = ""
         issue = GitLabAdapter._to_issue(data)
         assert issue.created_at == ""
+
+
+class TestPackagesGitLab:
+    """GitLab の list_packages / get_package / delete_package。"""
+
+    def test_list_packages_basic(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/packages",
+            json=[
+                {
+                    "id": 1,
+                    "name": "mypkg",
+                    "package_type": "npm",
+                    "version": "1.0",
+                    "_links": {"web_path": "/test-owner/test-repo/-/packages/1"},
+                    "created_at": "2025-01-01T00:00:00Z",
+                }
+            ],
+            status=200,
+        )
+        pkgs = gitlab_adapter.list_packages()
+        assert len(pkgs) == 1
+        assert pkgs[0].name == "mypkg"
+        assert pkgs[0].type == "npm"
+
+    def test_list_packages_filtered_by_type(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/packages",
+            json=[],
+            status=200,
+        )
+        gitlab_adapter.list_packages(package_type="maven")
+        sent = mock_responses.calls[0].request
+        assert "package_type=maven" in sent.url
+
+    def test_list_packages_empty(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/packages",
+            json=[],
+            status=200,
+        )
+        assert gitlab_adapter.list_packages() == []
+
+    def test_get_package_found(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/packages",
+            json=[
+                {
+                    "id": 42,
+                    "name": "mypkg",
+                    "package_type": "npm",
+                    "version": "1.0",
+                    "_links": {"web_path": "/test/test/-/packages/42"},
+                    "created_at": "2025-01-01T00:00:00Z",
+                }
+            ],
+            status=200,
+        )
+        p = gitlab_adapter.get_package("npm", "mypkg")
+        assert p.name == "mypkg"
+
+    def test_get_package_not_found(self, mock_responses, gitlab_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/packages",
+            json=[],
+            status=200,
+        )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.get_package("npm", "missing")
+
+    def test_delete_package_found(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/packages",
+            json=[
+                {
+                    "id": 42,
+                    "name": "mypkg",
+                    "package_type": "npm",
+                    "version": "1.0",
+                    "_links": {},
+                    "created_at": "2025-01-01T00:00:00Z",
+                }
+            ],
+            status=200,
+        )
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/packages/42",
+            status=204,
+        )
+        gitlab_adapter.delete_package("npm", "mypkg", "1.0")
+        assert mock_responses.calls[-1].request.method == "DELETE"
+
+    def test_delete_package_version_not_found(self, mock_responses, gitlab_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/packages",
+            json=[
+                {
+                    "id": 42,
+                    "name": "mypkg",
+                    "package_type": "npm",
+                    "version": "2.0",  # 異なるバージョン
+                    "_links": {},
+                    "created_at": "2025-01-01T00:00:00Z",
+                }
+            ],
+            status=200,
+        )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.delete_package("npm", "mypkg", "1.0")

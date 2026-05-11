@@ -306,3 +306,19 @@ class TestSyncFork:
     def test_raises_not_supported(self, gogs_adapter):
         with pytest.raises(NotSupportedError):
             gogs_adapter.sync_fork()
+
+
+class TestPackagesGogs:
+    """Gogs はパッケージ API 未対応のため NotSupportedError を返す。"""
+
+    def test_list_packages_raises(self, gogs_adapter):
+        with pytest.raises(NotSupportedError):
+            gogs_adapter.list_packages()
+
+    def test_get_package_raises(self, gogs_adapter):
+        with pytest.raises(NotSupportedError):
+            gogs_adapter.get_package("container", "any")
+
+    def test_delete_package_raises(self, gogs_adapter):
+        with pytest.raises(NotSupportedError):
+            gogs_adapter.delete_package("container", "any", "1.0")
