@@ -122,6 +122,34 @@ default = "backlog-api-key"
 
 ---
 
+## セキュリティ関連の環境変数
+
+TLS 検証・通信路の保護・ダウンロード上限などを制御する環境変数です。既定値はトークン漏えいや SSRF を抑止するよう厳しめに設定されているため、影響を理解したうえでのみ緩めてください。
+
+| 環境変数 | 値 | 既定 | 説明 |
+|---|---|---|---|
+| `GFO_INSECURE` | `1` / `true` / `yes` | 未設定（TLS 検証を行う） | **セルフホスト**ホストに対する TLS 証明書検証を無効化します。クラウドサービス（github.com / gitlab.com / bitbucket.org / dev.azure.com / *.backlog.com / *.backlog.jp / *.visualstudio.com）はこのフラグに関係なく常に TLS 検証を強制します。設定時、起動時に stderr に警告が表示されます。 |
+| `GFO_ALLOW_INSECURE_HTTP` | `1` / `true` / `yes` | 未設定（https のみ） | `api_url` での `http://` を任意ホストで許可します。`localhost` / `127.0.0.1` / `::1` はこのフラグに関係なく常に許可されます。トークンを平文 HTTP で送ると LAN / Wi-Fi 上で盗聴されうるため、リスクを理解したうえでのみ使用してください。 |
+| `GFO_ALLOW_PRIVATE_HOSTS` | `1` / `true` / `yes` | 未設定（拒否） | 未知ホスト検出時、プライベート / ループバック / リンクローカル / 予約レンジに解決される IP への API プローブを許可します。社内 Gitea/Forgejo/GitLab/GitBucket を自動検出に頼って運用する場合に必要です。未設定時は SSRF 抑止のためプローブを拒否します。 |
+| `GFO_MAX_DOWNLOAD_BYTES` | 整数（バイト） | `5368709120`（5 GiB） | ストリーミングダウンロード（`gfo release asset download`、`gfo ci download`、ログダウンロード等）が受け付ける累積バイト数の上限。上限を超えた時点でダウンロードを中断し、部分書き込みファイルを削除します。`0` で無制限（非推奨）。値が不正な場合は既定にフォールバックします。 |
+
+**例 — プライベート IP 上の自己署名証明書付きセルフホスト Gitea を使う:**
+
+```bash
+export GFO_INSECURE=1
+export GFO_ALLOW_PRIVATE_HOSTS=1
+gfo --repo gitea.internal/team/repo pr list
+```
+
+**例 — ダウンロード上限を 20 GiB に引き上げる:**
+
+```bash
+export GFO_MAX_DOWNLOAD_BYTES=21474836480
+gfo release asset download v1.0.0 large-asset.bin
+```
+
+---
+
 ## サービス別 トークン作成手順
 
 ### GitHub

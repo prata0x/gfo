@@ -122,6 +122,34 @@ default = "backlog-api-key"
 
 ---
 
+## Security-related Environment Variables
+
+These environment variables control TLS verification, transport security, and download safeguards. Defaults are chosen to prevent token leakage and SSRF; loosen them only when you understand the consequences.
+
+| Variable | Values | Default | Description |
+|---|---|---|---|
+| `GFO_INSECURE` | `1` / `true` / `yes` | unset (verify TLS) | Disables TLS certificate verification for **self-hosted** hosts. Cloud-hosted services (github.com, gitlab.com, bitbucket.org, dev.azure.com, *.backlog.com / *.backlog.jp, *.visualstudio.com) always enforce TLS verification regardless of this flag. A warning is printed to stderr on startup when set. |
+| `GFO_ALLOW_INSECURE_HTTP` | `1` / `true` / `yes` | unset (https only) | Allows `api_url` to use `http://` for arbitrary hosts. `localhost`, `127.0.0.1`, and `::1` are always permitted regardless of this flag. Tokens sent over plain HTTP are exposed to LAN/Wi-Fi sniffing — use only when you accept that risk. |
+| `GFO_ALLOW_PRIVATE_HOSTS` | `1` / `true` / `yes` | unset (rejected) | Allows API probing of unknown hosts that resolve to private / loopback / link-local / reserved IP ranges. Required when running an internal Gitea/Forgejo/GitLab/GitBucket on a private network and relying on auto-detection. Without this flag, gfo refuses to probe such addresses to mitigate SSRF. |
+| `GFO_MAX_DOWNLOAD_BYTES` | integer (bytes) | `5368709120` (5 GiB) | Maximum cumulative bytes accepted by streaming downloads (`gfo release asset download`, `gfo ci download`, log downloads). Exceeding the limit aborts the download and removes the partial file. Set to `0` for unlimited (not recommended). Invalid values fall back to the default. |
+
+**Example — self-hosted Gitea with a self-signed cert behind a private IP:**
+
+```bash
+export GFO_INSECURE=1
+export GFO_ALLOW_PRIVATE_HOSTS=1
+gfo --repo gitea.internal/team/repo pr list
+```
+
+**Example — bumping the download size limit to 20 GiB:**
+
+```bash
+export GFO_MAX_DOWNLOAD_BYTES=21474836480
+gfo release asset download v1.0.0 large-asset.bin
+```
+
+---
+
 ## Token Creation Instructions by Service
 
 ### GitHub
