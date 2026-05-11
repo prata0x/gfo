@@ -130,6 +130,35 @@ class TestTlsVerifyPolicy:
         assert c2._session.verify is True
 
 
+class TestErrorBodyTruncation:
+    """HttpError の body は大きすぎる場合に切り詰められる。"""
+
+    @responses.activate
+    def test_large_error_body_is_truncated(self):
+        """4 KB を超えるエラーボディは先頭で切り詰められて [truncated N chars] が付く。"""
+        from gfo.http import _MAX_ERROR_BODY_CHARS
+
+        big_body = "X" * (_MAX_ERROR_BODY_CHARS * 2)
+        responses.add(responses.GET, f"{BASE}/items", body=big_body, status=400)
+        c = HttpClient(BASE)
+        with pytest.raises(HttpError) as exc_info:
+            c.get("/items")
+        msg = str(exc_info.value)
+        assert "truncated" in msg
+        # 元の body 長さは含まれない（切り詰められた）
+        assert big_body not in msg
+
+    @responses.activate
+    def test_small_error_body_is_not_truncated(self):
+        """通常サイズのエラーボディはそのまま例外に載る。"""
+        responses.add(responses.GET, f"{BASE}/items", body="short error", status=400)
+        c = HttpClient(BASE)
+        with pytest.raises(HttpError) as exc_info:
+            c.get("/items")
+        assert "short error" in str(exc_info.value)
+        assert "truncated" not in str(exc_info.value)
+
+
 class TestDownloadFileCrossOrigin:
     """download_file は別オリジン URL に対しては認証情報を送らない。
 

@@ -17,6 +17,9 @@ import requests
 import gfo.exceptions
 
 _MAX_RETRY_AFTER = 300
+# HttpError 例外メッセージに載せるレスポンス body の上限（バイト換算ではなく文字数）。
+# 巨大エラーボディが例外文字列・JSON 出力・ターミナルを圧迫するのを防ぐ。
+_MAX_ERROR_BODY_CHARS = 4096
 _INSECURE_ENV = os.environ.get("GFO_INSECURE", "").lower() in ("1", "true", "yes")
 _VERIFY_SSL = not _INSECURE_ENV
 
@@ -336,7 +339,14 @@ class HttpClient:
             )
         if 500 <= code < 600:
             raise gfo.exceptions.ServerError(code, url)
-        raise gfo.exceptions.HttpError(code, response.text, url)
+        # レスポンス body は先頭 _MAX_ERROR_BODY_CHARS で切り詰める（DoS と情報過多防止）
+        body = response.text
+        if len(body) > _MAX_ERROR_BODY_CHARS:
+            body = (
+                body[:_MAX_ERROR_BODY_CHARS]
+                + f"... [truncated {len(body) - _MAX_ERROR_BODY_CHARS} chars]"
+            )
+        raise gfo.exceptions.HttpError(code, body, url)
 
     @staticmethod
     def _parse_retry_after(value: str | None, default: int = 60) -> int:
