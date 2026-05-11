@@ -2165,6 +2165,38 @@ class TestListPullRequestFilesAzure:
         assert files[0].filename == "/src/main.py"
         assert files[0].status == "modified"
 
+    def test_iterations_non_dict_raises(self, mock_responses, azure_devops_adapter):
+        """iterations API が dict 以外（配列等）を返した場合に GfoError を送出する。"""
+        from gfo.exceptions import GfoError
+
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests/1/iterations",
+            json=["unexpected", "shape"],
+            status=200,
+        )
+        with pytest.raises(GfoError, match="Unexpected Azure DevOps PR iterations"):
+            azure_devops_adapter.list_pull_request_files(1)
+
+    def test_changes_non_dict_raises(self, mock_responses, azure_devops_adapter):
+        """changes API が dict 以外を返した場合に GfoError を送出する。"""
+        from gfo.exceptions import GfoError
+
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests/1/iterations",
+            json={"value": [{"id": 1}], "count": 1},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests/1/iterations/1/changes",
+            json=[],
+            status=200,
+        )
+        with pytest.raises(GfoError, match="Unexpected Azure DevOps PR changes"):
+            azure_devops_adapter.list_pull_request_files(1)
+
 
 class TestListPullRequestCommitsAzure:
     def test_list_commits(self, mock_responses, azure_devops_adapter):
@@ -2207,6 +2239,19 @@ class TestListRequestedReviewersAzure:
         )
         reviewers = azure_devops_adapter.list_requested_reviewers(1)
         assert reviewers == ["Reviewer One", "Reviewer Two"]
+
+    def test_reviewers_non_dict_raises(self, mock_responses, azure_devops_adapter):
+        """reviewers API が dict 以外を返した場合に GfoError を送出する。"""
+        from gfo.exceptions import GfoError
+
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests/1/reviewers",
+            json=[],
+            status=200,
+        )
+        with pytest.raises(GfoError, match="Unexpected Azure DevOps reviewers"):
+            azure_devops_adapter.list_requested_reviewers(1)
 
 
 class TestMarkPullRequestReadyAzure:
