@@ -1094,6 +1094,14 @@ def test_parse_key_parts_multiple_quoted():
     assert _parse_key_parts('"a.b"."c.d"') == ["a.b", "c.d"]
 
 
+def test_parse_key_parts_missing_closing_quote_raises_config_error():
+    """閉じ引用符が無い不正入力は ConfigError に変換される（旧実装は素の ValueError だった）。"""
+    from gfo.exceptions import ConfigError
+
+    with pytest.raises(ConfigError, match="missing closing quote"):
+        _parse_key_parts('hosts."gitlab.example.com.type')
+
+
 # ── 非 ASCII round-trip (#4-B) ──
 
 
