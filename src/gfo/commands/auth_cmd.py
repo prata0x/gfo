@@ -26,8 +26,35 @@ def handle_login(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
                 _("Could not detect host. Use --host option: gfo auth login --host <host>")
             )
 
-    if args.token:
-        print(_("Warning: passing tokens via --token is insecure."), file=sys.stderr)
+    # トークンの取得元優先順位:
+    #   1. --token-stdin (stdin から読み込み)
+    #   2. --token-file (ファイルから読み込み)
+    #   3. --token (argv 経由・非推奨)
+    #   4. 対話的に getpass で入力
+    token_stdin = getattr(args, "token_stdin", False)
+    token_file = getattr(args, "token_file", None)
+    if token_stdin:
+        token = sys.stdin.read().strip()
+        if not token:
+            raise ConfigError(_("Empty token received from stdin"))
+    elif token_file:
+        try:
+            with open(token_file, encoding="utf-8") as f:
+                token = f.read().strip()
+        except OSError as e:
+            raise ConfigError(
+                _("Cannot read token file {path}: {error}").format(path=token_file, error=e)
+            ) from e
+        if not token:
+            raise ConfigError(_("Empty token in file {path}").format(path=token_file))
+    elif args.token:
+        print(
+            _(
+                "Warning: passing tokens via --token is insecure (visible in process list). "
+                "Use --token-stdin or --token-file instead."
+            ),
+            file=sys.stderr,
+        )
         token = args.token
     else:
         token = getpass.getpass(_("Token: "))

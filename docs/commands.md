@@ -66,13 +66,15 @@ Manage authentication tokens.
 Enter a token interactively and save it to `credentials.toml`.
 
 ```
-gfo auth login [--host HOST] [--token TOKEN] [--account ACCOUNT]
+gfo auth login [--host HOST] [--token-stdin | --token-file PATH | --token TOKEN] [--account ACCOUNT]
 ```
 
 | Option | Description |
 |---|---|
 | `--host HOST` | Hostname (auto-resolved from `gfo init` config if omitted) |
-| `--token TOKEN` | Specify token directly (interactive input if omitted) |
+| `--token-stdin` | Read token from stdin (recommended for scripts/CI) |
+| `--token-file PATH` | Read token from file |
+| `--token TOKEN` | Specify token directly (insecure - visible in process list; deprecated) |
 | `--account ACCOUNT` | Account name (default: `default`). Use to manage multiple tokens per host. |
 
 **Examples:**
