@@ -97,16 +97,21 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             params["head"] = head
         if milestone:
             params["milestones"] = milestone
+        # state="merged" は API では closed として取得し、後段で merged のみ抽出する。
+        # limit 件分の closed PR を取ると merged 抽出後に limit 未満になるため、全件取得 → フィルタ → limit。
+        fetch_limit = 0 if state == "merged" else limit
         results = paginate_link_header(
             self._client,
             f"{self._repos_path()}/pulls",
             params=params,
-            limit=limit,
+            limit=fetch_limit,
             per_page_key="limit",
         )
         prs = [self._to_pull_request(r) for r in results]
         if state == "merged":
             prs = [pr for pr in prs if pr.state == "merged"]
+            if limit > 0:
+                prs = prs[:limit]
         return prs
 
     def create_pull_request(
@@ -137,8 +142,14 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def _resolve_label_ids(self, names: list[str]) -> list[int]:
         """ラベル名のリストを ID のリストに変換する。"""
-        resp = self._client.get(f"{self._repos_path()}/labels", params={"limit": 0})
-        all_labels = resp.json()
+        # Gitea API の limit=0 はサーバーバージョン依存で「無視されデフォルト 30」になる場合があるため
+        # 必ず paginate_link_header で全件取得する
+        all_labels = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/labels",
+            per_page_key="limit",
+            limit=0,
+        )
         name_to_id = {lb["name"]: lb["id"] for lb in all_labels}
         ids = []
         for name in names:

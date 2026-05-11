@@ -84,7 +84,11 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             params["base"] = base
         if head:
             params["head"] = head
-        needs_client_filter = any([author, label, assignee, draft is not None, search, milestone])
+        # state="merged" は API では closed として取得し後段で merged のみ抽出するため、
+        # limit 件分の closed PR を取ると merged 抽出後に limit 未満になる → 全件取得対象に含める
+        needs_client_filter = any(
+            [author, label, assignee, draft is not None, search, milestone, state == "merged"]
+        )
         fetch_limit = 0 if needs_client_filter else limit
         results = paginate_link_header(
             self._client,
