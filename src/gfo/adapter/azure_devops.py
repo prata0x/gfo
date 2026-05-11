@@ -334,6 +334,10 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         iters = self._client.get(
             f"{self._git_path()}/pullrequests/{number}/iterations",
         ).json()
+        if not isinstance(iters, dict):
+            raise GfoError(
+                f"Unexpected Azure DevOps PR iterations response type: {type(iters).__name__}"
+            )
         iterations = iters.get("value", [])
         if not iterations:
             return []
@@ -341,6 +345,10 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         resp = self._client.get(
             f"{self._git_path()}/pullrequests/{number}/iterations/{last_id}/changes",
         ).json()
+        if not isinstance(resp, dict):
+            raise GfoError(
+                f"Unexpected Azure DevOps PR changes response type: {type(resp).__name__}"
+            )
         out: list[PullRequestFile] = []
         for entry in resp.get("changeEntries", []):
             item = entry.get("item", {})
@@ -377,6 +385,10 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         resp = self._client.get(
             f"{self._git_path()}/pullrequests/{number}/reviewers",
         ).json()
+        if not isinstance(resp, dict):
+            raise GfoError(
+                f"Unexpected Azure DevOps reviewers response type: {type(resp).__name__}"
+            )
         return [r.get("displayName", "") for r in resp.get("value", [])]
 
     def request_reviewers(self, number: int, reviewers: list[str]) -> None:
