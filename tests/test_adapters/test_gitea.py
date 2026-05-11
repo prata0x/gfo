@@ -432,6 +432,31 @@ class TestListPullRequests:
         assert len(prs) == 1
         assert prs[0].number == 1
 
+    def test_merged_fetches_all_pages_to_meet_limit(self, mock_responses, gitea_adapter):
+        """state="merged" は closed を全件取得してから merged のみ抽出して limit を満たすこと。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[
+                _pr_data(number=1, state="closed", merged_at="2025-01-03T00:00:00Z"),
+                _pr_data(number=2, state="closed"),
+            ],
+            status=200,
+            headers={"Link": f'<{REPOS}/pulls?page=2>; rel="next"'},
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[
+                _pr_data(number=3, state="closed"),
+                _pr_data(number=4, state="closed", merged_at="2025-01-04T00:00:00Z"),
+            ],
+            status=200,
+        )
+        prs = gitea_adapter.list_pull_requests(state="merged", limit=2)
+        assert len(prs) == 2
+        assert {pr.number for pr in prs} == {1, 4}
+
     def test_pagination_uses_limit_param(self, mock_responses, gitea_adapter):
         mock_responses.add(
             responses.GET,
@@ -643,6 +668,34 @@ class TestCreatePullRequest:
                 head="feature",
                 labels=["nonexistent"],
             )
+
+    def test_create_with_label_on_paginated_results(self, mock_responses, gitea_adapter):
+        """_resolve_label_ids が複数ページに分かれたラベルを全件取得して解決すること。"""
+        # 1 ページ目（Link ヘッダで 2 ページ目を示す）
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/labels",
+            json=[{"id": 1, "name": "bug", "color": "#ff0000"}],
+            status=200,
+            headers={"Link": f'<{REPOS}/labels?page=2>; rel="next"'},
+        )
+        # 2 ページ目（探しているラベルはこちらにある）
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/labels",
+            json=[{"id": 99, "name": "urgent", "color": "#00ff00"}],
+            status=200,
+        )
+        mock_responses.add(responses.POST, f"{REPOS}/pulls", json=_pr_data(), status=201)
+        gitea_adapter.create_pull_request(
+            title="PR #1",
+            body="desc",
+            base="main",
+            head="feature",
+            labels=["urgent"],
+        )
+        req_body = json.loads(mock_responses.calls[-1].request.body)
+        assert req_body["labels"] == [99]
 
 
 class TestGetPullRequest:

@@ -403,6 +403,34 @@ class TestListPullRequests:
         assert len(prs) == 1
         assert prs[0].number == 1
 
+    def test_merged_fetches_all_pages_to_meet_limit(self, mock_responses, github_adapter):
+        """state="merged" は closed を全件取得してから merged のみ抽出して limit を満たすこと。"""
+        # 1 ページ目: closed 2 件（うち merged 1 件）
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[
+                _pr_data(number=1, state="closed", merged_at="2025-01-03T00:00:00Z"),
+                _pr_data(number=2, state="closed"),  # closed-without-merge
+            ],
+            status=200,
+            headers={"Link": f'<{REPOS}/pulls?page=2>; rel="next"'},
+        )
+        # 2 ページ目: closed 2 件（うち merged 1 件）
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[
+                _pr_data(number=3, state="closed"),  # closed-without-merge
+                _pr_data(number=4, state="closed", merged_at="2025-01-04T00:00:00Z"),
+            ],
+            status=200,
+        )
+        prs = github_adapter.list_pull_requests(state="merged", limit=2)
+        # 全 4 件取得後、merged 2 件を返すべき（修正前は 1 件しか返らなかった）
+        assert len(prs) == 2
+        assert {pr.number for pr in prs} == {1, 4}
+
     def test_pagination(self, mock_responses, github_adapter):
         mock_responses.add(
             responses.GET,
