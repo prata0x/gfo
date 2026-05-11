@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 import responses
 
@@ -322,3 +324,69 @@ class TestPackagesGogs:
     def test_delete_package_raises(self, gogs_adapter):
         with pytest.raises(NotSupportedError):
             gogs_adapter.delete_package("container", "any", "1.0")
+
+
+class TestGogsErrorPropagation:
+    """Gogs アダプターでも 401/404/5xx が適切なサブクラスで伝搬すること。
+
+    Gogs テストは NotSupportedError 中心で、HTTP ステータス別エラーの確認が
+    薄かったため、代表メソッドで一通り確認する。
+    """
+
+    def test_list_issues_unauthorized(self, mock_responses, gogs_adapter):
+        from gfo.exceptions import AuthenticationError
+
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"message": "unauthorized"},
+            status=401,
+        )
+        with pytest.raises(AuthenticationError):
+            gogs_adapter.list_issues()
+
+    def test_get_issue_not_found(self, mock_responses, gogs_adapter):
+        from gfo.exceptions import NotFoundError
+
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues/99999",
+            status=404,
+        )
+        with pytest.raises(NotFoundError):
+            gogs_adapter.get_issue(99999)
+
+    def test_list_issues_server_error(self, mock_responses, gogs_adapter):
+        from gfo.exceptions import ServerError
+
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"message": "internal"},
+            status=500,
+        )
+        with pytest.raises(ServerError):
+            gogs_adapter.list_issues()
+
+    def test_rate_limit_propagates(self, mock_responses, gogs_adapter):
+        from gfo.exceptions import RateLimitError
+
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"message": "rate limited"},
+            status=429,
+            headers={"Retry-After": "60"},
+        )
+        # max_retries=1 のため 1 回リトライ → 同じく 429 → RateLimitError 伝搬
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"message": "rate limited"},
+            status=429,
+            headers={"Retry-After": "60"},
+        )
+        # time.sleep をモックして即時実行
+        with patch("gfo.http.time.sleep"):
+            with pytest.raises(RateLimitError):
+                gogs_adapter.list_issues()

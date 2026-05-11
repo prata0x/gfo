@@ -358,9 +358,7 @@ class TestHandleBatchPr:
         spec1 = _make_spec("github", "o1", "r1")
         spec2 = _make_spec("github", "o2", "r2")
         spec3 = _make_spec("github", "o3", "r3")
-        # except 内で parse_service_spec が再度呼ばれるため、
-        # 失敗したリポジトリ分の追加 spec が必要
-        mock_parse.side_effect = [spec1, spec2, spec2, spec3]
+        mock_parse.side_effect = [spec1, spec2, spec3]
 
         adapter1 = MagicMock()
         adapter1.create_pull_request.return_value = _make_pr(number=1)
@@ -392,3 +390,38 @@ class TestHandleBatchPr:
         assert data[1]["repo"] == "github:o2/r2"
         assert data[2]["status"] == "created"
         assert data[2]["repo"] == "github:o3/r3"
+
+
+class TestBatchPrCreateNonGfoErrorRaised:
+    """batch pr create は GfoError 系のみ failed として記録し、
+    プログラミングエラー（AttributeError 等）は握りつぶさず再 raise する。
+
+    旧実装は except Exception で全例外を捕捉していたため、アダプターのレスポンス
+    型ミスマッチ等の実装バグが「単に failed と表示される」だけで本番障害として
+    顕在化しにくい状態だった。
+    """
+
+    @patch("gfo.commands.batch.create_adapter_from_spec")
+    @patch("gfo.commands.batch.parse_service_spec")
+    def test_attribute_error_is_re_raised(self, mock_parse_spec, mock_create_adapter):
+        spec = MagicMock()
+        spec.service_type = "github"
+        spec.owner = "o1"
+        spec.repo = "r1"
+        mock_parse_spec.return_value = spec
+        adapter = MagicMock()
+        adapter.create_pull_request.side_effect = AttributeError("'NoneType' object has no 'x'")
+        mock_create_adapter.return_value = adapter
+
+        args = make_args(
+            repos="github:o1/r1",
+            title="t",
+            body="b",
+            head="feat",
+            base="main",
+            draft=False,
+            dry_run=False,
+            batch_pr_action="create",
+        )
+        with pytest.raises(AttributeError):
+            batch_cmd.handle_batch_pr(args, fmt="json")
