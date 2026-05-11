@@ -75,6 +75,17 @@ gfo auth status
 
 各サービスのトークン作成手順（必要なスコープ・権限）は [docs/authentication.ja.md](docs/authentication.ja.md) を参照してください。
 
+### セキュリティ関連の環境変数
+
+| 環境変数 | 既定 | 説明 |
+|---|---|---|
+| `GFO_INSECURE` | 未設定 | セルフホストホストの TLS 検証を無効化。クラウドサービスには常に TLS 検証が適用される。 |
+| `GFO_ALLOW_INSECURE_HTTP` | 未設定 | `api_url` で `http://` を許可（`localhost` / `127.0.0.1` / `::1` 以外）。 |
+| `GFO_ALLOW_PRIVATE_HOSTS` | 未設定 | 未知ホストがプライベート / ループバック / リンクローカル IP に解決される場合の API プローブを許可（社内 Gitea / GitLab の自動検出で必要）。 |
+| `GFO_MAX_DOWNLOAD_BYTES` | `5368709120`（5 GiB） | ストリーミングダウンロード（アセット・成果物・ログ）の上限。`0` で無制限。 |
+
+詳細・使用例は [docs/authentication.ja.md](docs/authentication.ja.md#セキュリティ関連の環境変数) を参照してください。
+
 ## コマンド一覧
 
 | コマンド | サブコマンド | 説明 |
