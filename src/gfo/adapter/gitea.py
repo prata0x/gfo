@@ -614,9 +614,11 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             f"{self._repos_path()}/releases/{release_id}/assets/{asset_id}"
         )
         data = meta_resp.json()
+        from pathlib import Path
+
         asset_name = os.path.basename(data.get("name") or f"asset-{asset_id}")
         output_path = os.path.join(output_dir, asset_name)
-        if not os.path.realpath(output_path).startswith(os.path.realpath(output_dir)):
+        if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
             raise GfoError(f"Invalid asset name: {asset_name}")
         url = (
             data.get("browser_download_url")
@@ -1352,12 +1354,13 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self, run_id: int | str, artifact_id: int | str, *, output_dir: str = "."
     ) -> str:
         import os
+        from pathlib import Path
 
         resp = self._client.get(f"{self._repos_path()}/actions/artifacts/{artifact_id}")
         data = resp.json()
         name = os.path.basename(data.get("name", f"artifact-{artifact_id}"))
         output_path = os.path.join(output_dir, f"{name}.zip")
-        if not os.path.realpath(output_path).startswith(os.path.realpath(output_dir)):
+        if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
             raise GfoError(f"Invalid artifact name: {name}")
         url = f"{self._client.base_url}{self._repos_path()}/actions/artifacts/{artifact_id}/zip"
         self._client.download_file(url, output_path)
@@ -1367,8 +1370,13 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self, run_id: int | str, *, job_id: int | str | None = None, output_dir: str = "."
     ) -> str:
         import os
+        from pathlib import Path
 
-        output_path = os.path.join(output_dir, f"logs-{run_id}.zip")
+        # run_id は CLI 引数で渡されるため、出力パスの traversal 検証必須
+        safe_run = os.path.basename(str(run_id))
+        output_path = os.path.join(output_dir, f"logs-{safe_run}.zip")
+        if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
+            raise GfoError(f"Invalid run_id: {run_id}")
         url = f"{self._client.base_url}{self._repos_path()}/actions/runs/{run_id}/logs"
         self._client.download_file(url, output_path)
         return output_path

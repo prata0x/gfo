@@ -740,6 +740,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     def download_release_asset(self, *, tag: str, asset_id: int | str, output_dir: str) -> str:
         import os
+        from pathlib import Path
 
         resp = self._client.get(
             f"{self._project_path()}/releases/{quote(tag, safe='')}/assets/links/{asset_id}"
@@ -748,7 +749,7 @@ class GitLabAdapter(GitServiceAdapter):
         url = data.get("direct_asset_url") or data.get("url") or ""
         asset_name = os.path.basename(data.get("name") or f"asset-{asset_id}")
         output_path = os.path.join(output_dir, asset_name)
-        if not os.path.realpath(output_path).startswith(os.path.realpath(output_dir)):
+        if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
             raise GfoError(f"Invalid asset name: {asset_name}")
         self._client.download_file(url, output_path)
         return output_path

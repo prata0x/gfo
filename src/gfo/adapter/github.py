@@ -615,13 +615,14 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def download_release_asset(self, *, tag: str, asset_id: int | str, output_dir: str) -> str:
         import os
+        from pathlib import Path
 
         from gfo.exceptions import GfoError
 
         meta_resp = self._client.get(f"{self._repos_path()}/releases/assets/{asset_id}")
         asset_name = os.path.basename(meta_resp.json().get("name", f"asset-{asset_id}"))
         output_path = os.path.join(output_dir, asset_name)
-        if not os.path.realpath(output_path).startswith(os.path.realpath(output_dir)):
+        if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
             raise GfoError(f"Invalid asset name: {asset_name}")
         url = f"{self._client.base_url}{self._repos_path()}/releases/assets/{asset_id}"
         self._client.download_file(url, output_path, headers={"Accept": "application/octet-stream"})
@@ -1423,12 +1424,13 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self, run_id: int | str, artifact_id: int | str, *, output_dir: str = "."
     ) -> str:
         import os
+        from pathlib import Path
 
         resp = self._client.get(f"{self._repos_path()}/actions/artifacts/{artifact_id}")
         data = resp.json()
         name = os.path.basename(data.get("name", f"artifact-{artifact_id}"))
         output_path = os.path.join(output_dir, f"{name}.zip")
-        if not os.path.realpath(output_path).startswith(os.path.realpath(output_dir)):
+        if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
             raise GfoError(f"Invalid artifact name: {name}")
         url = f"{self._client.base_url}{self._repos_path()}/actions/artifacts/{artifact_id}/zip"
         self._client.download_file(url, output_path)
@@ -1438,9 +1440,15 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self, run_id: int | str, *, job_id: int | str | None = None, output_dir: str = "."
     ) -> str:
         import os
+        from pathlib import Path
 
         if job_id is not None:
-            output_path = os.path.join(output_dir, f"logs-{run_id}-job-{job_id}.txt")
+            # run_id / job_id は CLI 引数で渡されるため、出力パスの traversal 検証必須
+            safe_run = os.path.basename(str(run_id))
+            safe_job = os.path.basename(str(job_id))
+            output_path = os.path.join(output_dir, f"logs-{safe_run}-job-{safe_job}.txt")
+            if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
+                raise GfoError(f"Invalid run_id/job_id: {run_id}/{job_id}")
             resp = self._client.get(
                 f"{self._repos_path()}/actions/jobs/{job_id}/logs",
                 headers={"Accept": "application/vnd.github.v3+json"},
@@ -1448,7 +1456,10 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(resp.text)
         else:
-            output_path = os.path.join(output_dir, f"logs-{run_id}.zip")
+            safe_run = os.path.basename(str(run_id))
+            output_path = os.path.join(output_dir, f"logs-{safe_run}.zip")
+            if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
+                raise GfoError(f"Invalid run_id: {run_id}")
             url = f"{self._client.base_url}{self._repos_path()}/actions/runs/{run_id}/logs"
             self._client.download_file(url, output_path)
         return output_path
