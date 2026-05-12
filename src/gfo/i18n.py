@@ -14,14 +14,23 @@ _DOMAIN = "gfo"
 def _get_languages() -> list[str] | None:
     """環境変数からロケールを解決する。
 
-    LANGUAGE 環境変数を最優先で使用する。
-    未設定の場合は OS のデフォルトロケールにフォールバックする。
+    GNU gettext の優先順位 LANGUAGE > LC_ALL > LC_MESSAGES > LANG を尊重し、
+    最後のフォールバックとして OS のデフォルトロケール (Windows 対応) を見る。
     """
-    # LANGUAGE は GNU gettext の標準的な言語選択変数
+    # 1. LANGUAGE (GNU gettext 専用): コロン区切り複数言語
     val = os.environ.get("LANGUAGE")
     if val:
         return [lang for lang in val.split(":") if lang]
-    # OS のデフォルトロケール（Windows 対応）
+    # 2. LC_ALL > LC_MESSAGES > LANG (POSIX 標準の言語設定)
+    for env_name in ("LC_ALL", "LC_MESSAGES", "LANG"):
+        raw = os.environ.get(env_name)
+        if not raw:
+            continue
+        # "ja_JP.UTF-8" → "ja_JP" のように encoding 部分を切り落とす
+        code = raw.split(".")[0].split("@")[0]
+        if code and code != "C":
+            return [code]
+    # 3. OS のデフォルトロケール（Windows 対応）
     try:
         os_locale = locale.getlocale()[0]
         if os_locale:

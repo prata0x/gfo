@@ -151,6 +151,10 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
             "  BITBUCKET_TOKEN   Bitbucket       BACKLOG_API_KEY   Backlog\n"
             "  AZURE_DEVOPS_PAT  Azure DevOps    GFO_TOKEN         Fallback (any service)\n"
             "\n"
+            "Behavior variables:\n"
+            "  GFO_NO_AUTO_JSON  Disable auto JSON output when stdout is not a TTY\n"
+            "  GFO_RETRY_AFTER_MAX  Max seconds to honor a 429 Retry-After (default 300)\n"
+            "\n"
             "Run 'gfo <command> -h' for details on each command."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
