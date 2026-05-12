@@ -12,9 +12,16 @@ from gfo.exceptions import ConfigError
 from gfo.i18n import _
 from gfo.output import apply_jq_filter
 
+_DISALLOWED_HEADERS = {"authorization", "cookie", "host", "proxy-authorization"}
+
 
 def _parse_headers(header_list: list[str] | None) -> dict[str, str]:
-    """--header 引数をパースして dict に変換する。"""
+    """--header 引数をパースして dict に変換する。
+
+    認証ヘッダの上書きや CRLF インジェクションを防ぐため、Authorization /
+    Cookie / Host / Proxy-Authorization は明示的に拒否し、値・キーに含まれる
+    CR/LF/NUL を検出した時点で ConfigError にする。
+    """
     if not header_list:
         return {}
     headers: dict[str, str] = {}
@@ -22,7 +29,24 @@ def _parse_headers(header_list: list[str] | None) -> dict[str, str]:
         if ":" not in h:
             raise ConfigError(_("Invalid header format: '{h}'. Use 'Key: Value'.").format(h=h))
         key, value = h.split(":", 1)
-        headers[key.strip()] = value.strip()
+        key = key.strip()
+        value = value.strip()
+        if not key:
+            raise ConfigError(_("Invalid header: empty key in '{h}'.").format(h=h))
+        if key.lower() in _DISALLOWED_HEADERS:
+            raise ConfigError(
+                _(
+                    "Header '{key}' cannot be set via --header (managed by gfo). "
+                    "Use gfo auth / config options instead."
+                ).format(key=key)
+            )
+        if any(c in key for c in ("\r", "\n", "\x00")) or any(
+            c in value for c in ("\r", "\n", "\x00")
+        ):
+            raise ConfigError(
+                _("Header '{key}' contains control characters; refused.").format(key=key)
+            )
+        headers[key] = value
     return headers
 
 

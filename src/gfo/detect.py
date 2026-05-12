@@ -211,7 +211,8 @@ def _is_private_host(host: str) -> bool:
     """ホスト名/IP がプライベートレンジ・ループバック・リンクローカルかを判定する。
 
     ホスト名の場合は socket.gethostbyname で IP 解決し、ipaddress で判定する。
-    DNS 解決失敗時は False（プローブを試みる）。
+    DNS 解決失敗時は安全側に倒して True を返す (プローブを拒否)。これは
+    存在しないホスト名で SSRF プローブを誘発する攻撃面を狭めるための判断。
     """
     import ipaddress
     import socket
@@ -224,7 +225,8 @@ def _is_private_host(host: str) -> bool:
         ip_str = socket.gethostbyname(h)
         ip = ipaddress.ip_address(ip_str)
     except (OSError, ValueError):
-        return False
+        # DNS 失敗・無効 IP は「不明」だがプローブは拒否側 (True) に倒す。
+        return True
     return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
 
 
@@ -329,6 +331,14 @@ def _parse_repo_option(value: str) -> DetectResult:
         pass
 
     # 2. HOST/PATH 形式 → https:// を補完して再試行
+    # ただし、HOST/OWNER/REPO の 3 セグメント以上 (slash >= 2) を要求して
+    # 単一ホスト名や short string が誤って HTTPS プローブされるのを防ぐ。
+    if value.count("/") < 2:
+        raise ConfigError(
+            _("Cannot parse --repo value: {value}. Use URL or HOST/OWNER/REPO format.").format(
+                value=value
+            )
+        )
     try:
         return detect_from_url(f"https://{value}")
     except DetectionError:
