@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import base64
+from typing import TYPE_CHECKING
 from urllib.parse import quote
 
 import requests
 
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 from gfo.http import paginate_link_header
+
+if TYPE_CHECKING:
+    from gfo.http import HttpClient
 
 from .base import (
     Artifact,
@@ -61,6 +65,11 @@ from .registry import register
 @register("gitea")
 class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     service_name = "Gitea"
+
+    def __init__(self, client: HttpClient, owner: str, repo: str, **kwargs: object) -> None:
+        super().__init__(client, owner, repo, **kwargs)
+        # ラベル一覧キャッシュ。issue migrate など N+1 経路で再利用する。
+        self._label_cache: dict[str, int] | None = None
 
     def _repos_path(self) -> str:
         return f"/repos/{quote(self._owner, safe='')}/{quote(self._repo, safe='')}"
@@ -142,16 +151,24 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return pr
 
     def _resolve_label_ids(self, names: list[str]) -> list[int]:
-        """ラベル名のリストを ID のリストに変換する。"""
+        """ラベル名のリストを ID のリストに変換する。
+
+        gfo issue migrate のように同一アダプターで複数回呼ばれる経路で
+        ラベル一覧を毎回フルフェッチすると N+1 になるため、インスタンス内に
+        キャッシュする。CLI プロセスは短命なので TTL や invalidation は
+        必要最小限 (create/update/delete_label 時のみ無効化)。
+        """
         # Gitea API の limit=0 はサーバーバージョン依存で「無視されデフォルト 30」になる場合があるため
         # 必ず paginate_link_header で全件取得する
-        all_labels = paginate_link_header(
-            self._client,
-            f"{self._repos_path()}/labels",
-            per_page_key="limit",
-            limit=0,
-        )
-        name_to_id = {lb["name"]: lb["id"] for lb in all_labels}
+        if self._label_cache is None:
+            all_labels = paginate_link_header(
+                self._client,
+                f"{self._repos_path()}/labels",
+                per_page_key="limit",
+                limit=0,
+            )
+            self._label_cache = {lb["name"]: lb["id"] for lb in all_labels}
+        name_to_id = self._label_cache
         ids = []
         for name in names:
             if name in name_to_id:
@@ -159,6 +176,10 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             else:
                 raise GfoError(f"Label not found: {name}")
         return ids
+
+    def _invalidate_label_cache(self) -> None:
+        """create/update/delete_label など、ラベル一覧を変えた直後に呼ぶ。"""
+        self._label_cache = None
 
     def get_pull_request(self, number: int) -> PullRequest:
         resp = self._client.get(f"{self._repos_path()}/pulls/{number}")

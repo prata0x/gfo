@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import base64
+from typing import TYPE_CHECKING
 from urllib.parse import quote
 
 import requests
 
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 from gfo.http import paginate_page_param
+
+if TYPE_CHECKING:
+    from gfo.http import HttpClient
 
 from .base import (
     Branch,
@@ -57,6 +61,11 @@ from .registry import register
 @register("gitlab")
 class GitLabAdapter(GitServiceAdapter):
     service_name = "GitLab"
+
+    def __init__(self, client: HttpClient, owner: str, repo: str, **kwargs: object) -> None:
+        super().__init__(client, owner, repo, **kwargs)
+        # username → user_id キャッシュ。reviewer/assignee 同期の N+1 経路で再利用する。
+        self._user_id_cache: dict[str, int] = {}
 
     def _project_path(self) -> str:
         return f"/projects/{quote(self._owner + '/' + self._repo, safe='')}"
@@ -1247,14 +1256,23 @@ class GitLabAdapter(GitServiceAdapter):
         解決できなかったユーザー名がある場合は GfoError を送出する。
         警告で握りつぶすと remove/assignee の同期で「削除されたつもりが残る」
         サイレント失敗を招くため。
+
+        同一アダプターインスタンス内では結果をキャッシュし、reviewer/assignee
+        の連続操作で同じ username を何度も GET し直すのを避ける。
         """
         ids: list[int] = []
         unresolved: list[str] = []
         for name in usernames:
+            cached = self._user_id_cache.get(name)
+            if cached is not None:
+                ids.append(cached)
+                continue
             resp = self._client.get("/users", params={"username": name})
             users = resp.json()
             if users:
-                ids.append(users[0]["id"])
+                user_id = users[0]["id"]
+                self._user_id_cache[name] = user_id
+                ids.append(user_id)
             else:
                 unresolved.append(name)
         if unresolved:
