@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import base64
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from typing import TYPE_CHECKING
 from urllib.parse import quote
 
@@ -1714,19 +1714,25 @@ class GitLabAdapter(GitServiceAdapter):
         resp = self._client.post(f"{self._project_path()}/pipelines/{pipeline_id}/retry")
         return self._to_pipeline(resp.json())
 
-    def get_pipeline_logs(self, pipeline_id: int | str, *, job_id: int | str | None = None) -> str:
+    def get_pipeline_logs(
+        self, pipeline_id: int | str, *, job_id: int | str | None = None
+    ) -> Iterable[str]:
         if job_id is not None:
             resp = self._client.get(f"{self._project_path()}/jobs/{job_id}/trace")
-            return str(resp.text)
+            yield from resp.text.splitlines()
+            return
         jobs_resp = self._client.get(f"{self._project_path()}/pipelines/{pipeline_id}/jobs")
-        logs = []
-        for job in jobs_resp.json():
+        for i, job in enumerate(jobs_resp.json()):
+            if i > 0:
+                yield ""
+            header = f"=== {job.get('name', job['id'])} ==="
             try:
                 resp = self._client.get(f"{self._project_path()}/jobs/{job['id']}/trace")
-                logs.append(f"=== {job.get('name', job['id'])} ===\n{resp.text}")
+                yield header
+                yield from resp.text.splitlines()
             except (GfoError, requests.RequestException):
-                logs.append(f"=== {job.get('name', job['id'])} ===\n(log unavailable)")
-        return "\n".join(logs)
+                yield header
+                yield "(log unavailable)"
 
     # --- User ---
 

@@ -1758,8 +1758,8 @@ class TestGetPipelineLogs:
             body="step log output",
             status=200,
         )
-        logs = bitbucket_adapter.get_pipeline_logs(300, job_id="step-1")
-        assert "step log output" in logs
+        lines = list(bitbucket_adapter.get_pipeline_logs(300, job_id="step-1"))
+        assert lines == ["step log output"]
 
     def test_logs_all_steps(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
@@ -1780,7 +1780,7 @@ class TestGetPipelineLogs:
             body="test log",
             status=200,
         )
-        logs = bitbucket_adapter.get_pipeline_logs(300)
+        logs = "\n".join(bitbucket_adapter.get_pipeline_logs(300))
         assert "=== build ===" in logs
         assert "build log" in logs
         assert "=== test ===" in logs
@@ -1793,7 +1793,7 @@ class TestGetPipelineLogs:
             status=404,
         )
         with pytest.raises(NotFoundError):
-            bitbucket_adapter.get_pipeline_logs(300, job_id="bad")
+            list(bitbucket_adapter.get_pipeline_logs(300, job_id="bad"))
 
 
 # --- User / Search 系 ---

@@ -2760,8 +2760,8 @@ class TestGetPipelineLogs:
             body="job log output",
             status=200,
         )
-        logs = gitlab_adapter.get_pipeline_logs(300, job_id=42)
-        assert "job log output" in logs
+        lines = list(gitlab_adapter.get_pipeline_logs(300, job_id=42))
+        assert lines == ["job log output"]
 
     def test_logs_all_jobs(self, mock_responses, gitlab_adapter):
         mock_responses.add(
@@ -2782,7 +2782,7 @@ class TestGetPipelineLogs:
             body="test log",
             status=200,
         )
-        logs = gitlab_adapter.get_pipeline_logs(300)
+        logs = "\n".join(gitlab_adapter.get_pipeline_logs(300))
         assert "=== build ===" in logs
         assert "build log" in logs
         assert "=== test ===" in logs
@@ -2795,7 +2795,7 @@ class TestGetPipelineLogs:
             status=404,
         )
         with pytest.raises(NotFoundError):
-            gitlab_adapter.get_pipeline_logs(300, job_id=999)
+            list(gitlab_adapter.get_pipeline_logs(300, job_id=999))
 
 
 # --- User / Search 系 ---

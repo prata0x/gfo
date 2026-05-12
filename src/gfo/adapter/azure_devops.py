@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 import json as _json
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from typing import TYPE_CHECKING
 from urllib.parse import quote, urlparse
 
@@ -1396,21 +1396,27 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         )
         return self._to_pipeline(resp.json())
 
-    def get_pipeline_logs(self, pipeline_id: int | str, *, job_id: int | str | None = None) -> str:
+    def get_pipeline_logs(
+        self, pipeline_id: int | str, *, job_id: int | str | None = None
+    ) -> Iterable[str]:
         if job_id is not None:
             resp = self._client.get(f"/build/builds/{pipeline_id}/logs/{job_id}")
-            return str(resp.text)
+            yield from resp.text.splitlines()
+            return
         logs_resp = self._client.get(f"/build/builds/{pipeline_id}/logs")
         log_entries = logs_resp.json().get("value", [])
-        logs = []
-        for entry in log_entries:
+        for i, entry in enumerate(log_entries):
             log_id = entry.get("id", "")
+            if i > 0:
+                yield ""
+            header = f"=== Log {log_id} ==="
             try:
                 resp = self._client.get(f"/build/builds/{pipeline_id}/logs/{log_id}")
-                logs.append(f"=== Log {log_id} ===\n{resp.text}")
+                yield header
+                yield from resp.text.splitlines()
             except (GfoError, requests.RequestException):
-                logs.append(f"=== Log {log_id} ===\n(log unavailable)")
-        return "\n".join(logs)
+                yield header
+                yield "(log unavailable)"
 
     # --- User ---
 
