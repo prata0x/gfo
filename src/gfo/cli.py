@@ -113,9 +113,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
             "\n"
             "Security:\n"
             "  collaborator     Collaborators (list, add, remove)\n"
-            "  deploy-key       Deploy keys (list, create, delete)\n"
-            "  ssh-key          SSH keys (list, create, delete)\n"
-            "  gpg-key          GPG keys (list, create, delete)\n"
+            "  deploy-key       Deploy keys (list, view, create, delete)\n"
+            "  ssh-key          SSH keys (list, view, create, delete)\n"
+            "  gpg-key          GPG keys (list, view, create, delete)\n"
             "  secret           Secrets (list, set, delete)\n"
             "  variable         Variables (list, set, get, delete)\n"
             "  branch-protect   Branch protection rules (list, set, remove)\n"
@@ -124,7 +124,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
             "Other:\n"
             "  user             User commands (whoami)\n"
             "  search           Search (repos, issues, prs, commits, code)\n"
-            "  org              Organizations (list, create, members)\n"
+            "  org              Organizations (list, view, members, repos, create, edit, delete)\n"
             "  package          Packages (list, view, delete)\n"
             "  browse           Open repository in browser\n"
             "  api              Send raw API requests (e.g. gfo api GET /repos/o/r)\n"
@@ -227,7 +227,11 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     login_parser.add_argument("--host", help=_("Hostname (e.g. github.com)"))
     login_parser.add_argument(
         "--token",
-        help=_("Authentication token (insecure - visible in process list; use --token-stdin)"),
+        help=_(
+            "Authentication token (DEPRECATED, will be removed in a future release; "
+            "insecure because the token is visible in the process list. "
+            "Use --token-stdin or --token-file instead)"
+        ),
     )
     login_parser.add_argument(
         "--token-stdin",
@@ -1076,7 +1080,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     ci_watch = ci_sub.add_parser("watch", help=_("Watch pipeline status"))
     ci_watch.add_argument("id", help=_("Pipeline ID"))
     ci_watch.add_argument(
-        "--interval", "-i", type=int, default=5, help=_("Poll interval in seconds")
+        "--interval", "-i", type=_positive_int, default=5, help=_("Poll interval in seconds")
     )
     ci_watch.add_argument(
         "--timeout", "-t", type=int, default=1800, help=_("Timeout in seconds (0 for unlimited)")
@@ -1874,6 +1878,13 @@ def main(argv: list[str] | None = None) -> int:
                 if isinstance(err, NotSupportedError) and err.web_url:
                     print(err.web_url)
             return err.exit_code
+        except KeyboardInterrupt:
+            # Ctrl+C による中断: トレースバックを抑制して標準的な終了コード 130 を返す
+            print(_("Aborted by user."), file=sys.stderr)
+            return 130
+        except BrokenPipeError:
+            # `gfo ... | head` のように下流が閉じた場合は静かに終了する
+            return 0
         except Exception as err:  # pragma: no cover
             print(_("Unexpected error: {err}").format(err=err), file=sys.stderr)
             return 1
