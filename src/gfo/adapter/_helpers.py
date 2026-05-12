@@ -18,14 +18,17 @@ _F = TypeVar("_F", bound=Callable[..., object])
 def _wrap_conversion_error(func: _F) -> _F:
     """_to_* 変換メソッド用デコレータ。
 
-    KeyError / TypeError を捕捉して GfoError に変換する。
+    KeyError / TypeError / AttributeError を捕捉して GfoError に変換する。
+    AttributeError も API レスポンス形式違いで発生し得るため、一貫して
+    GfoError でラップする (例: `data["user"]` が想定外に str で来て
+    `.get("login")` が AttributeError を投げるケース)。
     """
 
     @functools.wraps(func)
     def wrapper(*args: object, **kwargs: object) -> object:
         try:
             return func(*args, **kwargs)
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError, AttributeError) as e:
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     return wrapper  # type: ignore[return-value]

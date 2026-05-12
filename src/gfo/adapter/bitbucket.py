@@ -9,7 +9,7 @@ import requests
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 from gfo.http import paginate_response_body
 
-from .base import GitServiceAdapter
+from .base import GitServiceAdapter, _wrap_conversion_error
 from .models import (
     Branch,
     BranchProtection,
@@ -51,87 +51,79 @@ class BitbucketAdapter(GitServiceAdapter):
     # --- 変換ヘルパー ---
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_pull_request(data: dict) -> PullRequest:
-        try:
-            raw_state = data["state"]
-            state_map = {
-                "OPEN": "open",
-                "DECLINED": "closed",
-                "SUPERSEDED": "closed",
-                "MERGED": "merged",
-            }
-            state = state_map.get(raw_state, raw_state.lower())
+        raw_state = data["state"]
+        state_map = {
+            "OPEN": "open",
+            "DECLINED": "closed",
+            "SUPERSEDED": "closed",
+            "MERGED": "merged",
+        }
+        state = state_map.get(raw_state, raw_state.lower())
 
-            return PullRequest(
-                number=data["id"],
-                title=data["title"],
-                body=data.get("description"),
-                state=state,
-                author=data["author"]["nickname"],
-                source_branch=data["source"]["branch"]["name"],
-                target_branch=data["destination"]["branch"]["name"],
-                draft=False,
-                url=data["links"]["html"]["href"],
-                created_at=data["created_on"],
-                updated_at=data.get("updated_on"),
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return PullRequest(
+            number=data["id"],
+            title=data["title"],
+            body=data.get("description"),
+            state=state,
+            author=data["author"]["nickname"],
+            source_branch=data["source"]["branch"]["name"],
+            target_branch=data["destination"]["branch"]["name"],
+            draft=False,
+            url=data["links"]["html"]["href"],
+            created_at=data["created_on"],
+            updated_at=data.get("updated_on"),
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_issue(data: dict) -> Issue:
-        try:
-            raw_state = data["state"]
-            state = "open" if raw_state in ("new", "open") else "closed"
+        raw_state = data["state"]
+        state = "open" if raw_state in ("new", "open") else "closed"
 
-            assignee = data.get("assignee")
-            nickname = assignee.get("nickname") if isinstance(assignee, dict) else None
-            assignees = [nickname] if nickname else []
+        assignee = data.get("assignee")
+        nickname = assignee.get("nickname") if isinstance(assignee, dict) else None
+        assignees = [nickname] if nickname else []
 
-            component = data.get("component")
-            labels = (
-                [component["name"]] if isinstance(component, dict) and component.get("name") else []
-            )
+        component = data.get("component")
+        labels = (
+            [component["name"]] if isinstance(component, dict) and component.get("name") else []
+        )
 
-            return Issue(
-                number=data["id"],
-                title=data["title"],
-                body=(data.get("content") or {}).get("raw"),
-                state=state,
-                author=data["reporter"]["nickname"],
-                assignees=assignees,
-                labels=labels,
-                url=(
-                    (data["links"].get("html") or data["links"].get("self") or {}).get("href", "")
-                ),
-                created_at=data["created_on"],
-                updated_at=data.get("updated_on"),
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return Issue(
+            number=data["id"],
+            title=data["title"],
+            body=(data.get("content") or {}).get("raw"),
+            state=state,
+            author=data["reporter"]["nickname"],
+            assignees=assignees,
+            labels=labels,
+            url=((data["links"].get("html") or data["links"].get("self") or {}).get("href", "")),
+            created_at=data["created_on"],
+            updated_at=data.get("updated_on"),
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_repository(data: dict) -> Repository:
-        try:
-            clone_url = ""
-            for link in (data.get("links") or {}).get("clone", []):
-                if link.get("name") == "https":
-                    clone_url = link["href"]
-                    break
+        clone_url = ""
+        for link in (data.get("links") or {}).get("clone", []):
+            if link.get("name") == "https":
+                clone_url = link["href"]
+                break
 
-            return Repository(
-                name=data["slug"],
-                full_name=data["full_name"],
-                description=data.get("description"),
-                visibility="private" if data.get("is_private", False) else "public",
-                default_branch=data.get("mainbranch", {}).get("name")
-                if data.get("mainbranch")
-                else None,
-                clone_url=clone_url,
-                url=data["links"]["html"]["href"],
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return Repository(
+            name=data["slug"],
+            full_name=data["full_name"],
+            description=data.get("description"),
+            visibility="private" if data.get("is_private", False) else "public",
+            default_branch=data.get("mainbranch", {}).get("name")
+            if data.get("mainbranch")
+            else None,
+            clone_url=clone_url,
+            url=data["links"]["html"]["href"],
+        )
 
     # --- PR ---
 
@@ -475,99 +467,87 @@ class BitbucketAdapter(GitServiceAdapter):
     # --- 変換ヘルパー（拡張） ---
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_comment(data: dict) -> Comment:
 
-        try:
-            author = (data.get("user") or {}).get("nickname") or ""
-            # content.raw フィールド
-            content = data.get("content") or {}
-            body = content.get("raw") or ""
-            return Comment(
-                id=data["id"],
-                body=body,
-                author=author,
-                url=(data.get("links") or {}).get("html", {}).get("href") or "",
-                created_at=data.get("created_on") or "",
-                updated_at=data.get("updated_on"),
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        author = (data.get("user") or {}).get("nickname") or ""
+        # content.raw フィールド
+        content = data.get("content") or {}
+        body = content.get("raw") or ""
+        return Comment(
+            id=data["id"],
+            body=body,
+            author=author,
+            url=(data.get("links") or {}).get("html", {}).get("href") or "",
+            created_at=data.get("created_on") or "",
+            updated_at=data.get("updated_on"),
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_branch(data: dict) -> Branch:
 
-        try:
-            target = data.get("target") or {}
-            return Branch(
-                name=data["name"],
-                sha=target.get("hash") or "",
-                protected=False,
-                url=(data.get("links") or {}).get("html", {}).get("href") or "",
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        target = data.get("target") or {}
+        return Branch(
+            name=data["name"],
+            sha=target.get("hash") or "",
+            protected=False,
+            url=(data.get("links") or {}).get("html", {}).get("href") or "",
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_tag(data: dict) -> Tag:
 
-        try:
-            target = data.get("target") or {}
-            return Tag(
-                name=data["name"],
-                sha=target.get("hash") or "",
-                message=data.get("message") or "",
-                url=(data.get("links") or {}).get("html", {}).get("href") or "",
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        target = data.get("target") or {}
+        return Tag(
+            name=data["name"],
+            sha=target.get("hash") or "",
+            message=data.get("message") or "",
+            url=(data.get("links") or {}).get("html", {}).get("href") or "",
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_commit_status(data: dict) -> CommitStatus:
 
-        try:
-            state_map = {
-                "SUCCESSFUL": "success",
-                "FAILED": "failure",
-                "INPROGRESS": "pending",
-                "STOPPED": "error",
-            }
-            raw = data.get("state", "INPROGRESS")
-            return CommitStatus(
-                state=state_map.get(raw, raw.lower()),
-                context=data.get("key") or "",
-                description=data.get("description") or "",
-                target_url=data.get("url") or "",
-                created_at=data.get("created_on") or "",
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        state_map = {
+            "SUCCESSFUL": "success",
+            "FAILED": "failure",
+            "INPROGRESS": "pending",
+            "STOPPED": "error",
+        }
+        raw = data.get("state", "INPROGRESS")
+        return CommitStatus(
+            state=state_map.get(raw, raw.lower()),
+            context=data.get("key") or "",
+            description=data.get("description") or "",
+            target_url=data.get("url") or "",
+            created_at=data.get("created_on") or "",
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_webhook(data: dict) -> Webhook:
 
-        try:
-            events = tuple(data.get("events") or [])
-            return Webhook(
-                id=data["uuid"].strip("{}") if data.get("uuid") else data.get("id", 0),
-                url=data.get("url") or "",
-                events=events,
-                active=data.get("active", True),
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        events = tuple(data.get("events") or [])
+        return Webhook(
+            id=data["uuid"].strip("{}") if data.get("uuid") else data.get("id", 0),
+            url=data.get("url") or "",
+            events=events,
+            active=data.get("active", True),
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_deploy_key(data: dict) -> DeployKey:
 
-        try:
-            return DeployKey(
-                id=data["id"],
-                title=data.get("label") or "",
-                key=data.get("key") or "",
-                read_only=not data.get("can_push", False),  # Bitbucket では read-only がデフォルト
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return DeployKey(
+            id=data["id"],
+            title=data.get("label") or "",
+            key=data.get("key") or "",
+            read_only=not data.get("can_push", False),  # Bitbucket では read-only がデフォルト
+        )
 
     @staticmethod
     def _to_pipeline(data: dict) -> Pipeline:
@@ -1393,18 +1373,16 @@ class BitbucketAdapter(GitServiceAdapter):
         return [self._to_repository(r) for r in results]
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_organization(data: dict) -> Organization:
 
-        try:
-            workspace = data.get("workspace") or data
-            return Organization(
-                name=workspace.get("slug") or "",
-                display_name=workspace.get("name") or "",
-                description=None,
-                url=(workspace.get("links") or {}).get("html", {}).get("href") or "",
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        workspace = data.get("workspace") or data
+        return Organization(
+            name=workspace.get("slug") or "",
+            display_name=workspace.get("name") or "",
+            description=None,
+            url=(workspace.get("links") or {}).get("html", {}).get("href") or "",
+        )
 
     # --- SSH Key ---
 
@@ -1431,20 +1409,18 @@ class BitbucketAdapter(GitServiceAdapter):
         self._client.delete(f"/users/{quote(self._owner, safe='')}/ssh-keys/{key_id}")
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_ssh_key(data: dict) -> SshKey:
 
-        try:
-            key_id: int | str = (
-                data.get("uuid", "").strip("{}") if data.get("uuid") else data.get("id", 0)
-            )
-            return SshKey(
-                id=key_id,
-                title=data.get("label") or data.get("comment") or "",
-                key=data.get("key") or "",
-                created_at=data.get("created_on") or "",
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        key_id: int | str = (
+            data.get("uuid", "").strip("{}") if data.get("uuid") else data.get("id", 0)
+        )
+        return SshKey(
+            id=key_id,
+            title=data.get("label") or data.get("comment") or "",
+            key=data.get("key") or "",
+            created_at=data.get("created_on") or "",
+        )
 
     # --- GPG Key ---
 

@@ -14,7 +14,7 @@ from gfo.http import paginate_link_header
 if TYPE_CHECKING:
     from gfo.http import HttpClient
 
-from .base import GitServiceAdapter, _mask_token_in_exception
+from .base import GitServiceAdapter, _mask_token_in_exception, _wrap_conversion_error
 from .github_like import GitHubLikeAdapter
 from .models import (
     Artifact,
@@ -1300,27 +1300,25 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return self.get_pipeline(pipeline_id)
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_pipeline_data(data: dict) -> Pipeline:
 
-        try:
-            status_map = {
-                "success": "success",
-                "failure": "failure",
-                "running": "running",
-                "waiting": "pending",
-                "queued": "pending",
-                "cancelled": "cancelled",
-            }
-            status = status_map.get(data.get("status", "queued"), "pending")
-            return Pipeline(
-                id=data["id"],
-                status=status,
-                ref=data.get("head_branch") or "",
-                url=data.get("html_url") or "",
-                created_at=data.get("created") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+        status_map = {
+            "success": "success",
+            "failure": "failure",
+            "running": "running",
+            "waiting": "pending",
+            "queued": "pending",
+            "cancelled": "cancelled",
+        }
+        status = status_map.get(data.get("status", "queued"), "pending")
+        return Pipeline(
+            id=data["id"],
+            status=status,
+            ref=data.get("head_branch") or "",
+            url=data.get("html_url") or "",
+            created_at=data.get("created") or "",
+        )
 
     def list_workflows(self, *, limit: int = 30) -> list[Workflow]:
         results: list[dict] = []
@@ -1397,30 +1395,26 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return output_path
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_workflow_data(data: dict) -> Workflow:
-        try:
-            state = data.get("state", "disabled")
-            return Workflow(
-                id=data["id"],
-                name=data.get("name") or "",
-                path=data.get("path") or "",
-                state=state,
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+        state = data.get("state", "disabled")
+        return Workflow(
+            id=data["id"],
+            name=data.get("name") or "",
+            path=data.get("path") or "",
+            state=state,
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_artifact_data(data: dict) -> Artifact:
-        try:
-            return Artifact(
-                id=data["id"],
-                name=data.get("name") or "",
-                size=data.get("size_in_bytes") or data.get("size") or 0,
-                url=data.get("archive_download_url") or data.get("url") or "",
-                created_at=data.get("created_at") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+        return Artifact(
+            id=data["id"],
+            name=data.get("name") or "",
+            size=data.get("size_in_bytes") or data.get("size") or 0,
+            url=data.get("archive_download_url") or data.get("url") or "",
+            created_at=data.get("created_at") or "",
+        )
 
     # --- User ---
 
@@ -1556,19 +1550,17 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.delete(f"{self._repos_path()}/branch_protections/{quote(branch, safe='')}")
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_branch_protection(data: dict) -> BranchProtection:
 
-        try:
-            return BranchProtection(
-                branch=data.get("branch_name") or data.get("rule_name") or "",
-                require_reviews=data.get("required_approvals", 0) or 0,
-                require_status_checks=tuple(data.get("status_check_contexts") or []),
-                enforce_admins=False,
-                allow_force_push=data.get("enable_force_push", False),
-                allow_deletions=False,
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return BranchProtection(
+            branch=data.get("branch_name") or data.get("rule_name") or "",
+            require_reviews=data.get("required_approvals", 0) or 0,
+            require_status_checks=tuple(data.get("status_check_contexts") or []),
+            enforce_admins=False,
+            allow_force_push=data.get("enable_force_push", False),
+            allow_deletions=False,
+        )
 
     # --- Notification ---
 
@@ -1590,22 +1582,20 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.put("/notifications", json={"status": "read"})
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_notification(data: dict) -> Notification:
 
-        try:
-            subject = data.get("subject") or {}
-            repo = data.get("repository") or {}
-            return Notification(
-                id=str(data["id"]),
-                title=subject.get("title") or "",
-                reason=data.get("reason") or subject.get("type") or "",
-                unread=data.get("unread", False),
-                repository=repo.get("full_name") or "",
-                url=subject.get("html_url") or subject.get("url") or "",
-                updated_at=data.get("updated_at") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        subject = data.get("subject") or {}
+        repo = data.get("repository") or {}
+        return Notification(
+            id=str(data["id"]),
+            title=subject.get("title") or "",
+            reason=data.get("reason") or subject.get("type") or "",
+            unread=data.get("unread", False),
+            repository=repo.get("full_name") or "",
+            url=subject.get("html_url") or subject.get("url") or "",
+            updated_at=data.get("updated_at") or "",
+        )
 
     # --- Organization ---
 
@@ -1707,17 +1697,15 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.delete(f"/user/keys/{key_id}")
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_ssh_key(data: dict) -> SshKey:
 
-        try:
-            return SshKey(
-                id=data["id"],
-                title=data.get("title") or "",
-                key=data.get("key") or "",
-                created_at=data.get("created_at") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return SshKey(
+            id=data["id"],
+            title=data.get("title") or "",
+            key=data.get("key") or "",
+            created_at=data.get("created_at") or "",
+        )
 
     # --- GPG Key ---
 
@@ -1904,26 +1892,24 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.delete(f"{self._repos_path()}/wiki/page/{quote(str(page_id), safe='')}")
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_wiki_page_data(data: dict) -> WikiPage:
 
-        try:
-            # Gitea 1.22+: content は content_base64（base64エンコード）
-            content_b64 = data.get("content_base64") or ""
-            if content_b64:
-                content = base64.b64decode(content_b64).decode("utf-8", errors="replace")
-            else:
-                content = data.get("content") or ""
-            # sub_url が存在すればそれを id として使用（Gitea 1.22+）
-            page_id: int | str = data.get("sub_url") or 0
-            return WikiPage(
-                id=page_id,
-                title=data.get("title") or "",
-                content=content,
-                url=data.get("html_url") or "",
-                updated_at=data.get("last_commit", {}).get("created"),
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+        # Gitea 1.22+: content は content_base64（base64エンコード）
+        content_b64 = data.get("content_base64") or ""
+        if content_b64:
+            content = base64.b64decode(content_b64).decode("utf-8", errors="replace")
+        else:
+            content = data.get("content") or ""
+        # sub_url が存在すればそれを id として使用（Gitea 1.22+）
+        page_id: int | str = data.get("sub_url") or 0
+        return WikiPage(
+            id=page_id,
+            title=data.get("title") or "",
+            content=content,
+            url=data.get("html_url") or "",
+            updated_at=data.get("last_commit", {}).get("created"),
+        )
 
     # --- Issue Reaction ---
 
