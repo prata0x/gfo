@@ -718,8 +718,6 @@ class GitLabAdapter(GitServiceAdapter):
             limit=1,
         )
         if not results:
-            from gfo.exceptions import NotFoundError
-
             raise NotFoundError()
         return self._to_release(results[0])
 

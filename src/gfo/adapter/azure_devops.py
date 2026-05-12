@@ -775,7 +775,6 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_comment(data: dict) -> Comment:
-        from gfo.exceptions import GfoError
 
         try:
             # PR Threads の場合は comments 配列の最初のコメント
@@ -798,7 +797,6 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_review(data: dict) -> Review:
-        from gfo.exceptions import GfoError
 
         try:
             vote_map = {
@@ -821,7 +819,6 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_branch(data: dict) -> Branch:
-        from gfo.exceptions import GfoError
 
         try:
             # AzDO: name は "refs/heads/xxx" 形式
@@ -839,7 +836,6 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_tag(data: dict) -> Tag:
-        from gfo.exceptions import GfoError
 
         try:
             name = data.get("name", "")
@@ -856,7 +852,6 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_commit_status(data: dict) -> CommitStatus:
-        from gfo.exceptions import GfoError
 
         try:
             state_map = {
@@ -884,7 +879,6 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_webhook(data: dict) -> Webhook:
-        from gfo.exceptions import GfoError
 
         try:
             events = tuple([data.get("eventType") or ""] if data.get("eventType") else [])
@@ -899,7 +893,6 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_pipeline(data: dict) -> Pipeline:
-        from gfo.exceptions import GfoError
 
         try:
             status_map = {
@@ -1112,8 +1105,6 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         items = resp.json().get("value", [])
         items = [i for i in items if i.get("name") == f"refs/heads/{name}"]
         if not items:
-            from gfo.exceptions import NotFoundError
-
             raise NotFoundError(detail=f"Branch '{name}' not found")
         return self._to_branch(items[0])
 
@@ -1137,8 +1128,6 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         )
         items = resp.json().get("value", [])
         if not items:
-            from gfo.exceptions import GfoError
-
             raise GfoError(f"Branch '{name}' not found after creation")
         return self._to_branch(items[0])
 
@@ -1150,8 +1139,6 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         )
         items = resp.json().get("value", [])
         if not items:
-            from gfo.exceptions import NotFoundError
-
             raise NotFoundError(detail=f"Branch '{name}' not found")
         sha = items[0]["objectId"]
         payload = [{"name": f"refs/heads/{name}", "oldObjectId": sha, "newObjectId": "0" * 40}]
@@ -1167,8 +1154,6 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         items = resp.json().get("value", [])
         items = [i for i in items if i.get("name") == f"refs/tags/{name}"]
         if not items:
-            from gfo.exceptions import NotFoundError
-
             raise NotFoundError(detail=f"Tag '{name}' not found")
         return self._to_tag(items[0])
 
@@ -1195,8 +1180,6 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         )
         items = resp.json().get("value", [])
         if not items:
-            from gfo.exceptions import NotFoundError
-
             raise NotFoundError(detail=f"Tag '{name}' not found")
         sha = items[0]["objectId"]
         payload = [{"name": f"refs/tags/{name}", "oldObjectId": sha, "newObjectId": "0" * 40}]
@@ -1257,8 +1240,6 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             # objectId は blob SHA
             sha = data.get("objectId") or ""
         except (KeyError, TypeError, AttributeError) as e:
-            from gfo.exceptions import GfoError
-
             raise GfoError(f"Unexpected API response: {e}") from e
         return content, sha
 
@@ -1615,14 +1596,10 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         )
         wiql_body = wiql_resp.json()
         if not isinstance(wiql_body, dict):
-            from gfo.exceptions import GfoError
-
             raise GfoError(f"Unexpected API response: {type(wiql_body)}")
         try:
             ids = [wi["id"] for wi in wiql_body.get("workItems", [])]
         except (KeyError, TypeError) as e:
-            from gfo.exceptions import GfoError
-
             raise GfoError(f"Unexpected API response: {e}") from e
         if not ids:
             return []
@@ -1633,8 +1610,6 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         )
         batch_body = resp.json()
         if not isinstance(batch_body, dict):
-            from gfo.exceptions import GfoError
-
             raise GfoError(f"Unexpected API response: {type(batch_body)}")
         return [self._to_issue(item) for item in batch_body.get("value", [])]
 
