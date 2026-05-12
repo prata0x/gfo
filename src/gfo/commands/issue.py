@@ -301,7 +301,7 @@ def handle_time(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 
 def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue status のハンドラ。"""
-    import json
+    from gfo.output import output_grouped
 
     adapter = get_adapter()
     username = adapter.get_current_username()
@@ -309,38 +309,14 @@ def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     created = adapter.list_issues(state="open", author=username)
     assigned = adapter.list_issues(state="open", assignee=username)
 
-    fields = ["number", "title", "state", "author"]
-
-    if fmt == "json":
-        import dataclasses
-
-        data = {
-            "created": [dataclasses.asdict(i) for i in created],
-            "assigned": [dataclasses.asdict(i) for i in assigned],
-        }
-        json_str = json.dumps(data, indent=2, ensure_ascii=False, default=str)
-        if jq is not None:
-            from gfo.output import apply_jq_filter
-
-            print(apply_jq_filter(json_str, jq))
-        else:
-            print(json_str)
-        return
-
-    _print_status_section(_("Created by you"), created, fields)
-    print()
-    _print_status_section(_("Assigned to you"), assigned, fields)
-
-
-def _print_status_section(title: str, issues: list, fields: list[str]) -> None:
-    """issue status のセクションを出力するヘルパー。"""
-    from gfo.output import format_table
-
-    print(title)
-    if issues:
-        print(format_table(issues, fields))
-    else:
-        print(_("  No issues found."))
+    output_grouped(
+        {"created": created, "assigned": assigned},
+        fields=["number", "title", "state", "author"],
+        fmt=fmt,
+        jq=jq,
+        labels={"created": _("Created by you"), "assigned": _("Assigned to you")},
+        empty_message=_("  No issues found."),
+    )
 
 
 def _slugify(text: str, max_len: int = 40) -> str:

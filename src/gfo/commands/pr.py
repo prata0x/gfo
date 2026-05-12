@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import argparse
-import json
 
 import gfo.git_util
 from gfo.commands import get_adapter, open_in_browser, read_file_arg
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
-from gfo.output import format_table, output
+from gfo.output import output
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -235,33 +234,22 @@ def handle_ready(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
 
 def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr status のハンドラ。"""
+    from gfo.output import output_grouped
+
     adapter = get_adapter()
     username = adapter.get_current_username()
 
     created = adapter.list_pull_requests(state="open", author=username)
     assigned = adapter.list_pull_requests(state="open", assignee=username)
 
-    fields = ["number", "title", "state", "author"]
-
-    if fmt == "json":
-        import dataclasses
-
-        data = {
-            "created": [dataclasses.asdict(pr) for pr in created],
-            "assigned": [dataclasses.asdict(pr) for pr in assigned],
-        }
-        json_str = json.dumps(data, indent=2, ensure_ascii=False, default=str)
-        if jq is not None:
-            from gfo.output import apply_jq_filter
-
-            print(apply_jq_filter(json_str, jq))
-        else:
-            print(json_str)
-        return
-
-    _print_section(_("Created by you"), created, fields)
-    print()
-    _print_section(_("Assigned to you"), assigned, fields)
+    output_grouped(
+        {"created": created, "assigned": assigned},
+        fields=["number", "title", "state", "author"],
+        fmt=fmt,
+        jq=jq,
+        labels={"created": _("Created by you"), "assigned": _("Assigned to you")},
+        empty_message=_("  No pull requests found."),
+    )
 
 
 def handle_subscribe(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -276,12 +264,3 @@ def handle_unsubscribe(args: argparse.Namespace, *, fmt: str, jq: str | None = N
     adapter = get_adapter()
     adapter.unsubscribe_pull_request(args.number)
     print(_("Unsubscribed from PR #{number}.").format(number=args.number))
-
-
-def _print_section(title: str, prs: list, fields: list[str]) -> None:
-    """pr status のセクションを出力するヘルパー。"""
-    print(title)
-    if prs:
-        print(format_table(prs, fields))
-    else:
-        print(_("  No pull requests found."))

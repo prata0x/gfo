@@ -168,3 +168,53 @@ def format_plain(items: list, fields: list[str]) -> str:
         d = dataclasses.asdict(item)
         lines.append("\t".join(_sanitize_for_plain(_field_str(d.get(f))) for f in fields))
     return "\n".join(lines)
+
+
+def output_grouped(
+    groups: dict[str, list],
+    *,
+    fields: list[str],
+    fmt: str,
+    jq: str | None = None,
+    labels: dict[str, str] | None = None,
+    empty_message: str | None = None,
+) -> None:
+    """グループ分けされたデータを出力する共通関数。
+
+    `gfo pr status` / `gfo issue status` のように "created" / "assigned" のような
+    複数セクションを 1 つの出力にまとめるためのヘルパー。
+
+    - json: `{key: [asdict(item), ...]}` を 1 つの JSON にして出力 (jq 適用可)
+    - plain / table: 各セクションを順にタイトル行 + テーブル / 空メッセージで出力
+
+    Args:
+        groups: セクションキー (JSON 安定キー) → アイテムリスト の OrderedDict 相当。
+                JSON 出力のキーになるため、i18n を通さない安定文字列を渡すこと。
+        fields: テーブル / plain で表示するフィールド名一覧
+        fmt: "json" | "table" | "plain"
+        jq: jq 式 (json モード時のみ適用)
+        labels: table / plain 出力時にセクションタイトルとして使う i18n 済み文字列。
+                未指定の場合は `groups` のキーをそのままタイトルにする。
+        empty_message: 空セクション時のメッセージ (デフォルト "No results found.")
+    """
+    if fmt == "json" or jq is not None:
+        data = {key: [dataclasses.asdict(item) for item in items] for key, items in groups.items()}
+        json_str = json.dumps(data, indent=2, ensure_ascii=False, default=str)
+        if jq is not None:
+            print(apply_jq_filter(json_str, jq))
+        else:
+            print(json_str)
+        return
+
+    empty = empty_message if empty_message is not None else _("  No results found.")
+    first = True
+    for key, items in groups.items():
+        if not first:
+            print()
+        first = False
+        title = (labels or {}).get(key, key)
+        print(title)
+        if items:
+            print(format_table(items, fields) if fmt != "plain" else format_plain(items, fields))
+        else:
+            print(empty)
