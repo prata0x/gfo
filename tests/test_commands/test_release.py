@@ -724,23 +724,24 @@ class TestHandleAsset:
             output_dir=".",
         )
 
-    def test_asset_download_by_pattern(self, sample_config, capsys):
+    def test_asset_download_by_pattern(self, sample_config, capsys, tmp_path):
         self.adapter.list_release_assets.return_value = [self.asset]
-        self.adapter.download_release_asset.return_value = "/tmp/app-v1.0.0.zip"
         args = make_args(
             asset_action="download",
             tag="v1.0.0",
             asset_id=None,
             pattern="*.zip",
-            dir="/tmp",
+            dir=str(tmp_path),
         )
         with _patch_all(sample_config, self.adapter):
             release_cmd.handle_asset(args, fmt="table")
 
-        self.adapter.download_release_asset.assert_called_once_with(
-            tag="v1.0.0",
-            asset_id=1,
-            output_dir="/tmp",
+        # --pattern 経路ではメタ GET (download_release_asset) を呼ばず、
+        # list_release_assets で得た download_url を client.download_file に渡す。
+        self.adapter.download_release_asset.assert_not_called()
+        self.adapter.client.download_file.assert_called_once_with(
+            self.asset.download_url,
+            str(tmp_path / self.asset.name),
         )
 
     def test_asset_download_no_match_raises(self, sample_config):
