@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from urllib.parse import quote
 
 import requests
@@ -1122,25 +1122,31 @@ class BitbucketAdapter(GitServiceAdapter):
         ref_name = target.get("ref_name") or target.get("source", "")
         return self.trigger_pipeline(ref_name)
 
-    def get_pipeline_logs(self, pipeline_id: int | str, *, job_id: int | str | None = None) -> str:
+    def get_pipeline_logs(
+        self, pipeline_id: int | str, *, job_id: int | str | None = None
+    ) -> Iterable[str]:
         if job_id is not None:
             resp = self._client.get(
                 f"{self._repos_path()}/pipelines/{pipeline_id}/steps/{job_id}/log",
             )
-            return str(resp.text)
+            yield from resp.text.splitlines()
+            return
         steps_resp = self._client.get(f"{self._repos_path()}/pipelines/{pipeline_id}/steps/")
         steps = steps_resp.json().get("values", [])
-        logs = []
-        for step in steps:
+        for i, step in enumerate(steps):
             step_uuid = step.get("uuid", "")
+            if i > 0:
+                yield ""
+            header = f"=== {step.get('name', step_uuid)} ==="
             try:
                 resp = self._client.get(
                     f"{self._repos_path()}/pipelines/{pipeline_id}/steps/{step_uuid}/log",
                 )
-                logs.append(f"=== {step.get('name', step_uuid)} ===\n{resp.text}")
+                yield header
+                yield from resp.text.splitlines()
             except (GfoError, requests.RequestException):
-                logs.append(f"=== {step.get('name', step_uuid)} ===\n(log unavailable)")
-        return "\n".join(logs)
+                yield header
+                yield "(log unavailable)"
 
     # --- User ---
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import base64
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from urllib.parse import quote
 
 import requests
@@ -1339,27 +1339,33 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.post(f"{self._repos_path()}/actions/runs/{pipeline_id}/rerun", json={})
         return self.get_pipeline(pipeline_id)
 
-    def get_pipeline_logs(self, pipeline_id: int | str, *, job_id: int | str | None = None) -> str:
+    def get_pipeline_logs(
+        self, pipeline_id: int | str, *, job_id: int | str | None = None
+    ) -> Iterable[str]:
         if job_id is not None:
             resp = self._client.get(
                 f"{self._repos_path()}/actions/jobs/{job_id}/logs",
                 headers={"Accept": "application/vnd.github.v3+json"},
             )
-            return str(resp.text)
-        # 全ジョブのログを結合
+            yield from resp.text.splitlines()
+            return
+        # 全ジョブのログを順に yield
         jobs_resp = self._client.get(f"{self._repos_path()}/actions/runs/{pipeline_id}/jobs")
         jobs = jobs_resp.json().get("jobs", [])
-        logs = []
-        for job in jobs:
+        for i, job in enumerate(jobs):
+            if i > 0:
+                yield ""
+            header = f"=== {job.get('name', job['id'])} ==="
             try:
                 resp = self._client.get(
                     f"{self._repos_path()}/actions/jobs/{job['id']}/logs",
                     headers={"Accept": "application/vnd.github.v3+json"},
                 )
-                logs.append(f"=== {job.get('name', job['id'])} ===\n{resp.text}")
+                yield header
+                yield from resp.text.splitlines()
             except (GfoError, requests.RequestException):
-                logs.append(f"=== {job.get('name', job['id'])} ===\n(log unavailable)")
-        return "\n".join(logs)
+                yield header
+                yield "(log unavailable)"
 
     def list_workflows(self, *, limit: int = 30) -> list[Workflow]:
         results: list[dict] = []

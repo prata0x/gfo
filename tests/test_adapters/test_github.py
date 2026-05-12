@@ -2728,8 +2728,8 @@ class TestGetPipelineLogs:
             body="log line 1\nlog line 2",
             status=200,
         )
-        logs = github_adapter.get_pipeline_logs(300, job_id=42)
-        assert "log line 1" in logs
+        lines = list(github_adapter.get_pipeline_logs(300, job_id=42))
+        assert lines == ["log line 1", "log line 2"]
 
     def test_logs_all_jobs(self, mock_responses, github_adapter):
         mock_responses.add(
@@ -2750,7 +2750,7 @@ class TestGetPipelineLogs:
             body="test log",
             status=200,
         )
-        logs = github_adapter.get_pipeline_logs(300)
+        logs = "\n".join(github_adapter.get_pipeline_logs(300))
         assert "=== build ===" in logs
         assert "build log" in logs
         assert "=== test ===" in logs
@@ -2762,8 +2762,9 @@ class TestGetPipelineLogs:
             f"{REPOS}/actions/jobs/999/logs",
             status=404,
         )
+        # generator は遅延評価。list() で消費して例外を発火させる
         with pytest.raises(NotFoundError):
-            github_adapter.get_pipeline_logs(300, job_id=999)
+            list(github_adapter.get_pipeline_logs(300, job_id=999))
 
 
 # --- User / Search 系 ---

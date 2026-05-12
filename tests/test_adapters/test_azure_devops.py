@@ -1790,8 +1790,8 @@ class TestGetPipelineLogs:
             body="job log output",
             status=200,
         )
-        logs = azure_devops_adapter.get_pipeline_logs(300, job_id=5)
-        assert "job log output" in logs
+        lines = list(azure_devops_adapter.get_pipeline_logs(300, job_id=5))
+        assert lines == ["job log output"]
 
     def test_logs_all(self, mock_responses, azure_devops_adapter):
         mock_responses.add(
@@ -1812,7 +1812,7 @@ class TestGetPipelineLogs:
             body="log 2",
             status=200,
         )
-        logs = azure_devops_adapter.get_pipeline_logs(300)
+        logs = "\n".join(azure_devops_adapter.get_pipeline_logs(300))
         assert "=== Log 1 ===" in logs
         assert "log 1" in logs
         assert "=== Log 2 ===" in logs
@@ -1825,7 +1825,7 @@ class TestGetPipelineLogs:
             status=404,
         )
         with pytest.raises(NotFoundError):
-            azure_devops_adapter.get_pipeline_logs(300, job_id=999)
+            list(azure_devops_adapter.get_pipeline_logs(300, job_id=999))
 
 
 # --- User / Search 系 ---

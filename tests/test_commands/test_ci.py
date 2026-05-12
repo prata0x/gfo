@@ -172,21 +172,22 @@ class TestHandleRetry:
 class TestHandleLogs:
     def test_calls_get_pipeline_logs(self, capsys):
         with patch_adapter("gfo.commands.ci") as adapter:
-            adapter.get_pipeline_logs.return_value = "log output here"
+            adapter.get_pipeline_logs.return_value = iter(["log output", "here"])
             args = make_args(id="123", job=None)
             ci_cmd.handle_logs(args, fmt="table")
         adapter.get_pipeline_logs.assert_called_once_with("123", job_id=None)
         out = capsys.readouterr().out
-        assert "log output here" in out
+        # 各行が改行付きで出力される
+        assert "log output\nhere\n" in out
 
     def test_with_job_id(self, capsys):
         with patch_adapter("gfo.commands.ci") as adapter:
-            adapter.get_pipeline_logs.return_value = "job log output"
+            adapter.get_pipeline_logs.return_value = iter(["job log", "output"])
             args = make_args(id="123", job="456")
             ci_cmd.handle_logs(args, fmt="table")
         adapter.get_pipeline_logs.assert_called_once_with("123", job_id="456")
         out = capsys.readouterr().out
-        assert "job log output" in out
+        assert "job log\noutput\n" in out
 
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.ci") as adapter:

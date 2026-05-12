@@ -67,8 +67,8 @@ def handle_retry(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
 def handle_logs(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo ci logs <id> のハンドラ。"""
     adapter = get_adapter()
-    logs = adapter.get_pipeline_logs(args.id, job_id=getattr(args, "job", None))
-    print(logs)
+    for line in adapter.get_pipeline_logs(args.id, job_id=getattr(args, "job", None)):
+        print(line)
 
 
 def handle_watch(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

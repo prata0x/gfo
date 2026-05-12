@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import warnings
 from abc import ABC, abstractmethod
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from typing import TYPE_CHECKING
 
 from gfo.adapter._helpers import _mask_token_in_exception, _wrap_conversion_error
@@ -725,7 +725,9 @@ class GitServiceAdapter(ABC):
     def retry_pipeline(self, pipeline_id: int | str) -> Pipeline:
         raise NotSupportedError(self.service_name, "ci retry")
 
-    def get_pipeline_logs(self, pipeline_id: int | str, *, job_id: int | str | None = None) -> str:
+    def get_pipeline_logs(
+        self, pipeline_id: int | str, *, job_id: int | str | None = None
+    ) -> Iterable[str]:
         raise NotSupportedError(self.service_name, "ci logs")
 
     def list_workflows(self, *, limit: int = 30) -> list[Workflow]:
