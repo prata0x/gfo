@@ -18,7 +18,8 @@ if TYPE_CHECKING:
     import requests
 from gfo.http import paginate_link_header
 
-from .base import (
+from .github import GitHubAdapter
+from .models import (
     BranchProtection,
     CheckRun,
     CompareResult,
@@ -40,7 +41,6 @@ from .base import (
     TagProtection,
     Variable,
 )
-from .github import GitHubAdapter
 from .registry import register
 
 

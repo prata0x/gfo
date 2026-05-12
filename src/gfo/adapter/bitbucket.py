@@ -9,7 +9,8 @@ import requests
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 from gfo.http import paginate_response_body
 
-from .base import (
+from .base import GitServiceAdapter
+from .models import (
     Branch,
     BranchProtection,
     CheckRun,
@@ -19,7 +20,6 @@ from .base import (
     CompareFile,
     CompareResult,
     DeployKey,
-    GitServiceAdapter,
     GpgKey,
     Issue,
     Label,

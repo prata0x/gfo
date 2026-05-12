@@ -14,7 +14,8 @@ from gfo.http import paginate_page_param
 if TYPE_CHECKING:
     from gfo.http import HttpClient
 
-from .base import (
+from .base import GitServiceAdapter
+from .models import (
     Branch,
     BranchProtection,
     CheckRun,
@@ -26,7 +27,6 @@ from .base import (
     CompareResult,
     Contributor,
     DeployKey,
-    GitServiceAdapter,
     GpgKey,
     Issue,
     IssueTemplate,
