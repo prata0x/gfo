@@ -7,13 +7,31 @@ import json
 import sys
 
 from gfo.commands import get_adapter
-from gfo.exceptions import NotFoundError
+from gfo.exceptions import ConfigError, NotFoundError
 from gfo.i18n import _
 from gfo.output import apply_jq_filter
 
 
+def _validate_repo_path(path: str) -> None:
+    """リポジトリ内ファイルパスとして安全か検証する。
+
+    制御文字 (CR/LF/NUL) や `..` パスセグメントを拒否する。サーバー実装に
+    よっては `..` で別ディレクトリのファイルを読める脆弱性があるため、
+    クライアント側でも防御する。
+    """
+    if not path or not path.strip():
+        raise ConfigError(_("path must not be empty."))
+    if any(c in path for c in ("\r", "\n", "\x00")):
+        raise ConfigError(_("path contains control characters; refused."))
+    # Normalize separators for the segment check (リポジトリ API は / 区切り)
+    segments = path.replace("\\", "/").split("/")
+    if any(seg == ".." for seg in segments):
+        raise ConfigError(_("path must not contain '..' segments."))
+
+
 def handle_get(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo file get <path> [--ref REF] のハンドラ。"""
+    _validate_repo_path(args.path)
     adapter = get_adapter()
     content, sha = adapter.get_file_content(args.path, ref=args.ref)
     if fmt == "json":
@@ -30,6 +48,7 @@ def handle_get(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
 
 def handle_put(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo file put <path> --message TEXT のハンドラ。stdin からファイル内容を読み込む。"""
+    _validate_repo_path(args.path)
     adapter = get_adapter()
     content = sys.stdin.read()
     # SHA が必要な場合は既存ファイルから取得
@@ -53,6 +72,7 @@ def handle_put(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo file delete <path> --message TEXT のハンドラ。"""
+    _validate_repo_path(args.path)
     adapter = get_adapter()
     _content, sha = adapter.get_file_content(args.path, ref=args.branch)
     adapter.delete_file(args.path, sha=sha, message=args.message, branch=args.branch)

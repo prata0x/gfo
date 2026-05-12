@@ -56,16 +56,21 @@ def apply_jq_filter(json_str: str, expression: str) -> str:
         GfoError: jq コマンドが見つからない場合、または jq がエラーを返した場合
     """
     try:
+        # jq の `recurse` 等で無限生成式を書かれてもプロセスが固まらないよう
+        # 明示的に timeout を設定する (60 秒)。
         result = subprocess.run(  # nosec B603 B607 - jq is a fixed command, expression is user-provided filter
             ["jq", expression],
             input=json_str,
             capture_output=True,
             text=True,
             check=True,
+            timeout=60,
         )
         return result.stdout.rstrip("\n")
     except FileNotFoundError:
         raise GfoError(_("jq command not found. Install it from https://jqlang.github.io/jq/"))
+    except subprocess.TimeoutExpired:
+        raise GfoError(_("jq filter timed out after 60 seconds."))
     except subprocess.CalledProcessError as e:
         raise GfoError(_("jq filter error: {error}").format(error=e.stderr.strip()))
 

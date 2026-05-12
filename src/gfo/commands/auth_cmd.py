@@ -47,6 +47,25 @@ def handle_login(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
             ) from e
         if not token:
             raise ConfigError(_("Empty token in file {path}").format(path=token_file))
+        # POSIX 系で world/group readable のファイルからトークンを読むと
+        # 他ユーザに漏れうるため警告 (Windows では mode bit が同じ意味を持たないのでスキップ)
+        if sys.platform != "win32":
+            import os as _os
+            import warnings
+
+            try:
+                mode = _os.stat(token_file).st_mode
+                if mode & 0o077:
+                    warnings.warn(
+                        _(
+                            "Token file {path} is readable by other users "
+                            "(mode {mode}). Run 'chmod 600 {path}' to restrict access."
+                        ).format(path=token_file, mode=oct(mode & 0o777)),
+                        stacklevel=2,
+                    )
+            except OSError:
+                # 権限取得失敗は致命傷ではないので無視
+                pass
     elif args.token:
         print(
             _(

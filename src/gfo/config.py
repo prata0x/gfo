@@ -48,12 +48,19 @@ def validate_api_url(value: str) -> None:
         host = (parsed.hostname or "").lower()
         if host in ("localhost", "127.0.0.1", "::1"):
             return
-        if os.environ.get("GFO_ALLOW_INSECURE_HTTP", "").lower() in ("1", "true", "yes"):
+        # クラウド固定ホストは GFO_ALLOW_INSECURE_HTTP でもバイパスを許さない
+        # (PAT が常に高権限のため、平文化は禁止)。
+        from gfo.http import _is_cloud_host_tls_forced
+
+        if not _is_cloud_host_tls_forced(host) and os.environ.get(
+            "GFO_ALLOW_INSECURE_HTTP", ""
+        ).lower() in ("1", "true", "yes"):
             return
         raise ConfigError(
             f"api_url must use https:// (got: {value}). "
             "For localhost development use http://localhost/..., "
-            "or set GFO_ALLOW_INSECURE_HTTP=1 to bypass (insecure)."
+            "or set GFO_ALLOW_INSECURE_HTTP=1 to bypass (insecure, "
+            "ignored on cloud hosts)."
         )
     raise ConfigError(f"api_url must use http:// or https:// (got: {value})")
 

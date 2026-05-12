@@ -550,7 +550,10 @@ def paginate_response_body(
             resp = client.get(path, params=params)
             first = False
         else:
-            assert next_url is not None  # nosec B101 - loop invariant: set before entering else branch
+            # ループ不変式: next_url は 1 周目以降必ずセットされている。
+            # `assert` は `python -O` で剥がれるため、明示的に break で保護する。
+            if next_url is None:
+                break
             resp = client.get_absolute(next_url)
 
         try:
