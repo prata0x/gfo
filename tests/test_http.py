@@ -407,7 +407,7 @@ class TestDownloadFileCrossOrigin:
     def test_cross_origin_to_cloud_host_uses_verify_true(self, tmp_path):
         """別オリジンでもクラウド固定ホストへのダウンロードは verify=True で送られる。
 
-        `gfo.http.requests.get` を直接 patch して、kwargs の verify が
+        `gfo.http.requests.request` を直接 patch して、kwargs の verify が
         True (= TLS 検証有効) になっていることを確認する。
         """
         from unittest.mock import MagicMock
@@ -422,10 +422,90 @@ class TestDownloadFileCrossOrigin:
             auth_header={"PRIVATE-TOKEN": "secret-pat"},
         )
         out = tmp_path / "x.bin"
-        with upatch("gfo.http.requests.get", return_value=fake_resp) as mock_get:
+        with upatch("gfo.http.requests.request", return_value=fake_resp) as mock_req:
             c.download_file("https://api.github.com/release/asset.zip", str(out))
         # クラウド固定ホスト (api.github.com) なので verify=True で送られる
-        assert mock_get.call_args.kwargs.get("verify") is True
+        assert mock_req.call_args.kwargs.get("verify") is True
+
+
+# ── request_stream ──
+
+
+class TestRequestStream:
+    """`HttpClient.request_stream` のストリーミング応答とエラーハンドリング。"""
+
+    @responses.activate
+    def test_same_origin_yields_chunks_in_order(self):
+        """同一オリジンの相対パス GET で複数チャンクが順に yield される。"""
+        responses.add(
+            responses.GET,
+            f"{BASE}/stream",
+            body=b"abcdefghij",
+            status=200,
+        )
+        c = HttpClient(BASE)
+        chunks = list(c.request_stream("GET", "/stream", chunk_size=4))
+        # body 全体が結合できること
+        assert b"".join(chunks) == b"abcdefghij"
+
+    @responses.activate
+    def test_same_origin_sends_auth(self):
+        """同一オリジンへの request_stream は Authorization ヘッダを送る。"""
+        responses.add(
+            responses.GET,
+            f"{BASE}/stream",
+            body=b"data",
+            status=200,
+        )
+        c = HttpClient(BASE, auth_header={"Authorization": "Bearer tok"})
+        list(c.request_stream("GET", "/stream"))
+        sent = responses.calls[0].request
+        assert sent.headers.get("Authorization") == "Bearer tok"
+
+    @responses.activate
+    def test_cross_origin_strips_auth(self):
+        """別オリジンの絶対 URL へ request_stream を呼ぶと認証ヘッダは送られない。"""
+        responses.add(
+            responses.GET,
+            "https://attacker.example.com/evil.bin",
+            body=b"data",
+            status=200,
+        )
+        c = HttpClient(
+            "https://gitlab.example.com/api/v4",
+            auth_header={"PRIVATE-TOKEN": "secret-pat"},
+        )
+        list(c.request_stream("GET", "https://attacker.example.com/evil.bin"))
+        sent = responses.calls[0].request
+        assert "PRIVATE-TOKEN" not in sent.headers
+        assert "Authorization" not in sent.headers
+
+    @responses.activate
+    def test_404_raises_not_found_error(self):
+        """404 応答は NotFoundError として送出される。"""
+        responses.add(
+            responses.GET,
+            f"{BASE}/missing",
+            json={"message": "not found"},
+            status=404,
+        )
+        c = HttpClient(BASE)
+        with pytest.raises(NotFoundError):
+            c.request_stream("GET", "/missing")
+
+    @responses.activate
+    def test_429_raises_rate_limit_error(self):
+        """429 応答は RateLimitError として送出される（リトライなし）。"""
+        responses.add(
+            responses.GET,
+            f"{BASE}/limited",
+            json={"message": "rate limited"},
+            status=429,
+            headers={"Retry-After": "1"},
+        )
+        c = HttpClient(BASE, max_retries=0)
+        with pytest.raises(RateLimitError):
+            c.request_stream("GET", "/limited")
 
 
 # ── 基本リクエスト ──

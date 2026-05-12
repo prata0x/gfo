@@ -7,7 +7,7 @@ import os
 import re
 import sys
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlparse
@@ -226,35 +226,51 @@ class HttpClient:
         """DELETE リクエスト。"""
         return self.request("DELETE", path, **kwargs)
 
-    def download_file(
-        self, url: str, output_path: str, *, headers: dict | None = None, timeout: int = 300
-    ) -> None:
-        """ストリーミングダウンロード。
+    def request_stream(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: dict | None = None,
+        headers: dict | None = None,
+        timeout: int = 300,
+        chunk_size: int = 65536,
+    ) -> Iterator[bytes]:
+        """ストリーミング GET/POST 用ジェネレータ。
 
-        URL が base_url と別オリジンの場合は認証ヘッダ / Cookie / auth_params を
-        一切送信しない（GitLab release link の direct_asset_url 等が外部 URL を
-        持ちうるため、PAT が外部ホストに漏えいするのを防ぐ）。
+        path は base_url からの相対パス、または絶対 URL を受け付ける。
+        絶対 URL が base_url と別オリジンの場合、認証ヘッダ / Cookie / auth_params を
+        一切送信しない（外部ホストへのトークン漏えい防止）。
+
+        `_session.request(stream=True)` で応答を取り、`_handle_response()` で
+        ステータス検査後、`resp.iter_content(chunk_size)` を順に yield する。
+        呼び出し側は `for chunk in client.request_stream(...): ...` で消費する。
+
+        404/429/5xx は `_handle_response` 経由で適切な HttpError を送出する。
+        ネットワーク例外は `NetworkError` でラップする。
         """
-        same_origin = _validate_same_origin(self._base_url, url)
+        is_absolute = path.startswith(("http://", "https://"))
+        url = path if is_absolute else self._base_url + path
+        same_origin = (not is_absolute) or _validate_same_origin(self._base_url, url)
         try:
             if same_origin:
-                merged_params = {**self._default_params, **self._auth_params}
-                merged_headers = dict(self._session.headers)
-                if headers:
-                    merged_headers.update(headers)
-                resp = self._session.get(
+                merged_params = {**self._default_params, **self._auth_params, **(params or {})}
+                resp = self._session.request(
+                    method,
                     url,
                     params=merged_params,
-                    headers=merged_headers,
+                    headers=headers,
                     stream=True,
                     timeout=timeout,
                 )
             else:
-                # 別オリジン: 認証情報を送らない。Session 経由だと Authorization /
-                # Cookie が自動付与されるため、requests.get を直接呼ぶ。
+                # 別オリジン: Session 経由だと Authorization / Cookie が自動付与
+                # されるため、requests.request を直接呼んで認証情報を遮断する。
                 ext_headers = dict(headers) if headers else {}
-                resp = requests.get(
+                resp = requests.request(
+                    method,
                     url,
+                    params=params,
                     headers=ext_headers,
                     stream=True,
                     timeout=timeout,
@@ -262,15 +278,39 @@ class HttpClient:
                 )
         except requests.RequestException as e:
             raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
-        self._handle_response(resp)
+        try:
+            self._handle_response(resp)
+        except BaseException:
+            resp.close()
+            raise
+        return self._iter_chunks(resp, chunk_size)
+
+    @staticmethod
+    def _iter_chunks(resp: requests.Response, chunk_size: int) -> Iterator[bytes]:
+        """ストリーミング応答のチャンクを順に yield する内部ヘルパー。"""
+        try:
+            for chunk in resp.iter_content(chunk_size=chunk_size):
+                if chunk:
+                    yield chunk
+        finally:
+            resp.close()
+
+    def download_file(
+        self, url: str, output_path: str, *, headers: dict | None = None, timeout: int = 300
+    ) -> None:
+        """ストリーミングダウンロード。
+
+        URL が base_url と別オリジンの場合は認証ヘッダ / Cookie / auth_params を
+        一切送信しない（`request_stream` のクロスオリジン判定に委譲）。
+        """
         # 累積バイト数が GFO_MAX_DOWNLOAD_BYTES（既定 5 GiB）を超えたら中断する。
         # 悪意のサーバや侵害された CDN が無限ストリームを返した際の DoS 防止。
         max_bytes = _max_download_bytes()
         total = 0
         with open(output_path, "wb") as f:
-            for chunk in resp.iter_content(chunk_size=65536):
-                if not chunk:
-                    continue
+            for chunk in self.request_stream(
+                "GET", url, headers=headers, timeout=timeout, chunk_size=65536
+            ):
                 total += len(chunk)
                 if max_bytes > 0 and total > max_bytes:
                     # 部分書き込みファイルは残さない
