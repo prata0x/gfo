@@ -268,7 +268,7 @@ class HttpClient:
         max_bytes = _max_download_bytes()
         total = 0
         with open(output_path, "wb") as f:
-            for chunk in resp.iter_content(chunk_size=8192):
+            for chunk in resp.iter_content(chunk_size=65536):
                 if not chunk:
                     continue
                 total += len(chunk)
@@ -293,24 +293,30 @@ class HttpClient:
         content_type: str = "application/octet-stream",
         timeout: int = 300,
     ) -> requests.Response:
-        """ファイルアップロード（raw binary）。GitHub 用。"""
+        """ファイルアップロード（raw binary）。GitHub 用。
+
+        ファイル全体をメモリに読み込まず、`data=` にファイルオブジェクトを渡して
+        requests にチャンク送信させる。リトライ時はファイルを再 open することで
+        ストリーミング位置をリセットする。
+        """
         import os
 
         fname = name or os.path.basename(file_path)
         url = self._base_url + path
         merged_params = {**self._default_params, **self._auth_params, "name": fname}
         upload_headers = {"Content-Type": content_type}
-        with open(file_path, "rb") as f:
-            file_data = f.read()
-        return self._retry_loop(
-            lambda: self._session.post(
-                url,
-                params=merged_params,
-                data=file_data,
-                headers=upload_headers,
-                timeout=timeout,
-            )
-        )
+
+        def _post() -> requests.Response:
+            with open(file_path, "rb") as f:
+                return self._session.post(
+                    url,
+                    params=merged_params,
+                    data=f,
+                    headers=upload_headers,
+                    timeout=timeout,
+                )
+
+        return self._retry_loop(_post)
 
     def upload_file_absolute(
         self,
@@ -322,7 +328,11 @@ class HttpClient:
         params: dict | None = None,
         timeout: int = 300,
     ) -> requests.Response:
-        """絶対 URL に対してファイルアップロード（raw binary）。GitHub Release Asset 用。"""
+        """絶対 URL に対してファイルアップロード（raw binary）。GitHub Release Asset 用。
+
+        upload_file と同様にファイルオブジェクトをストリーミングし、リトライ時に
+        再 open する。
+        """
         import os
 
         fname = name or os.path.basename(file_path)
@@ -333,17 +343,18 @@ class HttpClient:
             **(params or {}),
         }
         upload_headers = {"Content-Type": content_type}
-        with open(file_path, "rb") as f:
-            file_data = f.read()
-        return self._retry_loop(
-            lambda: self._session.post(
-                url,
-                params=merged_params,
-                data=file_data,
-                headers=upload_headers,
-                timeout=timeout,
-            )
-        )
+
+        def _post() -> requests.Response:
+            with open(file_path, "rb") as f:
+                return self._session.post(
+                    url,
+                    params=merged_params,
+                    data=f,
+                    headers=upload_headers,
+                    timeout=timeout,
+                )
+
+        return self._retry_loop(_post)
 
     def upload_multipart(
         self,
@@ -354,22 +365,27 @@ class HttpClient:
         name: str | None = None,
         timeout: int = 300,
     ) -> requests.Response:
-        """multipart/form-data アップロード。Gitea / GitLab 用。"""
+        """multipart/form-data アップロード。Gitea / GitLab 用。
+
+        ファイルオブジェクトを multipart の files= に渡してストリーミング送信する。
+        リトライ時は再 open することで読み込み位置をリセットする。
+        """
         import os
 
         fname = name or os.path.basename(file_path)
         url = self._base_url + path
         merged_params = {**self._default_params, **self._auth_params}
-        with open(file_path, "rb") as f:
-            file_data = f.read()
-        return self._retry_loop(
-            lambda: self._session.post(
-                url,
-                params=merged_params,
-                files={field_name: (fname, file_data)},
-                timeout=timeout,
-            )
-        )
+
+        def _post() -> requests.Response:
+            with open(file_path, "rb") as f:
+                return self._session.post(
+                    url,
+                    params=merged_params,
+                    files={field_name: (fname, f)},
+                    timeout=timeout,
+                )
+
+        return self._retry_loop(_post)
 
     def get_absolute(
         self, url: str, *, params: dict | None = None, timeout: int = 30
