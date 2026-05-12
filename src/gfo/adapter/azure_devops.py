@@ -15,7 +15,7 @@ from gfo.http import paginate_top_skip
 if TYPE_CHECKING:
     from gfo.http import HttpClient
 
-from .base import GitServiceAdapter, _mask_token_in_exception
+from .base import GitServiceAdapter, _mask_token_in_exception, _wrap_conversion_error
 from .models import (
     Branch,
     BranchProtection,
@@ -97,71 +97,65 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     # --- 変換ヘルパー ---
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_pull_request(data: dict) -> PullRequest:
-        try:
-            return PullRequest(
-                number=data["pullRequestId"],
-                title=data["title"],
-                body=data.get("description"),
-                state=_PR_STATE_FROM_API.get(data["status"], "open"),
-                author=data["createdBy"]["uniqueName"],
-                source_branch=_strip_refs_prefix(data["sourceRefName"]),
-                target_branch=_strip_refs_prefix(data["targetRefName"]),
-                draft=data.get("isDraft", False),
-                url=(
-                    f"{data['repository']['webUrl']}/pullrequest/{data['pullRequestId']}"
-                    if (data.get("repository") or {}).get("webUrl")
-                    else data.get("url", "")
-                ),
-                created_at=data["creationDate"],
-                updated_at=data.get("closedDate"),
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return PullRequest(
+            number=data["pullRequestId"],
+            title=data["title"],
+            body=data.get("description"),
+            state=_PR_STATE_FROM_API.get(data["status"], "open"),
+            author=data["createdBy"]["uniqueName"],
+            source_branch=_strip_refs_prefix(data["sourceRefName"]),
+            target_branch=_strip_refs_prefix(data["targetRefName"]),
+            draft=data.get("isDraft", False),
+            url=(
+                f"{data['repository']['webUrl']}/pullrequest/{data['pullRequestId']}"
+                if (data.get("repository") or {}).get("webUrl")
+                else data.get("url", "")
+            ),
+            created_at=data["creationDate"],
+            updated_at=data.get("closedDate"),
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_issue(data: dict) -> Issue:
-        try:
-            fields = data["fields"]
-            raw_state = fields.get("System.State", "")
-            state = "closed" if raw_state in _CLOSED_STATES else "open"
+        fields = data["fields"]
+        raw_state = fields.get("System.State", "")
+        state = "closed" if raw_state in _CLOSED_STATES else "open"
 
-            assigned_to = fields.get("System.AssignedTo")
-            unique_name = assigned_to.get("uniqueName") if assigned_to else None
-            assignees = [unique_name] if unique_name else []
+        assigned_to = fields.get("System.AssignedTo")
+        unique_name = assigned_to.get("uniqueName") if assigned_to else None
+        assignees = [unique_name] if unique_name else []
 
-            raw_tags = fields.get("System.Tags", "")
-            labels = [t.strip() for t in raw_tags.split(";") if t.strip()] if raw_tags else []
+        raw_tags = fields.get("System.Tags", "")
+        labels = [t.strip() for t in raw_tags.split(";") if t.strip()] if raw_tags else []
 
-            return Issue(
-                number=data["id"],
-                title=fields["System.Title"],
-                body=fields.get("System.Description"),
-                state=state,
-                author=(fields.get("System.CreatedBy") or {}).get("uniqueName", ""),
-                assignees=assignees,
-                labels=labels,
-                url=data.get("url", ""),
-                created_at=fields.get("System.CreatedDate", ""),
-                updated_at=fields.get("System.ChangedDate"),
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return Issue(
+            number=data["id"],
+            title=fields["System.Title"],
+            body=fields.get("System.Description"),
+            state=state,
+            author=(fields.get("System.CreatedBy") or {}).get("uniqueName", ""),
+            assignees=assignees,
+            labels=labels,
+            url=data.get("url", ""),
+            created_at=fields.get("System.CreatedDate", ""),
+            updated_at=fields.get("System.ChangedDate"),
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_repository(data: dict, project: str = "") -> Repository:
-        try:
-            return Repository(
-                name=data["name"],
-                full_name=f"{project}/{data['name']}",
-                description=(data.get("project") or {}).get("description"),
-                visibility="private",
-                default_branch=_strip_refs_prefix(data.get("defaultBranch") or ""),
-                clone_url=data.get("remoteUrl", ""),
-                url=data.get("webUrl", ""),
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return Repository(
+            name=data["name"],
+            full_name=f"{project}/{data['name']}",
+            description=(data.get("project") or {}).get("description"),
+            visibility="private",
+            default_branch=_strip_refs_prefix(data.get("defaultBranch") or ""),
+            clone_url=data.get("remoteUrl", ""),
+            url=data.get("webUrl", ""),
+        )
 
     # --- PR ---
 
@@ -773,150 +767,136 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     # --- 変換ヘルパー（追加型） ---
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_comment(data: dict) -> Comment:
 
-        try:
-            # PR Threads の場合は comments 配列の最初のコメント
-            if "comments" in data:
-                comment_data = (data.get("comments") or [{}])[0]
-            else:
-                comment_data = data
-            # PR thread は author, content フィールド / Work Item comment は createdBy, text フィールド
-            author = comment_data.get("author") or comment_data.get("createdBy") or {}
-            return Comment(
-                id=comment_data.get("id") or data.get("id") or 0,
-                body=comment_data.get("content") or comment_data.get("text") or "",
-                author=author.get("uniqueName") or author.get("displayName") or "",
-                url="",
-                created_at=comment_data.get("publishedDate") or "",
-                updated_at=comment_data.get("lastUpdatedDate"),
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        # PR Threads の場合は comments 配列の最初のコメント
+        if "comments" in data:
+            comment_data = (data.get("comments") or [{}])[0]
+        else:
+            comment_data = data
+        # PR thread は author, content フィールド / Work Item comment は createdBy, text フィールド
+        author = comment_data.get("author") or comment_data.get("createdBy") or {}
+        return Comment(
+            id=comment_data.get("id") or data.get("id") or 0,
+            body=comment_data.get("content") or comment_data.get("text") or "",
+            author=author.get("uniqueName") or author.get("displayName") or "",
+            url="",
+            created_at=comment_data.get("publishedDate") or "",
+            updated_at=comment_data.get("lastUpdatedDate"),
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_review(data: dict) -> Review:
 
-        try:
-            vote_map = {
-                10: "approved",
-                5: "approved",
-                0: "commented",
-                -5: "changes_requested",
-                -10: "changes_requested",
-            }
-            vote = data.get("vote", 0)
-            return Review(
-                id=data.get("id") or 0,
-                state=vote_map.get(vote, "commented"),
-                body="",
-                author=data.get("uniqueName") or data.get("displayName") or "",
-                url="",
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        vote_map = {
+            10: "approved",
+            5: "approved",
+            0: "commented",
+            -5: "changes_requested",
+            -10: "changes_requested",
+        }
+        vote = data.get("vote", 0)
+        return Review(
+            id=data.get("id") or 0,
+            state=vote_map.get(vote, "commented"),
+            body="",
+            author=data.get("uniqueName") or data.get("displayName") or "",
+            url="",
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_branch(data: dict) -> Branch:
 
-        try:
-            # AzDO: name は "refs/heads/xxx" 形式
-            name = data["name"]
-            if name.startswith("refs/heads/"):
-                name = name[len("refs/heads/") :]
-            return Branch(
-                name=name,
-                sha=(data.get("objectId") or ""),
-                protected=False,
-                url="",
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        # AzDO: name は "refs/heads/xxx" 形式
+        name = data["name"]
+        if name.startswith("refs/heads/"):
+            name = name[len("refs/heads/") :]
+        return Branch(
+            name=name,
+            sha=(data.get("objectId") or ""),
+            protected=False,
+            url="",
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_tag(data: dict) -> Tag:
 
-        try:
-            name = data.get("name", "")
-            if name.startswith("refs/tags/"):
-                name = name[len("refs/tags/") :]
-            return Tag(
-                name=name,
-                sha=data.get("objectId") or "",
-                message="",
-                url="",
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        name = data.get("name", "")
+        if name.startswith("refs/tags/"):
+            name = name[len("refs/tags/") :]
+        return Tag(
+            name=name,
+            sha=data.get("objectId") or "",
+            message="",
+            url="",
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_commit_status(data: dict) -> CommitStatus:
 
-        try:
-            state_map = {
-                "succeeded": "success",
-                "failed": "failure",
-                "pending": "pending",
-                "error": "error",
-                "notApplicable": "pending",
-                "notSet": "pending",
-            }
-            state_obj = data.get("state", {})
-            raw = state_obj if isinstance(state_obj, str) else state_obj.get("state", "pending")
-            genre = (data.get("context") or {}).get("genre") or ""
-            name = (data.get("context") or {}).get("name") or ""
-            context = f"{genre}/{name}" if genre else name
-            return CommitStatus(
-                state=state_map.get(raw, raw),
-                context=context,
-                description=data.get("description") or "",
-                target_url=data.get("targetUrl") or "",
-                created_at=data.get("creationDate") or "",
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        state_map = {
+            "succeeded": "success",
+            "failed": "failure",
+            "pending": "pending",
+            "error": "error",
+            "notApplicable": "pending",
+            "notSet": "pending",
+        }
+        state_obj = data.get("state", {})
+        raw = state_obj if isinstance(state_obj, str) else state_obj.get("state", "pending")
+        genre = (data.get("context") or {}).get("genre") or ""
+        name = (data.get("context") or {}).get("name") or ""
+        context = f"{genre}/{name}" if genre else name
+        return CommitStatus(
+            state=state_map.get(raw, raw),
+            context=context,
+            description=data.get("description") or "",
+            target_url=data.get("targetUrl") or "",
+            created_at=data.get("creationDate") or "",
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_webhook(data: dict) -> Webhook:
 
-        try:
-            events = tuple([data.get("eventType") or ""] if data.get("eventType") else [])
-            return Webhook(
-                id=data.get("id") or 0,
-                url=(data.get("consumerInputs") or {}).get("url") or "",
-                events=events,
-                active=data.get("status") == "enabled",
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        events = tuple([data.get("eventType") or ""] if data.get("eventType") else [])
+        return Webhook(
+            id=data.get("id") or 0,
+            url=(data.get("consumerInputs") or {}).get("url") or "",
+            events=events,
+            active=data.get("status") == "enabled",
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_pipeline(data: dict) -> Pipeline:
 
-        try:
-            status_map = {
-                "completed": lambda d: {
-                    "succeeded": "success",
-                    "failed": "failure",
-                    "canceled": "cancelled",
-                }.get(d.get("result", ""), "failure"),
-                "inProgress": lambda d: "running",
-                "notStarted": lambda d: "pending",
-                "cancelling": lambda d: "cancelled",
-            }
-            raw_status = data.get("status", "notStarted")
-            mapper = status_map.get(raw_status)
-            status = mapper(data) if mapper else raw_status
-            source_branch = _strip_refs_prefix(data.get("sourceBranch") or "")
-            return Pipeline(
-                id=data["id"],
-                status=status,
-                ref=source_branch,
-                url=data.get("_links", {}).get("web", {}).get("href") or "",
-                created_at=data.get("queueTime") or "",
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        status_map = {
+            "completed": lambda d: {
+                "succeeded": "success",
+                "failed": "failure",
+                "canceled": "cancelled",
+            }.get(d.get("result", ""), "failure"),
+            "inProgress": lambda d: "running",
+            "notStarted": lambda d: "pending",
+            "cancelling": lambda d: "cancelled",
+        }
+        raw_status = data.get("status", "notStarted")
+        mapper = status_map.get(raw_status)
+        status = mapper(data) if mapper else raw_status
+        source_branch = _strip_refs_prefix(data.get("sourceBranch") or "")
+        return Pipeline(
+            id=data["id"],
+            status=status,
+            ref=source_branch,
+            url=data.get("_links", {}).get("web", {}).get("href") or "",
+            created_at=data.get("queueTime") or "",
+        )
 
     # --- Comment ---
 
@@ -1528,25 +1508,23 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         filtered = [r for r in results if (r.get("project") or {}).get("name") == name]
         return [self._to_repository(r, name) for r in filtered[: limit if limit > 0 else None]]
 
+    @_wrap_conversion_error
     def _to_organization(self, data: dict) -> Organization:
-        try:
-            name = data.get("name") or ""
-            # _links.web.href を優先し、なければ dev.azure.com URL を構築
-            web_url = ""
-            links = data.get("_links") or {}
-            web = links.get("web") or {}
-            if web.get("href"):
-                web_url = web["href"]
-            elif name:
-                web_url = f"https://dev.azure.com/{self._org}/{name}"
-            return Organization(
-                name=name,
-                display_name=name,
-                description=data.get("description"),
-                url=web_url,
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        name = data.get("name") or ""
+        # _links.web.href を優先し、なければ dev.azure.com URL を構築
+        web_url = ""
+        links = data.get("_links") or {}
+        web = links.get("web") or {}
+        if web.get("href"):
+            web_url = web["href"]
+        elif name:
+            web_url = f"https://dev.azure.com/{self._org}/{name}"
+        return Organization(
+            name=name,
+            display_name=name,
+            description=data.get("description"),
+            url=web_url,
+        )
 
     # --- Browse ---
 

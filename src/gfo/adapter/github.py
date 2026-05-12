@@ -10,7 +10,7 @@ import requests
 from gfo.exceptions import GfoError, HttpError, NotFoundError
 from gfo.http import paginate_link_header
 
-from .base import GitServiceAdapter, _mask_token_in_exception
+from .base import GitServiceAdapter, _mask_token_in_exception, _wrap_conversion_error
 from .github_like import GitHubLikeAdapter
 from .models import (
     Artifact,
@@ -1461,57 +1461,51 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return output_path
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_workflow(data: dict) -> Workflow:
-        try:
-            state = data.get("state", "disabled")
-            return Workflow(
-                id=data["id"],
-                name=data.get("name") or "",
-                path=data.get("path") or "",
-                state=state,
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+        state = data.get("state", "disabled")
+        return Workflow(
+            id=data["id"],
+            name=data.get("name") or "",
+            path=data.get("path") or "",
+            state=state,
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_artifact(data: dict) -> Artifact:
-        try:
-            return Artifact(
-                id=data["id"],
-                name=data.get("name") or "",
-                size=data.get("size_in_bytes") or 0,
-                url=data.get("archive_download_url") or "",
-                created_at=data.get("created_at") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+        return Artifact(
+            id=data["id"],
+            name=data.get("name") or "",
+            size=data.get("size_in_bytes") or 0,
+            url=data.get("archive_download_url") or "",
+            created_at=data.get("created_at") or "",
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_pipeline(data: dict) -> Pipeline:
 
-        try:
-            status_map = {
-                "completed": lambda d: {
-                    "success": "success",
-                    "failure": "failure",
-                    "cancelled": "cancelled",
-                }.get(d.get("conclusion") or "", "failure"),
-                "in_progress": lambda d: "running",
-                "queued": lambda d: "pending",
-                "waiting": lambda d: "pending",
-            }
-            raw_status = data.get("status", "queued")
-            mapper = status_map.get(raw_status)
-            status = mapper(data) if mapper else raw_status
-            return Pipeline(
-                id=data["id"],
-                status=status,
-                ref=data.get("head_branch") or "",
-                url=data.get("html_url") or "",
-                created_at=data.get("created_at") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+        status_map = {
+            "completed": lambda d: {
+                "success": "success",
+                "failure": "failure",
+                "cancelled": "cancelled",
+            }.get(d.get("conclusion") or "", "failure"),
+            "in_progress": lambda d: "running",
+            "queued": lambda d: "pending",
+            "waiting": lambda d: "pending",
+        }
+        raw_status = data.get("status", "queued")
+        mapper = status_map.get(raw_status)
+        status = mapper(data) if mapper else raw_status
+        return Pipeline(
+            id=data["id"],
+            status=status,
+            ref=data.get("head_branch") or "",
+            url=data.get("html_url") or "",
+            created_at=data.get("created_at") or "",
+        )
 
     # --- User ---
 
@@ -1781,21 +1775,19 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.put("/notifications", json={})
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_notification(data: dict) -> Notification:
-        try:
-            subject = data.get("subject") or {}
-            repo = data.get("repository") or {}
-            return Notification(
-                id=str(data["id"]),
-                title=subject.get("title") or "",
-                reason=data.get("reason") or "",
-                unread=data.get("unread", False),
-                repository=repo.get("full_name") or "",
-                url=subject.get("url") or "",
-                updated_at=data.get("updated_at") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        subject = data.get("subject") or {}
+        repo = data.get("repository") or {}
+        return Notification(
+            id=str(data["id"]),
+            title=subject.get("title") or "",
+            reason=data.get("reason") or "",
+            unread=data.get("unread", False),
+            repository=repo.get("full_name") or "",
+            url=subject.get("url") or "",
+            updated_at=data.get("updated_at") or "",
+        )
 
     # --- Organization ---
 
@@ -1823,16 +1815,14 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return [self._to_repository(r) for r in results]
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_organization(data: dict) -> Organization:
-        try:
-            return Organization(
-                name=data["login"],
-                display_name=data.get("name") or data.get("login") or "",
-                description=data.get("description"),
-                url=data.get("html_url") or data.get("url") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return Organization(
+            name=data["login"],
+            display_name=data.get("name") or data.get("login") or "",
+            description=data.get("description"),
+            url=data.get("html_url") or data.get("url") or "",
+        )
 
     def create_organization(
         self, name: str, *, display_name: str | None = None, description: str | None = None
@@ -1887,16 +1877,14 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.delete(f"/user/keys/{key_id}")
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_ssh_key(data: dict) -> SshKey:
-        try:
-            return SshKey(
-                id=data["id"],
-                title=data.get("title") or "",
-                key=data.get("key") or "",
-                created_at=data.get("created_at") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return SshKey(
+            id=data["id"],
+            title=data.get("title") or "",
+            key=data.get("key") or "",
+            created_at=data.get("created_at") or "",
+        )
 
     # --- GPG Key ---
 

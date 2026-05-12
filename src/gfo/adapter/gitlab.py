@@ -14,7 +14,7 @@ from gfo.http import paginate_page_param
 if TYPE_CHECKING:
     from gfo.http import HttpClient
 
-from .base import GitServiceAdapter
+from .base import GitServiceAdapter, _wrap_conversion_error
 from .models import (
     Branch,
     BranchProtection,
@@ -73,112 +73,100 @@ class GitLabAdapter(GitServiceAdapter):
     # --- 変換ヘルパー ---
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_pull_request(data: dict) -> PullRequest:
-        try:
-            state_map = {
-                "opened": "open",
-                "closed": "closed",
-                "merged": "merged",
-                "locked": "closed",
-            }
-            state = state_map.get(data["state"], data["state"])
+        state_map = {
+            "opened": "open",
+            "closed": "closed",
+            "merged": "merged",
+            "locked": "closed",
+        }
+        state = state_map.get(data["state"], data["state"])
 
-            return PullRequest(
-                number=data["iid"],
-                title=data["title"],
-                body=data.get("description"),
-                state=state,
-                author=data["author"]["username"],
-                source_branch=data["source_branch"],
-                target_branch=data["target_branch"],
-                draft=data.get("draft", False),
-                url=data["web_url"],
-                created_at=data["created_at"],
-                updated_at=data.get("updated_at"),
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return PullRequest(
+            number=data["iid"],
+            title=data["title"],
+            body=data.get("description"),
+            state=state,
+            author=data["author"]["username"],
+            source_branch=data["source_branch"],
+            target_branch=data["target_branch"],
+            draft=data.get("draft", False),
+            url=data["web_url"],
+            created_at=data["created_at"],
+            updated_at=data.get("updated_at"),
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_issue(data: dict) -> Issue:
-        try:
-            state = data["state"]
-            if state == "opened":
-                state = "open"
+        state = data["state"]
+        if state == "opened":
+            state = "open"
 
-            return Issue(
-                number=data["iid"],
-                title=data["title"],
-                body=data.get("description"),
-                state=state,
-                author=data["author"]["username"],
-                assignees=[a["username"] for a in data.get("assignees", [])],
-                labels=data.get("labels", []),
-                url=data["web_url"],
-                created_at=data["created_at"],
-                updated_at=data.get("updated_at"),
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return Issue(
+            number=data["iid"],
+            title=data["title"],
+            body=data.get("description"),
+            state=state,
+            author=data["author"]["username"],
+            assignees=[a["username"] for a in data.get("assignees", [])],
+            labels=data.get("labels", []),
+            url=data["web_url"],
+            created_at=data["created_at"],
+            updated_at=data.get("updated_at"),
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_repository(data: dict) -> Repository:
-        try:
-            return Repository(
-                name=data["path"],
-                full_name=data["path_with_namespace"],
-                description=data.get("description"),
-                visibility=data.get("visibility", "private"),
-                default_branch=data.get("default_branch"),
-                clone_url=data["http_url_to_repo"],
-                url=data["web_url"],
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return Repository(
+            name=data["path"],
+            full_name=data["path_with_namespace"],
+            description=data.get("description"),
+            visibility=data.get("visibility", "private"),
+            default_branch=data.get("default_branch"),
+            clone_url=data["http_url_to_repo"],
+            url=data["web_url"],
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_release(data: dict) -> Release:
-        try:
-            return Release(
-                tag=data["tag_name"],
-                title=data.get("name") or "",
-                body=data.get("description"),
-                draft=False,
-                prerelease=data.get("upcoming_release", False),
-                url=(data.get("_links") or {}).get("self") or data.get("web_url", ""),
-                created_at=data["created_at"],
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return Release(
+            tag=data["tag_name"],
+            title=data.get("name") or "",
+            body=data.get("description"),
+            draft=False,
+            prerelease=data.get("upcoming_release", False),
+            url=(data.get("_links") or {}).get("self") or data.get("web_url", ""),
+            created_at=data["created_at"],
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_label(data: dict) -> Label:
-        try:
-            color = data.get("color")
-            if color and color.startswith("#"):
-                color = color[1:]
-            return Label(
-                name=data["name"],
-                color=color,
-                description=data.get("description"),
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        color = data.get("color")
+        if color and color.startswith("#"):
+            color = color[1:]
+        return Label(
+            name=data["name"],
+            color=color,
+            description=data.get("description"),
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_milestone(data: dict) -> Milestone:
-        try:
-            raw_state = data["state"]
-            state = "open" if raw_state == "active" else raw_state
-            return Milestone(
-                number=data["iid"],
-                title=data["title"],
-                description=data.get("description"),
-                state=state,
-                due_date=data.get("due_date"),
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        raw_state = data["state"]
+        state = "open" if raw_state == "active" else raw_state
+        return Milestone(
+            number=data["iid"],
+            title=data["title"],
+            description=data.get("description"),
+            state=state,
+            due_date=data.get("due_date"),
+        )
 
     # --- PR (Merge Request) ---
 
@@ -920,157 +908,139 @@ class GitLabAdapter(GitServiceAdapter):
     # --- 変換ヘルパー（追加分） ---
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_comment(data: dict) -> Comment:
-        try:
-            author = data.get("author") or {}
-            return Comment(
-                id=data["id"],
-                body=data.get("body") or "",
-                author=author.get("username") or "",
-                url="",  # GitLab notes に html_url なし
-                created_at=data.get("created_at") or "",
-                updated_at=data.get("updated_at"),
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        author = data.get("author") or {}
+        return Comment(
+            id=data["id"],
+            body=data.get("body") or "",
+            author=author.get("username") or "",
+            url="",  # GitLab notes に html_url なし
+            created_at=data.get("created_at") or "",
+            updated_at=data.get("updated_at"),
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_review(data: dict) -> Review:
-        try:
-            state_map = {"approved": "approved", "unapproved": "changes_requested"}
-            raw_state = data.get("state", "approved")
-            return Review(
-                id=data.get("id") or 0,
-                state=state_map.get(raw_state, raw_state),
-                body="",
-                author=(data.get("user") or {}).get("username") or "",
-                url="",
-                submitted_at=data.get("submitted_at"),
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        state_map = {"approved": "approved", "unapproved": "changes_requested"}
+        raw_state = data.get("state", "approved")
+        return Review(
+            id=data.get("id") or 0,
+            state=state_map.get(raw_state, raw_state),
+            body="",
+            author=(data.get("user") or {}).get("username") or "",
+            url="",
+            submitted_at=data.get("submitted_at"),
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_branch(data: dict) -> Branch:
-        try:
-            commit = data.get("commit") or {}
-            return Branch(
-                name=data["name"],
-                sha=commit.get("id") or "",
-                protected=data.get("protected", False),
-                url=data.get("web_url") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        commit = data.get("commit") or {}
+        return Branch(
+            name=data["name"],
+            sha=commit.get("id") or "",
+            protected=data.get("protected", False),
+            url=data.get("web_url") or "",
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_tag(data: dict) -> Tag:
-        try:
-            commit = data.get("commit") or {}
-            return Tag(
-                name=data["name"],
-                sha=commit.get("id") or "",
-                message=data.get("message") or "",
-                url=data.get("web_url") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        commit = data.get("commit") or {}
+        return Tag(
+            name=data["name"],
+            sha=commit.get("id") or "",
+            message=data.get("message") or "",
+            url=data.get("web_url") or "",
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_commit_status(data: dict) -> CommitStatus:
-        try:
-            state_map = {
-                "success": "success",
-                "failed": "failure",
-                "pending": "pending",
-                "running": "pending",
-                "canceled": "error",
-            }
-            raw = data.get("status", "pending")
-            return CommitStatus(
-                state=state_map.get(raw, raw),
-                context=data.get("name") or "",
-                description=data.get("description") or "",
-                target_url=data.get("target_url") or "",
-                created_at=data.get("created_at") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        state_map = {
+            "success": "success",
+            "failed": "failure",
+            "pending": "pending",
+            "running": "pending",
+            "canceled": "error",
+        }
+        raw = data.get("status", "pending")
+        return CommitStatus(
+            state=state_map.get(raw, raw),
+            context=data.get("name") or "",
+            description=data.get("description") or "",
+            target_url=data.get("target_url") or "",
+            created_at=data.get("created_at") or "",
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_webhook(data: dict) -> Webhook:
-        try:
-            # GitLab webhook の events は boolean フィールド集合
-            events = tuple(
-                k.replace("_events", "")
-                for k in (
-                    "push_events",
-                    "issues_events",
-                    "merge_requests_events",
-                    "tag_push_events",
-                    "note_events",
-                    "confidential_note_events",
-                    "job_events",
-                    "pipeline_events",
-                    "wiki_page_events",
-                    "releases_events",
-                )
-                if data.get(k, False)
+        # GitLab webhook の events は boolean フィールド集合
+        events = tuple(
+            k.replace("_events", "")
+            for k in (
+                "push_events",
+                "issues_events",
+                "merge_requests_events",
+                "tag_push_events",
+                "note_events",
+                "confidential_note_events",
+                "job_events",
+                "pipeline_events",
+                "wiki_page_events",
+                "releases_events",
             )
-            return Webhook(
-                id=data["id"],
-                url=data.get("url") or "",
-                events=events,
-                active=True,  # GitLab hooks API に active/inactive トグルなし
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+            if data.get(k, False)
+        )
+        return Webhook(
+            id=data["id"],
+            url=data.get("url") or "",
+            events=events,
+            active=True,  # GitLab hooks API に active/inactive トグルなし
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_deploy_key(data: dict) -> DeployKey:
-        try:
-            return DeployKey(
-                id=data["id"],
-                title=data.get("title") or "",
-                key=data.get("key") or "",
-                read_only=not data.get("can_push", False),
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return DeployKey(
+            id=data["id"],
+            title=data.get("title") or "",
+            key=data.get("key") or "",
+            read_only=not data.get("can_push", False),
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_pipeline(data: dict) -> Pipeline:
-        try:
-            status_map = {
-                "success": "success",
-                "failed": "failure",
-                "running": "running",
-                "pending": "pending",
-                "canceled": "cancelled",
-                "skipped": "cancelled",
-            }
-            raw = data.get("status", "pending")
-            return Pipeline(
-                id=data["id"],
-                status=status_map.get(raw, raw),
-                ref=data.get("ref") or "",
-                url=data.get("web_url") or "",
-                created_at=data.get("created_at") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        status_map = {
+            "success": "success",
+            "failed": "failure",
+            "running": "running",
+            "pending": "pending",
+            "canceled": "cancelled",
+            "skipped": "cancelled",
+        }
+        raw = data.get("status", "pending")
+        return Pipeline(
+            id=data["id"],
+            status=status_map.get(raw, raw),
+            ref=data.get("ref") or "",
+            url=data.get("web_url") or "",
+            created_at=data.get("created_at") or "",
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_wiki_page(data: dict) -> WikiPage:
-        try:
-            return WikiPage(
-                id=0,  # GitLab Wiki には数値IDなし、slugを使う
-                title=data.get("title") or "",
-                content=data.get("content") or "",
-                url=data.get("web_url") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return WikiPage(
+            id=0,  # GitLab Wiki には数値IDなし、slugを使う
+            title=data.get("title") or "",
+            content=data.get("content") or "",
+            url=data.get("web_url") or "",
+        )
 
     # --- Comment ---
 
@@ -1888,20 +1858,18 @@ class GitLabAdapter(GitServiceAdapter):
         self._client.post("/todos/mark_as_done", json={})
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_notification(data: dict) -> Notification:
-        try:
-            project = data.get("project") or {}
-            return Notification(
-                id=str(data["id"]),
-                title=data.get("body") or "",
-                reason=data.get("target_type") or "",
-                unread=data.get("state") == "pending",
-                repository=project.get("path_with_namespace") or "",
-                url=data.get("target_url") or "",
-                updated_at=data.get("updated_at") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        project = data.get("project") or {}
+        return Notification(
+            id=str(data["id"]),
+            title=data.get("body") or "",
+            reason=data.get("target_type") or "",
+            unread=data.get("state") == "pending",
+            repository=project.get("path_with_namespace") or "",
+            url=data.get("target_url") or "",
+            updated_at=data.get("updated_at") or "",
+        )
 
     # --- Organization (Group) ---
 
@@ -1929,16 +1897,14 @@ class GitLabAdapter(GitServiceAdapter):
         return [self._to_repository(r) for r in results]
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_organization(data: dict) -> Organization:
-        try:
-            return Organization(
-                name=data.get("path") or data.get("full_path") or "",
-                display_name=data.get("full_name") or data.get("name") or "",
-                description=data.get("description"),
-                url=data.get("web_url") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return Organization(
+            name=data.get("path") or data.get("full_path") or "",
+            display_name=data.get("full_name") or data.get("name") or "",
+            description=data.get("description"),
+            url=data.get("web_url") or "",
+        )
 
     def create_organization(
         self, name: str, *, display_name: str | None = None, description: str | None = None
@@ -1991,16 +1957,14 @@ class GitLabAdapter(GitServiceAdapter):
         self._client.delete(f"/user/keys/{key_id}")
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_ssh_key(data: dict) -> SshKey:
-        try:
-            return SshKey(
-                id=data["id"],
-                title=data.get("title") or "",
-                key=data.get("key") or "",
-                created_at=data.get("created_at") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return SshKey(
+            id=data["id"],
+            title=data.get("title") or "",
+            key=data.get("key") or "",
+            created_at=data.get("created_at") or "",
+        )
 
     # --- GPG Key ---
 

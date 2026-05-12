@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from gfo.http import HttpClient
 from gfo.http import paginate_offset
 
-from .base import GitServiceAdapter
+from .base import GitServiceAdapter, _wrap_conversion_error
 from .models import (
     Branch,
     Comment,
@@ -80,34 +80,32 @@ class BacklogAdapter(GitServiceAdapter):
     # --- 変換ヘルパー ---
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_pull_request(data: dict, merged_status_id: int | None = None) -> PullRequest:
-        try:
-            status_id = (data.get("status") or {}).get("id", 1)
-            if status_id == _STATUS_CLOSED_ID:
-                state = "closed"
-            elif merged_status_id is not None and status_id == merged_status_id:
-                state = "merged"
-            elif merged_status_id is None and status_id == _STATUS_MERGED_ID:
-                state = "merged"
-            else:
-                state = "open"
+        status_id = (data.get("status") or {}).get("id", 1)
+        if status_id == _STATUS_CLOSED_ID:
+            state = "closed"
+        elif merged_status_id is not None and status_id == merged_status_id:
+            state = "merged"
+        elif merged_status_id is None and status_id == _STATUS_MERGED_ID:
+            state = "merged"
+        else:
+            state = "open"
 
-            created_user = data.get("createdUser") or {}
-            return PullRequest(
-                number=data["number"],
-                title=data["summary"],
-                body=data.get("description"),
-                state=state,
-                author=created_user.get("userId", ""),
-                source_branch=data.get("branch", ""),
-                target_branch=data.get("base", ""),
-                draft=False,
-                url=data.get("url", ""),
-                created_at=data.get("created", ""),
-                updated_at=data.get("updated"),
-            )
-        except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        created_user = data.get("createdUser") or {}
+        return PullRequest(
+            number=data["number"],
+            title=data["summary"],
+            body=data.get("description"),
+            state=state,
+            author=created_user.get("userId", ""),
+            source_branch=data.get("branch", ""),
+            target_branch=data.get("base", ""),
+            draft=False,
+            url=data.get("url", ""),
+            created_at=data.get("created", ""),
+            updated_at=data.get("updated"),
+        )
 
     @staticmethod
     def _to_issue(data: dict) -> Issue:
@@ -141,19 +139,17 @@ class BacklogAdapter(GitServiceAdapter):
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_repository(data: dict) -> Repository:
-        try:
-            return Repository(
-                name=data["name"],
-                full_name=data.get("displayName", data["name"]),
-                description=data.get("description"),
-                visibility="private",
-                default_branch=None,
-                clone_url=data.get("httpUrl", ""),
-                url=data.get("httpUrl", "").removesuffix(".git"),
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return Repository(
+            name=data["name"],
+            full_name=data.get("displayName", data["name"]),
+            description=data.get("description"),
+            visibility="private",
+            default_branch=None,
+            clone_url=data.get("httpUrl", ""),
+            url=data.get("httpUrl", "").removesuffix(".git"),
+        )
 
     # --- PR ---
 
@@ -499,75 +495,65 @@ class BacklogAdapter(GitServiceAdapter):
     # --- 変換ヘルパー（Comment / Branch / Tag / Webhook / WikiPage）---
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_comment(data: dict) -> Comment:
 
-        try:
-            created_user = data.get("createdUser") or {}
-            return Comment(
-                id=data["id"],
-                body=data.get("content") or "",
-                author=created_user.get("userId") or "",
-                url="",
-                created_at=data.get("created") or "",
-                updated_at=data.get("updated"),
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        created_user = data.get("createdUser") or {}
+        return Comment(
+            id=data["id"],
+            body=data.get("content") or "",
+            author=created_user.get("userId") or "",
+            url="",
+            created_at=data.get("created") or "",
+            updated_at=data.get("updated"),
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_branch(data: dict) -> Branch:
 
-        try:
-            return Branch(
-                name=data["name"],
-                sha=data.get("commit", {}).get("id") or "",
-                protected=False,
-                url="",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return Branch(
+            name=data["name"],
+            sha=data.get("commit", {}).get("id") or "",
+            protected=False,
+            url="",
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_tag(data: dict) -> Tag:
 
-        try:
-            return Tag(
-                name=data["name"],
-                sha=data.get("commit", {}).get("id") or "",
-                message="",
-                url="",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return Tag(
+            name=data["name"],
+            sha=data.get("commit", {}).get("id") or "",
+            message="",
+            url="",
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_webhook(data: dict) -> Webhook:
 
-        try:
-            # Backlog webhook の allEvent または events フィールド
-            events = tuple(data.get("events") or [])
-            return Webhook(
-                id=data["id"],
-                url=(data.get("hookUrl") or ""),
-                events=events,
-                active=True,
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        # Backlog webhook の allEvent または events フィールド
+        events = tuple(data.get("events") or [])
+        return Webhook(
+            id=data["id"],
+            url=(data.get("hookUrl") or ""),
+            events=events,
+            active=True,
+        )
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_wiki_page(data: dict) -> WikiPage:
 
-        try:
-            return WikiPage(
-                id=data["id"],
-                title=data.get("name") or "",
-                content=data.get("content") or "",
-                url="",
-                updated_at=data.get("updated"),
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        return WikiPage(
+            id=data["id"],
+            title=data.get("name") or "",
+            content=data.get("content") or "",
+            url="",
+            updated_at=data.get("updated"),
+        )
 
     # --- Comment ---
 
@@ -835,21 +821,19 @@ class BacklogAdapter(GitServiceAdapter):
         self._client.post("/notifications/markAsRead", json={})
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_notification(data: dict) -> Notification:
-        try:
-            comment = data.get("comment") or {}
-            issue = comment.get("issue") or data.get("issue") or {}
-            return Notification(
-                id=str(data["id"]),
-                title=issue.get("summary") or comment.get("content") or "",
-                reason="notification",
-                unread=not data.get("resourceAlreadyRead", False),
-                repository="",
-                url="",
-                updated_at=data.get("created") or "",
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+        comment = data.get("comment") or {}
+        issue = comment.get("issue") or data.get("issue") or {}
+        return Notification(
+            id=str(data["id"]),
+            title=issue.get("summary") or comment.get("content") or "",
+            reason="notification",
+            unread=not data.get("resourceAlreadyRead", False),
+            repository="",
+            url="",
+            updated_at=data.get("created") or "",
+        )
 
     # --- Browse ---
 
