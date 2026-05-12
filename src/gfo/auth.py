@@ -181,7 +181,8 @@ def load_tokens() -> dict[str, dict[str, str]]:
         warnings.warn(
             "credentials.toml contains old format entries for: "
             f"{', '.join(old_format_hosts)}. "
-            "Run 'gfo auth login' to re-register.",
+            "Run 'gfo auth login' to re-register. "
+            "The old format compatibility shim will be removed in a future release.",
             stacklevel=2,
         )
     return {

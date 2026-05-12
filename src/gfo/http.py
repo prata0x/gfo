@@ -17,21 +17,50 @@ import requests
 import gfo.exceptions
 from gfo.i18n import _
 
-_MAX_RETRY_AFTER = 300
+
+def _max_retry_after_seconds() -> int:
+    """GFO_RETRY_AFTER_MAX の値を返す。未設定なら 300 秒。
+
+    一部 API (GitHub Secondary rate limit など) は Retry-After に長めの値
+    (3600 秒等) を返すことがあり、デフォルト 300 で clamp すると過剰リトライで
+    レート制限を再度踏むため、運用上 externalize できるようにしておく。
+    """
+    val = os.environ.get("GFO_RETRY_AFTER_MAX", "").strip()
+    if not val:
+        return 300
+    try:
+        n = int(val)
+    except ValueError:
+        return 300
+    return max(0, n)
+
+
+_MAX_RETRY_AFTER = _max_retry_after_seconds()
 # HttpError 例外メッセージに載せるレスポンス body の上限（バイト換算ではなく文字数）。
 # 巨大エラーボディが例外文字列・JSON 出力・ターミナルを圧迫するのを防ぐ。
 _MAX_ERROR_BODY_CHARS = 4096
 
 
 def _max_download_bytes() -> int:
-    """GFO_MAX_DOWNLOAD_BYTES の値を返す。未設定なら 5 GiB。0 は無制限。"""
+    """GFO_MAX_DOWNLOAD_BYTES の値を返す。未設定なら 5 GiB。0 は無制限。
+
+    不正な値が設定されている場合は警告を出し、既定値にフォールバックする
+    (silent fallback だとユーザーが上限を設定したつもりで効いていない事故が起きるため)。
+    """
     val = os.environ.get("GFO_MAX_DOWNLOAD_BYTES", "").strip()
+    default = 5 * 1024 * 1024 * 1024  # 5 GiB
     if not val:
-        return 5 * 1024 * 1024 * 1024  # 5 GiB
+        return default
     try:
         n = int(val)
     except ValueError:
-        return 5 * 1024 * 1024 * 1024
+        import warnings
+
+        warnings.warn(
+            f"GFO_MAX_DOWNLOAD_BYTES={val!r} is not a valid integer; using default 5 GiB.",
+            stacklevel=2,
+        )
+        return default
     return max(0, n)
 
 
