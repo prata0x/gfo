@@ -117,8 +117,11 @@ class NotFoundError(HttpError):
     error_code = "not_found"
     exit_code = ExitCode.NOT_FOUND
 
-    def __init__(self, url: str = ""):
-        super().__init__(404, _("Resource not found."), url)
+    def __init__(self, url: str = "", detail: str | None = None):
+        # detail 指定時は具体的なリソース情報（例: "Tag 'v1' not found"）を message に載せる。
+        # 未指定なら "Resource not found." の汎用メッセージ。
+        message = detail if detail else _("Resource not found.")
+        super().__init__(404, message, url)
 
 
 class RateLimitError(HttpError):

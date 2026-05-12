@@ -1218,7 +1218,7 @@ class BitbucketAdapter(GitServiceAdapter):
         for d in results:
             if d.get("key") == name:
                 return str(d["uuid"])
-        raise NotFoundError(name)
+        raise NotFoundError(detail=f"Resource '{name}' not found")
 
     # --- Variable (Pipelines unsecured variables) ---
 

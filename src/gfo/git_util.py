@@ -147,6 +147,13 @@ def git_checkout_branch(branch: str, start: str = "FETCH_HEAD", cwd: str | None 
     """
     try:
         run_git("rev-parse", "--verify", f"refs/heads/{branch}", cwd=cwd)
+        # 既にチェックアウト済みなら何もしない（worktree ロック衝突を回避）
+        try:
+            current = run_git("rev-parse", "--abbrev-ref", "HEAD", cwd=cwd).strip()
+        except GitCommandError:
+            current = ""
+        if current == branch:
+            return
         # ブランチが存在する → 既存ブランチへスイッチ
         run_git("checkout", branch, cwd=cwd)
     except GitCommandError:

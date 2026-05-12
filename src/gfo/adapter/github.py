@@ -1047,7 +1047,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 return self._to_tag(t)
         from gfo.exceptions import NotFoundError
 
-        raise NotFoundError(f"Tag '{name}' not found")
+        raise NotFoundError(detail=f"Tag '{name}' not found")
 
     def list_tags(self, *, limit: int = 30) -> list[Tag]:
         results = paginate_link_header(

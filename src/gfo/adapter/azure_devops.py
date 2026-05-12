@@ -9,7 +9,7 @@ from urllib.parse import quote, urlparse
 
 import requests
 
-from gfo.exceptions import GfoError, NotSupportedError
+from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 from gfo.http import paginate_top_skip
 
 if TYPE_CHECKING:
@@ -252,7 +252,11 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             "squash": "squash",
             "rebase": "rebase",
         }
-        strategy = strategy_map.get(method, "noFastForward")
+        if method not in strategy_map:
+            raise GfoError(
+                f"Unsupported merge method '{method}'. Use one of: {', '.join(strategy_map)}."
+            )
+        strategy = strategy_map[method]
         pr_resp = self._client.get(f"{self._git_path()}/pullrequests/{number}")
         pr_data = pr_resp.json()
         if not isinstance(pr_data, dict):
@@ -1104,7 +1108,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         if not items:
             from gfo.exceptions import NotFoundError
 
-            raise NotFoundError(f"refs/heads/{name}")
+            raise NotFoundError(detail=f"Branch '{name}' not found")
         return self._to_branch(items[0])
 
     def list_branches(self, *, limit: int = 30) -> list[Branch]:
@@ -1142,7 +1146,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         if not items:
             from gfo.exceptions import NotFoundError
 
-            raise NotFoundError(f"refs/heads/{name}")
+            raise NotFoundError(detail=f"Branch '{name}' not found")
         sha = items[0]["objectId"]
         payload = [{"name": f"refs/heads/{name}", "oldObjectId": sha, "newObjectId": "0" * 40}]
         self._client.post(f"{self._git_path()}/refs", json=payload)
@@ -1159,7 +1163,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         if not items:
             from gfo.exceptions import NotFoundError
 
-            raise NotFoundError(f"refs/tags/{name}")
+            raise NotFoundError(detail=f"Tag '{name}' not found")
         return self._to_tag(items[0])
 
     def list_tags(self, *, limit: int = 30) -> list[Tag]:
@@ -1187,7 +1191,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         if not items:
             from gfo.exceptions import NotFoundError
 
-            raise NotFoundError(f"refs/tags/{name}")
+            raise NotFoundError(detail=f"Tag '{name}' not found")
         sha = items[0]["objectId"]
         payload = [{"name": f"refs/tags/{name}", "oldObjectId": sha, "newObjectId": "0" * 40}]
         self._client.post(f"{self._git_path()}/refs", json=payload)
@@ -1307,7 +1311,12 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             params={"filter": f"heads/{branch}"},
         )
         ref_items = refs_resp.json().get("value", [])
-        old_oid = ref_items[0]["objectId"] if ref_items else "0" * 40
+        # ブランチが存在しない場合に "0" * 40 を渡すと Azure DevOps API は
+        # 「新規ブランチ作成」と解釈し、削除対象のないコミットを作る。
+        # ファイル削除はブランチ存在が前提なので明示的に NotFoundError で失敗させる。
+        if not ref_items:
+            raise NotFoundError(detail=f"Branch '{branch}' not found")
+        old_oid = ref_items[0]["objectId"]
         payload = {
             "refUpdates": [{"name": f"refs/heads/{branch}", "oldObjectId": old_oid}],
             "commits": [
