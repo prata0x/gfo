@@ -53,6 +53,7 @@ from .base import (
     WikiPage,
     WikiRevision,
     Workflow,
+    _mask_token_in_exception,
 )
 from .registry import register
 
@@ -497,7 +498,12 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["description"] = description
         if auth_token:
             payload["auth_token"] = auth_token
-        resp = self._client.post("/repos/migrate", json=payload)
+        # auth_token がエラー応答本文や例外メッセージに漏れないようマスクする
+        try:
+            resp = self._client.post("/repos/migrate", json=payload)
+        except Exception as e:
+            _mask_token_in_exception(e, auth_token)
+            raise
         return self._to_repository(resp.json())
 
     # --- Release ---
@@ -2236,7 +2242,12 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         }
         if auth_token:
             payload["remote_password"] = auth_token
-        resp = self._client.post(f"{self._repos_path()}/push_mirrors", json=payload)
+        # auth_token がエラー応答本文や例外メッセージに漏れないようマスクする
+        try:
+            resp = self._client.post(f"{self._repos_path()}/push_mirrors", json=payload)
+        except Exception as e:
+            _mask_token_in_exception(e, auth_token)
+            raise
         m = resp.json()
         return PushMirror(
             id=m.get("id") or 0,

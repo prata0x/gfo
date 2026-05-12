@@ -31,6 +31,20 @@ def _wrap_conversion_error(func: _F) -> _F:
     return wrapper  # type: ignore[return-value]
 
 
+def _mask_token_in_exception(exc: BaseException, token: str | None) -> None:
+    """例外の args 内の token 文字列を *** に置換する。
+
+    migrate_repository / create_push_mirror など、payload に秘匿トークンを
+    含めるメソッドで使う共通ユーティリティ。サーバー応答エラー本文や
+    ネットワーク例外メッセージにトークンが漏れるのを防ぐ。
+    """
+    if not token or not exc.args:
+        return
+    new_args = tuple(a.replace(token, "***") if isinstance(a, str) else a for a in exc.args)
+    if new_args != exc.args:
+        exc.args = new_args
+
+
 @dataclass(frozen=True, slots=True)
 class PullRequest:
     number: int

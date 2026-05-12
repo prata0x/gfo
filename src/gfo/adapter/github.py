@@ -49,6 +49,7 @@ from .base import (
     Variable,
     Webhook,
     Workflow,
+    _mask_token_in_exception,
 )
 from .registry import register
 
@@ -513,10 +514,15 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["vcs_username"] = "x-access-token"
             payload["vcs_password"] = auth_token
         owner, repo_name = repo.full_name.split("/", 1)
-        self._client.put(
-            f"/repos/{quote(owner, safe='')}/{quote(repo_name, safe='')}/import",
-            json=payload,
-        )
+        # auth_token がエラー応答本文や例外メッセージに漏れないようマスクする
+        try:
+            self._client.put(
+                f"/repos/{quote(owner, safe='')}/{quote(repo_name, safe='')}/import",
+                json=payload,
+            )
+        except Exception as e:
+            _mask_token_in_exception(e, auth_token)
+            raise
         return repo
 
     # --- Release ---

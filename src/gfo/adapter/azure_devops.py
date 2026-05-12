@@ -43,6 +43,7 @@ from .base import (
     TimeEntry,
     TimelineEvent,
     Webhook,
+    _mask_token_in_exception,
 )
 from .registry import register
 
@@ -725,10 +726,15 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         if auth_token:
             payload["parameters"]["gitSource"]["username"] = ""
             payload["parameters"]["gitSource"]["password"] = auth_token
-        self._client.post(
-            f"/git/repositories/{quote(name, safe='')}/importRequests",
-            json=payload,
-        )
+        # auth_token がエラー応答本文や例外メッセージに漏れないようマスクする
+        try:
+            self._client.post(
+                f"/git/repositories/{quote(name, safe='')}/importRequests",
+                json=payload,
+            )
+        except Exception as e:
+            _mask_token_in_exception(e, auth_token)
+            raise
         return repo
 
     # --- NotSupported ---
