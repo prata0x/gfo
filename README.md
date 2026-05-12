@@ -79,7 +79,7 @@ See [docs/authentication.md](docs/authentication.md) for token creation instruct
 
 | Variable | Default | Description |
 |---|---|---|
-| `GFO_INSECURE` | unset | Disable TLS verification for self-hosted hosts. Cloud-hosted services always enforce TLS. |
+| `GFO_INSECURE` | unset | Disable TLS verification for self-hosted hosts. Cloud-hosted services always enforce TLS. A warning is printed to stderr on startup when set. |
 | `GFO_ALLOW_INSECURE_HTTP` | unset | Allow `http://` for `api_url` (other than `localhost` / `127.0.0.1` / `::1`). |
 | `GFO_ALLOW_PRIVATE_HOSTS` | unset | Allow API probing of unknown hosts that resolve to private / loopback / link-local IPs (needed for internal Gitea / GitLab auto-detection). |
 | `GFO_MAX_DOWNLOAD_BYTES` | `5368709120` (5 GiB) | Maximum size for streaming downloads (assets, artifacts, logs). `0` for unlimited. |
@@ -114,7 +114,7 @@ See [docs/authentication.md](docs/authentication.md#security-related-environment
 | `gfo branch-protect` | `list`, `view`, `set`, `remove` | Branch protection rule management |
 | `gfo tag-protect` | `list`, `create`, `delete` | Tag protection rule management |
 | `gfo notification` | `list`, `read` | Notification management |
-| `gfo org` | `list`, `view`, `members`, `repos`, `create`, `delete` | Organization management |
+| `gfo org` | `list`, `view`, `members`, `repos`, `create`, `edit`, `delete` | Organization management |
 | `gfo ssh-key` | `list`, `create`, `view`, `delete` | SSH key management |
 | `gfo gpg-key` | `list`, `create`, `view`, `delete` | GPG key management |
 | `gfo secret` | `list`, `set`, `delete` | CI/CD secret management |

@@ -82,8 +82,8 @@ gfo auth login [--host HOST] [--token-stdin | --token-file PATH | --token TOKEN]
 ```bash
 gfo auth login
 gfo auth login --host github.com
-gfo auth login --host gitea.example.com --token mytoken123
-gfo auth login --host github.com --account work --token ghp_work_token
+echo "$TOKEN" | gfo auth login --host gitea.example.com --token-stdin
+gfo auth login --host github.com --account work --token-file /path/to/token.txt
 ```
 
 ### gfo auth status
@@ -1183,21 +1183,21 @@ Manage push mirrors.
 
 ```
 gfo repo mirror list
-gfo repo mirror add URL [--interval INTERVAL]
-gfo repo mirror remove MIRROR_ID
+gfo repo mirror add REMOTE_ADDRESS [--interval INTERVAL]
+gfo repo mirror remove MIRROR_NAME
 gfo repo mirror sync
 ```
 
 | Option | Description |
 |---|---|
-| `URL` | Mirror destination repository URL |
-| `--interval` / `-i` | Sync interval (e.g., `8h0m0s`) |
-| `MIRROR_ID` | Mirror ID |
+| `REMOTE_ADDRESS` | Mirror destination repository URL |
+| `--interval` | Sync interval (e.g., `8h0m0s`) |
+| `MIRROR_NAME` | Mirror name (as shown by `gfo repo mirror list`) |
 
 ```bash
 gfo repo mirror list
 gfo repo mirror add https://github.com/user/mirror.git
-gfo repo mirror remove 1
+gfo repo mirror remove origin-mirror
 gfo repo mirror sync        # Sync all mirrors
 ```
 
