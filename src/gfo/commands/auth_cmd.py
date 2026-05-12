@@ -50,7 +50,8 @@ def handle_login(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     elif args.token:
         print(
             _(
-                "Warning: passing tokens via --token is insecure (visible in process list). "
+                "Warning: --token is deprecated and will be removed in a future release. "
+                "Passing tokens via --token is insecure (visible in process list). "
                 "Use --token-stdin or --token-file instead."
             ),
             file=sys.stderr,

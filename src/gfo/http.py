@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 import requests
 
 import gfo.exceptions
+from gfo.i18n import _
 
 _MAX_RETRY_AFTER = 300
 # HttpError 例外メッセージに載せるレスポンス body の上限（バイト換算ではなく文字数）。
@@ -72,9 +73,11 @@ def _verify_for_url(url: str) -> bool:
 if _INSECURE_ENV:
     # 起動時警告: クラウド固定ホストでは無効化されない旨をユーザーに通知する。
     print(
-        "Warning: GFO_INSECURE is set; TLS verification is disabled for self-hosted hosts. "
-        "Cloud-hosted services (github.com, gitlab.com, bitbucket.org, dev.azure.com, "
-        "*.backlog.com/jp, *.visualstudio.com) still enforce TLS verification.",
+        _(
+            "Warning: GFO_INSECURE is set; TLS verification is disabled for self-hosted hosts. "
+            "Cloud-hosted services (github.com, gitlab.com, bitbucket.org, dev.azure.com, "
+            "*.backlog.com/jp, *.visualstudio.com) still enforce TLS verification."
+        ),
         file=sys.stderr,
     )
 
