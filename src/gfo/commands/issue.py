@@ -14,7 +14,7 @@ from gfo.commands import (
     parse_service_spec,
     read_file_arg,
 )
-from gfo.exceptions import ConfigError, NotSupportedError
+from gfo.exceptions import ConfigError, GfoError, NotSupportedError
 
 if TYPE_CHECKING:
     from gfo.adapter.base import GitServiceAdapter
@@ -459,7 +459,9 @@ def _migrate_one_issue(
             target_number=created.number,
             success=True,
         )
-    except Exception as e:
+    except GfoError as e:
+        # AttributeError / TypeError / KeyError などのプログラミングエラーは握りつぶさず
+        # 上位に再 raise する（batch.py と同じ方針。実装バグを移行失敗として隠さない）
         return MigrateResult(
             source_number=number,
             target_number=None,

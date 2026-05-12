@@ -40,8 +40,10 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         raise ConfigError(_("tag must not be empty. Use 'gfo release create <tag>'."))
     adapter = get_adapter()
     title = (args.title or "").strip() or tag
-    notes = args.notes or ""
     notes_file = getattr(args, "notes_file", None)
+    if args.notes and notes_file:
+        raise ConfigError(_("--notes and --notes-file are mutually exclusive."))
+    notes = args.notes or ""
     if notes_file:
         notes = read_file_arg(notes_file)
     release = adapter.create_release(
@@ -102,8 +104,10 @@ def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     if not tag:
         raise ConfigError(_("tag must not be empty."))
     adapter = get_adapter()
-    notes = args.notes
     notes_file = getattr(args, "notes_file", None)
+    if args.notes and notes_file:
+        raise ConfigError(_("--notes and --notes-file are mutually exclusive."))
+    notes = args.notes
     if notes_file:
         notes = read_file_arg(notes_file)
     release = adapter.update_release(

@@ -697,7 +697,7 @@ class BacklogAdapter(GitServiceAdapter):
                 return self._to_branch(r)
         from gfo.exceptions import NotFoundError
 
-        raise NotFoundError(f"Branch '{name}' not found")
+        raise NotFoundError(detail=f"Branch '{name}' not found")
 
     def list_branches(self, *, limit: int = 30) -> list[Branch]:
         results = paginate_offset(
@@ -733,7 +733,7 @@ class BacklogAdapter(GitServiceAdapter):
                 return self._to_tag(r)
         from gfo.exceptions import NotFoundError
 
-        raise NotFoundError(f"Tag '{name}' not found")
+        raise NotFoundError(detail=f"Tag '{name}' not found")
 
     def list_tags(self, *, limit: int = 30) -> list[Tag]:
         results = paginate_offset(

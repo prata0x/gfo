@@ -870,7 +870,7 @@ class GitLabAdapter(GitServiceAdapter):
         resp = self._client.get(f"{self._project_path()}/milestones", params={"iid[]": number})
         milestones = resp.json()
         if not milestones:
-            raise NotFoundError(f"{self._project_path()}/milestones?iid[]={number}")
+            raise NotFoundError(detail=f"Milestone iid {number} not found")
         global_id = milestones[0]["id"]
         self._client.delete(f"{self._project_path()}/milestones/{global_id}")
 
@@ -879,7 +879,7 @@ class GitLabAdapter(GitServiceAdapter):
         resp = self._client.get(f"{self._project_path()}/milestones", params={"iid[]": number})
         milestones = resp.json()
         if not milestones:
-            raise NotFoundError(f"{self._project_path()}/milestones?iid[]={number}")
+            raise NotFoundError(detail=f"Milestone iid {number} not found")
         return int(milestones[0]["id"])
 
     def get_milestone(self, number: int) -> Milestone:
@@ -1854,7 +1854,7 @@ class GitLabAdapter(GitServiceAdapter):
             allow_deletions=False,
         )
 
-    # --- Notification (TODO) ---
+    # --- Notification ---
 
     def list_notifications(
         self, *, unread_only: bool = False, limit: int = 30
@@ -2409,7 +2409,7 @@ class GitLabAdapter(GitServiceAdapter):
             limit=1,
         )
         if not results:
-            raise NotFoundError(f"Package '{name}' not found")
+            raise NotFoundError(detail=f"Package '{name}' not found")
         p = results[0]
         return Package(
             name=p.get("name") or "",
@@ -2432,7 +2432,7 @@ class GitLabAdapter(GitServiceAdapter):
             if p.get("version") == version:
                 self._client.delete(f"{self._project_path()}/packages/{p['id']}")
                 return
-        raise NotFoundError(f"Package '{name}' version '{version}' not found")
+        raise NotFoundError(detail=f"Package '{name}' version '{version}' not found")
 
     # --- Time Tracking ---
 

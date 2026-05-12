@@ -82,6 +82,11 @@ def create_adapter(config: ProjectConfig) -> GitServiceAdapter:
     if service_type == "backlog":
         kwargs["project_key"] = config.project_key
     elif service_type == "azure-devops":
+        # build_default_api_url 経由ではない api_url 設定パスを通っても None 漏れを防ぐ。
+        if not config.organization or not config.project_key:
+            raise ConfigError(
+                "Azure DevOps requires both organization and project. Run 'gfo init'."
+            )
         kwargs["organization"] = config.organization
         kwargs["project_key"] = config.project_key
 
