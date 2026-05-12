@@ -481,6 +481,26 @@ class TestProbeUnknownHost:
         )
         assert probe_unknown_host("git.local", scheme="http") == "forgejo"
 
+    def test_all_probes_use_allow_redirects_false(self, monkeypatch):
+        """3 つのプローブエンドポイントすべてに allow_redirects=False が渡されること。
+
+        SSRF/オープンリダイレクト対策で、検出プローブは絶対にリダイレクトを
+        追跡してはならない (悪意のサーバが任意の内部 URL に誘導するのを防ぐ)。
+        """
+        # _is_private_host は autouse フィクスチャで False になっている。
+        from unittest.mock import MagicMock
+        from unittest.mock import patch as upatch
+
+        # 3 つすべての endpoint が 404 を返すように mock 化することで、
+        # 戻り値ではなく "全 GET 呼び出し" の kwargs を検査する。
+        fake_resp = MagicMock()
+        fake_resp.status_code = 404
+        with upatch("gfo.detect.requests.get", return_value=fake_resp) as mock_get:
+            probe_unknown_host("git.example.com")
+            assert mock_get.call_count == 3
+            for call in mock_get.call_args_list:
+                assert call.kwargs.get("allow_redirects") is False
+
 
 # ── 統合フローテスト ──
 
