@@ -2033,7 +2033,15 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- Browse ---
 
-    def get_web_url(self, resource: str = "repo", number: int | str | None = None) -> str:
+    _WEB_URL_PATHS = {
+        "pr": ("-/merge_requests", "-/merge_requests"),
+        "issue": ("-/issues", "-/issues"),
+        "release": ("-/releases", "-/releases"),
+        "milestone": ("-/milestones", "-/milestones"),
+        "settings": ("-/settings/general", ""),
+    }
+
+    def _web_base_url(self) -> str:
         # API base_url から Web URL を導出: https://gitlab.com/api/v4 → https://gitlab.com
         from urllib.parse import urlparse
 
@@ -2041,22 +2049,7 @@ class GitLabAdapter(GitServiceAdapter):
         web_base = f"{parsed.scheme}://{parsed.hostname}"
         if parsed.port:
             web_base = f"{web_base}:{parsed.port}"
-        base = f"{web_base}/{self._owner}/{self._repo}"
-        if resource == "pr":
-            return (
-                f"{base}/-/merge_requests"
-                if number is None
-                else f"{base}/-/merge_requests/{number}"
-            )
-        if resource == "issue":
-            return f"{base}/-/issues" if number is None else f"{base}/-/issues/{number}"
-        if resource == "release":
-            return f"{base}/-/releases" if number is None else f"{base}/-/releases/{number}"
-        if resource == "milestone":
-            return f"{base}/-/milestones" if number is None else f"{base}/-/milestones/{number}"
-        if resource == "settings":
-            return f"{base}/-/settings/general"
-        return base
+        return web_base
 
     # --- Search ---
 

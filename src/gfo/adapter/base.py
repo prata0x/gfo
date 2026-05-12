@@ -119,6 +119,12 @@ class GitServiceAdapter(ABC):
 
     service_name: str
 
+    # サブクラスが上書きする Web URL パステーブル。
+    # キー: "pr" | "issue" | "release" | "milestone" | "settings" 等。
+    # 値: (list_path, detail_path)。detail_path が空文字列の場合は number 指定時も
+    # list_path を返す (例: settings はリスト/詳細の区別なし)。
+    _WEB_URL_PATHS: dict[str, tuple[str, str]] = {}
+
     def __init__(self, client: HttpClient, owner: str, repo: str, **kwargs: object) -> None:
         # **kwargs はサービス固有パラメータ（BacklogAdapter の project_key、
         # AzureDevOpsAdapter の organization 等）をサブクラスが super().__init__() で
@@ -896,8 +902,24 @@ class GitServiceAdapter(ABC):
         raise NotSupportedError(self.service_name, "gpg-key delete")
 
     # --- Browse ---
+    def _web_base_url(self) -> str:
+        """Web UI のベース URL（owner/repo は含まない）を返す。
+
+        サブクラスでオーバーライドすること。デフォルトは未対応。
+        """
+        raise NotSupportedError(self.service_name, "browse")
+
     def get_web_url(self, resource: str = "repo", number: int | str | None = None) -> str:
         """Web ブラウザで開くための URL を返す。
+
+        デフォルト実装は `_web_base_url()` と `_WEB_URL_PATHS` を使う汎用ロジック:
+          - resource == "repo": `{web_base}/{owner}/{repo}` を返す
+          - resource が `_WEB_URL_PATHS` のキー: (list_path, detail_path) を引いて
+            number=None ならリスト URL、number 指定なら詳細 URL を返す
+            (detail_path が空文字列なら number 指定時もリスト URL を返す)
+
+        URL 形式が大きく異なるサービス (Bitbucket / Backlog / Azure DevOps 等) は
+        個別に override すること。
 
         Args:
             resource: "repo" | "pr" | "issue" | "release" | "milestone" | "settings"
@@ -907,7 +929,16 @@ class GitServiceAdapter(ABC):
         Returns:
             完全な URL 文字列
         """
-        raise NotSupportedError(self.service_name, "browse")
+        repo_url = f"{self._web_base_url()}/{self._owner}/{self._repo}"
+        if resource == "repo":
+            return repo_url
+        paths = self._WEB_URL_PATHS.get(resource)
+        if paths is None:
+            raise NotSupportedError(self.service_name, f"browse {resource}")
+        list_path, detail_path = paths
+        if number is None or not detail_path:
+            return f"{repo_url}/{list_path}"
+        return f"{repo_url}/{detail_path}/{number}"
 
     # --- Wiki ---
     def list_wiki_pages(self, *, limit: int = 30) -> list[WikiPage]:
