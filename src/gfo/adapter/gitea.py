@@ -443,7 +443,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         # エンドポイントが追加された場合に備えて試行し、404 のみ NotSupportedError。
         # 認証エラー・5xx・ネットワーク断は本来の例外として伝播させる（誤って
         # 「機能未対応」と報告すると問題の切り分けができなくなるため）。
-        from gfo.exceptions import NotFoundError
 
         try:
             results = paginate_link_header(
@@ -608,8 +607,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             per_page_key="limit",
         )
         if not results:
-            from gfo.exceptions import NotFoundError
-
             raise NotFoundError()
         return self._to_release(results[0])
 
@@ -632,8 +629,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def download_release_asset(self, *, tag: str, asset_id: int | str, output_dir: str) -> str:
         import os
-
-        from gfo.exceptions import GfoError
 
         resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
         release_id = resp.json()["id"]
@@ -1105,8 +1100,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             content = base64.b64decode(data["content"]).decode("utf-8")
             sha = data["sha"]
         except (KeyError, TypeError) as e:
-            from gfo.exceptions import GfoError
-
             raise GfoError(f"Unexpected API response: {e}") from e
         return content, sha
 
@@ -1255,8 +1248,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         try:
             return [r["login"] for r in results]
         except (KeyError, TypeError) as e:
-            from gfo.exceptions import GfoError
-
             raise GfoError(f"Unexpected API response: {e}") from e
 
     def add_collaborator(self, *, username: str, permission: str = "write") -> None:
@@ -1293,7 +1284,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def trigger_pipeline(
         self, ref: str, *, workflow: str | None = None, inputs: dict | None = None
     ) -> Pipeline:
-        from gfo.exceptions import GfoError
 
         if not workflow:
             raise GfoError("Gitea requires --workflow to trigger a pipeline.")
@@ -1312,7 +1302,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     def _to_pipeline_data(data: dict) -> Pipeline:
-        from gfo.exceptions import GfoError
 
         try:
             status_map = {
@@ -1500,7 +1489,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def set_variable(
         self, name: str, value: str, *, scope: str | None = None, masked: bool = False
     ) -> Variable:
-        from gfo.exceptions import NotFoundError
 
         base = self._variables_base_path(scope)
         try:
@@ -1570,7 +1558,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     def _to_branch_protection(data: dict) -> BranchProtection:
-        from gfo.exceptions import GfoError
 
         try:
             return BranchProtection(
@@ -1605,7 +1592,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     def _to_notification(data: dict) -> Notification:
-        from gfo.exceptions import GfoError
 
         try:
             subject = data.get("subject") or {}
@@ -1644,8 +1630,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         try:
             return [r["login"] for r in results]
         except (KeyError, TypeError) as e:
-            from gfo.exceptions import GfoError
-
             raise GfoError(f"Unexpected API response: {e}") from e
 
     def list_org_repos(self, name: str, *, limit: int = 30) -> list[Repository]:
@@ -1659,8 +1643,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def _to_organization(self, data: dict) -> Organization:
         from urllib.parse import urlparse
-
-        from gfo.exceptions import GfoError
 
         try:
             org_name = data.get("username") or data.get("login") or ""
@@ -1727,7 +1709,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     def _to_ssh_key(data: dict) -> SshKey:
-        from gfo.exceptions import GfoError
 
         try:
             return SshKey(
@@ -1925,7 +1906,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     def _to_wiki_page_data(data: dict) -> WikiPage:
-        from gfo.exceptions import GfoError
 
         try:
             # Gitea 1.22+: content は content_base64（base64エンコード）

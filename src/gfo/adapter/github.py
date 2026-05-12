@@ -7,7 +7,7 @@ from urllib.parse import quote
 
 import requests
 
-from gfo.exceptions import GfoError
+from gfo.exceptions import GfoError, HttpError, NotFoundError
 from gfo.http import paginate_link_header
 
 from .base import (
@@ -623,8 +623,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         import os
         from pathlib import Path
 
-        from gfo.exceptions import GfoError
-
         meta_resp = self._client.get(f"{self._repos_path()}/releases/assets/{asset_id}")
         asset_name = os.path.basename(meta_resp.json().get("name", f"asset-{asset_id}"))
         output_path = os.path.join(output_dir, asset_name)
@@ -1051,7 +1049,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         for t in results:
             if t.get("name") == name:
                 return self._to_tag(t)
-        from gfo.exceptions import NotFoundError
 
         raise NotFoundError(detail=f"Tag '{name}' not found")
 
@@ -1081,7 +1078,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         for t in results:
             if t.get("name") == name:
                 return self._to_tag(t)
-        from gfo.exceptions import GfoError
 
         raise GfoError(f"Tag '{name}' not found after creation")
 
@@ -1135,8 +1131,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             content = base64.b64decode(data["content"]).decode("utf-8")
             sha = data["sha"]
         except (KeyError, TypeError) as e:
-            from gfo.exceptions import GfoError
-
             raise GfoError(f"Unexpected API response: {e}") from e
         return content, sha
 
@@ -1276,8 +1270,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         try:
             return [r["login"] for r in results]
         except (KeyError, TypeError) as e:
-            from gfo.exceptions import GfoError
-
             raise GfoError(f"Unexpected API response: {e}") from e
 
     def add_collaborator(self, *, username: str, permission: str = "write") -> None:
@@ -1331,7 +1323,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def trigger_pipeline(
         self, ref: str, *, workflow: str | None = None, inputs: dict | None = None
     ) -> Pipeline:
-        from gfo.exceptions import GfoError
 
         if not workflow:
             raise GfoError("GitHub requires --workflow to trigger a pipeline.")
@@ -1498,7 +1489,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     def _to_pipeline(data: dict) -> Pipeline:
-        from gfo.exceptions import GfoError
 
         try:
             status_map = {
@@ -1593,8 +1583,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         try:
             from nacl import encoding, public
         except ImportError:
-            from gfo.exceptions import GfoError
-
             raise GfoError("PyNaCl is required for GitHub Secret encryption: pip install PyNaCl")
         key = public.PublicKey(public_key.encode(), encoding.Base64Encoder)
         sealed_box = public.SealedBox(key)
@@ -1642,7 +1630,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def set_variable(
         self, name: str, value: str, *, scope: str | None = None, masked: bool = False
     ) -> Variable:
-        from gfo.exceptions import NotFoundError
 
         base = self._variables_base_path(scope)
         try:
@@ -1678,7 +1665,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         results = paginate_link_header(self._client, f"{self._repos_path()}/branches", limit=0)
         protected = [r for r in results if r.get("protected")]
         bps = []
-        from gfo.exceptions import HttpError, NotFoundError
 
         for b in protected[: limit if limit > 0 else None]:
             try:
@@ -1715,7 +1701,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         allow_deletions: bool | None = None,
     ) -> BranchProtection:
         # GitHub PUT は全フィールド必須なので、現在値を取得して補完する
-        from gfo.exceptions import HttpError, NotFoundError
 
         try:
             current = self.get_branch_protection(branch)
@@ -1811,8 +1796,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 updated_at=data.get("updated_at") or "",
             )
         except (KeyError, TypeError) as e:
-            from gfo.exceptions import GfoError
-
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- Organization ---
@@ -1832,8 +1815,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         try:
             return [r["login"] for r in results]
         except (KeyError, TypeError) as e:
-            from gfo.exceptions import GfoError
-
             raise GfoError(f"Unexpected API response: {e}") from e
 
     def list_org_repos(self, name: str, *, limit: int = 30) -> list[Repository]:
@@ -1852,8 +1833,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 url=data.get("html_url") or data.get("url") or "",
             )
         except (KeyError, TypeError) as e:
-            from gfo.exceptions import GfoError
-
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     def create_organization(
@@ -1918,8 +1897,6 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 created_at=data.get("created_at") or "",
             )
         except (KeyError, TypeError) as e:
-            from gfo.exceptions import GfoError
-
             raise GfoError(f"Unexpected API response: missing field {e}") from e
 
     # --- GPG Key ---

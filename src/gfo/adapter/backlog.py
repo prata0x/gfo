@@ -5,7 +5,7 @@ from __future__ import annotations
 import urllib.parse
 from typing import TYPE_CHECKING
 
-from gfo.exceptions import GfoError, NotSupportedError
+from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 
 if TYPE_CHECKING:
     from gfo.http import HttpClient
@@ -500,7 +500,6 @@ class BacklogAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_comment(data: dict) -> Comment:
-        from gfo.exceptions import GfoError
 
         try:
             created_user = data.get("createdUser") or {}
@@ -517,7 +516,6 @@ class BacklogAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_branch(data: dict) -> Branch:
-        from gfo.exceptions import GfoError
 
         try:
             return Branch(
@@ -531,7 +529,6 @@ class BacklogAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_tag(data: dict) -> Tag:
-        from gfo.exceptions import GfoError
 
         try:
             return Tag(
@@ -545,7 +542,6 @@ class BacklogAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_webhook(data: dict) -> Webhook:
-        from gfo.exceptions import GfoError
 
         try:
             # Backlog webhook の allEvent または events フィールド
@@ -561,7 +557,6 @@ class BacklogAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_wiki_page(data: dict) -> WikiPage:
-        from gfo.exceptions import GfoError
 
         try:
             return WikiPage(
@@ -695,7 +690,6 @@ class BacklogAdapter(GitServiceAdapter):
         for r in results:
             if r.get("name") == name:
                 return self._to_branch(r)
-        from gfo.exceptions import NotFoundError
 
         raise NotFoundError(detail=f"Branch '{name}' not found")
 
@@ -731,7 +725,6 @@ class BacklogAdapter(GitServiceAdapter):
         for r in results:
             if r.get("name") == name:
                 return self._to_tag(r)
-        from gfo.exceptions import NotFoundError
 
         raise NotFoundError(detail=f"Tag '{name}' not found")
 
@@ -802,8 +795,6 @@ class BacklogAdapter(GitServiceAdapter):
                     u["userId"] for u in users[: limit if limit > 0 else None] if u.get("userId")
                 ]
             except (KeyError, TypeError) as e:
-                from gfo.exceptions import GfoError
-
                 raise GfoError(f"Unexpected API response: {e}") from e
         return []
 

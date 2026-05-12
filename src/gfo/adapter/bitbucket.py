@@ -476,7 +476,6 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_comment(data: dict) -> Comment:
-        from gfo.exceptions import GfoError
 
         try:
             author = (data.get("user") or {}).get("nickname") or ""
@@ -496,7 +495,6 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_branch(data: dict) -> Branch:
-        from gfo.exceptions import GfoError
 
         try:
             target = data.get("target") or {}
@@ -511,7 +509,6 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_tag(data: dict) -> Tag:
-        from gfo.exceptions import GfoError
 
         try:
             target = data.get("target") or {}
@@ -526,7 +523,6 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_commit_status(data: dict) -> CommitStatus:
-        from gfo.exceptions import GfoError
 
         try:
             state_map = {
@@ -548,7 +544,6 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_webhook(data: dict) -> Webhook:
-        from gfo.exceptions import GfoError
 
         try:
             events = tuple(data.get("events") or [])
@@ -563,7 +558,6 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_deploy_key(data: dict) -> DeployKey:
-        from gfo.exceptions import GfoError
 
         try:
             return DeployKey(
@@ -577,7 +571,6 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_pipeline(data: dict) -> Pipeline:
-        from gfo.exceptions import GfoError
 
         try:
             state_obj = data.get("state") or {}
@@ -1088,8 +1081,6 @@ class BitbucketAdapter(GitServiceAdapter):
                 if (r.get("user") or {}).get("nickname")
             ]
         except (KeyError, TypeError, AttributeError) as e:
-            from gfo.exceptions import GfoError
-
             raise GfoError(f"Unexpected API response: {e}") from e
 
     def add_collaborator(self, *, username: str, permission: str = "write") -> None:
@@ -1391,8 +1382,6 @@ class BitbucketAdapter(GitServiceAdapter):
                 if (r.get("user") or {}).get("nickname")
             ]
         except (KeyError, TypeError, AttributeError) as e:
-            from gfo.exceptions import GfoError
-
             raise GfoError(f"Unexpected API response: {e}") from e
 
     def list_org_repos(self, name: str, *, limit: int = 30) -> list[Repository]:
@@ -1405,7 +1394,6 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_organization(data: dict) -> Organization:
-        from gfo.exceptions import GfoError
 
         try:
             workspace = data.get("workspace") or data
@@ -1444,7 +1432,6 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     def _to_ssh_key(data: dict) -> SshKey:
-        from gfo.exceptions import GfoError
 
         try:
             key_id: int | str = (

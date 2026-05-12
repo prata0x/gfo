@@ -12,7 +12,7 @@ import json
 import urllib.parse
 from typing import TYPE_CHECKING
 
-from gfo.exceptions import GfoError, NotSupportedError
+from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 
 if TYPE_CHECKING:
     import requests
@@ -495,8 +495,6 @@ class GitBucketAdapter(GitHubAdapter):
             limit=1,
         )
         if not results:
-            from gfo.exceptions import NotFoundError
-
             raise NotFoundError()
         return self._to_release(results[0])
 
