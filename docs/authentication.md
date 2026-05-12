@@ -22,11 +22,16 @@ To specify the host explicitly:
 gfo auth login --host github.com
 ```
 
-To pass the token directly on the command line (for scripts / CI):
+For scripts / CI, pass the token via stdin or a file (`--token` is deprecated; see below):
 
 ```bash
-gfo auth login --host github.com --token ghp_xxxx
+echo "$GH_TOKEN" | gfo auth login --host github.com --token-stdin
+# or
+gfo auth login --host github.com --token-file /path/to/token.txt
 ```
+
+> The legacy `--token ghp_xxxx` form still works but emits a deprecation warning,
+> since the token is visible in the process list.
 
 Check configured tokens:
 
@@ -145,7 +150,7 @@ gfo --repo gitea.internal/team/repo pr list
 
 ```bash
 export GFO_MAX_DOWNLOAD_BYTES=21474836480
-gfo release asset download v1.0.0 large-asset.bin
+gfo release asset download --tag v1.0.0 --pattern large-asset.bin
 ```
 
 ---

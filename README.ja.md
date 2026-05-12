@@ -79,7 +79,7 @@ gfo auth status
 
 | 環境変数 | 既定 | 説明 |
 |---|---|---|
-| `GFO_INSECURE` | 未設定 | セルフホストホストの TLS 検証を無効化。クラウドサービスには常に TLS 検証が適用される。 |
+| `GFO_INSECURE` | 未設定 | セルフホストホストの TLS 検証を無効化。クラウドサービスには常に TLS 検証が適用される。設定時は起動時に stderr に警告が出力される。 |
 | `GFO_ALLOW_INSECURE_HTTP` | 未設定 | `api_url` で `http://` を許可（`localhost` / `127.0.0.1` / `::1` 以外）。 |
 | `GFO_ALLOW_PRIVATE_HOSTS` | 未設定 | 未知ホストがプライベート / ループバック / リンクローカル IP に解決される場合の API プローブを許可（社内 Gitea / GitLab の自動検出で必要）。 |
 | `GFO_MAX_DOWNLOAD_BYTES` | `5368709120`（5 GiB） | ストリーミングダウンロード（アセット・成果物・ログ）の上限。`0` で無制限。 |
@@ -114,7 +114,7 @@ gfo auth status
 | `gfo branch-protect` | `list`, `view`, `set`, `remove` | ブランチ保護ルール管理 |
 | `gfo tag-protect` | `list`, `create`, `delete` | タグ保護ルール管理 |
 | `gfo notification` | `list`, `read` | 通知管理 |
-| `gfo org` | `list`, `view`, `members`, `repos`, `create`, `delete` | 組織管理 |
+| `gfo org` | `list`, `view`, `members`, `repos`, `create`, `edit`, `delete` | 組織管理 |
 | `gfo ssh-key` | `list`, `create`, `view`, `delete` | SSH 鍵管理 |
 | `gfo gpg-key` | `list`, `create`, `view`, `delete` | GPG 鍵管理 |
 | `gfo secret` | `list`, `set`, `delete` | CI/CD シークレット管理 |

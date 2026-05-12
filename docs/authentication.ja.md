@@ -22,11 +22,16 @@ gfo auth login
 gfo auth login --host github.com
 ```
 
-コマンドラインでトークンを直接渡す場合（スクリプト・CI 向け）:
+スクリプト・CI 向けには stdin もしくはファイル経由でトークンを渡してください（`--token` は非推奨。詳細は後述）:
 
 ```bash
-gfo auth login --host github.com --token ghp_xxxx
+echo "$GH_TOKEN" | gfo auth login --host github.com --token-stdin
+# またはファイルから
+gfo auth login --host github.com --token-file /path/to/token.txt
 ```
+
+> 従来の `--token ghp_xxxx` 形式も引き続き動作しますが、プロセス一覧にトークンが表示されるため
+> 非推奨です（実行時に警告が表示されます）。
 
 設定済みのトークン一覧を確認:
 
@@ -145,7 +150,7 @@ gfo --repo gitea.internal/team/repo pr list
 
 ```bash
 export GFO_MAX_DOWNLOAD_BYTES=21474836480
-gfo release asset download v1.0.0 large-asset.bin
+gfo release asset download --tag v1.0.0 --pattern large-asset.bin
 ```
 
 ---
