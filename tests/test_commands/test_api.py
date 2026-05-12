@@ -160,7 +160,7 @@ class TestHandleApi:
             method="GET",
             path="/test",
             data=None,
-            header=["Authorization: Bearer token:with:colons"],
+            header=["X-Trace: id:abc:def"],
         )
         with _patch_all(sample_config, mock_client):
             api_cmd.handle_api(args, fmt="json")
@@ -169,7 +169,7 @@ class TestHandleApi:
             "GET",
             "/test",
             json=None,
-            headers={"Authorization": "Bearer token:with:colons"},
+            headers={"X-Trace": "id:abc:def"},
         )
 
     def test_no_data_sends_none(self, sample_config, mock_client, capsys):

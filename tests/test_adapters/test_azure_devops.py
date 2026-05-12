@@ -365,26 +365,26 @@ class TestListPullRequests:
         assert any("search" in m for m in messages)
 
     def test_pagination(self, mock_responses, azure_devops_adapter):
-        """$top/$skip ベースのページネーションで2ページ取得。"""
+        """$top/$skip ベースのページネーションで2ページ取得。per_page デフォルトは 100。"""
         mock_responses.add(
             responses.GET,
             f"{GIT}/pullrequests",
-            json={"value": [_pr_data(pull_request_id=i) for i in range(1, 31)]},
+            json={"value": [_pr_data(pull_request_id=i) for i in range(1, 101)]},
             status=200,
         )
         mock_responses.add(
             responses.GET,
             f"{GIT}/pullrequests",
-            json={"value": [_pr_data(pull_request_id=31)]},
+            json={"value": [_pr_data(pull_request_id=101)]},
             status=200,
         )
         prs = azure_devops_adapter.list_pull_requests(limit=0)
-        assert len(prs) == 31
+        assert len(prs) == 101
         req1 = mock_responses.calls[0].request
         req2 = mock_responses.calls[1].request
-        assert "%24top=30" in req1.url or "$top=30" in req1.url
+        assert "%24top=100" in req1.url or "$top=100" in req1.url
         assert "%24skip=0" in req1.url or "$skip=0" in req1.url
-        assert "%24skip=30" in req2.url or "$skip=30" in req2.url
+        assert "%24skip=100" in req2.url or "$skip=100" in req2.url
 
 
 class TestBasicAuth:
