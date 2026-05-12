@@ -14,7 +14,9 @@ from gfo.http import paginate_link_header
 if TYPE_CHECKING:
     from gfo.http import HttpClient
 
-from .base import (
+from .base import GitServiceAdapter, _mask_token_in_exception
+from .github_like import GitHubLikeAdapter
+from .models import (
     Artifact,
     Branch,
     BranchProtection,
@@ -26,8 +28,6 @@ from .base import (
     CompareResult,
     Contributor,
     DeployKey,
-    GitHubLikeAdapter,
-    GitServiceAdapter,
     GpgKey,
     Issue,
     IssueTemplate,
@@ -57,7 +57,6 @@ from .base import (
     WikiPage,
     WikiRevision,
     Workflow,
-    _mask_token_in_exception,
 )
 from .registry import register
 

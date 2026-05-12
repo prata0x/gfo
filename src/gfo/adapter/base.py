@@ -1,657 +1,117 @@
+"""Git サービスアダプターの抽象基底クラスと共通ヘルパー。
+
+このモジュールは以下を提供する:
+- `GitServiceAdapter`: 全アダプターが継承する抽象基底クラス
+- データクラス再エクスポート (`models.py` からの統一エクスポート)
+- `GitHubLikeAdapter` 再エクスポート (`github_like.py` からの後方互換)
+- `_wrap_conversion_error` / `_mask_token_in_exception` 再エクスポート (`_helpers.py` から)
+
+歴史的経緯で `gfo.adapter.base` から多くの名前を import する箇所があるため、
+モジュール分割後も後方互換のため再エクスポートを保つ。
+"""
+
 from __future__ import annotations
 
-import functools
 import warnings
 from abc import ABC, abstractmethod
-from collections.abc import Callable
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING
 
+from gfo.adapter._helpers import _mask_token_in_exception, _wrap_conversion_error
+from gfo.adapter.models import (
+    Artifact,
+    Branch,
+    BranchProtection,
+    CheckRun,
+    CodeSearchResult,
+    Comment,
+    Commit,
+    CommitStatus,
+    CompareFile,
+    CompareResult,
+    Contributor,
+    DeployKey,
+    GpgKey,
+    Issue,
+    IssueTemplate,
+    Label,
+    Milestone,
+    Notification,
+    Organization,
+    Package,
+    Pipeline,
+    PullRequest,
+    PullRequestCommit,
+    PullRequestFile,
+    PushMirror,
+    Reaction,
+    Release,
+    ReleaseAsset,
+    Repository,
+    Review,
+    Secret,
+    SshKey,
+    Tag,
+    TagProtection,
+    TimeEntry,
+    TimelineEvent,
+    Variable,
+    Webhook,
+    WikiPage,
+    WikiRevision,
+    Workflow,
+)
 from gfo.exceptions import GfoError, NotSupportedError
 
 if TYPE_CHECKING:
     from gfo.http import HttpClient
 
-_F = TypeVar("_F", bound=Callable[..., object])
-
-
-def _wrap_conversion_error(func: _F) -> _F:
-    """_to_* 変換メソッド用デコレータ。
-
-    KeyError / TypeError を捕捉して GfoError に変換する。
-    """
-
-    @functools.wraps(func)
-    def wrapper(*args: object, **kwargs: object) -> object:
-        try:
-            return func(*args, **kwargs)
-        except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
-
-    return wrapper  # type: ignore[return-value]
-
-
-def _mask_token_in_exception(exc: BaseException, token: str | None) -> None:
-    """例外の args 内の token 文字列を *** に置換する。
-
-    migrate_repository / create_push_mirror など、payload に秘匿トークンを
-    含めるメソッドで使う共通ユーティリティ。サーバー応答エラー本文や
-    ネットワーク例外メッセージにトークンが漏れるのを防ぐ。
-    """
-    if not token or not exc.args:
-        return
-    new_args = tuple(a.replace(token, "***") if isinstance(a, str) else a for a in exc.args)
-    if new_args != exc.args:
-        exc.args = new_args
-
-
-@dataclass(frozen=True, slots=True)
-class PullRequest:
-    number: int
-    title: str
-    body: str | None
-    state: str  # "open" | "closed" | "merged"
-    author: str
-    source_branch: str
-    target_branch: str
-    draft: bool
-    url: str
-    created_at: str  # ISO 8601
-    updated_at: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class Issue:
-    number: int
-    title: str
-    body: str | None
-    state: str  # "open" | "closed"
-    author: str
-    assignees: list[str]
-    labels: list[str]
-    url: str
-    created_at: str
-    updated_at: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class IssueTemplate:
-    name: str
-    title: str
-    body: str
-    about: str
-    labels: tuple[str, ...]
-
-
-@dataclass(frozen=True, slots=True)
-class Repository:
-    name: str
-    full_name: str  # "owner/repo"
-    description: str | None
-    visibility: str  # "public" | "private" | "internal"
-    default_branch: str | None
-    clone_url: str
-    url: str
-
-
-@dataclass(frozen=True, slots=True)
-class Release:
-    tag: str
-    title: str
-    body: str | None
-    draft: bool
-    prerelease: bool
-    url: str
-    created_at: str
-
-
-@dataclass(frozen=True, slots=True)
-class Label:
-    name: str
-    color: str | None
-    description: str | None
-
-
-@dataclass(frozen=True, slots=True)
-class Milestone:
-    number: int
-    title: str
-    description: str | None
-    state: str  # "open" | "closed"
-    due_date: str | None
-
-
-@dataclass(frozen=True, slots=True)
-class Comment:
-    id: int
-    body: str
-    author: str
-    url: str
-    created_at: str
-    updated_at: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class Review:
-    id: int
-    state: str  # "approved" | "changes_requested" | "commented"
-    body: str
-    author: str
-    url: str
-    submitted_at: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class Branch:
-    name: str
-    sha: str
-    protected: bool
-    url: str
-
-
-@dataclass(frozen=True, slots=True)
-class Tag:
-    name: str
-    sha: str
-    message: str
-    url: str
-
-
-@dataclass(frozen=True, slots=True)
-class CommitStatus:
-    state: str  # "success" | "failure" | "pending" | "error"
-    context: str
-    description: str
-    target_url: str
-    created_at: str
-
-
-@dataclass(frozen=True, slots=True)
-class Webhook:
-    id: int
-    url: str
-    events: tuple[str, ...]
-    active: bool
-
-
-@dataclass(frozen=True, slots=True)
-class DeployKey:
-    id: int
-    title: str
-    key: str
-    read_only: bool
-
-
-@dataclass(frozen=True, slots=True)
-class WikiPage:
-    id: int | str  # 数値 ID または sub_url 文字列（Gitea 系）
-    title: str
-    content: str
-    url: str
-    updated_at: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class Pipeline:
-    id: int | str
-    status: str  # "success" | "failure" | "running" | "pending" | "cancelled"
-    ref: str
-    url: str
-    created_at: str
-
-
-@dataclass(frozen=True, slots=True)
-class Workflow:
-    id: int | str
-    name: str
-    path: str
-    state: str  # "active" | "disabled"
-
-
-@dataclass(frozen=True, slots=True)
-class Artifact:
-    id: int | str
-    name: str
-    size: int
-    url: str
-    created_at: str
-
-
-@dataclass(frozen=True, slots=True)
-class SshKey:
-    id: int | str  # GitHub/GitLab/Gitea 系は int、Bitbucket は UUID 文字列
-    title: str
-    key: str
-    created_at: str
-
-
-@dataclass(frozen=True, slots=True)
-class GpgKey:
-    id: int | str
-    primary_key_id: str
-    public_key: str
-    emails: tuple[str, ...]
-    created_at: str
-
-
-@dataclass(frozen=True, slots=True)
-class Organization:
-    name: str  # ログイン名 / グループパス / ワークスペーススラッグ
-    display_name: str  # 表示名（フルネーム）
-    description: str | None
-    url: str
-
-
-@dataclass(frozen=True, slots=True)
-class Notification:
-    id: str
-    title: str
-    reason: str
-    unread: bool
-    repository: str
-    url: str
-    updated_at: str
-
-
-@dataclass(frozen=True, slots=True)
-class Contributor:
-    username: str | None
-    name: str | None
-    email: str | None
-    commits: int
-
-
-@dataclass(frozen=True, slots=True)
-class BranchProtection:
-    branch: str
-    require_reviews: int  # 0 = 無効
-    require_status_checks: tuple[str, ...]
-    enforce_admins: bool
-    allow_force_push: bool
-    allow_deletions: bool
-
-
-@dataclass(frozen=True, slots=True)
-class TagProtection:
-    id: int | str
-    pattern: str
-    create_access_level: str
-
-
-@dataclass(frozen=True, slots=True)
-class Secret:
-    name: str
-    created_at: str
-    updated_at: str
-
-
-@dataclass(frozen=True, slots=True)
-class Variable:
-    name: str
-    value: str
-    created_at: str
-    updated_at: str
-
-
-@dataclass(frozen=True, slots=True)
-class CheckRun:
-    name: str
-    status: str  # "success" | "failure" | "pending" | "running"
-    conclusion: str  # 詳細。不明なら ""
-    url: str
-    started_at: str
-
-
-@dataclass(frozen=True, slots=True)
-class PullRequestFile:
-    filename: str
-    status: str  # "added" | "modified" | "deleted" | "renamed"
-    additions: int
-    deletions: int
-
-
-@dataclass(frozen=True, slots=True)
-class PullRequestCommit:
-    sha: str
-    message: str
-    author: str
-    created_at: str
-
-
-@dataclass(frozen=True, slots=True)
-class CompareFile:
-    filename: str
-    status: str  # "added" | "modified" | "deleted" | "renamed"
-    additions: int
-    deletions: int
-
-
-@dataclass(frozen=True, slots=True)
-class CompareResult:
-    total_commits: int
-    ahead_by: int
-    behind_by: int
-    files: tuple[CompareFile, ...]
-
-
-@dataclass(frozen=True, slots=True)
-class ReleaseAsset:
-    id: int | str
-    name: str
-    size: int
-    download_url: str
-    created_at: str
-
-
-@dataclass(frozen=True, slots=True)
-class Reaction:
-    id: int | str
-    content: str  # "+1", "-1", "laugh", "heart", etc.
-    user: str
-    created_at: str
-
-
-@dataclass(frozen=True, slots=True)
-class TimelineEvent:
-    id: int | str
-    event: str  # "labeled", "assigned", "closed", etc.
-    actor: str
-    created_at: str
-    detail: str
-
-
-@dataclass(frozen=True, slots=True)
-class Commit:
-    sha: str
-    message: str
-    author: str
-    url: str
-    created_at: str
-
-
-@dataclass(frozen=True, slots=True)
-class CodeSearchResult:
-    path: str  # ファイルパス（リポジトリルートからの相対パス）
-    repository: str  # リポジトリ名
-    url: str  # Web URL
-    matched_text: str  # マッチしたテキスト断片
-
-
-@dataclass(frozen=True, slots=True)
-class Package:
-    name: str
-    type: str  # "npm", "maven", "container", "pypi", etc.
-    version: str
-    owner: str
-    url: str
-    created_at: str
-
-
-@dataclass(frozen=True, slots=True)
-class TimeEntry:
-    id: int | str
-    user: str
-    duration: int  # seconds
-    created_at: str
-
-
-@dataclass(frozen=True, slots=True)
-class PushMirror:
-    id: int | str
-    remote_name: str
-    remote_address: str
-    interval: str
-    created_at: str
-    last_update: str | None = None
-    last_error: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class WikiRevision:
-    sha: str
-    author: str
-    message: str
-    created_at: str
-
-
-class GitHubLikeAdapter(ABC):
-    """GitHub API 互換サービス（GitHub/Gitea 系）向け共通変換ヘルパー。
-
-    GitHubAdapter・GiteaAdapter・GitBucketAdapter・ForgejoAdapter が共有する
-    6 つの `_to_*` 静的メソッドをここに集約する。API レスポンスのフィールド名が
-    GitHub / Gitea で一致しているためコードが共通化できる。
-    """
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_pull_request(data: dict) -> PullRequest:
-        merged = data.get("merged_at") is not None
-        if data["state"] == "closed" and merged:
-            state = "merged"
-        else:
-            state = data["state"]
-
-        return PullRequest(
-            number=data["number"],
-            title=data["title"],
-            body=data.get("body"),
-            state=state,
-            author=data["user"]["login"],
-            source_branch=data["head"]["ref"],
-            target_branch=data["base"]["ref"],
-            draft=data.get("draft", False),
-            url=data["html_url"],
-            created_at=data["created_at"],
-            updated_at=data.get("updated_at"),
-        )
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_issue(data: dict) -> Issue:
-        return Issue(
-            number=data["number"],
-            title=data["title"],
-            body=data.get("body"),
-            state=data["state"],
-            author=data["user"]["login"],
-            assignees=[a["login"] for a in (data.get("assignees") or [])],
-            labels=[lb["name"] for lb in (data.get("labels") or [])],
-            url=data.get("html_url") or "",
-            created_at=data["created_at"],
-            updated_at=data.get("updated_at"),
-        )
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_repository(data: dict) -> Repository:
-        return Repository(
-            name=data["name"],
-            full_name=data["full_name"],
-            description=data.get("description"),
-            visibility=data.get("visibility") or ("private" if data.get("private") else "public"),
-            default_branch=data.get("default_branch"),
-            clone_url=data["clone_url"],
-            url=data["html_url"],
-        )
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_release(data: dict) -> Release:
-        return Release(
-            tag=data["tag_name"],
-            title=data.get("name") or "",
-            body=data.get("body"),
-            draft=data.get("draft", False),
-            prerelease=data.get("prerelease", False),
-            url=data.get("html_url") or "",
-            created_at=data["created_at"],
-        )
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_label(data: dict) -> Label:
-        return Label(
-            name=data["name"],
-            color=data.get("color"),
-            description=data.get("description"),
-        )
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_milestone(data: dict) -> Milestone:
-        return Milestone(
-            number=data.get("number") or data["id"],
-            title=data["title"],
-            description=data.get("description"),
-            state=data["state"],
-            due_date=data.get("due_on"),
-        )
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_comment(data: dict) -> Comment:
-        return Comment(
-            id=data["id"],
-            body=data.get("body") or "",
-            author=data["user"]["login"],
-            url=data.get("html_url") or "",
-            created_at=data["created_at"],
-            updated_at=data.get("updated_at"),
-        )
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_review(data: dict) -> Review:
-        state_map = {
-            "APPROVED": "approved",
-            "CHANGES_REQUESTED": "changes_requested",
-            "COMMENTED": "commented",
-            "PENDING": "pending",
-            "DISMISSED": "dismissed",
-        }
-        raw_state = data.get("state", "commented")
-        state = state_map.get(raw_state.upper(), raw_state.lower())
-        return Review(
-            id=data["id"],
-            state=state,
-            body=data.get("body") or "",
-            author=data["user"]["login"],
-            url=data.get("html_url") or "",
-            submitted_at=data.get("submitted_at"),
-        )
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_branch(data: dict) -> Branch:
-        commit = data.get("commit") or {}
-        sha = commit.get("sha") or commit.get("id") or ""
-        return Branch(
-            name=data["name"],
-            sha=sha,
-            protected=data.get("protected", False),
-            url=data.get("_links", {}).get("html") or "",
-        )
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_tag(data: dict) -> Tag:
-        commit = data.get("commit") or {}
-        sha = commit.get("sha") or ""
-        return Tag(
-            name=data["name"],
-            sha=sha,
-            message="",
-            url=data.get("zipball_url") or "",
-        )
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_commit_status(data: dict) -> CommitStatus:
-        # GitHub は "state"、Gitea は "status" を使用する
-        state = data.get("state") or data.get("status") or ""
-        return CommitStatus(
-            state=state,
-            context=data.get("context") or "",
-            description=data.get("description") or "",
-            target_url=data.get("target_url") or "",
-            created_at=data.get("created_at") or "",
-        )
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_webhook(data: dict) -> Webhook:
-        config = data.get("config") or {}
-        url = config.get("url") or data.get("url") or ""
-        events = tuple(data.get("events") or [])
-        return Webhook(
-            id=data["id"],
-            url=url,
-            events=events,
-            active=data.get("active", True),
-        )
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_deploy_key(data: dict) -> DeployKey:
-        return DeployKey(
-            id=data["id"],
-            title=data.get("title") or "",
-            key=data.get("key") or "",
-            read_only=data.get("read_only", True),
-        )
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_check_run(data: dict) -> CheckRun:
-        status_map = {
-            "success": "success",
-            "failure": "failure",
-            "pending": "pending",
-            "error": "failure",
-        }
-        state = data.get("state") or data.get("status") or ""
-        return CheckRun(
-            name=data.get("context") or data.get("name") or "",
-            status=status_map.get(state, state),
-            conclusion="",
-            url=data.get("target_url") or data.get("url") or "",
-            started_at=data.get("created_at") or "",
-        )
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_release_asset(data: dict) -> ReleaseAsset:
-        return ReleaseAsset(
-            id=data["id"],
-            name=data["name"],
-            size=data.get("size") or 0,
-            download_url=data.get("browser_download_url") or "",
-            created_at=data.get("created_at") or "",
-        )
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_pull_request_file(data: dict) -> PullRequestFile:
-        return PullRequestFile(
-            filename=data.get("filename") or "",
-            status=data.get("status") or "modified",
-            additions=data.get("additions") or 0,
-            deletions=data.get("deletions") or 0,
-        )
-
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_pull_request_commit(data: dict) -> PullRequestCommit:
-        commit = data.get("commit") or {}
-        author_info = commit.get("author") or {}
-        user = data.get("author") or {}
-        author = user.get("login") or author_info.get("name") or ""
-        return PullRequestCommit(
-            sha=data.get("sha") or "",
-            message=commit.get("message") or "",
-            author=author,
-            created_at=author_info.get("date") or "",
-        )
+__all__ = [
+    "Artifact",
+    "Branch",
+    "BranchProtection",
+    "CheckRun",
+    "CodeSearchResult",
+    "Comment",
+    "Commit",
+    "CommitStatus",
+    "CompareFile",
+    "CompareResult",
+    "Contributor",
+    "DeployKey",
+    "GitHubLikeAdapter",
+    "GitServiceAdapter",
+    "GpgKey",
+    "Issue",
+    "IssueTemplate",
+    "Label",
+    "Milestone",
+    "Notification",
+    "Organization",
+    "Package",
+    "Pipeline",
+    "PullRequest",
+    "PullRequestCommit",
+    "PullRequestFile",
+    "PushMirror",
+    "Reaction",
+    "Release",
+    "ReleaseAsset",
+    "Repository",
+    "Review",
+    "Secret",
+    "SshKey",
+    "Tag",
+    "TagProtection",
+    "TimeEntry",
+    "TimelineEvent",
+    "Variable",
+    "Webhook",
+    "WikiPage",
+    "WikiRevision",
+    "Workflow",
+    "_mask_token_in_exception",
+    "_wrap_conversion_error",
+]
 
 
 class GitServiceAdapter(ABC):
@@ -1590,3 +1050,10 @@ class GitServiceAdapter(ABC):
 
     def unstar_repository(self) -> None:
         raise NotSupportedError(self.service_name, "repo unstar")
+
+
+# 後方互換: 既存コードは `from gfo.adapter.base import GitHubLikeAdapter` の
+# 形で参照することが多いため、ここで再 export しておく。
+# `_WEB_URL_PATHS` 経由の get_web_url デフォルト実装にも依存しないよう
+# `github_like` モジュール側は base.py 完成後にロードされる順序になる。
+from gfo.adapter.github_like import GitHubLikeAdapter  # noqa: E402, F401

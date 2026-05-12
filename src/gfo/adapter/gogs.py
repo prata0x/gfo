@@ -7,7 +7,8 @@ from urllib.parse import quote
 
 from gfo.exceptions import NotSupportedError
 
-from .base import (
+from .gitea import GiteaAdapter
+from .models import (
     Artifact,
     Branch,
     BranchProtection,
@@ -43,7 +44,6 @@ from .base import (
     WikiRevision,
     Workflow,
 )
-from .gitea import GiteaAdapter
 from .registry import register
 
 

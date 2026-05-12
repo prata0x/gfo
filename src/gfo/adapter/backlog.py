@@ -11,10 +11,10 @@ if TYPE_CHECKING:
     from gfo.http import HttpClient
 from gfo.http import paginate_offset
 
-from .base import (
+from .base import GitServiceAdapter
+from .models import (
     Branch,
     Comment,
-    GitServiceAdapter,
     Issue,
     Label,
     Milestone,

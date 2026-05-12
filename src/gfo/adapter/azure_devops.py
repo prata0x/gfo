@@ -15,7 +15,8 @@ from gfo.http import paginate_top_skip
 if TYPE_CHECKING:
     from gfo.http import HttpClient
 
-from .base import (
+from .base import GitServiceAdapter, _mask_token_in_exception
+from .models import (
     Branch,
     BranchProtection,
     CheckRun,
@@ -26,7 +27,6 @@ from .base import (
     CompareFile,
     CompareResult,
     DeployKey,
-    GitServiceAdapter,
     Issue,
     IssueTemplate,
     Label,
@@ -43,7 +43,6 @@ from .base import (
     TimeEntry,
     TimelineEvent,
     Webhook,
-    _mask_token_in_exception,
 )
 from .registry import register
 
