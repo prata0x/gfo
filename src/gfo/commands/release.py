@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from gfo.commands import get_adapter, read_file_arg
+from gfo.commands import get_adapter, open_in_browser, read_file_arg
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
 from gfo.output import output
@@ -13,10 +13,7 @@ from gfo.output import output
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo release list のハンドラ。"""
     if getattr(args, "web", False):
-        import webbrowser
-
-        adapter = get_adapter()
-        webbrowser.open(adapter.get_web_url("release"))
+        open_in_browser(get_adapter(), "release")
         return
     adapter = get_adapter()
     draft = getattr(args, "draft", None)
@@ -85,9 +82,7 @@ def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
             raise ConfigError(_("tag must not be empty. Specify a tag or use --latest."))
         release = None
     if is_web:
-        import webbrowser
-
-        webbrowser.open(adapter.get_web_url("release", tag))
+        open_in_browser(adapter, "release", tag)
         return
     if release is None:
         release = adapter.get_release(tag=tag)

@@ -6,7 +6,7 @@ import argparse
 import json
 
 import gfo.git_util
-from gfo.commands import get_adapter, read_file_arg
+from gfo.commands import get_adapter, open_in_browser, read_file_arg
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
 from gfo.output import format_table, output
@@ -15,10 +15,7 @@ from gfo.output import format_table, output
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr list のハンドラ。"""
     if getattr(args, "web", False):
-        import webbrowser
-
-        adapter = get_adapter()
-        webbrowser.open(adapter.get_web_url("pr"))
+        open_in_browser(get_adapter(), "pr")
         return
     adapter = get_adapter()
     prs = adapter.list_pull_requests(
@@ -80,10 +77,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr view <number> のハンドラ。"""
     if getattr(args, "web", False):
-        import webbrowser
-
-        adapter = get_adapter()
-        webbrowser.open(adapter.get_web_url("pr", args.number))
+        open_in_browser(get_adapter(), "pr", args.number)
         return
     adapter = get_adapter()
     pr = adapter.get_pull_request(args.number)

@@ -11,6 +11,7 @@ from gfo.commands import (
     create_adapter_from_spec,
     get_adapter,
     get_adapter_with_config,
+    open_in_browser,
     parse_service_spec,
     read_file_arg,
 )
@@ -33,10 +34,7 @@ class MigrateResult:
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue list のハンドラ。"""
     if getattr(args, "web", False):
-        import webbrowser
-
-        adapter = get_adapter()
-        webbrowser.open(adapter.get_web_url("issue"))
+        open_in_browser(get_adapter(), "issue")
         return
     adapter = get_adapter()
     issues = adapter.list_issues(
@@ -113,10 +111,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue view <number> のハンドラ。"""
     if getattr(args, "web", False):
-        import webbrowser
-
-        adapter = get_adapter()
-        webbrowser.open(adapter.get_web_url("issue", args.number))
+        open_in_browser(get_adapter(), "issue", args.number)
         return
     adapter = get_adapter()
     issue = adapter.get_issue(args.number)

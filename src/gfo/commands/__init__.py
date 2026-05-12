@@ -185,6 +185,24 @@ def create_adapter_from_spec(spec: ServiceSpec) -> GitServiceAdapter:
     return adapter_cls(client, spec.owner, spec.repo, **kwargs)
 
 
+def open_in_browser(
+    adapter: GitServiceAdapter, resource: str, number: int | str | None = None
+) -> None:
+    """`adapter.get_web_url(resource, number)` を Web ブラウザで開く共通ヘルパー。
+
+    `--web` フラグ処理に使う。`webbrowser` のインポートと URL 解決を 1 箇所に
+    集約することで、各コマンドで `import webbrowser; webbrowser.open(...)` を
+    繰り返さないようにする。
+    """
+    import webbrowser
+
+    if number is None:
+        url = adapter.get_web_url(resource)
+    else:
+        url = adapter.get_web_url(resource, number)
+    webbrowser.open(url)
+
+
 def read_file_arg(path: str) -> str:
     """ファイルパスまたは '-'(stdin) からテキストを読み込む。"""
     import sys
