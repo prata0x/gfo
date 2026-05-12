@@ -607,14 +607,20 @@ class TestErrorPropagation:
 
 
 class TestHandleDiff:
-    def test_prints_diff(self, capsys):
+    def test_writes_diff_chunks_to_stdout_buffer(self):
+        """ストリーミング応答を sys.stdout.buffer.write に順番通り書き出す。"""
         with patch_adapter("gfo.commands.pr") as adapter:
-            adapter.get_pull_request_diff.return_value = "diff --git a/file.txt b/file.txt\n"
+            adapter.get_pull_request_diff.return_value = iter(
+                [b"diff --git a/file.txt b/file.txt\n", b"--- a/file.txt\n"]
+            )
             args = make_args(number=1)
-            pr_cmd.handle_diff(args, fmt="table")
-        captured = capsys.readouterr()
-        assert "diff --git" in captured.out
+            with patch("sys.stdout") as mock_stdout:
+                pr_cmd.handle_diff(args, fmt="table")
         adapter.get_pull_request_diff.assert_called_once_with(1)
+        # buffer.write が両チャンク順に呼ばれていること
+        writes = [call.args[0] for call in mock_stdout.buffer.write.call_args_list]
+        assert writes == [b"diff --git a/file.txt b/file.txt\n", b"--- a/file.txt\n"]
+        mock_stdout.buffer.flush.assert_called_once_with()
 
 
 class TestHandleChecks:

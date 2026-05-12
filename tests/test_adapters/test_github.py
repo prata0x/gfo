@@ -2818,8 +2818,10 @@ class TestGetPullRequestDiff:
             body="diff --git a/file.py b/file.py\n--- a/file.py\n+++ b/file.py",
             status=200,
         )
-        diff = github_adapter.get_pull_request_diff(1)
-        assert "diff --git" in diff
+        # 戻り値は bytes のイテレータ
+        chunks = github_adapter.get_pull_request_diff(1)
+        diff = b"".join(chunks)
+        assert b"diff --git" in diff
         # Accept ヘッダーに diff 形式を指定していることを検証
         assert "application/vnd.github.diff" in mock_responses.calls[0].request.headers["Accept"]
 

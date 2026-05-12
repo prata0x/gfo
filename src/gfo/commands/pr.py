@@ -177,9 +177,13 @@ def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 
 def handle_diff(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr diff <number> のハンドラ。"""
+    import sys
+
     adapter = get_adapter()
-    diff_text = adapter.get_pull_request_diff(args.number)
-    print(diff_text, end="")
+    out = sys.stdout.buffer
+    for chunk in adapter.get_pull_request_diff(args.number):
+        out.write(chunk)
+    out.flush()
 
 
 def handle_checks(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

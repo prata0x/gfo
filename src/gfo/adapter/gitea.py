@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+from collections.abc import Iterator
 from typing import TYPE_CHECKING
 from urllib.parse import quote
 
@@ -851,9 +852,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.patch(f"{self._repos_path()}/pulls/{number}", json=payload)
         return self._to_pull_request(resp.json())
 
-    def get_pull_request_diff(self, number: int) -> str:
-        resp = self._client.get(f"{self._repos_path()}/pulls/{number}.diff")
-        return str(resp.text)
+    def get_pull_request_diff(self, number: int) -> Iterator[bytes]:
+        return self._client.request_stream("GET", f"{self._repos_path()}/pulls/{number}.diff")
 
     def list_pull_request_checks(self, number: int) -> list[CheckRun]:
         resp = self._client.get(f"{self._repos_path()}/pulls/{number}")

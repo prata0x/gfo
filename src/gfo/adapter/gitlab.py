@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+from collections.abc import Iterator
 from typing import TYPE_CHECKING
 from urllib.parse import quote
 
@@ -1126,14 +1127,14 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- PR diff / checks / files / commits ---
 
-    def get_pull_request_diff(self, number: int) -> str:
-        resp = self._client.get(f"{self._project_path()}/merge_requests/{number}/diffs")
-        diffs = resp.json()
-        parts: list[str] = []
-        for d in diffs:
-            parts.append(f"--- a/{d['old_path']}\n+++ b/{d['new_path']}")
-            parts.append(d.get("diff", ""))
-        return "\n".join(parts)
+    def get_pull_request_diff(self, number: int) -> Iterator[bytes]:
+        # /diffs は JSON で返るためテキスト diff を組み立てる必要があったが、
+        # ストリーミング化に伴い `raw_diffs` エンドポイント（plain unified diff）を
+        # 使う。GitLab 16.10+ で利用可能。
+        return self._client.request_stream(
+            "GET",
+            f"{self._project_path()}/merge_requests/{number}/raw_diffs",
+        )
 
     def list_pull_request_checks(self, number: int) -> list[CheckRun]:
         status_map = {

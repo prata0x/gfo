@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import json as _json
+from collections.abc import Iterator
 from typing import TYPE_CHECKING
 from urllib.parse import quote, urlparse
 
@@ -287,7 +288,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
         return f"refs/pull/{number}/head"
 
-    def get_pull_request_diff(self, number: int) -> str:
+    def get_pull_request_diff(self, number: int) -> Iterator[bytes]:
         raise NotSupportedError(self.service_name, "pr diff")
 
     def list_pull_request_checks(self, number: int) -> list[CheckRun]:
