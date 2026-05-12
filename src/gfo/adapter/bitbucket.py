@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from urllib.parse import quote
 
 import requests
@@ -684,9 +685,10 @@ class BitbucketAdapter(GitServiceAdapter):
 
     # --- PR diff / checks / files / commits / reviewers / ready ---
 
-    def get_pull_request_diff(self, number: int) -> str:
-        resp = self._client.get(f"{self._repos_path()}/pullrequests/{number}/diff")
-        return str(resp.text)
+    def get_pull_request_diff(self, number: int) -> Iterator[bytes]:
+        return self._client.request_stream(
+            "GET", f"{self._repos_path()}/pullrequests/{number}/diff"
+        )
 
     def list_pull_request_checks(self, number: int) -> list[CheckRun]:
         # PR からソースコミットハッシュを取得

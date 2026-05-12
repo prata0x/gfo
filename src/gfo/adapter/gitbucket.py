@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import urllib.parse
+from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
@@ -121,7 +122,7 @@ class GitBucketAdapter(GitHubAdapter):
         resp = self._client.post(f"{self._repos_path()}/pulls", json=payload)
         return self._to_pull_request(self._parse_response(resp))
 
-    def get_pull_request_diff(self, number: int) -> str:
+    def get_pull_request_diff(self, number: int) -> Iterator[bytes]:
         raise NotSupportedError("GitBucket", "pr diff")
 
     def list_pull_request_checks(self, number: int) -> list[CheckRun]:

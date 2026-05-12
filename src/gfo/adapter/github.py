@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+from collections.abc import Iterator
 from urllib.parse import quote
 
 import requests
@@ -815,12 +816,12 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- PR diff / checks / files / commits / reviewers / update-branch / dismiss ---
 
-    def get_pull_request_diff(self, number: int) -> str:
-        resp = self._client.get(
+    def get_pull_request_diff(self, number: int) -> Iterator[bytes]:
+        return self._client.request_stream(
+            "GET",
             f"{self._repos_path()}/pulls/{number}",
             headers={"Accept": "application/vnd.github.diff"},
         )
-        return str(resp.text)
 
     def list_pull_request_checks(self, number: int) -> list[CheckRun]:
         # PR の head SHA を取得

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import warnings
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
 from gfo.adapter._helpers import _mask_token_in_exception, _wrap_conversion_error
@@ -226,7 +227,7 @@ class GitServiceAdapter(ABC):
         """
         raise NotSupportedError(self.service_name, "pr checkout")
 
-    def get_pull_request_diff(self, number: int) -> str:
+    def get_pull_request_diff(self, number: int) -> Iterator[bytes]:
         raise NotSupportedError(self.service_name, "pr diff")
 
     def list_pull_request_checks(self, number: int) -> list[CheckRun]:

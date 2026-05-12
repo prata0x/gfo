@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import urllib.parse
+from collections.abc import Iterator
 from urllib.parse import quote
 
 from gfo.exceptions import NotSupportedError
@@ -129,7 +130,7 @@ class GogsAdapter(GiteaAdapter):
             "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
         )
 
-    def get_pull_request_diff(self, number: int) -> str:
+    def get_pull_request_diff(self, number: int) -> Iterator[bytes]:
         raise NotSupportedError(
             "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
         )

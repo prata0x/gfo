@@ -3130,22 +3130,18 @@ class TestToWikiPage:
 
 class TestGetPullRequestDiff:
     def test_get_diff(self, mock_responses, gitlab_adapter):
+        # raw_diffs エンドポイントは plain unified diff を返す
         mock_responses.add(
             responses.GET,
-            f"{PROJECT}/merge_requests/1/diffs",
-            json=[
-                {
-                    "old_path": "file.py",
-                    "new_path": "file.py",
-                    "diff": "@@ -1,3 +1,4 @@\n+new line",
-                }
-            ],
+            f"{PROJECT}/merge_requests/1/raw_diffs",
+            body="--- a/file.py\n+++ b/file.py\n@@ -1,3 +1,4 @@\n+new line",
             status=200,
         )
-        diff = gitlab_adapter.get_pull_request_diff(1)
-        assert "--- a/file.py" in diff
-        assert "+++ b/file.py" in diff
-        assert "+new line" in diff
+        chunks = gitlab_adapter.get_pull_request_diff(1)
+        diff = b"".join(chunks)
+        assert b"--- a/file.py" in diff
+        assert b"+++ b/file.py" in diff
+        assert b"+new line" in diff
 
 
 class TestListPullRequestChecks:

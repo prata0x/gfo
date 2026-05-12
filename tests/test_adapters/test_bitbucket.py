@@ -2049,8 +2049,9 @@ class TestGetPullRequestDiffBitbucket:
             body="diff --git a/file.py b/file.py\n--- a/file.py\n+++ b/file.py",
             status=200,
         )
-        diff = bitbucket_adapter.get_pull_request_diff(1)
-        assert "diff --git" in diff
+        chunks = bitbucket_adapter.get_pull_request_diff(1)
+        diff = b"".join(chunks)
+        assert b"diff --git" in diff
 
 
 class TestListPullRequestChecksBitbucket:
