@@ -473,11 +473,16 @@ def paginate_link_header(
     path: str,
     *,
     params: dict | None = None,
-    per_page: int = 30,
+    per_page: int = 100,
     per_page_key: str = "per_page",
     limit: int = 30,
 ) -> list[dict]:
-    """Link header ベースのページネーション（GitHub / Gitea / GitBucket 用）。"""
+    """Link header ベースのページネーション（GitHub / Gitea / GitBucket 用）。
+
+    per_page デフォルトは 100 (GitHub / Gitea の API 上限)。大量取得時の
+    HTTP ラウンドトリップ削減のため。limit < per_page の場合は limit に
+    クランプされるので小規模リクエストでは影響なし。
+    """
     if limit < 0:
         raise ValueError("limit must be non-negative")
     if 0 < limit < per_page:
@@ -520,11 +525,15 @@ def paginate_page_param(
     path: str,
     *,
     params: dict | None = None,
-    per_page: int = 20,
+    per_page: int = 100,
     limit: int = 30,
     next_page_header: str = "X-Next-Page",
 ) -> list[dict]:
-    """ページパラメータ + ヘッダーベースのページネーション（GitLab 用）。"""
+    """ページパラメータ + ヘッダーベースのページネーション（GitLab 用）。
+
+    per_page デフォルトは 100 (GitLab API 上限)。大量取得時の
+    HTTP ラウンドトリップ削減のため。
+    """
     if limit < 0:
         raise ValueError("limit must be non-negative")
     if 0 < limit < per_page:
@@ -613,12 +622,15 @@ def paginate_offset(
     path: str,
     *,
     params: dict | None = None,
-    count: int = 20,
+    count: int = 100,
     limit: int = 30,
     count_key: str = "count",
     offset_key: str = "offset",
 ) -> list[dict]:
-    """オフセットベースのページネーション（Backlog 用）。"""
+    """オフセットベースのページネーション（Backlog 用）。
+
+    count デフォルトは 100 (Backlog API 上限)。ラウンドトリップ削減のため。
+    """
     if limit < 0:
         raise ValueError("limit must be non-negative")
     if 0 < limit < count:
@@ -653,11 +665,14 @@ def paginate_top_skip(
     path: str,
     *,
     params: dict | None = None,
-    top: int = 30,
+    top: int = 100,
     limit: int = 30,
     result_key: str = "value",
 ) -> list[dict]:
-    """$top+$skip ベースのページネーション（Azure DevOps 用）。"""
+    """$top+$skip ベースのページネーション（Azure DevOps 用）。
+
+    top デフォルトは 100。ラウンドトリップ削減のため。
+    """
     if limit < 0:
         raise ValueError("limit must be non-negative")
     if 0 < limit < top:
