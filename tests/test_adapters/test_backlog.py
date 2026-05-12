@@ -307,7 +307,7 @@ class TestListPullRequests:
         assert any("author" in m for m in messages)
 
     def test_pagination(self, mock_responses, backlog_adapter):
-        """offset ベースのページネーションで2ページ取得。"""
+        """offset ベースのページネーションで2ページ取得。count デフォルトは 100。"""
         mock_responses.add(
             responses.GET,
             f"{BASE}/projects/TEST/statuses",
@@ -317,22 +317,22 @@ class TestListPullRequests:
         mock_responses.add(
             responses.GET,
             PR_PATH,
-            json=[_pr_data(number=i) for i in range(1, 21)],
+            json=[_pr_data(number=i) for i in range(1, 101)],
             status=200,
         )
         mock_responses.add(
             responses.GET,
             PR_PATH,
-            json=[_pr_data(number=21)],
+            json=[_pr_data(number=101)],
             status=200,
         )
         prs = backlog_adapter.list_pull_requests(state="all", limit=0)
-        assert len(prs) == 21
+        assert len(prs) == 101
         req1 = mock_responses.calls[1].request
         req2 = mock_responses.calls[2].request
-        assert "count=20" in req1.url
+        assert "count=100" in req1.url
         assert "offset=0" in req1.url
-        assert "offset=20" in req2.url
+        assert "offset=100" in req2.url
 
 
 class TestCreatePullRequest:

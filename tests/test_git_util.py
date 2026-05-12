@@ -304,12 +304,13 @@ class TestGitCheckoutBranch:
     def test_switches_to_existing_branch(self, mock_run):
         """rev-parse が成功（ブランチ既存）→ checkout {branch} にスイッチ。"""
         mock_run.side_effect = [
-            _mock_result(stdout="abc123\n"),  # rev-parse 成功
+            _mock_result(stdout="abc123\n"),  # rev-parse --verify 成功
+            _mock_result(stdout="main\n"),  # rev-parse --abbrev-ref HEAD（別ブランチ）
             _mock_result(),  # checkout 成功
         ]
         git_util.git_checkout_branch("pr-42")
-        assert mock_run.call_count == 2
-        assert mock_run.call_args_list[1].args[0] == ["git", "checkout", "pr-42"]
+        assert mock_run.call_count == 3
+        assert mock_run.call_args_list[2].args[0] == ["git", "checkout", "pr-42"]
 
     @patch("gfo.git_util.subprocess.run")
     def test_locale_independent(self, mock_run):

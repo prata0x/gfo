@@ -321,6 +321,13 @@ class TestProbeUnknownHostPrivateIp:
 
 
 class TestProbeUnknownHost:
+    @pytest.fixture(autouse=True)
+    def _allow_public_probe(self, monkeypatch):
+        """git.example.com / git.local 等は DNS が引けないため _is_private_host が True を返す。
+        プローブが SSRF 防御で短絡しないよう、テスト中は公開ホスト扱いに固定する。
+        """
+        monkeypatch.setattr("gfo.detect._is_private_host", lambda host: False)
+
     @responses.activate
     def test_forgejo_detected(self):
         responses.add(

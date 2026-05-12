@@ -50,7 +50,9 @@ def test_unknown_msgid_returns_original():
 
 def test_windows_locale_fallback():
     """Windows ロケール名 (Japanese_Japan) が POSIX 形式に正規化され日本語翻訳が返る。"""
-    env = {k: v for k, v in os.environ.items() if k != "LANGUAGE"}
+    # LANGUAGE/LC_ALL/LC_MESSAGES/LANG をすべて剥がして locale.getlocale 経路を強制する
+    _LOCALE_VARS = ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG")
+    env = {k: v for k, v in os.environ.items() if k not in _LOCALE_VARS}
     with (
         mock.patch.dict(os.environ, env, clear=True),
         mock.patch("locale.getlocale", return_value=("Japanese_Japan", "932")),
@@ -76,7 +78,9 @@ def test_ngettext_exported():
 
 def test_locale_getlocale_exception():
     """locale.getlocale() が例外を投げた場合、_get_languages() は None を返す。"""
-    env = {k: v for k, v in os.environ.items() if k != "LANGUAGE"}
+    # LANGUAGE/LC_ALL/LC_MESSAGES/LANG をすべて剥がして locale.getlocale 経路を強制する
+    _LOCALE_VARS = ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG")
+    env = {k: v for k, v in os.environ.items() if k not in _LOCALE_VARS}
     with (
         mock.patch.dict(os.environ, env, clear=True),
         mock.patch("locale.getlocale", side_effect=ValueError("unsupported locale")),

@@ -566,9 +566,9 @@ class TestListPullRequests:
         mock_responses.add(responses.GET, f"{REPOS}/pulls", json=prs, status=200)
         result = github_adapter.list_pull_requests(author="author1", limit=2)
         assert len(result) == 2
-        # クライアント側フィルタ時は limit=0（全件取得）で fetch される
+        # クライアント側フィルタ時は limit=0（全件取得）で fetch され、per_page=100 が使われる
         url = mock_responses.calls[0].request.url
-        assert "per_page=30" in url  # limit=0 時は per_page=30 (デフォルト)
+        assert "per_page=100" in url
 
 
 class TestCreatePullRequest:
