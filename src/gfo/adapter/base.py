@@ -143,6 +143,15 @@ class GitServiceAdapter(ABC):
         """リポジトリ名（読み取り専用）。"""
         return self._repo
 
+    @property
+    def client(self) -> HttpClient:
+        """内部 HTTP クライアントを返す。
+
+        コマンド層で `asset.download_url` を直接ダウンロードする等、
+        adapter にメソッドを生やすほどでもない場合の最小限の出入口。
+        """
+        return self._client
+
     def _warn_unsupported_params(self, resource: str, **kwargs: object) -> None:
         """未対応パラメータが渡された場合に警告を出す。"""
         for param, value in kwargs.items():

@@ -148,6 +148,7 @@ def _handle_asset_upload(args: argparse.Namespace, *, fmt: str, jq: str | None =
 
 def _handle_asset_download(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     import fnmatch
+    import os
 
     adapter = get_adapter()
     output_dir = getattr(args, "dir", ".") or "."
@@ -155,6 +156,7 @@ def _handle_asset_download(args: argparse.Namespace, *, fmt: str, jq: str | None
     pattern = getattr(args, "pattern", None)
 
     if asset_id:
+        # asset_id 単体指定はメタ GET 経由 (download_url が呼び出し側で未知のため)
         path = adapter.download_release_asset(
             tag=args.tag,
             asset_id=asset_id,
@@ -162,17 +164,18 @@ def _handle_asset_download(args: argparse.Namespace, *, fmt: str, jq: str | None
         )
         print(_("Downloaded: {path}").format(path=path))
     elif pattern:
+        # --pattern 経路は list_release_assets で取得済みの download_url を直接使う。
+        # 旧実装は match 毎に download_release_asset を呼んでメタ情報を再取得していたが、
+        # N+1 GET になるため download_url を直接 client.download_file に渡す。
         assets = adapter.list_release_assets(tag=args.tag)
         matched = [a for a in assets if fnmatch.fnmatch(a.name, pattern)]
         if not matched:
             raise ConfigError(_("No assets match pattern '{pattern}'.").format(pattern=pattern))
+        os.makedirs(output_dir, exist_ok=True)
         for a in matched:
-            path = adapter.download_release_asset(
-                tag=args.tag,
-                asset_id=a.id,
-                output_dir=output_dir,
-            )
-            print(_("Downloaded: {path}").format(path=path))
+            output_path = os.path.join(output_dir, a.name)
+            adapter.client.download_file(a.download_url, output_path)
+            print(_("Downloaded: {path}").format(path=output_path))
     else:
         raise ConfigError(_("Specify --asset-id or --pattern."))
 
