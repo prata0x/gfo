@@ -391,18 +391,21 @@ class HttpClient:
         if 200 <= code < 300:
             return
         url = self._mask_api_key(response.url)
-        if code in (401, 403):
-            raise gfo.exceptions.AuthenticationError(code, url)
-        if code == 404:
-            raise gfo.exceptions.NotFoundError(url)
+        # 429 / その他 4xx はコンストラクタに追加情報を渡すため個別分岐。
         if code == 429:
             retry_after = response.headers.get("Retry-After")
             raise gfo.exceptions.RateLimitError(
                 self._parse_retry_after(retry_after) if retry_after else None, url
             )
-        if 500 <= code < 600:
+        # 401/403/404/5xx は lookup_http_exception でテーブル引き。
+        cls = gfo.exceptions.lookup_http_exception(code)
+        if cls is gfo.exceptions.NotFoundError:
+            raise gfo.exceptions.NotFoundError(url)
+        if cls is gfo.exceptions.AuthenticationError:
+            raise gfo.exceptions.AuthenticationError(code, url)
+        if cls is gfo.exceptions.ServerError:
             raise gfo.exceptions.ServerError(code, url)
-        # レスポンス body は先頭 _MAX_ERROR_BODY_CHARS で切り詰める（DoS と情報過多防止）
+        # その他 (汎用 4xx 等) は HttpError として body 付きで送出。
         body = response.text
         if len(body) > _MAX_ERROR_BODY_CHARS:
             body = (

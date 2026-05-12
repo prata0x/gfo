@@ -190,3 +190,29 @@ class UnsupportedServiceError(GfoError):
         super().__init__(
             _("Unsupported service type: {service_type}").format(service_type=service_type)
         )
+
+
+# HTTP ステータスコード → 標準的な HttpError 系例外クラスのマッピング。
+# 追加引数 (retry_after, body 等) が必要なクラスはこのテーブルでは扱わず、
+# 呼び出し側で個別に分岐する (RateLimitError / 汎用 HttpError 本体)。
+_SIMPLE_HTTP_EXCEPTIONS: dict[int, type[HttpError]] = {
+    401: AuthenticationError,
+    403: AuthenticationError,
+    404: NotFoundError,
+}
+
+
+def lookup_http_exception(status_code: int) -> type[HttpError] | None:
+    """HTTP ステータスコードから対応する HttpError 系例外クラスを返す。
+
+    - 401 / 403 / 404 のような単純な status → exception 対応はテーブル参照。
+    - 5xx は range で一括 `ServerError` にマップする。
+    - 429 や汎用 4xx などコンストラクタに追加引数が必要なケースは `None` を返し、
+      呼び出し側で個別に組み立てる。
+    """
+    cls = _SIMPLE_HTTP_EXCEPTIONS.get(status_code)
+    if cls is not None:
+        return cls
+    if 500 <= status_code < 600:
+        return ServerError
+    return None
