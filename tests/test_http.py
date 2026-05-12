@@ -165,6 +165,112 @@ class TestDownloadFileSizeLimit:
         # 部分書き込みファイルは削除される
         assert not out.exists()
 
+    @responses.activate
+    def test_zero_disables_limit(self, tmp_path, monkeypatch):
+        """GFO_MAX_DOWNLOAD_BYTES=0 のとき、大きなレスポンスでも中断しない (無制限)。"""
+        monkeypatch.setenv("GFO_MAX_DOWNLOAD_BYTES", "0")
+        responses.add(
+            responses.GET,
+            f"{BASE}/file.bin",
+            body=b"X" * (10 * 1024 * 1024),  # 10 MiB
+            status=200,
+        )
+        c = HttpClient(BASE)
+        out = tmp_path / "x.bin"
+        c.download_file(f"{BASE}/file.bin", str(out))
+        assert out.stat().st_size == 10 * 1024 * 1024
+
+    @responses.activate
+    def test_invalid_env_falls_back_to_default(self, tmp_path, monkeypatch, recwarn):
+        """GFO_MAX_DOWNLOAD_BYTES='invalid' は 5 GiB デフォルトにフォールバック + warning。"""
+        monkeypatch.setenv("GFO_MAX_DOWNLOAD_BYTES", "invalid")
+        responses.add(
+            responses.GET,
+            f"{BASE}/file.bin",
+            body=b"X" * 1024,
+            status=200,
+        )
+        c = HttpClient(BASE)
+        out = tmp_path / "x.bin"
+        c.download_file(f"{BASE}/file.bin", str(out))
+        assert out.stat().st_size == 1024
+        # 警告メッセージが発火されていること (フォールバック告知)
+        warnings_text = " ".join(str(w.message) for w in recwarn.list)
+        assert "GFO_MAX_DOWNLOAD_BYTES" in warnings_text
+        assert "invalid" in warnings_text
+
+    @responses.activate
+    def test_boundary_equal_and_over(self, tmp_path, monkeypatch):
+        """境界値: body サイズ == max_bytes は成功、+1 で失敗。"""
+        from gfo.exceptions import GfoError
+
+        monkeypatch.setenv("GFO_MAX_DOWNLOAD_BYTES", "1024")
+        # 1024 バイトちょうど → 成功 (累積バイト数が max_bytes を「超えた」場合のみ中断)
+        responses.add(
+            responses.GET,
+            f"{BASE}/exact.bin",
+            body=b"X" * 1024,
+            status=200,
+        )
+        c = HttpClient(BASE)
+        out_ok = tmp_path / "exact.bin"
+        c.download_file(f"{BASE}/exact.bin", str(out_ok))
+        assert out_ok.stat().st_size == 1024
+        # 1025 バイト → 失敗
+        responses.add(
+            responses.GET,
+            f"{BASE}/over.bin",
+            body=b"X" * 1025,
+            status=200,
+        )
+        out_ng = tmp_path / "over.bin"
+        with pytest.raises(GfoError, match="exceeded GFO_MAX_DOWNLOAD_BYTES"):
+            c.download_file(f"{BASE}/over.bin", str(out_ng))
+
+
+class TestMaxDownloadBytesBoundary:
+    """`_max_download_bytes` の境界値・無効値のフォールバック挙動。"""
+
+    def test_zero_returns_zero(self, monkeypatch):
+        monkeypatch.setenv("GFO_MAX_DOWNLOAD_BYTES", "0")
+        from gfo.http import _max_download_bytes
+
+        assert _max_download_bytes() == 0
+
+    def test_one_returns_one(self, monkeypatch):
+        monkeypatch.setenv("GFO_MAX_DOWNLOAD_BYTES", "1")
+        from gfo.http import _max_download_bytes
+
+        assert _max_download_bytes() == 1
+
+    def test_negative_clamped_to_zero(self, monkeypatch):
+        """負の値は max(0, n) で 0 (無制限) に丸められる。"""
+        monkeypatch.setenv("GFO_MAX_DOWNLOAD_BYTES", "-100")
+        from gfo.http import _max_download_bytes
+
+        # 負の値は 0 に切り上げ (= 無制限扱い)
+        assert _max_download_bytes() == 0
+
+
+class TestInsecureEnvWarning:
+    """GFO_INSECURE=1 のとき、起動時に stderr で警告が出ること。"""
+
+    def test_insecure_env_emits_startup_warning(self, monkeypatch, capsys):
+        """GFO_INSECURE=1 で gfo.http をリロードすると stderr に警告が出力される。"""
+        import importlib
+
+        import gfo.http
+
+        monkeypatch.setenv("GFO_INSECURE", "1")
+        importlib.reload(gfo.http)
+        captured = capsys.readouterr()
+        assert "GFO_INSECURE" in captured.err
+        # クラウドホストは TLS 検証を強制する旨が含まれている
+        assert "Cloud" in captured.err or "github.com" in captured.err
+        # テスト後にもとの状態 (GFO_INSECURE 未設定) に戻す
+        monkeypatch.delenv("GFO_INSECURE")
+        importlib.reload(gfo.http)
+
 
 class TestErrorBodyTruncation:
     """HttpError の body は大きすぎる場合に切り詰められる。"""
@@ -193,6 +299,28 @@ class TestErrorBodyTruncation:
             c.get("/items")
         assert "short error" in str(exc_info.value)
         assert "truncated" not in str(exc_info.value)
+
+    @responses.activate
+    def test_truncation_preserves_prefix_and_counts_dropped_chars(self):
+        """切り詰め時、先頭 _MAX_ERROR_BODY_CHARS 文字はそのまま残り、
+        メッセージ末尾の `[truncated N chars]` の N が正しい drop 数になっていること。"""
+        import re
+
+        from gfo.http import _MAX_ERROR_BODY_CHARS
+
+        extra = 73  # 適当な追加長 (N の検証用)
+        big_body = "X" * (_MAX_ERROR_BODY_CHARS + extra)
+        responses.add(responses.GET, f"{BASE}/items", body=big_body, status=400)
+        c = HttpClient(BASE)
+        with pytest.raises(HttpError) as exc_info:
+            c.get("/items")
+        msg = str(exc_info.value)
+        # 先頭 _MAX_ERROR_BODY_CHARS 文字 (全部 X) はそのまま残る
+        assert "X" * _MAX_ERROR_BODY_CHARS in msg
+        # [truncated N chars] の N が drop 数 = extra と一致する
+        m = re.search(r"\[truncated (\d+) chars\]", msg)
+        assert m is not None
+        assert int(m.group(1)) == extra
 
 
 class TestDownloadFileCrossOrigin:
@@ -275,6 +403,29 @@ class TestDownloadFileCrossOrigin:
         c.download_file("https://attacker.example.com/evil.zip", str(out))
         sent = responses.calls[0].request
         assert "apiKey" not in (sent.url or "")
+
+    def test_cross_origin_to_cloud_host_uses_verify_true(self, tmp_path):
+        """別オリジンでもクラウド固定ホストへのダウンロードは verify=True で送られる。
+
+        `gfo.http.requests.get` を直接 patch して、kwargs の verify が
+        True (= TLS 検証有効) になっていることを確認する。
+        """
+        from unittest.mock import MagicMock
+        from unittest.mock import patch as upatch
+
+        fake_resp = MagicMock()
+        fake_resp.status_code = 200
+        fake_resp.iter_content.return_value = [b"data"]
+        fake_resp.url = "https://api.github.com/release/asset.zip"
+        c = HttpClient(
+            "https://gitlab.example.com/api/v4",
+            auth_header={"PRIVATE-TOKEN": "secret-pat"},
+        )
+        out = tmp_path / "x.bin"
+        with upatch("gfo.http.requests.get", return_value=fake_resp) as mock_get:
+            c.download_file("https://api.github.com/release/asset.zip", str(out))
+        # クラウド固定ホスト (api.github.com) なので verify=True で送られる
+        assert mock_get.call_args.kwargs.get("verify") is True
 
 
 # ── 基本リクエスト ──

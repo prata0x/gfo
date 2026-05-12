@@ -425,3 +425,25 @@ class TestBatchPrCreateNonGfoErrorRaised:
         )
         with pytest.raises(AttributeError):
             batch_cmd.handle_batch_pr(args, fmt="json")
+
+    @patch("gfo.commands.batch.parse_service_spec")
+    def test_parse_spec_attribute_error_is_re_raised(self, mock_parse_spec):
+        """`parse_service_spec` 自体が AttributeError を投げた場合も再 raise されること。
+
+        旧実装で `except Exception` が握りつぶしていた範囲のうち、spec パース時の
+        実装バグ (プログラミングエラー) も握りつぶさず本番ログに上げる挙動を
+        テストでも担保する。
+        """
+        mock_parse_spec.side_effect = AttributeError("bug")
+        args = make_args(
+            repos="github:o1/r1",
+            title="t",
+            body="b",
+            head="feat",
+            base="main",
+            draft=False,
+            dry_run=False,
+            batch_pr_action="create",
+        )
+        with pytest.raises(AttributeError, match="bug"):
+            batch_cmd.handle_batch_pr(args, fmt="json")

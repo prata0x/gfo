@@ -387,6 +387,8 @@ class TestGogsErrorPropagation:
             headers={"Retry-After": "60"},
         )
         # time.sleep をモックして即時実行
-        with patch("gfo.http.time.sleep"):
+        with patch("gfo.http.time.sleep") as mock_sleep:
             with pytest.raises(RateLimitError):
                 gogs_adapter.list_issues()
+        # リトライ前に Retry-After 秒待機していること
+        mock_sleep.assert_called_once()

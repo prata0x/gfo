@@ -103,6 +103,26 @@ def test_parser_auth_status():
     assert args.subcommand == "status"
 
 
+def test_parser_auth_login_token_stdin():
+    """`--token-stdin` フラグが dest=token_stdin に紐づき token は未設定で残ること。"""
+    parser, _ = create_parser()
+    args = parser.parse_args(["auth", "login", "--token-stdin", "--host", "github.com"])
+    assert args.token_stdin is True
+    assert args.token is None
+
+
+def test_parser_auth_login_token_file(tmp_path):
+    """`--token-file PATH` が dest=token_file に渡り、token は未設定で残ること。"""
+    token_file = tmp_path / "token.txt"
+    token_file.write_text("tok-from-file")
+    parser, _ = create_parser()
+    args = parser.parse_args(
+        ["auth", "login", "--token-file", str(token_file), "--host", "github.com"]
+    )
+    assert args.token_file == str(token_file)
+    assert args.token is None
+
+
 def test_parser_pr_list_defaults():
     parser, _ = create_parser()
     args = parser.parse_args(["pr", "list"])
