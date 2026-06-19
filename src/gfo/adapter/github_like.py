@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from abc import ABC
+from typing import Any
 
 from gfo.adapter._helpers import _wrap_conversion_error
 from gfo.adapter.models import (
@@ -41,7 +42,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_pull_request(data: dict) -> PullRequest:
+    def _to_pull_request(data: dict[str, Any]) -> PullRequest:
         merged = data.get("merged_at") is not None
         if data["state"] == "closed" and merged:
             state = "merged"
@@ -64,7 +65,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_issue(data: dict) -> Issue:
+    def _to_issue(data: dict[str, Any]) -> Issue:
         return Issue(
             number=data["number"],
             title=data["title"],
@@ -80,7 +81,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_repository(data: dict) -> Repository:
+    def _to_repository(data: dict[str, Any]) -> Repository:
         return Repository(
             name=data["name"],
             full_name=data["full_name"],
@@ -93,7 +94,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_release(data: dict) -> Release:
+    def _to_release(data: dict[str, Any]) -> Release:
         return Release(
             tag=data["tag_name"],
             title=data.get("name") or "",
@@ -106,7 +107,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_label(data: dict) -> Label:
+    def _to_label(data: dict[str, Any]) -> Label:
         return Label(
             name=data["name"],
             color=data.get("color"),
@@ -115,7 +116,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_milestone(data: dict) -> Milestone:
+    def _to_milestone(data: dict[str, Any]) -> Milestone:
         return Milestone(
             number=data.get("number") or data["id"],
             title=data["title"],
@@ -126,7 +127,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_comment(data: dict) -> Comment:
+    def _to_comment(data: dict[str, Any]) -> Comment:
         return Comment(
             id=data["id"],
             body=data.get("body") or "",
@@ -138,7 +139,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_review(data: dict) -> Review:
+    def _to_review(data: dict[str, Any]) -> Review:
         state_map = {
             "APPROVED": "approved",
             "CHANGES_REQUESTED": "changes_requested",
@@ -159,7 +160,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_branch(data: dict) -> Branch:
+    def _to_branch(data: dict[str, Any]) -> Branch:
         commit = data.get("commit") or {}
         sha = commit.get("sha") or commit.get("id") or ""
         return Branch(
@@ -171,7 +172,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_tag(data: dict) -> Tag:
+    def _to_tag(data: dict[str, Any]) -> Tag:
         commit = data.get("commit") or {}
         sha = commit.get("sha") or ""
         return Tag(
@@ -183,7 +184,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_commit_status(data: dict) -> CommitStatus:
+    def _to_commit_status(data: dict[str, Any]) -> CommitStatus:
         # GitHub は "state"、Gitea は "status" を使用する
         state = data.get("state") or data.get("status") or ""
         return CommitStatus(
@@ -196,7 +197,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_webhook(data: dict) -> Webhook:
+    def _to_webhook(data: dict[str, Any]) -> Webhook:
         config = data.get("config") or {}
         url = config.get("url") or data.get("url") or ""
         events = tuple(data.get("events") or [])
@@ -209,7 +210,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_deploy_key(data: dict) -> DeployKey:
+    def _to_deploy_key(data: dict[str, Any]) -> DeployKey:
         return DeployKey(
             id=data["id"],
             title=data.get("title") or "",
@@ -219,7 +220,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_check_run(data: dict) -> CheckRun:
+    def _to_check_run(data: dict[str, Any]) -> CheckRun:
         status_map = {
             "success": "success",
             "failure": "failure",
@@ -237,7 +238,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_release_asset(data: dict) -> ReleaseAsset:
+    def _to_release_asset(data: dict[str, Any]) -> ReleaseAsset:
         return ReleaseAsset(
             id=data["id"],
             name=data["name"],
@@ -248,7 +249,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_pull_request_file(data: dict) -> PullRequestFile:
+    def _to_pull_request_file(data: dict[str, Any]) -> PullRequestFile:
         return PullRequestFile(
             filename=data.get("filename") or "",
             status=data.get("status") or "modified",
@@ -258,7 +259,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_pull_request_commit(data: dict) -> PullRequestCommit:
+    def _to_pull_request_commit(data: dict[str, Any]) -> PullRequestCommit:
         commit = data.get("commit") or {}
         author_info = commit.get("author") or {}
         user = data.get("author") or {}
