@@ -18,6 +18,82 @@ from gfo.exceptions import NotSupportedError
 from tests.conftest import StubAdapter
 
 
+class TestDataclassesFrozen:
+    """主要データクラスは frozen=True（.claude/rules/02-adapter-common.md の規約）。
+
+    各データクラスで個別に書いていた test_frozen を 1 表に集約。
+    """
+
+    @pytest.mark.parametrize(
+        ("instance", "attr"),
+        [
+            (
+                PullRequest(
+                    number=1,
+                    title="t",
+                    body=None,
+                    state="open",
+                    author="a",
+                    source_branch="b",
+                    target_branch="main",
+                    draft=False,
+                    url="u",
+                    created_at="c",
+                    updated_at=None,
+                ),
+                "title",
+            ),
+            (
+                Issue(
+                    number=1,
+                    title="t",
+                    body=None,
+                    state="open",
+                    author="a",
+                    assignees=[],
+                    labels=[],
+                    url="u",
+                    created_at="c",
+                ),
+                "state",
+            ),
+            (
+                Repository(
+                    name="n",
+                    full_name="o/n",
+                    description=None,
+                    visibility="public",
+                    default_branch="main",
+                    clone_url="c",
+                    url="u",
+                ),
+                "name",
+            ),
+            (
+                Release(
+                    tag="v1",
+                    title="t",
+                    body=None,
+                    draft=False,
+                    prerelease=False,
+                    url="u",
+                    created_at="c",
+                ),
+                "tag",
+            ),
+            (Label(name="bug", color=None, description=None), "name"),
+            (
+                Milestone(number=1, title="v1", description=None, state="open", due_date=None),
+                "state",
+            ),
+        ],
+        ids=["pull_request", "issue", "repository", "release", "label", "milestone"],
+    )
+    def test_frozen(self, instance, attr):
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            setattr(instance, attr, "changed")
+
+
 class TestPullRequest:
     def test_create(self):
         pr = PullRequest(
@@ -53,23 +129,6 @@ class TestPullRequest:
         )
         assert pr.updated_at is None
 
-    def test_frozen(self):
-        pr = PullRequest(
-            number=1,
-            title="t",
-            body=None,
-            state="open",
-            author="a",
-            source_branch="b",
-            target_branch="main",
-            draft=False,
-            url="u",
-            created_at="c",
-            updated_at=None,
-        )
-        with pytest.raises(dataclasses.FrozenInstanceError):
-            pr.title = "changed"  # type: ignore[misc]
-
 
 class TestIssue:
     def test_create(self):
@@ -87,21 +146,6 @@ class TestIssue:
         assert issue.number == 42
         assert issue.labels == ["bug", "high"]
         assert issue.body is None
-
-    def test_frozen(self):
-        issue = Issue(
-            number=1,
-            title="t",
-            body=None,
-            state="open",
-            author="a",
-            assignees=[],
-            labels=[],
-            url="u",
-            created_at="c",
-        )
-        with pytest.raises(dataclasses.FrozenInstanceError):
-            issue.state = "closed"  # type: ignore[misc]
 
 
 class TestGitHubLikeAdapterToIssue:
@@ -167,19 +211,6 @@ class TestRepository:
         assert repo.description is None
         assert repo.default_branch is None
 
-    def test_frozen(self):
-        repo = Repository(
-            name="gfo",
-            full_name="owner/gfo",
-            description=None,
-            visibility="public",
-            default_branch="main",
-            clone_url="c",
-            url="u",
-        )
-        with pytest.raises(dataclasses.FrozenInstanceError):
-            repo.name = "other"  # type: ignore[misc]
-
 
 class TestRelease:
     def test_create(self):
@@ -195,19 +226,6 @@ class TestRelease:
         assert release.tag == "v1.0.0"
         assert release.draft is False
 
-    def test_frozen(self):
-        release = Release(
-            tag="v1.0.0",
-            title="t",
-            body=None,
-            draft=False,
-            prerelease=False,
-            url="u",
-            created_at="c",
-        )
-        with pytest.raises(dataclasses.FrozenInstanceError):
-            release.tag = "v2.0.0"  # type: ignore[misc]
-
 
 class TestLabel:
     def test_create(self):
@@ -219,11 +237,6 @@ class TestLabel:
         label = Label(name="bug", color=None, description=None)
         assert label.color is None
         assert label.description is None
-
-    def test_frozen(self):
-        label = Label(name="bug", color=None, description=None)
-        with pytest.raises(dataclasses.FrozenInstanceError):
-            label.name = "feature"  # type: ignore[misc]
 
 
 class TestGitServiceAdapterDeleteDefaults:
@@ -281,11 +294,6 @@ class TestMilestone:
         )
         assert ms.description is None
         assert ms.due_date is None
-
-    def test_frozen(self):
-        ms = Milestone(number=1, title="v1.0", description=None, state="open", due_date=None)
-        with pytest.raises(dataclasses.FrozenInstanceError):
-            ms.state = "closed"  # type: ignore[misc]
 
 
 class TestGetCurrentUsername:
