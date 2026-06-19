@@ -94,7 +94,7 @@ def get_credentials_path() -> Path:
 # ── TOML 読み込み ──
 
 
-def load_user_config() -> dict:
+def load_user_config() -> dict[str, Any]:
     """config.toml を読み込み dict で返す。存在しなければ空 dict。"""
     path = get_config_path()
     if not path.exists():
@@ -263,7 +263,7 @@ def unset_config_value(key: str) -> bool:
     cfg = load_user_config()
 
     # parts を辿り、末端キーを削除する
-    ancestors: list[tuple[dict, str]] = []
+    ancestors: list[tuple[dict[str, Any], str]] = []
     current = cfg
     for part in parts[:-1]:
         if not isinstance(current, dict) or part not in current:
@@ -287,7 +287,7 @@ def unset_config_value(key: str) -> bool:
     return True
 
 
-def _save_config(cfg: dict) -> None:
+def _save_config(cfg: dict[str, Any]) -> None:
     """dict を config.toml に TOML 形式で書き出す。"""
     path = get_config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -295,7 +295,7 @@ def _save_config(cfg: dict) -> None:
         _write_toml(f, cfg)
 
 
-def _write_toml(f: Any, data: dict, prefix: str = "") -> None:
+def _write_toml(f: Any, data: dict[str, Any], prefix: str = "") -> None:
     """dict を TOML 形式で書き出す（シンプルな値 → テーブルの順）。"""
     # まずスカラー値を書き出す
     for key, value in data.items():
