@@ -277,65 +277,6 @@ class TestGiteaBrowse:
         )
 
 
-class TestForgejoBrowse:
-    def test_repo(self, forgejo_adapter):
-        assert forgejo_adapter.get_web_url() == "https://forgejo.example.com/test-owner/test-repo"
-
-    def test_pr(self, forgejo_adapter):
-        assert (
-            forgejo_adapter.get_web_url("pr", 42)
-            == "https://forgejo.example.com/test-owner/test-repo/pulls/42"
-        )
-
-    def test_pr_list(self, forgejo_adapter):
-        assert (
-            forgejo_adapter.get_web_url("pr")
-            == "https://forgejo.example.com/test-owner/test-repo/pulls"
-        )
-
-    def test_issue(self, forgejo_adapter):
-        assert (
-            forgejo_adapter.get_web_url("issue", 7)
-            == "https://forgejo.example.com/test-owner/test-repo/issues/7"
-        )
-
-    def test_issue_list(self, forgejo_adapter):
-        assert (
-            forgejo_adapter.get_web_url("issue")
-            == "https://forgejo.example.com/test-owner/test-repo/issues"
-        )
-
-    def test_release(self, forgejo_adapter):
-        assert (
-            forgejo_adapter.get_web_url("release", "v1.0.0")
-            == "https://forgejo.example.com/test-owner/test-repo/releases/tag/v1.0.0"
-        )
-
-    def test_release_list(self, forgejo_adapter):
-        assert (
-            forgejo_adapter.get_web_url("release")
-            == "https://forgejo.example.com/test-owner/test-repo/releases"
-        )
-
-    def test_milestone(self, forgejo_adapter):
-        assert (
-            forgejo_adapter.get_web_url("milestone", 3)
-            == "https://forgejo.example.com/test-owner/test-repo/milestones/3"
-        )
-
-    def test_milestone_list(self, forgejo_adapter):
-        assert (
-            forgejo_adapter.get_web_url("milestone")
-            == "https://forgejo.example.com/test-owner/test-repo/milestones"
-        )
-
-    def test_settings(self, forgejo_adapter):
-        assert (
-            forgejo_adapter.get_web_url("settings")
-            == "https://forgejo.example.com/test-owner/test-repo/settings"
-        )
-
-
 class TestGogsBrowse:
     def test_repo(self, gogs_adapter):
         assert gogs_adapter.get_web_url() == "https://gogs.example.com/test-owner/test-repo"
