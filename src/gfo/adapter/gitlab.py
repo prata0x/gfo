@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 from collections.abc import Iterable, Iterator
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 from urllib.parse import quote
 
 import requests
@@ -75,7 +75,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_pull_request(data: dict) -> PullRequest:
+    def _to_pull_request(data: dict[str, Any]) -> PullRequest:
         state_map = {
             "opened": "open",
             "closed": "closed",
@@ -100,7 +100,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_issue(data: dict) -> Issue:
+    def _to_issue(data: dict[str, Any]) -> Issue:
         state = data["state"]
         if state == "opened":
             state = "open"
@@ -120,7 +120,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_repository(data: dict) -> Repository:
+    def _to_repository(data: dict[str, Any]) -> Repository:
         return Repository(
             name=data["path"],
             full_name=data["path_with_namespace"],
@@ -133,7 +133,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_release(data: dict) -> Release:
+    def _to_release(data: dict[str, Any]) -> Release:
         return Release(
             tag=data["tag_name"],
             title=data.get("name") or "",
@@ -146,7 +146,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_label(data: dict) -> Label:
+    def _to_label(data: dict[str, Any]) -> Label:
         color = data.get("color")
         if color and color.startswith("#"):
             color = color[1:]
@@ -158,7 +158,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_milestone(data: dict) -> Milestone:
+    def _to_milestone(data: dict[str, Any]) -> Milestone:
         raw_state = data["state"]
         state = "open" if raw_state == "active" else raw_state
         return Milestone(
@@ -185,7 +185,7 @@ class GitLabAdapter(GitServiceAdapter):
         draft: bool | None = None,
         milestone: str | None = None,
     ) -> list[PullRequest]:
-        params: dict = {"state": "opened" if state == "open" else state}
+        params: dict[str, Any] = {"state": "opened" if state == "open" else state}
         if author:
             params["author_username"] = author
         if label:
@@ -223,7 +223,7 @@ class GitLabAdapter(GitServiceAdapter):
         labels: list[str] | None = None,
         milestone: str | None = None,
     ) -> PullRequest:
-        payload: dict = {
+        payload: dict[str, Any] = {
             "title": title,
             "description": body,
             "target_branch": base,
@@ -275,7 +275,7 @@ class GitLabAdapter(GitServiceAdapter):
         if title is not None or message is not None:
             parts = [p for p in (title, message) if p is not None]
             commit_msg = "\n\n".join(parts)
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if method == "squash":
             payload["squash"] = True
             if commit_msg is not None:
@@ -329,7 +329,7 @@ class GitLabAdapter(GitServiceAdapter):
         milestone: str | None = None,
         search: str | None = None,
     ) -> list[Issue]:
-        params: dict = {"state": "opened" if state == "open" else state}
+        params: dict[str, Any] = {"state": "opened" if state == "open" else state}
         if assignee is not None:
             params["assignee_username"] = assignee
         if label is not None:
@@ -359,7 +359,7 @@ class GitLabAdapter(GitServiceAdapter):
         due_date: str | None = None,
         **kwargs: object,
     ) -> Issue:
-        payload: dict = {"title": title, "description": body}
+        payload: dict[str, Any] = {"title": title, "description": body}
         if assignee is not None:
             payload["assignee_username"] = assignee
         if label is not None:
@@ -420,7 +420,7 @@ class GitLabAdapter(GitServiceAdapter):
     ) -> list[Repository]:
         if owner is not None:
             path = f"/users/{quote(owner, safe='')}/projects"
-            params: dict = {}
+            params: dict[str, Any] = {}
         else:
             path = "/projects"
             params = {"owned": "true", "membership": "true"}
@@ -440,7 +440,11 @@ class GitLabAdapter(GitServiceAdapter):
         auto_init: bool = False,
         organization: str | None = None,
     ) -> Repository:
-        payload: dict = {"name": name, "visibility": visibility, "description": description}
+        payload: dict[str, Any] = {
+            "name": name,
+            "visibility": visibility,
+            "description": description,
+        }
         if auto_init:
             payload["initialize_with_readme"] = True
         if organization is not None:
@@ -477,7 +481,7 @@ class GitLabAdapter(GitServiceAdapter):
             else:
                 self._client.post(f"{self._project_path()}/unarchive")
 
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if name is not None:
             payload["name"] = name
         if description is not None:
@@ -592,7 +596,7 @@ class GitLabAdapter(GitServiceAdapter):
         auth_token: str | None = None,
         organization: str | None = None,
     ) -> Repository:
-        payload: dict = {
+        payload: dict[str, Any] = {
             "name": name,
             "import_url": clone_url,
             "visibility": visibility,
@@ -651,7 +655,7 @@ class GitLabAdapter(GitServiceAdapter):
                 notes = resp.json().get("notes", "")
             except GfoError:
                 pass
-        payload: dict = {
+        payload: dict[str, Any] = {
             "tag_name": tag,
             "name": title,
             "description": notes,
@@ -686,7 +690,7 @@ class GitLabAdapter(GitServiceAdapter):
             raise NotSupportedError("GitLab", "release tag rename")
         if target is not None:
             raise NotSupportedError("GitLab", "release target change")
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["name"] = title
         if notes is not None:
@@ -780,7 +784,7 @@ class GitLabAdapter(GitServiceAdapter):
     def update_release_asset(
         self, *, tag: str, asset_id: int | str, name: str | None = None
     ) -> ReleaseAsset:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if name is not None:
             payload["name"] = name
         resp = self._client.put(
@@ -809,7 +813,7 @@ class GitLabAdapter(GitServiceAdapter):
     def create_label(
         self, *, name: str, color: str | None = None, description: str | None = None
     ) -> Label:
-        payload: dict = {"name": name}
+        payload: dict[str, Any] = {"name": name}
         if color is not None:
             payload["color"] = f"#{color.lstrip('#')}"
         if description is not None:
@@ -829,7 +833,7 @@ class GitLabAdapter(GitServiceAdapter):
         description: str | None = None,
     ) -> Label:
         quoted = quote(name, safe="")
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if new_name is not None:
             payload["name"] = new_name
         if color is not None:
@@ -852,7 +856,7 @@ class GitLabAdapter(GitServiceAdapter):
     def create_milestone(
         self, *, title: str, description: str | None = None, due_date: str | None = None
     ) -> Milestone:
-        payload: dict = {"title": title}
+        payload: dict[str, Any] = {"title": title}
         if description is not None:
             payload["description"] = description
         if due_date is not None:
@@ -893,7 +897,7 @@ class GitLabAdapter(GitServiceAdapter):
         state: str | None = None,
     ) -> Milestone:
         global_id = self._resolve_milestone_id(number)
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["title"] = title
         if description is not None:
@@ -910,7 +914,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_comment(data: dict) -> Comment:
+    def _to_comment(data: dict[str, Any]) -> Comment:
         author = data.get("author") or {}
         return Comment(
             id=data["id"],
@@ -923,7 +927,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_review(data: dict) -> Review:
+    def _to_review(data: dict[str, Any]) -> Review:
         state_map = {"approved": "approved", "unapproved": "changes_requested"}
         raw_state = data.get("state", "approved")
         return Review(
@@ -937,7 +941,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_branch(data: dict) -> Branch:
+    def _to_branch(data: dict[str, Any]) -> Branch:
         commit = data.get("commit") or {}
         return Branch(
             name=data["name"],
@@ -948,7 +952,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_tag(data: dict) -> Tag:
+    def _to_tag(data: dict[str, Any]) -> Tag:
         commit = data.get("commit") or {}
         return Tag(
             name=data["name"],
@@ -959,7 +963,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_commit_status(data: dict) -> CommitStatus:
+    def _to_commit_status(data: dict[str, Any]) -> CommitStatus:
         state_map = {
             "success": "success",
             "failed": "failure",
@@ -978,7 +982,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_webhook(data: dict) -> Webhook:
+    def _to_webhook(data: dict[str, Any]) -> Webhook:
         # GitLab webhook の events は boolean フィールド集合
         events = tuple(
             k.replace("_events", "")
@@ -1005,7 +1009,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_deploy_key(data: dict) -> DeployKey:
+    def _to_deploy_key(data: dict[str, Any]) -> DeployKey:
         return DeployKey(
             id=data["id"],
             title=data.get("title") or "",
@@ -1015,7 +1019,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_pipeline(data: dict) -> Pipeline:
+    def _to_pipeline(data: dict[str, Any]) -> Pipeline:
         status_map = {
             "success": "success",
             "failed": "failure",
@@ -1035,7 +1039,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_wiki_page(data: dict) -> WikiPage:
+    def _to_wiki_page(data: dict[str, Any]) -> WikiPage:
         return WikiPage(
             id=0,  # GitLab Wiki には数値IDなし、slugを使う
             title=data.get("title") or "",
@@ -1087,7 +1091,7 @@ class GitLabAdapter(GitServiceAdapter):
         milestone: str | None = None,
         draft: bool | None = None,
     ) -> PullRequest:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if draft is not None:
             # GitLab は draft ステータスをタイトルの "Draft: " プレフィックスで管理する
             resp = self._client.get(f"{self._project_path()}/merge_requests/{number}")
@@ -1274,7 +1278,7 @@ class GitLabAdapter(GitServiceAdapter):
         self._client.put(f"{self._project_path()}/merge_requests/{number}/rebase")
 
     def enable_auto_merge(self, number: int, *, merge_method: str | None = None) -> None:
-        payload: dict = {"merge_when_pipeline_succeeds": True}
+        payload: dict[str, Any] = {"merge_when_pipeline_succeeds": True}
         if merge_method == "squash":
             payload["squash"] = True
         self._client.put(
@@ -1319,7 +1323,7 @@ class GitLabAdapter(GitServiceAdapter):
         milestone: str | None = None,
         due_date: str | None = None,
     ) -> Issue:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["title"] = title
         if body is not None:
@@ -1430,7 +1434,7 @@ class GitLabAdapter(GitServiceAdapter):
         return [self._to_tag(r) for r in results]
 
     def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
-        payload: dict = {"tag_name": name, "ref": ref}
+        payload: dict[str, Any] = {"tag_name": name, "ref": ref}
         if message:
             payload["message"] = message
         resp = self._client.post(f"{self._project_path()}/repository/tags", json=payload)
@@ -1466,7 +1470,7 @@ class GitLabAdapter(GitServiceAdapter):
             "pending": "pending",
         }
         gl_state = state_map.get(state, state)
-        payload: dict = {"state": gl_state}
+        payload: dict[str, Any] = {"state": gl_state}
         if context:
             payload["name"] = context
         if description:
@@ -1482,7 +1486,7 @@ class GitLabAdapter(GitServiceAdapter):
     # --- File ---
 
     def get_file_content(self, path: str, *, ref: str | None = None) -> tuple[str, str]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if ref is not None:
             params["ref"] = ref
         resp = self._client.get(
@@ -1506,7 +1510,7 @@ class GitLabAdapter(GitServiceAdapter):
         sha: str | None = None,
         branch: str | None = None,
     ) -> str | None:
-        payload: dict = {
+        payload: dict[str, Any] = {
             "commit_message": message,
             "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
             "encoding": "base64",
@@ -1536,7 +1540,7 @@ class GitLabAdapter(GitServiceAdapter):
         message: str,
         branch: str | None = None,
     ) -> None:
-        payload: dict = {"commit_message": message}
+        payload: dict[str, Any] = {"commit_message": message}
         if branch is not None:
             payload["branch"] = branch
         self._client.delete(
@@ -1547,7 +1551,7 @@ class GitLabAdapter(GitServiceAdapter):
     # --- Fork ---
 
     def fork_repository(self, *, organization: str | None = None) -> Repository:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if organization is not None:
             payload["namespace_path"] = organization
         resp = self._client.post(f"{self._project_path()}/fork", json=payload)
@@ -1564,7 +1568,7 @@ class GitLabAdapter(GitServiceAdapter):
         return [self._to_webhook(r) for r in results]
 
     def create_webhook(self, *, url: str, events: list[str], secret: str | None = None) -> Webhook:
-        payload: dict = {"url": url}
+        payload: dict[str, Any] = {"url": url}
         event_map = {
             "push": "push_events",
             "issues": "issues_events",
@@ -1597,7 +1601,7 @@ class GitLabAdapter(GitServiceAdapter):
         secret: str | None = None,
         active: bool | None = None,
     ) -> Webhook:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if url is not None:
             payload["url"] = url
         if events is not None:
@@ -1680,7 +1684,7 @@ class GitLabAdapter(GitServiceAdapter):
     # --- Pipeline ---
 
     def list_pipelines(self, *, ref: str | None = None, limit: int = 30) -> list[Pipeline]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if ref is not None:
             params["ref"] = ref
         results = paginate_page_param(
@@ -1702,9 +1706,9 @@ class GitLabAdapter(GitServiceAdapter):
         self._client.delete(f"{self._project_path()}/pipelines/{run_id}")
 
     def trigger_pipeline(
-        self, ref: str, *, workflow: str | None = None, inputs: dict | None = None
+        self, ref: str, *, workflow: str | None = None, inputs: dict[str, Any] | None = None
     ) -> Pipeline:
-        payload: dict = {"ref": ref}
+        payload: dict[str, Any] = {"ref": ref}
         if inputs:
             payload["variables"] = [{"key": k, "value": v} for k, v in inputs.items()]
         resp = self._client.post(f"{self._project_path()}/pipeline", json=payload)
@@ -1736,7 +1740,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- User ---
 
-    def get_current_user(self) -> dict:
+    def get_current_user(self) -> dict[str, Any]:
         resp = self._client.get("/user")
         return dict(resp.json())
 
@@ -1779,7 +1783,7 @@ class GitLabAdapter(GitServiceAdapter):
         self, name: str, value: str, *, scope: str | None = None, masked: bool = False
     ) -> Variable:
         base = self._variables_base_path(scope)
-        payload: dict = {"key": name, "value": value, "masked": masked}
+        payload: dict[str, Any] = {"key": name, "value": value, "masked": masked}
         try:
             self._client.get(f"{base}/{quote(name, safe='')}")
             self._client.put(f"{base}/{quote(name, safe='')}", json=payload)
@@ -1825,7 +1829,7 @@ class GitLabAdapter(GitServiceAdapter):
         allow_force_push: bool | None = None,
         allow_deletions: bool | None = None,
     ) -> BranchProtection:
-        payload: dict = {"name": branch}
+        payload: dict[str, Any] = {"name": branch}
         if allow_force_push is not None:
             payload["allow_force_push"] = allow_force_push
         if require_reviews is not None:
@@ -1837,7 +1841,7 @@ class GitLabAdapter(GitServiceAdapter):
         self._client.delete(f"{self._project_path()}/protected_branches/{quote(branch, safe='')}")
 
     @staticmethod
-    def _to_branch_protection(data: dict) -> BranchProtection:
+    def _to_branch_protection(data: dict[str, Any]) -> BranchProtection:
         return BranchProtection(
             branch=data.get("name") or "",
             require_reviews=data.get("required_approvals", 0) or 0,
@@ -1852,7 +1856,7 @@ class GitLabAdapter(GitServiceAdapter):
     def list_notifications(
         self, *, unread_only: bool = False, limit: int = 30
     ) -> list[Notification]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if unread_only:
             params["state"] = "pending"
         results = paginate_page_param(self._client, "/todos", params=params, limit=limit)
@@ -1866,7 +1870,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_notification(data: dict) -> Notification:
+    def _to_notification(data: dict[str, Any]) -> Notification:
         project = data.get("project") or {}
         return Notification(
             id=str(data["id"]),
@@ -1905,7 +1909,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_organization(data: dict) -> Organization:
+    def _to_organization(data: dict[str, Any]) -> Organization:
         return Organization(
             name=data.get("path") or data.get("full_path") or "",
             display_name=data.get("full_name") or data.get("name") or "",
@@ -1916,7 +1920,7 @@ class GitLabAdapter(GitServiceAdapter):
     def create_organization(
         self, name: str, *, display_name: str | None = None, description: str | None = None
     ) -> Organization:
-        payload: dict = {"name": display_name or name, "path": name}
+        payload: dict[str, Any] = {"name": display_name or name, "path": name}
         if description:
             payload["description"] = description
         resp = self._client.post("/groups", json=payload)
@@ -1938,7 +1942,7 @@ class GitLabAdapter(GitServiceAdapter):
         display_name: str | None = None,
         description: str | None = None,
     ) -> Organization:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if display_name is not None:
             payload["name"] = display_name
         if description is not None:
@@ -1965,7 +1969,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_ssh_key(data: dict) -> SshKey:
+    def _to_ssh_key(data: dict[str, Any]) -> SshKey:
         return SshKey(
             id=data["id"],
             title=data.get("title") or "",
@@ -1991,7 +1995,7 @@ class GitLabAdapter(GitServiceAdapter):
         self._client.delete(f"/user/gpg_keys/{key_id}")
 
     @staticmethod
-    def _to_gpg_key(data: dict) -> GpgKey:
+    def _to_gpg_key(data: dict[str, Any]) -> GpgKey:
         return GpgKey(
             id=data["id"],
             primary_key_id=data.get("primary_key_id") or "",
@@ -2020,7 +2024,7 @@ class GitLabAdapter(GitServiceAdapter):
     def create_tag_protection(
         self, pattern: str, *, create_access_level: str | None = None
     ) -> TagProtection:
-        payload: dict = {"name": pattern}
+        payload: dict[str, Any] = {"name": pattern}
         if create_access_level is not None:
             payload["create_access_level"] = create_access_level
         resp = self._client.post(f"{self._project_path()}/protected_tags", json=payload)
@@ -2132,7 +2136,7 @@ class GitLabAdapter(GitServiceAdapter):
         title: str | None = None,
         content: str | None = None,
     ) -> WikiPage:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["title"] = title
         if content is not None:
@@ -2308,7 +2312,7 @@ class GitLabAdapter(GitServiceAdapter):
     def search_pull_requests(
         self, query: str, *, state: str | None = None, limit: int = 30
     ) -> list[PullRequest]:
-        params: dict = {"search": query}
+        params: dict[str, Any] = {"search": query}
         if state and state != "all":
             state_map = {"open": "opened", "closed": "closed", "merged": "merged"}
             params["state"] = state_map.get(state, state)
@@ -2331,7 +2335,7 @@ class GitLabAdapter(GitServiceAdapter):
         until: str | None = None,
         limit: int = 30,
     ) -> list[Commit]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if query:
             params["search"] = query
         if author:
@@ -2360,7 +2364,7 @@ class GitLabAdapter(GitServiceAdapter):
     # --- Package ---
 
     def list_packages(self, *, package_type: str | None = None, limit: int = 30) -> list[Package]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if package_type:
             params["package_type"] = package_type
         results = paginate_page_param(
@@ -2475,7 +2479,11 @@ class GitLabAdapter(GitServiceAdapter):
         sync_on_commit: bool = True,
         auth_token: str | None = None,
     ) -> PushMirror:
-        payload: dict = {"url": remote_address, "enabled": True, "only_protected_branches": False}
+        payload: dict[str, Any] = {
+            "url": remote_address,
+            "enabled": True,
+            "only_protected_branches": False,
+        }
         resp = self._client.post(f"{self._project_path()}/remote_mirrors", json=payload)
         m = resp.json()
         return PushMirror(
