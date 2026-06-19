@@ -1,19 +1,19 @@
-# セキュリティポリシー
+# Security Policy
 
-## 脆弱性の報告
+## Reporting a Vulnerability
 
-gfo に脆弱性を見つけた場合は、**GitHub の Private vulnerability reporting** から非公開で報告してください。
+If you find a security vulnerability in gfo, please report it privately via **GitHub Private vulnerability reporting**:
 
-- このリポジトリの **Security** タブ → **Report a vulnerability**
-  （直接リンク: <https://github.com/prata0x/gfo/security/advisories/new>）
-- **公開 issue は作成しないでください**（脆弱性の詳細が公になります）。
+- Go to the **Security** tab → **Report a vulnerability**
+  (direct link: <https://github.com/prata0x/gfo/security/advisories/new>)
+- **Do not open a public issue** — it would disclose the vulnerability details.
 
-報告後は、非公開のセキュリティアドバイザリ上で確認・修正方針をやり取りします。
+After you report, we will discuss confirmation and remediation on the private security advisory.
 
-## 対象バージョン
+## Supported Versions
 
-最新リリースのみをサポート対象とします。
+Only the latest release is supported.
 
-## トークンの取り扱い
+## Handling Tokens
 
-gfo は各 Git ホスティングサービスのトークンを扱います。**トークンや認証情報を issue / PR / ログ / スクリーンショットに含めないでください。**
+gfo handles authentication tokens for various Git hosting services. **Never include tokens or credentials in issues, pull requests, logs, or screenshots.**
