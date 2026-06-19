@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import urllib.parse
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 
@@ -81,7 +81,7 @@ class BacklogAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_pull_request(data: dict, merged_status_id: int | None = None) -> PullRequest:
+    def _to_pull_request(data: dict[str, Any], merged_status_id: int | None = None) -> PullRequest:
         status_id = (data.get("status") or {}).get("id", 1)
         if status_id == _STATUS_CLOSED_ID:
             state = "closed"
@@ -108,7 +108,7 @@ class BacklogAdapter(GitServiceAdapter):
         )
 
     @staticmethod
-    def _to_issue(data: dict) -> Issue:
+    def _to_issue(data: dict[str, Any]) -> Issue:
         try:
             status_id = (data.get("status") or {}).get("id", 1)
             state = "closed" if status_id == _STATUS_CLOSED_ID else "open"
@@ -140,7 +140,7 @@ class BacklogAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_repository(data: dict) -> Repository:
+    def _to_repository(data: dict[str, Any]) -> Repository:
         return Repository(
             name=data["name"],
             full_name=data.get("displayName", data["name"]),
@@ -178,7 +178,7 @@ class BacklogAdapter(GitServiceAdapter):
             draft=draft,
             milestone=milestone,
         )
-        params: dict = {}
+        params: dict[str, Any] = {}
         merged_id: int | None = None
         if state == "merged":
             merged_id = self._resolve_merged_status_id()
@@ -268,7 +268,7 @@ class BacklogAdapter(GitServiceAdapter):
     ) -> list[Issue]:
         self._warn_unsupported_params("issue list", author=author, milestone=milestone)
         project_id = self._ensure_project_id()
-        params: dict = {"projectId[]": project_id}
+        params: dict[str, Any] = {"projectId[]": project_id}
         if state == "open":
             params["statusId[]"] = _STATUS_OPEN_IDS
         elif state == "closed":
@@ -345,7 +345,7 @@ class BacklogAdapter(GitServiceAdapter):
                 "Cannot create issue: no priorities found. Configure priorities in Backlog."
             )
 
-        payload: dict = {
+        payload: dict[str, Any] = {
             "projectId": project_id,
             "summary": title,
             "issueTypeId": issue_type,
@@ -411,7 +411,7 @@ class BacklogAdapter(GitServiceAdapter):
     ) -> Repository:
         self._warn_unsupported_params("repo create", auto_init=auto_init)
         # visibility, organization は Backlog ではプロジェクトスコープのため無視
-        payload: dict = {"name": name}
+        payload: dict[str, Any] = {"name": name}
         if description:
             payload["description"] = description
         resp = self._client.post(f"/projects/{self._project_key}/git/repositories", json=payload)
@@ -473,7 +473,7 @@ class BacklogAdapter(GitServiceAdapter):
         due_date: str | None = None,
         state: str | None = None,
     ) -> Milestone:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["name"] = title
         if description is not None:
@@ -496,7 +496,7 @@ class BacklogAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_comment(data: dict) -> Comment:
+    def _to_comment(data: dict[str, Any]) -> Comment:
 
         created_user = data.get("createdUser") or {}
         return Comment(
@@ -510,7 +510,7 @@ class BacklogAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_branch(data: dict) -> Branch:
+    def _to_branch(data: dict[str, Any]) -> Branch:
 
         return Branch(
             name=data["name"],
@@ -521,7 +521,7 @@ class BacklogAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_tag(data: dict) -> Tag:
+    def _to_tag(data: dict[str, Any]) -> Tag:
 
         return Tag(
             name=data["name"],
@@ -532,7 +532,7 @@ class BacklogAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_webhook(data: dict) -> Webhook:
+    def _to_webhook(data: dict[str, Any]) -> Webhook:
 
         # Backlog webhook の allEvent または events フィールド
         events = tuple(data.get("events") or [])
@@ -545,7 +545,7 @@ class BacklogAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_wiki_page(data: dict) -> WikiPage:
+    def _to_wiki_page(data: dict[str, Any]) -> WikiPage:
 
         return WikiPage(
             id=data["id"],
@@ -617,7 +617,7 @@ class BacklogAdapter(GitServiceAdapter):
             milestone=milestone,
             draft=draft,
         )
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["summary"] = title
         if body is not None:
@@ -652,7 +652,7 @@ class BacklogAdapter(GitServiceAdapter):
             remove_assignees=remove_assignees,
             milestone=milestone,
         )
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["summary"] = title
         if body is not None:
@@ -723,7 +723,7 @@ class BacklogAdapter(GitServiceAdapter):
         return [self._to_tag(r) for r in results]
 
     def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
-        payload: dict = {"name": name, "startPoint": ref}
+        payload: dict[str, Any] = {"name": name, "startPoint": ref}
         if message:
             payload["message"] = message
         resp = self._client.post(
@@ -742,7 +742,7 @@ class BacklogAdapter(GitServiceAdapter):
         return []
 
     def create_webhook(self, *, url: str, events: list[str], secret: str | None = None) -> Webhook:
-        payload: dict = {"hookUrl": url, "allEvent": True if not events else False}
+        payload: dict[str, Any] = {"hookUrl": url, "allEvent": True if not events else False}
         if events:
             payload["events"] = [{"type": e} for e in events]
         if secret is not None:
@@ -762,7 +762,7 @@ class BacklogAdapter(GitServiceAdapter):
         secret: str | None = None,
         active: bool | None = None,
     ) -> Webhook:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if url is not None:
             payload["hookUrl"] = url
         if events is not None:
@@ -799,7 +799,7 @@ class BacklogAdapter(GitServiceAdapter):
 
     # --- User ---
 
-    def get_current_user(self) -> dict:
+    def get_current_user(self) -> dict[str, Any]:
         resp = self._client.get("/users/myself")
         return dict(resp.json())
 
@@ -808,7 +808,7 @@ class BacklogAdapter(GitServiceAdapter):
     def list_notifications(
         self, *, unread_only: bool = False, limit: int = 30
     ) -> list[Notification]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if unread_only:
             params["resourceAlreadyRead"] = "false"
         results = paginate_offset(self._client, "/notifications", params=params, limit=limit)
@@ -822,7 +822,7 @@ class BacklogAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_notification(data: dict) -> Notification:
+    def _to_notification(data: dict[str, Any]) -> Notification:
         comment = data.get("comment") or {}
         issue = comment.get("issue") or data.get("issue") or {}
         return Notification(
@@ -904,7 +904,7 @@ class BacklogAdapter(GitServiceAdapter):
         title: str | None = None,
         content: str | None = None,
     ) -> WikiPage:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["name"] = title
         if content is not None:
