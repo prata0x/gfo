@@ -15,7 +15,7 @@ from __future__ import annotations
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from gfo.adapter._helpers import _mask_token_in_exception, _wrap_conversion_error
 from gfo.adapter.models import (
@@ -718,7 +718,7 @@ class GitServiceAdapter(ABC):
         raise NotSupportedError(self.service_name, "ci cancel")
 
     def trigger_pipeline(
-        self, ref: str, *, workflow: str | None = None, inputs: dict | None = None
+        self, ref: str, *, workflow: str | None = None, inputs: dict[str, Any] | None = None
     ) -> Pipeline:
         raise NotSupportedError(self.service_name, "ci trigger")
 
@@ -756,7 +756,7 @@ class GitServiceAdapter(ABC):
         raise NotSupportedError(self.service_name, "ci download")
 
     # --- User ---
-    def get_current_user(self) -> dict:
+    def get_current_user(self) -> dict[str, Any]:
         raise NotSupportedError(self.service_name, "user whoami")
 
     def get_current_username(self) -> str:
