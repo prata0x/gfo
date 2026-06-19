@@ -215,6 +215,48 @@ class TestWebUrl:
         assert "my%20repo" in exc_info.value.web_url
 
 
+class TestCreateWebhook:
+    """Gogs は type:"gogs" 固有ペイロードで webhook を作成する。"""
+
+    def _hook_response(self, *, hook_id=5, url="https://example.com/hook"):
+        return {
+            "id": hook_id,
+            "type": "gogs",
+            "config": {"url": url, "content_type": "json"},
+            "events": ["push"],
+            "active": True,
+        }
+
+    def test_payload_shape(self, mock_responses, gogs_adapter):
+        import json as json_mod
+
+        mock_responses.add(responses.POST, f"{REPOS}/hooks", json=self._hook_response(), status=201)
+        hook = gogs_adapter.create_webhook(url="https://example.com/hook")
+        assert hook.id == 5
+        req_body = json_mod.loads(mock_responses.calls[0].request.body)
+        # Gogs 固有: type="gogs"、config.content_type="json"、events デフォルト ["push"]。
+        assert req_body["type"] == "gogs"
+        assert req_body["config"]["url"] == "https://example.com/hook"
+        assert req_body["config"]["content_type"] == "json"
+        assert req_body["events"] == ["push"]
+        assert req_body["active"] is True
+        # secret 未指定なら config に含めない。
+        assert "secret" not in req_body["config"]
+
+    def test_with_secret_and_custom_events(self, mock_responses, gogs_adapter):
+        import json as json_mod
+
+        mock_responses.add(responses.POST, f"{REPOS}/hooks", json=self._hook_response(), status=201)
+        gogs_adapter.create_webhook(
+            url="https://example.com/hook",
+            events=["push", "pull_request"],
+            secret="s3cr3t",
+        )
+        req_body = json_mod.loads(mock_responses.calls[0].request.body)
+        assert req_body["config"]["secret"] == "s3cr3t"
+        assert req_body["events"] == ["push", "pull_request"]
+
+
 class TestInheritedOperations:
     def test_create_issue(self, mock_responses, gogs_adapter):
         mock_responses.add(

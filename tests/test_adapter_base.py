@@ -374,3 +374,68 @@ class TestGetCurrentUsername:
         """login が最優先で、他のキーより先にチェックされることを確認。"""
         adapter = self._make_adapter({"login": "first", "username": "second"})
         assert adapter.get_current_username() == "first"
+
+
+class TestDefaultTopicMethods:
+    """add_topic / remove_topic のデフォルト実装（list_topics + set_topics）の分岐。
+
+    override 版（github/gitea/gitlab）はテスト済みだが、base.py のデフォルト実装の
+    early-return 分岐（既存 topic を add / 不在 topic を remove）が未到達のため埋める。
+    """
+
+    def _make_adapter(self, current_topics: list[str]):
+        adapter = TestGitServiceAdapterDeleteDefaults()._make_adapter()
+        adapter.list_topics = lambda: list(current_topics)
+        adapter.set_topics = MagicMock(side_effect=lambda topics: topics)
+        return adapter
+
+    def test_add_topic_appends_when_absent(self):
+        adapter = self._make_adapter(["a", "b"])
+        result = adapter.add_topic("c")
+        assert result == ["a", "b", "c"]
+        adapter.set_topics.assert_called_once_with(["a", "b", "c"])
+
+    def test_add_topic_noop_when_present(self):
+        """既存 topic を add すると set_topics を呼ばず現状を返す（early-return）。"""
+        adapter = self._make_adapter(["a", "b"])
+        result = adapter.add_topic("a")
+        assert result == ["a", "b"]
+        adapter.set_topics.assert_not_called()
+
+    def test_remove_topic_removes_when_present(self):
+        adapter = self._make_adapter(["a", "b"])
+        result = adapter.remove_topic("a")
+        assert result == ["b"]
+        adapter.set_topics.assert_called_once_with(["b"])
+
+    def test_remove_topic_noop_when_absent(self):
+        """不在 topic を remove すると set_topics を呼ばず現状を返す（early-return）。"""
+        adapter = self._make_adapter(["a", "b"])
+        result = adapter.remove_topic("c")
+        assert result == ["a", "b"]
+        adapter.set_topics.assert_not_called()
+
+
+class TestResolveMilestoneIdByTitle:
+    """_resolve_milestone_id_by_title のデフォルト実装（list_milestones ループ）。"""
+
+    def _make_adapter(self, milestones: list[Milestone]):
+        adapter = TestGitServiceAdapterDeleteDefaults()._make_adapter()
+        adapter.list_milestones = lambda *, limit=0: milestones
+        return adapter
+
+    def test_found_returns_number(self):
+        adapter = self._make_adapter(
+            [
+                Milestone(number=3, title="v1.0", description=None, state="open", due_date=None),
+                Milestone(number=7, title="v2.0", description=None, state="open", due_date=None),
+            ]
+        )
+        assert adapter._resolve_milestone_id_by_title("v2.0") == 7
+
+    def test_not_found_raises(self):
+        from gfo.exceptions import GfoError
+
+        adapter = self._make_adapter([])
+        with pytest.raises(GfoError, match="Milestone not found"):
+            adapter._resolve_milestone_id_by_title("nope")
