@@ -49,7 +49,7 @@ from gfo import __version__
 from gfo._context import cli_account, cli_remote, cli_repo
 from gfo.config import get_configured_output_format
 from gfo.exceptions import ConfigError, GfoError, NotSupportedError
-from gfo.i18n import _
+from gfo.i18n import _ as _
 from gfo.output import format_error_json
 
 
