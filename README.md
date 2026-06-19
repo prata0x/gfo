@@ -2,6 +2,9 @@
 
 # gfo – Git Forge Operator
 
+[![CI](https://github.com/prata0x/gfo/actions/workflows/ci.yml/badge.svg)](https://github.com/prata0x/gfo/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/prata0x/gfo/actions/workflows/codeql.yml/badge.svg)](https://github.com/prata0x/gfo/actions/workflows/codeql.yml)
+
 A CLI tool to operate multiple Git hosting services with a **unified command interface**.
 
 - Operate 9 services with the same commands (GitHub, GitLab, Bitbucket, Azure DevOps, Backlog, Gitea, Forgejo, Gogs, GitBucket)
