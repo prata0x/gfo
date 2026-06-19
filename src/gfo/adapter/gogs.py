@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import urllib.parse
 from collections.abc import Iterator
+from typing import Any
 from urllib.parse import quote
 
 from gfo.exceptions import NotSupportedError
@@ -388,10 +389,10 @@ class GogsAdapter(GiteaAdapter):
         events: list[str] | None = None,
         secret: str | None = None,
     ) -> Webhook:
-        config: dict = {"url": url, "content_type": "json"}
+        config: dict[str, str] = {"url": url, "content_type": "json"}
         if secret is not None:
             config["secret"] = secret
-        payload: dict = {
+        payload: dict[str, Any] = {
             "config": config,
             "events": events or ["push"],
             "active": True,
