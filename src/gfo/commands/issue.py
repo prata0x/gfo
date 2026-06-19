@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from gfo.commands import (
     create_adapter_from_spec,
@@ -75,7 +75,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     if not title:
         raise ConfigError(_("--title must not be empty."))
 
-    kwargs: dict = {}
+    kwargs: dict[str, Any] = {}
     if args.type:
         if config.service_type == "azure-devops":
             kwargs["work_item_type"] = args.type

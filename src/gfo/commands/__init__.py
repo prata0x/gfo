@@ -174,7 +174,7 @@ def create_adapter_from_spec(spec: ServiceSpec) -> GitServiceAdapter:
     token = gfo.auth.resolve_token(spec.host, spec.service_type)
     client = gfo.adapter.registry.create_http_client(spec.service_type, api_url, token)
     adapter_cls = gfo.adapter.registry.get_adapter_class(spec.service_type)
-    kwargs: dict = {}
+    kwargs: dict[str, str] = {}
     if spec.service_type == "backlog" and spec.project_key:
         kwargs["project_key"] = spec.project_key
     elif spec.service_type == "azure-devops":

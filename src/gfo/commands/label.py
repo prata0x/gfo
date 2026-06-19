@@ -96,7 +96,7 @@ def handle_clone(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     )
     client = gfo.adapter.registry.create_http_client(config.service_type, api_url, token)
     adapter_cls = gfo.adapter.registry.get_adapter_class(config.service_type)
-    extra_kwargs: dict = {}
+    extra_kwargs: dict[str, str] = {}
     if config.service_type == "backlog" and config.project_key:
         extra_kwargs["project_key"] = config.project_key
     elif config.service_type == "azure-devops":

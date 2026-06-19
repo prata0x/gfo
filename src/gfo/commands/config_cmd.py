@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from typing import Any
 
 from gfo.config import (
     get_config_path,
@@ -76,7 +77,7 @@ def handle_path(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         print(path)
 
 
-def _flatten(data: dict, prefix: str = "") -> list[tuple[str, str]]:
+def _flatten(data: dict[str, Any], prefix: str = "") -> list[tuple[str, str]]:
     """ネストされた dict をフラットな (キー, 値) リストに変換する。
 
     ドットを含むキーは引用符で囲み、出力をそのまま get/set/unset に渡せるようにする。
