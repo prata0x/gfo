@@ -15,7 +15,7 @@ from __future__ import annotations
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from gfo.adapter._helpers import _mask_token_in_exception, _wrap_conversion_error
 from gfo.adapter.models import (
@@ -124,7 +124,7 @@ class GitServiceAdapter(ABC):
     # キー: "pr" | "issue" | "release" | "milestone" | "settings" 等。
     # 値: (list_path, detail_path)。detail_path が空文字列の場合は number 指定時も
     # list_path を返す (例: settings はリスト/詳細の区別なし)。
-    _WEB_URL_PATHS: dict[str, tuple[str, str]] = {}
+    _WEB_URL_PATHS: ClassVar[dict[str, tuple[str, str]]] = {}
 
     def __init__(self, client: HttpClient, owner: str, repo: str, **kwargs: object) -> None:
         # **kwargs はサービス固有パラメータ（BacklogAdapter の project_key、

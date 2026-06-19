@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 from collections.abc import Iterable, Iterator
+from typing import ClassVar
 from urllib.parse import quote
 
 import requests
@@ -1945,7 +1946,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- Browse ---
 
-    _WEB_URL_PATHS = {
+    _WEB_URL_PATHS: ClassVar[dict[str, tuple[str, str]]] = {
         "pr": ("pulls", "pull"),
         "issue": ("issues", "issues"),
         "release": ("releases", "releases/tag"),

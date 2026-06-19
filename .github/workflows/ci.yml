@@ -4,6 +4,11 @@
 # Runner: gfo は public リポジトリで GitHub Actions が無料のため、全ジョブを GitHub-hosted の
 # ubuntu-latest で回す (self-hosted は使わない)。
 #
+# Python バージョン: 対応下限 (min) と最新 (max) の 2 つを matrix で並列検証する。
+# job 名にバージョン番号を入れず min/max ラベルにするのは、版を上げても check 名 (= Ruleset の
+# 必須ステータスチェック名) が変わらないようにするため。さらに matrix を束ねる安定名 "ci" の
+# aggregate gate job を置き、Ruleset の必須チェックは "ci" 一本で固定する (版更新で再設定不要)。
+#
 # 統合テストは実サービス (GitHub/GitLab 等) へアクセスするため CI では実行しない。
 # pytest 設定 (pyproject.toml の addopts) で tests/integration を除外済み。
 #
@@ -23,11 +28,28 @@ on:
 permissions:
   contents: read
 
+# 同一 ref への連続 push では古い run をキャンセルし、無駄な実行を避ける。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  ci:
+  test:
+    name: test (${{ matrix.label }})
     runs-on: ubuntu-latest
+    # ハング時の保険。通常 1 分前後で終わる。
+    timeout-minutes: 15
     permissions:
       contents: read
+    strategy:
+      # 一方が落ちても他方の結果を見たいので fail-fast しない。
+      fail-fast: false
+      matrix:
+        include:
+          # min = 対応下限 / max = 最新。版を上げる時は python-version だけ差し替える
+          # (label は変えない → check 名が安定し Ruleset 再設定が不要)。
+          - { label: min, python-version: "3.11" }
+          - { label: max, python-version: "3.13" }
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -50,8 +72,9 @@ jobs:
 
       # uv.lock どおりに frozen install する。lock が古ければ fail (lockfile 整合性ゲート)。
       # dev は dependency-groups で定義されており uv sync が既定でインストールする。
-      - name: Install dependencies (frozen)
-        run: uv sync --locked
+      # --python で matrix のバージョンに .venv を作る (mise の既定 python を上書き)。
+      - name: Install dependencies (frozen, python ${{ matrix.python-version }})
+        run: uv sync --locked --python ${{ matrix.python-version }}
 
       # 違反を GitHub Actions の annotation 形式で PR diff に inline 表示し、違反で fail。
       - name: Lint (ruff)
@@ -68,3 +91,21 @@ jobs:
 
       - name: Unit tests (pytest)
         run: uv run pytest -q
+
+  # matrix を束ねる安定名の必須チェック。Ruleset は "ci" だけを Require すればよく、
+  # テスト対象バージョンを増減しても再設定不要。
+  ci:
+    name: ci
+    needs: [test]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Gate on test matrix result
+        run: |
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "::error::test matrix did not succeed (result=${{ needs.test.result }})"
+            exit 1
+          fi
