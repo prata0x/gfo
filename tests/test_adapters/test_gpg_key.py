@@ -340,50 +340,22 @@ class TestGiteaGpgKey:
 
 
 class TestGpgKeyNotSupported:
-    def test_azure_devops_list(self, azure_devops_adapter):
-        with pytest.raises(NotSupportedError):
-            azure_devops_adapter.list_gpg_keys()
+    """GPG key API 非対応サービスは全操作で NotSupportedError を送出する。"""
 
-    def test_azure_devops_create(self, azure_devops_adapter):
+    @pytest.mark.parametrize(
+        "adapter_fixture",
+        ["azure_devops_adapter", "gitbucket_adapter", "backlog_adapter", "gogs_adapter"],
+    )
+    @pytest.mark.parametrize(
+        "call",
+        [
+            lambda a: a.list_gpg_keys(),
+            lambda a: a.create_gpg_key(armored_key="k"),
+            lambda a: a.delete_gpg_key(key_id=1),
+        ],
+        ids=["list", "create", "delete"],
+    )
+    def test_raises_not_supported(self, request, adapter_fixture, call):
+        adapter = request.getfixturevalue(adapter_fixture)
         with pytest.raises(NotSupportedError):
-            azure_devops_adapter.create_gpg_key(armored_key="k")
-
-    def test_azure_devops_delete(self, azure_devops_adapter):
-        with pytest.raises(NotSupportedError):
-            azure_devops_adapter.delete_gpg_key(key_id=1)
-
-    def test_gitbucket_list(self, gitbucket_adapter):
-        with pytest.raises(NotSupportedError):
-            gitbucket_adapter.list_gpg_keys()
-
-    def test_gitbucket_create(self, gitbucket_adapter):
-        with pytest.raises(NotSupportedError):
-            gitbucket_adapter.create_gpg_key(armored_key="k")
-
-    def test_gitbucket_delete(self, gitbucket_adapter):
-        with pytest.raises(NotSupportedError):
-            gitbucket_adapter.delete_gpg_key(key_id=1)
-
-    def test_backlog_list(self, backlog_adapter):
-        with pytest.raises(NotSupportedError):
-            backlog_adapter.list_gpg_keys()
-
-    def test_backlog_create(self, backlog_adapter):
-        with pytest.raises(NotSupportedError):
-            backlog_adapter.create_gpg_key(armored_key="k")
-
-    def test_backlog_delete(self, backlog_adapter):
-        with pytest.raises(NotSupportedError):
-            backlog_adapter.delete_gpg_key(key_id=1)
-
-    def test_gogs_list(self, gogs_adapter):
-        with pytest.raises(NotSupportedError):
-            gogs_adapter.list_gpg_keys()
-
-    def test_gogs_create(self, gogs_adapter):
-        with pytest.raises(NotSupportedError):
-            gogs_adapter.create_gpg_key(armored_key="k")
-
-    def test_gogs_delete(self, gogs_adapter):
-        with pytest.raises(NotSupportedError):
-            gogs_adapter.delete_gpg_key(key_id=1)
+            call(adapter)
