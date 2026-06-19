@@ -41,7 +41,9 @@ def test_get_config_dir_windows():
     ):
         mock_sys.platform = "win32"
         result = get_config_dir()
-        assert result == Path(r"C:\Users\test\AppData\Roaming\gfo")
+        # セパレータ差で OS 非依存に比較する (Linux/WSL では Path 結合が `/` になり
+        # リテラル `...\gfo` と一致しないため、同じ join 演算で期待値を作る)
+        assert result == Path(r"C:\Users\test\AppData\Roaming") / "gfo"
 
 
 def test_get_config_dir_windows_no_appdata():
