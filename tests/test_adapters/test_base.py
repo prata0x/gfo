@@ -6,6 +6,7 @@ import pytest
 
 from gfo.adapter.base import GitServiceAdapter
 from gfo.exceptions import NotSupportedError
+from tests.conftest import StubAdapter
 
 EXPECTED_ABSTRACT_METHODS = frozenset(
     {
@@ -35,84 +36,6 @@ EXPECTED_ABSTRACT_METHODS = frozenset(
         "create_branch",
     }
 )
-
-
-class StubAdapter(GitServiceAdapter):
-    """全抽象メソッドをスタブ実装した具象サブクラス。"""
-
-    service_name = "stub"
-
-    def list_pull_requests(self, *, state="open", limit=30):
-        return []
-
-    def create_pull_request(self, *, title, body="", base, head, draft=False):
-        return None  # type: ignore[return-value]
-
-    def get_pull_request(self, number):
-        return None  # type: ignore[return-value]
-
-    def merge_pull_request(self, number, *, method="merge", title=None, message=None):
-        return None
-
-    def close_pull_request(self, number):
-        return None
-
-    def list_issues(self, *, state="open", assignee=None, label=None, limit=30):
-        return []
-
-    def create_issue(self, *, title, body="", assignee=None, label=None, **kwargs):
-        return None  # type: ignore[return-value]
-
-    def get_issue(self, number):
-        return None  # type: ignore[return-value]
-
-    def close_issue(self, number):
-        return None
-
-    def list_repositories(self, *, owner=None, limit=30):
-        return []
-
-    def create_repository(self, *, name, visibility="public", description=""):
-        return None  # type: ignore[return-value]
-
-    def get_repository(self, owner=None, name=None):
-        return None  # type: ignore[return-value]
-
-    def list_releases(self, *, limit=30):
-        return []
-
-    def create_release(self, *, tag, title="", notes="", draft=False, prerelease=False):
-        return None  # type: ignore[return-value]
-
-    def list_labels(self):
-        return []
-
-    def create_label(self, *, name, color=None, description=None):
-        return None  # type: ignore[return-value]
-
-    def list_milestones(self):
-        return []
-
-    def create_milestone(self, *, title, description=None, due_date=None):
-        return None  # type: ignore[return-value]
-
-    def list_comments(self, resource, number, *, limit=30):
-        return []
-
-    def create_comment(self, resource, number, *, body):
-        return None  # type: ignore[return-value]
-
-    def update_pull_request(self, number, *, title=None, body=None, base=None):
-        return None  # type: ignore[return-value]
-
-    def update_issue(self, number, *, title=None, body=None, assignee=None, label=None):
-        return None  # type: ignore[return-value]
-
-    def list_branches(self, *, limit=30):
-        return []
-
-    def create_branch(self, *, name, ref):
-        return None  # type: ignore[return-value]
 
 
 class TestAbstractMethods:
