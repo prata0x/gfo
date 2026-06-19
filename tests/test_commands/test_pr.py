@@ -81,20 +81,9 @@ class TestHandleList:
             milestone=None,
         )
 
-    def test_default_filter_params_are_none(self, sample_config, mock_adapter, capsys):
-        args = make_args(state="open", limit=30)
-        with _patch_all(sample_config, mock_adapter):
-            pr_cmd.handle_list(args, fmt="table")
-
-        call_kwargs = mock_adapter.list_pull_requests.call_args.kwargs
-        assert call_kwargs["author"] is None
-        assert call_kwargs["label"] is None
-        assert call_kwargs["assignee"] is None
-        assert call_kwargs["search"] is None
-        assert call_kwargs["base"] is None
-        assert call_kwargs["head"] is None
-        assert call_kwargs["draft"] is None
-        assert call_kwargs["milestone"] is None
+    # NOTE: フィルタ未指定時に全 filter kwargs が None になることは
+    # test_calls_list_pull_requests の assert_called_once_with(...) が完全に検証済み。
+    # 同内容を個別 assert で重複させていた test_default_filter_params_are_none は削除。
 
     def test_outputs_results(self, sample_config, mock_adapter, capsys):
         args = make_args(state="open", limit=30)
