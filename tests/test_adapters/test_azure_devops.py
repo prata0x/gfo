@@ -12,6 +12,7 @@ from gfo.adapter.azure_devops import (
     AzureDevOpsAdapter,
     _add_refs_prefix,
     _strip_refs_prefix,
+    _wiql_escape,
 )
 from gfo.adapter.base import (
     Branch,
@@ -1055,6 +1056,25 @@ class TestRefsPrefix:
 
     def test_roundtrip(self):
         assert _strip_refs_prefix(_add_refs_prefix("feature/xyz")) == "feature/xyz"
+
+
+# --- WIQL エスケープ (インジェクション対策) ---
+
+
+class TestWiqlEscape:
+    def test_no_quote_unchanged(self):
+        assert _wiql_escape("bug") == "bug"
+
+    def test_empty(self):
+        assert _wiql_escape("") == ""
+
+    def test_single_quote_doubled(self):
+        # WIQL 文字列リテラルはシングルクォートを '' で表現する
+        assert _wiql_escape("O'Brien") == "O''Brien"
+
+    def test_injection_attempt_neutralized(self):
+        # クォートで文字列を抜け出そうとする入力は全クォートが倍化され閉じ込められる
+        assert _wiql_escape("x' OR '1'='1") == "x'' OR ''1''=''1"
 
 
 # --- Registry ---

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 from collections.abc import Iterable, Iterator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 from urllib.parse import quote
 
 import requests
@@ -2040,7 +2040,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- Browse ---
 
-    _WEB_URL_PATHS = {
+    _WEB_URL_PATHS: ClassVar[dict[str, tuple[str, str]]] = {
         "pr": ("-/merge_requests", "-/merge_requests"),
         "issue": ("-/issues", "-/issues"),
         "release": ("-/releases", "-/releases"),
@@ -2148,7 +2148,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- Issue Reactions (Award Emoji API) ---
 
-    _REACTION_TO_EMOJI = {
+    _REACTION_TO_EMOJI: ClassVar[dict[str, str]] = {
         "+1": "thumbsup",
         "-1": "thumbsdown",
         "laugh": "laughing",
@@ -2158,7 +2158,7 @@ class GitLabAdapter(GitServiceAdapter):
         "rocket": "rocket",
         "eyes": "eyes",
     }
-    _EMOJI_TO_REACTION = {v: k for k, v in _REACTION_TO_EMOJI.items()}
+    _EMOJI_TO_REACTION: ClassVar[dict[str, str]] = {v: k for k, v in _REACTION_TO_EMOJI.items()}
 
     def list_issue_reactions(self, number: int) -> list[Reaction]:
         results = paginate_page_param(
