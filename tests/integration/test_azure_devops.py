@@ -150,7 +150,7 @@ class TestAzureDevOpsIntegration:
         self.adapter.merge_pull_request(self._pr_number, method="merge")
         # Azure DevOps のマージは非同期の場合があるためポーリングして確認
         pr = None
-        for i in range(30):
+        for _ in range(30):
             pr = self.adapter.get_pull_request(self._pr_number)
             if pr.state == "merged":
                 break

@@ -31,7 +31,7 @@ from gfo.adapter.models import (
 )
 
 
-class GitHubLikeAdapter(ABC):
+class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない変換ヘルパー Mixin (ABC は直接インスタンス化防止のため)
     """GitHub API 互換サービス（GitHub/Gitea 系）向け共通変換ヘルパー。
 
     GitHubAdapter・GiteaAdapter・GitBucketAdapter・ForgejoAdapter が共有する
