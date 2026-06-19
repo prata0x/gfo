@@ -21,6 +21,9 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/prata0x/gfo"
 "Source Code" = "https://github.com/prata0x/gfo"
+Documentation = "https://github.com/prata0x/gfo#readme"
+Changelog = "https://github.com/prata0x/gfo/blob/main/CHANGELOG.md"
+Issues = "https://github.com/prata0x/gfo/issues"
 
 [project.scripts]
 gfo = "gfo.cli:main"
