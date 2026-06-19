@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 from collections.abc import Iterable, Iterator
-from typing import ClassVar
+from typing import Any, ClassVar
 from urllib.parse import quote
 
 import requests
@@ -81,7 +81,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         api_state = (
             "closed" if state == "merged" else state
         )  # GitHub API に merged パラメータはなく closed で代用
-        params: dict = {"state": api_state}
+        params: dict[str, Any] = {"state": api_state}
         if base:
             params["base"] = base
         if head:
@@ -141,10 +141,16 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         labels: list[str] | None = None,
         milestone: str | None = None,
     ) -> PullRequest:
-        payload: dict = {"title": title, "body": body, "base": base, "head": head, "draft": draft}
+        payload: dict[str, Any] = {
+            "title": title,
+            "body": body,
+            "base": base,
+            "head": head,
+            "draft": draft,
+        }
         resp = self._client.post(f"{self._repos_path()}/pulls", json=payload)
         pr = self._to_pull_request(resp.json())
-        patch_payload: dict = {}
+        patch_payload: dict[str, Any] = {}
         if labels:
             patch_payload["labels"] = labels
         if assignees:
@@ -171,7 +177,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         title: str | None = None,
         message: str | None = None,
     ) -> None:
-        payload: dict = {"merge_method": method}
+        payload: dict[str, Any] = {"merge_method": method}
         if title is not None:
             payload["commit_title"] = title
         if message is not None:
@@ -215,7 +221,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         milestone: str | None = None,
         search: str | None = None,
     ) -> list[Issue]:
-        params: dict = {"state": state}
+        params: dict[str, Any] = {"state": state}
         if assignee is not None:
             params["assignee"] = assignee
         if label is not None:
@@ -257,7 +263,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         **kwargs: object,
     ) -> Issue:
         self._warn_unsupported_params("issue create", due_date=due_date)
-        payload: dict = {"title": title, "body": body}
+        payload: dict[str, Any] = {"title": title, "body": body}
         if assignee is not None:
             payload["assignees"] = [assignee]
         if label is not None:
@@ -358,7 +364,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         archived: bool | None = None,
         visibility: str | None = None,
     ) -> list[Repository]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if owner is not None:
             path = f"/users/{quote(owner, safe='')}/repos"
         else:
@@ -386,7 +392,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         auto_init: bool = False,
         organization: str | None = None,
     ) -> Repository:
-        payload: dict = {"name": name, "description": description}
+        payload: dict[str, Any] = {"name": name, "description": description}
         if visibility == "internal":
             payload["visibility"] = "internal"
         else:
@@ -422,7 +428,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         allow_rebase_merge: bool | None = None,
         delete_branch_on_merge: bool | None = None,
     ) -> Repository:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if name is not None:
             payload["name"] = name
         if description is not None:
@@ -510,7 +516,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             name=name, visibility=visibility, description=description, organization=organization
         )
         # Source Import API
-        payload: dict = {"vcs": "git", "vcs_url": clone_url}
+        payload: dict[str, Any] = {"vcs": "git", "vcs_url": clone_url}
         if auth_token:
             payload["vcs_username"] = "x-access-token"
             payload["vcs_password"] = auth_token
@@ -583,7 +589,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     ) -> Release:
         resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
         release_id = resp.json()["id"]
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["name"] = title
         if notes is not None:
@@ -639,7 +645,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def update_release_asset(
         self, *, tag: str, asset_id: int | str, name: str | None = None
     ) -> ReleaseAsset:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if name is not None:
             payload["name"] = name
         resp = self._client.patch(f"{self._repos_path()}/releases/assets/{asset_id}", json=payload)
@@ -654,7 +660,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def create_label(
         self, *, name: str, color: str | None = None, description: str | None = None
     ) -> Label:
-        payload: dict = {"name": name}
+        payload: dict[str, Any] = {"name": name}
         if color is not None:
             payload["color"] = color
         if description is not None:
@@ -674,7 +680,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         description: str | None = None,
     ) -> Label:
         quoted = quote(name, safe="")
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if new_name is not None:
             payload["new_name"] = new_name
         if color is not None:
@@ -695,7 +701,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def create_milestone(
         self, *, title: str, description: str | None = None, due_date: str | None = None
     ) -> Milestone:
-        payload: dict = {"title": title}
+        payload: dict[str, Any] = {"title": title}
         if description is not None:
             payload["description"] = description
         if due_date is not None:
@@ -719,7 +725,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         due_date: str | None = None,
         state: str | None = None,
     ) -> Milestone:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["title"] = title
         if description is not None:
@@ -777,7 +783,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         draft: bool | None = None,
     ) -> PullRequest:
         self._warn_unsupported_params("pr edit", draft=draft)
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["title"] = title
         if body is not None:
@@ -787,7 +793,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.patch(f"{self._repos_path()}/pulls/{number}", json=payload)
         pr = self._to_pull_request(resp.json())
         # labels/assignees/milestone は issues API 経由で更新
-        issue_payload: dict = {}
+        issue_payload: dict[str, Any] = {}
         if add_labels or remove_labels or add_assignees or remove_assignees:
             issue_resp = self._client.get(f"{self._repos_path()}/issues/{number}")
             issue_data = issue_resp.json()
@@ -948,7 +954,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         due_date: str | None = None,
     ) -> Issue:
         self._warn_unsupported_params("issue edit", due_date=due_date)
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["title"] = title
         if body is not None:
@@ -999,7 +1005,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return [self._to_review(r) for r in results]
 
     def create_review(self, number: int, *, state: str, body: str = "") -> Review:
-        payload: dict = {"event": state.upper()}
+        payload: dict[str, Any] = {"event": state.upper()}
         if body:
             payload["body"] = body
         resp = self._client.post(
@@ -1104,7 +1110,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         description: str = "",
         target_url: str = "",
     ) -> CommitStatus:
-        payload: dict = {"state": state}
+        payload: dict[str, Any] = {"state": state}
         if context:
             payload["context"] = context
         if description:
@@ -1120,7 +1126,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     # --- File ---
 
     def get_file_content(self, path: str, *, ref: str | None = None) -> tuple[str, str]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if ref is not None:
             params["ref"] = ref
         resp = self._client.get(
@@ -1144,7 +1150,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         sha: str | None = None,
         branch: str | None = None,
     ) -> str | None:
-        payload: dict = {
+        payload: dict[str, Any] = {
             "message": message,
             "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
         }
@@ -1167,7 +1173,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         message: str,
         branch: str | None = None,
     ) -> None:
-        payload: dict = {"message": message, "sha": sha}
+        payload: dict[str, Any] = {"message": message, "sha": sha}
         if branch is not None:
             payload["branch"] = branch
         self._client.delete(
@@ -1178,7 +1184,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     # --- Fork ---
 
     def fork_repository(self, *, organization: str | None = None) -> Repository:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if organization is not None:
             payload["organization"] = organization
         resp = self._client.post(f"{self._repos_path()}/forks", json=payload)
@@ -1200,10 +1206,10 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return [self._to_webhook(r) for r in results]
 
     def create_webhook(self, *, url: str, events: list[str], secret: str | None = None) -> Webhook:
-        config: dict = {"url": url, "content_type": "json"}
+        config: dict[str, Any] = {"url": url, "content_type": "json"}
         if secret is not None:
             config["secret"] = secret
-        payload: dict = {"config": config, "events": events, "active": True}
+        payload: dict[str, Any] = {"config": config, "events": events, "active": True}
         resp = self._client.post(f"{self._repos_path()}/hooks", json=payload)
         return self._to_webhook(resp.json())
 
@@ -1222,9 +1228,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         secret: str | None = None,
         active: bool | None = None,
     ) -> Webhook:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if url is not None or secret is not None:
-            config: dict = {}
+            config: dict[str, Any] = {}
             if url is not None:
                 config["url"] = url
             config["content_type"] = "json"
@@ -1285,11 +1291,11 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     # --- Pipeline (CI = GitHub Actions) ---
 
     def list_pipelines(self, *, ref: str | None = None, limit: int = 30) -> list[Pipeline]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if ref is not None:
             params["branch"] = ref
         # /actions/runs はレスポンスが {"workflow_runs": [...]} 形式のためページネーション手動実装
-        results: list[dict] = []
+        results: list[dict[str, Any]] = []
         per_page = min(limit, 30) if limit > 0 else 30
         page = 1
         while True:
@@ -1299,7 +1305,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 params=req_params,
             )
             body = resp.json()
-            page_data: list[dict] = body.get("workflow_runs", []) if isinstance(body, dict) else []
+            page_data: list[dict[str, Any]] = (
+                body.get("workflow_runs", []) if isinstance(body, dict) else []
+            )
             if not page_data:
                 break
             results.extend(page_data)
@@ -1322,12 +1330,12 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.delete(f"{self._repos_path()}/actions/runs/{run_id}")
 
     def trigger_pipeline(
-        self, ref: str, *, workflow: str | None = None, inputs: dict | None = None
+        self, ref: str, *, workflow: str | None = None, inputs: dict[str, Any] | None = None
     ) -> Pipeline:
 
         if not workflow:
             raise GfoError("GitHub requires --workflow to trigger a pipeline.")
-        payload: dict = {"ref": ref}
+        payload: dict[str, Any] = {"ref": ref}
         if inputs:
             payload["inputs"] = inputs
         self._client.post(
@@ -1369,7 +1377,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 yield "(log unavailable)"
 
     def list_workflows(self, *, limit: int = 30) -> list[Workflow]:
-        results: list[dict] = []
+        results: list[dict[str, Any]] = []
         per_page = min(limit, 30) if limit > 0 else 30
         page = 1
         while True:
@@ -1378,7 +1386,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 params={"per_page": per_page, "page": page},
             )
             body = resp.json()
-            page_data: list[dict] = body.get("workflows", []) if isinstance(body, dict) else []
+            page_data: list[dict[str, Any]] = (
+                body.get("workflows", []) if isinstance(body, dict) else []
+            )
             if not page_data:
                 break
             results.extend(page_data)
@@ -1403,7 +1413,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         )
 
     def list_artifacts(self, run_id: int | str, *, limit: int = 30) -> list[Artifact]:
-        results: list[dict] = []
+        results: list[dict[str, Any]] = []
         per_page = min(limit, 30) if limit > 0 else 30
         page = 1
         while True:
@@ -1412,7 +1422,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 params={"per_page": per_page, "page": page},
             )
             body = resp.json()
-            page_data: list[dict] = body.get("artifacts", []) if isinstance(body, dict) else []
+            page_data: list[dict[str, Any]] = (
+                body.get("artifacts", []) if isinstance(body, dict) else []
+            )
             if not page_data:
                 break
             results.extend(page_data)
@@ -1470,7 +1482,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_workflow(data: dict) -> Workflow:
+    def _to_workflow(data: dict[str, Any]) -> Workflow:
         state = data.get("state", "disabled")
         return Workflow(
             id=data["id"],
@@ -1481,7 +1493,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_artifact(data: dict) -> Artifact:
+    def _to_artifact(data: dict[str, Any]) -> Artifact:
         return Artifact(
             id=data["id"],
             name=data.get("name") or "",
@@ -1492,7 +1504,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_pipeline(data: dict) -> Pipeline:
+    def _to_pipeline(data: dict[str, Any]) -> Pipeline:
 
         status_map = {
             "completed": lambda d: {
@@ -1517,7 +1529,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- User ---
 
-    def get_current_user(self) -> dict:
+    def get_current_user(self) -> dict[str, Any]:
         resp = self._client.get("/user")
         return dict(resp.json())
 
@@ -1530,7 +1542,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def list_secrets(self, *, scope: str | None = None, limit: int = 30) -> list[Secret]:
         base = self._secrets_base_path(scope)
-        results: list[dict] = []
+        results: list[dict[str, Any]] = []
         per_page = min(limit, 30) if limit > 0 else 30
         page = 1
         while True:
@@ -1601,7 +1613,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def list_variables(self, *, scope: str | None = None, limit: int = 30) -> list[Variable]:
         base = self._variables_base_path(scope)
-        results: list[dict] = []
+        results: list[dict[str, Any]] = []
         per_page = min(limit, 30) if limit > 0 else 30
         page = 1
         while True:
@@ -1726,7 +1738,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         force_push = allow_force_push if allow_force_push is not None else current.allow_force_push
         deletions = allow_deletions if allow_deletions is not None else current.allow_deletions
 
-        payload: dict = {
+        payload: dict[str, Any] = {
             "required_pull_request_reviews": {"required_approving_review_count": reviews}
             if reviews > 0
             else None,
@@ -1746,7 +1758,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.delete(f"{self._repos_path()}/branches/{quote(branch, safe='')}/protection")
 
     @staticmethod
-    def _to_branch_protection(branch: str, data: dict) -> BranchProtection:
+    def _to_branch_protection(branch: str, data: dict[str, Any]) -> BranchProtection:
         reviews_obj = data.get("required_pull_request_reviews") or {}
         checks_obj = data.get("required_status_checks") or {}
         enforce_obj = data.get("enforce_admins")
@@ -1772,7 +1784,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def list_notifications(
         self, *, unread_only: bool = False, limit: int = 30
     ) -> list[Notification]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if not unread_only:
             params["all"] = "true"
         results = paginate_link_header(self._client, "/notifications", params=params, limit=limit)
@@ -1786,7 +1798,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_notification(data: dict) -> Notification:
+    def _to_notification(data: dict[str, Any]) -> Notification:
         subject = data.get("subject") or {}
         repo = data.get("repository") or {}
         return Notification(
@@ -1826,7 +1838,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_organization(data: dict) -> Organization:
+    def _to_organization(data: dict[str, Any]) -> Organization:
         return Organization(
             name=data["login"],
             display_name=data.get("name") or data.get("login") or "",
@@ -1837,7 +1849,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def create_organization(
         self, name: str, *, display_name: str | None = None, description: str | None = None
     ) -> Organization:
-        payload: dict = {"login": name}
+        payload: dict[str, Any] = {"login": name}
         if display_name:
             payload["profile_name"] = display_name
         if description:
@@ -1861,7 +1873,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         display_name: str | None = None,
         description: str | None = None,
     ) -> Organization:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if display_name is not None:
             payload["name"] = display_name
         if description is not None:
@@ -1888,7 +1900,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_ssh_key(data: dict) -> SshKey:
+    def _to_ssh_key(data: dict[str, Any]) -> SshKey:
         return SshKey(
             id=data["id"],
             title=data.get("title") or "",
@@ -1914,7 +1926,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.delete(f"/user/gpg_keys/{key_id}")
 
     @staticmethod
-    def _to_gpg_key(data: dict) -> GpgKey:
+    def _to_gpg_key(data: dict[str, Any]) -> GpgKey:
         return GpgKey(
             id=data["id"],
             primary_key_id=data.get("primary_key_id") or "",
@@ -1963,7 +1975,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def search_repositories(self, query: str, *, limit: int = 30) -> list[Repository]:
         # /search/repositories はレスポンスが {"items": [...]} 形式のためページネーション手動実装
-        results: list[dict] = []
+        results: list[dict[str, Any]] = []
         per_page = min(limit, 30) if limit > 0 else 30
         page = 1
         while True:
@@ -1972,7 +1984,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 params={"q": query, "per_page": per_page, "page": page},
             )
             body = resp.json()
-            page_data: list[dict] = body.get("items", []) if isinstance(body, dict) else []
+            page_data: list[dict[str, Any]] = (
+                body.get("items", []) if isinstance(body, dict) else []
+            )
             if not page_data:
                 break
             results.extend(page_data)
@@ -1990,7 +2004,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             query if ("is:issue" in query or "is:pull-request" in query) else f"is:issue {query}"
         )
         # /search/issues はレスポンスが {"items": [...]} 形式のためページネーション手動実装
-        results: list[dict] = []
+        results: list[dict[str, Any]] = []
         per_page = min(limit, 30) if limit > 0 else 30
         page = 1
         while True:
@@ -1999,7 +2013,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 params={"q": search_query, "per_page": per_page, "page": page},
             )
             body = resp.json()
-            page_data: list[dict] = body.get("items", []) if isinstance(body, dict) else []
+            page_data: list[dict[str, Any]] = (
+                body.get("items", []) if isinstance(body, dict) else []
+            )
             if not page_data:
                 break
             results.extend(page_data)
@@ -2012,7 +2028,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return [self._to_issue(r) for r in results if "pull_request" not in r]
 
     def search_code(self, query: str, *, limit: int = 30) -> list[CodeSearchResult]:
-        results: list[dict] = []
+        results: list[dict[str, Any]] = []
         per_page = min(limit, 30) if limit > 0 else 30
         page = 1
         while True:
@@ -2022,7 +2038,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 headers={"Accept": "application/vnd.github.text-match+json"},
             )
             body = resp.json()
-            page_data: list[dict] = body.get("items", []) if isinstance(body, dict) else []
+            page_data: list[dict[str, Any]] = (
+                body.get("items", []) if isinstance(body, dict) else []
+            )
             if not page_data:
                 break
             results.extend(page_data)
@@ -2104,7 +2122,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     # --- Issue Lock ---
 
     def lock_issue(self, number: int, *, reason: str | None = None) -> None:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if reason is not None:
             payload["lock_reason"] = reason
         self._client.put(
@@ -2154,7 +2172,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         search_query = f"is:pull-request {query}"
         if state and state != "all":
             search_query += f" is:{state}"
-        results: list[dict] = []
+        results: list[dict[str, Any]] = []
         per_page = min(limit, 30) if limit > 0 else 30
         page = 1
         while True:
@@ -2163,7 +2181,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 params={"q": search_query, "per_page": per_page, "page": page},
             )
             body = resp.json()
-            page_data: list[dict] = body.get("items", []) if isinstance(body, dict) else []
+            page_data: list[dict[str, Any]] = (
+                body.get("items", []) if isinstance(body, dict) else []
+            )
             if not page_data:
                 break
             results.extend(page_data)
@@ -2207,7 +2227,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         search_query = query
         if author:
             search_query += f" author:{author}"
-        results: list[dict] = []
+        results: list[dict[str, Any]] = []
         per_page = min(limit, 30) if limit > 0 else 30
         page = 1
         while True:
@@ -2216,7 +2236,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 params={"q": search_query, "per_page": per_page, "page": page},
             )
             body = resp.json()
-            page_data: list[dict] = body.get("items", []) if isinstance(body, dict) else []
+            page_data: list[dict[str, Any]] = (
+                body.get("items", []) if isinstance(body, dict) else []
+            )
             if not page_data:
                 break
             results.extend(page_data)
@@ -2242,7 +2264,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     # --- Repo Transfer ---
 
     def transfer_repository(self, new_owner: str, *, team_ids: list[int] | None = None) -> None:
-        payload: dict = {"new_owner": new_owner}
+        payload: dict[str, Any] = {"new_owner": new_owner}
         if team_ids:
             payload["team_ids"] = team_ids
         self._client.post(f"{self._repos_path()}/transfer", json=payload)
