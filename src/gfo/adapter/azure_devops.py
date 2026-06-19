@@ -5,7 +5,7 @@ from __future__ import annotations
 import base64
 import json as _json
 from collections.abc import Iterable, Iterator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.parse import quote, urlparse
 
 import requests
@@ -99,7 +99,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_pull_request(data: dict) -> PullRequest:
+    def _to_pull_request(data: dict[str, Any]) -> PullRequest:
         return PullRequest(
             number=data["pullRequestId"],
             title=data["title"],
@@ -120,7 +120,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_issue(data: dict) -> Issue:
+    def _to_issue(data: dict[str, Any]) -> Issue:
         fields = data["fields"]
         raw_state = fields.get("System.State", "")
         state = "closed" if raw_state in _CLOSED_STATES else "open"
@@ -147,7 +147,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_repository(data: dict, project: str = "") -> Repository:
+    def _to_repository(data: dict[str, Any], project: str = "") -> Repository:
         return Repository(
             name=data["name"],
             full_name=f"{project}/{data['name']}",
@@ -177,7 +177,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         self._warn_unsupported_params(
             "pr list", label=label, assignee=assignee, search=search, milestone=milestone
         )
-        params: dict = {}
+        params: dict[str, Any] = {}
         if state != "all":
             params["searchCriteria.status"] = _PR_STATE_TO_API.get(state, "active")
         if base:
@@ -262,7 +262,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                 f"Cannot merge pull request #{number}: lastMergeSourceCommit not found. "
                 "The pull request may have no commits or may be in an invalid state."
             )
-        completion_options: dict = {"mergeStrategy": strategy}
+        completion_options: dict[str, Any] = {"mergeStrategy": strategy}
         if title is not None or message is not None:
             parts = [p for p in (title, message) if p is not None]
             completion_options["mergeCommitMessage"] = "\n\n".join(parts)
@@ -659,7 +659,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             allow_rebase_merge=allow_rebase_merge,
             delete_branch_on_merge=delete_branch_on_merge,
         )
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if name is not None:
             payload["name"] = name
         if default_branch is not None:
@@ -716,7 +716,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             name=name, visibility=visibility, description=description, organization=organization
         )
         # Import Request
-        payload: dict = {"parameters": {"gitSource": {"url": clone_url}}}
+        payload: dict[str, Any] = {"parameters": {"gitSource": {"url": clone_url}}}
         if auth_token:
             payload["parameters"]["gitSource"]["username"] = ""
             payload["parameters"]["gitSource"]["password"] = auth_token
@@ -769,7 +769,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_comment(data: dict) -> Comment:
+    def _to_comment(data: dict[str, Any]) -> Comment:
 
         # PR Threads の場合は comments 配列の最初のコメント
         if "comments" in data:
@@ -789,7 +789,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_review(data: dict) -> Review:
+    def _to_review(data: dict[str, Any]) -> Review:
 
         vote_map = {
             10: "approved",
@@ -809,7 +809,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_branch(data: dict) -> Branch:
+    def _to_branch(data: dict[str, Any]) -> Branch:
 
         # AzDO: name は "refs/heads/xxx" 形式
         name = data["name"]
@@ -824,7 +824,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_tag(data: dict) -> Tag:
+    def _to_tag(data: dict[str, Any]) -> Tag:
 
         name = data.get("name", "")
         if name.startswith("refs/tags/"):
@@ -838,7 +838,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_commit_status(data: dict) -> CommitStatus:
+    def _to_commit_status(data: dict[str, Any]) -> CommitStatus:
 
         state_map = {
             "succeeded": "success",
@@ -863,7 +863,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_webhook(data: dict) -> Webhook:
+    def _to_webhook(data: dict[str, Any]) -> Webhook:
 
         events = tuple([data.get("eventType") or ""] if data.get("eventType") else [])
         return Webhook(
@@ -875,7 +875,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_pipeline(data: dict) -> Pipeline:
+    def _to_pipeline(data: dict[str, Any]) -> Pipeline:
 
         status_map = {
             "completed": lambda d: {
@@ -977,7 +977,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             remove_assignees=remove_assignees,
             milestone=milestone,
         )
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["title"] = title
         if body is not None:
@@ -1190,7 +1190,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             "error": "error",
         }
         parts = context.split("/", 1) if "/" in context else ["gfo", context]
-        payload: dict = {
+        payload: dict[str, Any] = {
             "state": state_map.get(state, state),
             "context": {"name": parts[-1], "genre": parts[0] if len(parts) > 1 else "gfo"},
         }
@@ -1207,7 +1207,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     # --- File (Azure DevOps Items API) ---
 
     def get_file_content(self, path: str, *, ref: str | None = None) -> tuple[str, str]:
-        params: dict = {"path": path, "includeContent": "true", "$format": "json"}
+        params: dict[str, Any] = {"path": path, "includeContent": "true", "$format": "json"}
         if ref is not None:
             params["versionDescriptor.version"] = ref
             # 40文字の16進数は commit SHA、それ以外はブランチ名として扱う
@@ -1352,7 +1352,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     # --- Pipeline (Build API) ---
 
     def list_pipelines(self, *, ref: str | None = None, limit: int = 30) -> list[Pipeline]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if ref is not None:
             params["branchName"] = f"refs/heads/{ref}" if not ref.startswith("refs/") else ref
         results = paginate_top_skip(
@@ -1379,9 +1379,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         self._client.delete(f"/build/builds/{run_id}")
 
     def trigger_pipeline(
-        self, ref: str, *, workflow: str | None = None, inputs: dict | None = None
+        self, ref: str, *, workflow: str | None = None, inputs: dict[str, Any] | None = None
     ) -> Pipeline:
-        payload: dict = {
+        payload: dict[str, Any] = {
             "sourceBranch": ref if ref.startswith("refs/") else f"refs/heads/{ref}",
         }
         if workflow:
@@ -1420,7 +1420,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     # --- User ---
 
-    def get_current_user(self) -> dict:
+    def get_current_user(self) -> dict[str, Any]:
         # /_apis/profile/profiles/me は組織スコープ外のため connectionData を使用
         # connectionData は組織スコープのため get_absolute で組織レベル URL を直接指定
         # connectionData は api-version=7.1-preview が必要（7.1 だと 400 エラー）
@@ -1516,7 +1516,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         return [self._to_repository(r, name) for r in filtered[: limit if limit > 0 else None]]
 
     @_wrap_conversion_error
-    def _to_organization(self, data: dict) -> Organization:
+    def _to_organization(self, data: dict[str, Any]) -> Organization:
         name = data.get("name") or ""
         # _links.web.href を優先し、なければ dev.azure.com URL を構築
         web_url = ""
