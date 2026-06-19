@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import urllib.parse
 from collections.abc import Iterator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 
@@ -249,7 +249,7 @@ class GitBucketAdapter(GitHubAdapter):
 
     # GitBucket は GitHub 形式 (/pulls, /issues, /releases/tag/{n}) を踏襲するが
     # milestone は未対応。`_web_base_url()` は API URL から動的に導出する。
-    _WEB_URL_PATHS = {
+    _WEB_URL_PATHS: ClassVar[dict[str, tuple[str, str]]] = {
         "pr": ("pulls", "pulls"),
         "issue": ("issues", "issues"),
         "release": ("releases", "releases/tag"),

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 from collections.abc import Iterator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 from urllib.parse import quote
 
 import requests
@@ -988,7 +988,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return [self._to_review(r) for r in results]
 
     # Gitea/Forgejo API は "APPROVED" を要求（GitHub は "APPROVE"）
-    _REVIEW_EVENT_MAP: dict[str, str] = {"APPROVE": "APPROVED"}
+    _REVIEW_EVENT_MAP: ClassVar[dict[str, str]] = {"APPROVE": "APPROVED"}
 
     def create_review(self, number: int, *, state: str, body: str = "") -> Review:
         event = self._REVIEW_EVENT_MAP.get(state.upper(), state.upper())
@@ -1790,7 +1790,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- Browse ---
 
-    _WEB_URL_PATHS = {
+    _WEB_URL_PATHS: ClassVar[dict[str, tuple[str, str]]] = {
         "pr": ("pulls", "pulls"),
         "issue": ("issues", "issues"),
         "release": ("releases", "releases/tag"),

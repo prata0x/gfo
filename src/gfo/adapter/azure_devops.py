@@ -466,7 +466,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         if label:
             conditions.append(f"[System.Tags] CONTAINS '{_wiql_escape(label)}'")
 
-        wiql = "SELECT [System.Id] FROM WorkItems WHERE " + " AND ".join(conditions)  # nosec B608 - conditions built from internal values only, no user input
+        wiql = "SELECT [System.Id] FROM WorkItems WHERE " + " AND ".join(conditions)  # nosec B608 - 各値 (project/assignee/label, ユーザ入力含む) は _wiql_escape() で WIQL 文字列リテラルのシングルクォートをエスケープ済み
         wiql_params = {"$top": limit} if limit > 0 else {"$top": 20000}
         wiql_resp = self._client.post(
             f"{self._wit_path()}/wiql",
@@ -1571,7 +1571,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
         # WIQL を使って検索
-        wiql = f"SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '{_wiql_escape(self._project)}' AND [System.Title] CONTAINS '{_wiql_escape(query)}'"  # nosec B608
+        wiql = f"SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '{_wiql_escape(self._project)}' AND [System.Title] CONTAINS '{_wiql_escape(query)}'"  # nosec B608 - project/query (ユーザ入力) は _wiql_escape() でエスケープ済み
         wiql_params = {"$top": limit} if limit > 0 else {"$top": 200}
         wiql_resp = self._client.post(
             f"{self._wit_path()}/wiql",

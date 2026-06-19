@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
+from typing import ClassVar
 from urllib.parse import quote
 
 import requests
@@ -1466,7 +1467,7 @@ class BitbucketAdapter(GitServiceAdapter):
 
     # --- Browse ---
 
-    _WEB_URL_PATHS = {
+    _WEB_URL_PATHS: ClassVar[dict[str, tuple[str, str]]] = {
         "pr": ("pull-requests", "pull-requests"),
         "issue": ("issues", "issues"),
         "settings": ("admin", ""),

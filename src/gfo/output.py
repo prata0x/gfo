@@ -144,12 +144,12 @@ def format_table(items: list, fields: list[str]) -> str:
             widths[i] = max(widths[i], _display_width(val))
 
     lines: list[str] = []
-    header_line = "  ".join(_pad_right(h, w) for h, w in zip(headers, widths))
+    header_line = "  ".join(_pad_right(h, w) for h, w in zip(headers, widths, strict=True))
     lines.append(header_line.rstrip())
     sep_line = "  ".join("-" * w for w in widths)
     lines.append(sep_line.rstrip())
     for row in rows:
-        data_line = "  ".join(_pad_right(val, w) for val, w in zip(row, widths))
+        data_line = "  ".join(_pad_right(val, w) for val, w in zip(row, widths, strict=True))
         lines.append(data_line.rstrip())
 
     return "\n".join(lines)
