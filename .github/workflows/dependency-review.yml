@@ -1,0 +1,29 @@
+# PR が追加/更新する依存に既知の脆弱性 (GitHub Advisory DB) があればマージ前にブロックする。
+# Dependabot (事後通知) に対し、これは PR 時点の事前ゲート。public リポジトリで無償、
+# Dependency graph (uv.lock を含む) の差分を見るため pull_request でのみ意味を持つ。
+#
+# 権限は contents: read のみ (依存グラフ参照に必要)。PR への自動コメントは行わない
+# (pull-requests: write を避け最小権限を維持。結果は check 失敗 + job summary で確認できる)。
+name: Dependency review
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Dependency review
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          # moderate 以上の脆弱性で fail (low は表示のみ・ノイズ抑制)。
+          fail-on-severity: moderate
