@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
-from typing import ClassVar
+from typing import Any, ClassVar
 from urllib.parse import quote
 
 import requests
@@ -54,7 +54,7 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_pull_request(data: dict) -> PullRequest:
+    def _to_pull_request(data: dict[str, Any]) -> PullRequest:
         raw_state = data["state"]
         state_map = {
             "OPEN": "open",
@@ -80,7 +80,7 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_issue(data: dict) -> Issue:
+    def _to_issue(data: dict[str, Any]) -> Issue:
         raw_state = data["state"]
         state = "open" if raw_state in ("new", "open") else "closed"
 
@@ -108,7 +108,7 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_repository(data: dict) -> Repository:
+    def _to_repository(data: dict[str, Any]) -> Repository:
         clone_url = ""
         for link in (data.get("links") or {}).get("clone", []):
             if link.get("name") == "https":
@@ -147,7 +147,7 @@ class BitbucketAdapter(GitServiceAdapter):
             "pr list", label=label, assignee=assignee, draft=draft, milestone=milestone
         )
         state_map = {"open": "OPEN", "closed": "DECLINED", "merged": "MERGED"}
-        params: dict = {}
+        params: dict[str, Any] = {}
         if state != "all":
             params["state"] = state_map.get(state, state.upper())
         q_parts: list[str] = []
@@ -185,7 +185,7 @@ class BitbucketAdapter(GitServiceAdapter):
         self._warn_unsupported_params(
             "pull requests", assignees=assignees, labels=labels, milestone=milestone
         )
-        payload: dict = {
+        payload: dict[str, Any] = {
             "title": title,
             "description": body,
             "source": {"branch": {"name": head}},
@@ -214,7 +214,7 @@ class BitbucketAdapter(GitServiceAdapter):
             "rebase": "fast_forward",
         }
         merge_strategy = _METHOD_MAP.get(method, "merge_commit")
-        payload: dict = {"merge_strategy": merge_strategy}
+        payload: dict[str, Any] = {"merge_strategy": merge_strategy}
         if title is not None or message is not None:
             parts = [p for p in (title, message) if p is not None]
             payload["message"] = "\n\n".join(parts)
@@ -271,7 +271,7 @@ class BitbucketAdapter(GitServiceAdapter):
         if search is not None:
             escaped_search = search.replace('"', '\\"')
             conditions.append(f'title ~ "{escaped_search}"')
-        params: dict = {}
+        params: dict[str, Any] = {}
         if conditions:
             params["q"] = " AND ".join(conditions)
         results = paginate_response_body(
@@ -294,7 +294,7 @@ class BitbucketAdapter(GitServiceAdapter):
         **kwargs: object,
     ) -> Issue:
         self._warn_unsupported_params("issue create", milestone=milestone, due_date=due_date)
-        payload: dict = {"title": title, "content": {"raw": body}}
+        payload: dict[str, Any] = {"title": title, "content": {"raw": body}}
         if assignee is not None:
             payload["assignee"] = {"nickname": assignee}
         if label is not None:
@@ -333,7 +333,7 @@ class BitbucketAdapter(GitServiceAdapter):
     ) -> list[Repository]:
         self._warn_unsupported_params("repo list", archived=archived)
         o = owner if owner is not None else self._owner
-        params: dict = {}
+        params: dict[str, Any] = {}
         if visibility is not None:
             is_private = "true" if visibility == "private" else "false"
             params["q"] = f"is_private={is_private}"
@@ -395,7 +395,7 @@ class BitbucketAdapter(GitServiceAdapter):
             allow_rebase_merge=allow_rebase_merge,
             delete_branch_on_merge=delete_branch_on_merge,
         )
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if name is not None:
             payload["name"] = name
         if description is not None:
@@ -470,7 +470,7 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_comment(data: dict) -> Comment:
+    def _to_comment(data: dict[str, Any]) -> Comment:
 
         author = (data.get("user") or {}).get("nickname") or ""
         # content.raw フィールド
@@ -487,7 +487,7 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_branch(data: dict) -> Branch:
+    def _to_branch(data: dict[str, Any]) -> Branch:
 
         target = data.get("target") or {}
         return Branch(
@@ -499,7 +499,7 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_tag(data: dict) -> Tag:
+    def _to_tag(data: dict[str, Any]) -> Tag:
 
         target = data.get("target") or {}
         return Tag(
@@ -511,7 +511,7 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_commit_status(data: dict) -> CommitStatus:
+    def _to_commit_status(data: dict[str, Any]) -> CommitStatus:
 
         state_map = {
             "SUCCESSFUL": "success",
@@ -530,7 +530,7 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_webhook(data: dict) -> Webhook:
+    def _to_webhook(data: dict[str, Any]) -> Webhook:
 
         events = tuple(data.get("events") or [])
         return Webhook(
@@ -542,7 +542,7 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_deploy_key(data: dict) -> DeployKey:
+    def _to_deploy_key(data: dict[str, Any]) -> DeployKey:
 
         return DeployKey(
             id=data["id"],
@@ -552,7 +552,7 @@ class BitbucketAdapter(GitServiceAdapter):
         )
 
     @staticmethod
-    def _to_pipeline(data: dict) -> Pipeline:
+    def _to_pipeline(data: dict[str, Any]) -> Pipeline:
 
         try:
             state_obj = data.get("state") or {}
@@ -636,7 +636,7 @@ class BitbucketAdapter(GitServiceAdapter):
             milestone=milestone,
             draft=draft,
         )
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["title"] = title
         if body is not None:
@@ -672,7 +672,7 @@ class BitbucketAdapter(GitServiceAdapter):
             milestone=milestone,
             due_date=due_date,
         )
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["title"] = title
         if body is not None:
@@ -887,7 +887,7 @@ class BitbucketAdapter(GitServiceAdapter):
         return [self._to_tag(r) for r in results]
 
     def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
-        payload: dict = {"name": name, "target": {"hash": ref}}
+        payload: dict[str, Any] = {"name": name, "target": {"hash": ref}}
         if message:
             payload["message"] = message
         resp = self._client.post(f"{self._repos_path()}/refs/tags", json=payload)
@@ -921,7 +921,7 @@ class BitbucketAdapter(GitServiceAdapter):
             "pending": "INPROGRESS",
             "error": "FAILED",
         }
-        payload: dict = {
+        payload: dict[str, Any] = {
             "state": state_map.get(state, "INPROGRESS"),
             "key": context or "gfo",
             "url": target_url or "https://example.com",  # Bitbucket は url 必須
@@ -955,7 +955,7 @@ class BitbucketAdapter(GitServiceAdapter):
         branch: str | None = None,
     ) -> str | None:
         # Bitbucket は multipart form data で送信
-        data: dict = {path: content, "message": message}
+        data: dict[str, Any] = {path: content, "message": message}
         if branch is not None:
             data["branch"] = branch
         self._client.post(f"{self._repos_path()}/src", data=data)
@@ -970,7 +970,7 @@ class BitbucketAdapter(GitServiceAdapter):
         message: str,
         branch: str | None = None,
     ) -> None:
-        data: dict = {path: "", "message": message}
+        data: dict[str, Any] = {path: "", "message": message}
         if branch is not None:
             data["branch"] = branch
         self._client.post(f"{self._repos_path()}/src", data=data)
@@ -978,7 +978,7 @@ class BitbucketAdapter(GitServiceAdapter):
     # --- Fork ---
 
     def fork_repository(self, *, organization: str | None = None) -> Repository:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if organization is not None:
             payload["workspace"] = {"slug": organization}
         resp = self._client.post(f"{self._repos_path()}/forks", json=payload)
@@ -995,7 +995,7 @@ class BitbucketAdapter(GitServiceAdapter):
         return [self._to_webhook(r) for r in results]
 
     def create_webhook(self, *, url: str, events: list[str], secret: str | None = None) -> Webhook:
-        payload: dict = {"url": url, "events": events, "active": True}
+        payload: dict[str, Any] = {"url": url, "events": events, "active": True}
         if secret is not None:
             payload["secret_set"] = True
             payload["secret"] = secret
@@ -1014,7 +1014,7 @@ class BitbucketAdapter(GitServiceAdapter):
         secret: str | None = None,
         active: bool | None = None,
     ) -> Webhook:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if url is not None:
             payload["url"] = url
         if events is not None:
@@ -1077,7 +1077,7 @@ class BitbucketAdapter(GitServiceAdapter):
     # --- Pipeline (Bitbucket Pipelines) ---
 
     def list_pipelines(self, *, ref: str | None = None, limit: int = 30) -> list[Pipeline]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if ref is not None:
             params["target.ref_name"] = ref
         results = paginate_response_body(
@@ -1099,9 +1099,9 @@ class BitbucketAdapter(GitServiceAdapter):
         )
 
     def trigger_pipeline(
-        self, ref: str, *, workflow: str | None = None, inputs: dict | None = None
+        self, ref: str, *, workflow: str | None = None, inputs: dict[str, Any] | None = None
     ) -> Pipeline:
-        payload: dict = {
+        payload: dict[str, Any] = {
             "target": {
                 "type": "pipeline_ref_target",
                 "ref_type": "branch",
@@ -1151,7 +1151,7 @@ class BitbucketAdapter(GitServiceAdapter):
 
     # --- User ---
 
-    def get_current_user(self) -> dict:
+    def get_current_user(self) -> dict[str, Any]:
         resp = self._client.get("/user")
         return dict(resp.json())
 
@@ -1258,7 +1258,7 @@ class BitbucketAdapter(GitServiceAdapter):
             limit=limit,
         )
         # Bitbucket は pattern ごとにルールがバラバラなので pattern でグループ化
-        by_branch: dict[str, dict] = {}
+        by_branch: dict[str, dict[str, Any]] = {}
         for r in results:
             pattern = r.get("pattern") or r.get("branch_match_kind") or ""
             if pattern not in by_branch:
@@ -1383,7 +1383,7 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_organization(data: dict) -> Organization:
+    def _to_organization(data: dict[str, Any]) -> Organization:
 
         workspace = data.get("workspace") or data
         return Organization(
@@ -1419,7 +1419,7 @@ class BitbucketAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_ssh_key(data: dict) -> SshKey:
+    def _to_ssh_key(data: dict[str, Any]) -> SshKey:
 
         key_id: int | str = (
             data.get("uuid", "").strip("{}") if data.get("uuid") else data.get("id", 0)
@@ -1456,7 +1456,7 @@ class BitbucketAdapter(GitServiceAdapter):
         self._client.delete(f"/users/{quote(self._owner, safe='')}/gpg-keys/{key_id}")
 
     @staticmethod
-    def _to_gpg_key(data: dict) -> GpgKey:
+    def _to_gpg_key(data: dict[str, Any]) -> GpgKey:
         return GpgKey(
             id=data.get("fingerprint") or data.get("id") or "",
             primary_key_id=data.get("fingerprint") or "",
