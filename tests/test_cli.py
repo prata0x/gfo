@@ -405,7 +405,7 @@ def test_parser_browse_defaults():
     assert args.pr is None
     assert args.issue is None
     assert args.settings is False
-    assert getattr(args, "print") is False
+    assert args.print is False
 
 
 def test_parser_browse_pr():
@@ -431,7 +431,7 @@ def test_parser_browse_settings():
 def test_parser_browse_print():
     parser, _ = create_parser()
     args = parser.parse_args(["browse", "--print"])
-    assert getattr(args, "print") is True
+    assert args.print is True
 
 
 def test_parser_browse_mutually_exclusive():

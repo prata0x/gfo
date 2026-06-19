@@ -21,10 +21,10 @@ def handle_login(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
         try:
             result = gfo.detect.detect_service()
             host = result.host
-        except (DetectionError, GitCommandError):
+        except (DetectionError, GitCommandError) as e:
             raise ConfigError(
                 _("Could not detect host. Use --host option: gfo auth login --host <host>")
-            )
+            ) from e
 
     # トークンの取得元優先順位:
     #   1. --token-stdin (stdin から読み込み)
@@ -140,10 +140,10 @@ def handle_switch(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         try:
             result = gfo.detect.detect_service()
             host = result.host
-        except (DetectionError, GitCommandError):
+        except (DetectionError, GitCommandError) as e:
             raise ConfigError(
                 _("Could not detect host. Use --host option: gfo auth switch --host <host> ACCOUNT")
-            )
+            ) from e
 
     gfo.auth.switch_account(host, args.account)
     print(_("Switched to account '{account}' for {host}").format(account=args.account, host=host))
@@ -172,10 +172,10 @@ def handle_token(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
             result = gfo.detect.detect_service()
             host = result.host
             service_type = result.service_type or ""
-        except (DetectionError, GitCommandError):
+        except (DetectionError, GitCommandError) as e:
             raise ConfigError(
                 _("Could not detect host. Use --host option: gfo auth token --host <host>")
-            )
+            ) from e
 
     token = gfo.auth.resolve_token(host, service_type)
     print(token)
@@ -189,10 +189,10 @@ def handle_logout(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         try:
             result = gfo.detect.detect_service()
             host = result.host
-        except (DetectionError, GitCommandError):
+        except (DetectionError, GitCommandError) as e:
             raise ConfigError(
                 _("Could not detect host. Use --host option: gfo auth logout --host <host>")
-            )
+            ) from e
 
     account = getattr(args, "account", None)
     gfo.auth.remove_token(host, account=account)

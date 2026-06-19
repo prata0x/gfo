@@ -451,8 +451,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 limit=limit,
                 per_page_key="limit",
             )
-        except NotFoundError:
-            raise NotSupportedError(self.service_name, "repo contributors")
+        except NotFoundError as e:
+            raise NotSupportedError(self.service_name, "repo contributors") from e
         return [
             Contributor(
                 username=r.get("login"),
