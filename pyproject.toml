@@ -25,7 +25,9 @@ Homepage = "https://github.com/prata0x/gfo"
 [project.scripts]
 gfo = "gfo.cli:main"
 
-[project.optional-dependencies]
+# 開発依存は PEP 735 dependency-groups で管理する。`uv sync` が既定でインストールし、
+# Dependabot も development 依存として正しく分類・グルーピングできる。
+[dependency-groups]
 dev = ["pytest", "responses", "pytest-cov", "ruff", "bandit", "mypy", "types-requests", "pre-commit"]
 
 [build-system]

@@ -1,0 +1,70 @@
+# CI ワークフロー。lint (ruff) + format-check + type-check (mypy) + security (bandit) +
+# 単体テスト (pytest) を実行する。
+#
+# Runner: gfo は public リポジトリで GitHub Actions が無料のため、全ジョブを GitHub-hosted の
+# ubuntu-latest で回す (self-hosted は使わない)。
+#
+# 統合テストは実サービス (GitHub/GitLab 等) へアクセスするため CI では実行しない。
+# pytest 設定 (pyproject.toml の addopts) で tests/integration を除外済み。
+#
+# ハードニング (public でも有効):
+# - permissions: contents: read のみ → 供給網経由で GITHUB_TOKEN を奪取されても push 不能。
+# - persist-credentials: false → .git/config への token 書き込みを抑止し git push 経路を塞ぐ。
+# - 各 action は mutable tag ではなく 40 桁 commit SHA で pin する (OpenSSF / GitHub Hardening 推奨)。
+#   trailing コメントの version 表記は Dependabot が更新時に参照する標準パターンなので残す。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      # 自分の workflow が SHA pin を維持しているかを自己検証 (mutable tag を fail させる)。
+      - name: Verify actions are SHA-pinned
+        run: |
+          bad=$(grep -rEn '^[[:space:]]*uses:[[:space:]]' .github/workflows | grep -vE '@[0-9a-f]{40}' || true)
+          if [ -n "$bad" ]; then
+            echo "::error::Action(s) not pinned to a 40-char commit SHA:"
+            echo "$bad"
+            exit 1
+          fi
+
+      # mise.toml の python / uv を供給する (ローカル開発と同一の toolchain)。
+      - name: Setup mise (python + uv)
+        uses: jdx/mise-action@dba19683ed58901619b14f395a24841710cb4925 # v4.1.0
+
+      # uv.lock どおりに frozen install する。lock が古ければ fail (lockfile 整合性ゲート)。
+      # dev は dependency-groups で定義されており uv sync が既定でインストールする。
+      - name: Install dependencies (frozen)
+        run: uv sync --locked
+
+      # 違反を GitHub Actions の annotation 形式で PR diff に inline 表示し、違反で fail。
+      - name: Lint (ruff)
+        run: uv run ruff check --output-format=github .
+
+      - name: Format check (ruff)
+        run: uv run ruff format --check .
+
+      - name: Type check (mypy)
+        run: uv run mypy src/gfo
+
+      - name: Security scan (bandit)
+        run: uv run bandit -r src/gfo -c pyproject.toml -q
+
+      - name: Unit tests (pytest)
+        run: uv run pytest -q
