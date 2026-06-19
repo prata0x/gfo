@@ -684,6 +684,101 @@ class TestCreateRelease:
         assert rel.tag == "v1.0.0"
 
 
+class TestListTags:
+    """list_tags は二重エンコード回避のため GET /git/refs/tags を使い prefix を剥がす。"""
+
+    def test_strips_prefix_and_extracts_sha(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/git/refs/tags",
+            json=[
+                {"ref": "refs/tags/v1.0.0", "object": {"sha": "abc123"}},
+                {"ref": "refs/tags/v2.0.0", "object": {"sha": "def456"}},
+            ],
+            status=200,
+        )
+        tags = gitbucket_adapter.list_tags()
+        assert [t.name for t in tags] == ["v1.0.0", "v2.0.0"]
+        assert tags[0].sha == "abc123"
+        assert tags[1].sha == "def456"
+        # GitHub の /tags ではなく /git/refs/tags を使う。
+        assert mock_responses.calls[0].request.url.startswith(f"{REPOS}/git/refs/tags")
+
+    def test_missing_object_falls_back_to_empty_sha(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/git/refs/tags",
+            json=[{"ref": "refs/tags/v1.0.0"}],
+            status=200,
+        )
+        tags = gitbucket_adapter.list_tags()
+        assert tags[0].name == "v1.0.0"
+        assert tags[0].sha == ""
+
+    def test_ref_without_prefix_kept_as_is(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/git/refs/tags",
+            json=[{"ref": "v9.9.9", "object": {"sha": "x"}}],
+            status=200,
+        )
+        tags = gitbucket_adapter.list_tags()
+        assert tags[0].name == "v9.9.9"
+
+    def test_empty(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(responses.GET, f"{REPOS}/git/refs/tags", json=[], status=200)
+        assert gitbucket_adapter.list_tags() == []
+
+
+class TestGetLatestRelease:
+    """get_latest_release は releases?limit=1 の先頭を返し、空なら NotFoundError。"""
+
+    def test_returns_first(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/releases",
+            json=[
+                {
+                    "tag_name": "v2.0.0",
+                    "name": "Release 2.0.0",
+                    "body": "notes",
+                    "html_url": "https://gitbucket.example.com/test-owner/test-repo/releases/v2.0.0",
+                    "created_at": "2025-02-01T00:00:00Z",
+                }
+            ],
+            status=200,
+        )
+        rel = gitbucket_adapter.get_latest_release()
+        assert isinstance(rel, Release)
+        assert rel.tag == "v2.0.0"
+
+    def test_empty_raises_not_found(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(responses.GET, f"{REPOS}/releases", json=[], status=200)
+        with pytest.raises(NotFoundError):
+            gitbucket_adapter.get_latest_release()
+
+
+class TestUpdateRepository:
+    """update_repository は未対応パラメータを警告し、対応分だけ super に委譲する。"""
+
+    def test_supported_params_delegated(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(responses.PATCH, REPOS, json=_repo_data(), status=200)
+        repo = gitbucket_adapter.update_repository(description="new desc", private=True)
+        assert isinstance(repo, Repository)
+        req_body = json_mod.loads(mock_responses.calls[0].request.body)
+        assert req_body["description"] == "new desc"
+        assert req_body["private"] is True
+
+    def test_unsupported_param_warns_and_dropped(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(responses.PATCH, REPOS, json=_repo_data(), status=200)
+        with pytest.warns(UserWarning, match="archived"):
+            gitbucket_adapter.update_repository(description="d", archived=True)
+        req_body = json_mod.loads(mock_responses.calls[0].request.body)
+        # 警告したパラメータは super に渡らない（payload に含まれない）。
+        assert "archived" not in req_body
+        assert req_body["description"] == "d"
+
+
 class TestMigrateRepository:
     def test_not_supported(self, gitbucket_adapter):
         with pytest.raises(NotSupportedError):
