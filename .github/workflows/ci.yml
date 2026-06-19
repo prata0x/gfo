@@ -67,8 +67,21 @@ jobs:
           fi
 
       # mise.toml の python / uv を供給する (ローカル開発と同一の toolchain)。
+      # mise-action は python/uv の toolchain バイナリはキャッシュするが、uv の
+      # パッケージキャッシュ (~/.cache/uv) はキャッシュしないため、下の cache step で補う。
       - name: Setup mise (python + uv)
         uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+
+      # uv のパッケージキャッシュ (~/.cache/uv = 展開済み wheel) を復元/保存し、毎ジョブの
+      # wheel ダウンロードを省く。キーは uv.lock のハッシュ + OS + python 版で構成し、
+      # lock 変更時のみ更新する (restore-keys で前回キャッシュにフォールバック)。
+      - name: Cache uv packages
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-py${{ matrix.python-version }}-
 
       # uv.lock どおりに frozen install する。lock が古ければ fail (lockfile 整合性ゲート)。
       # dev は dependency-groups で定義されており uv sync が既定でインストールする。
