@@ -57,8 +57,10 @@ def _positive_int(value: str) -> int:
     """argparse type: 正の整数のみ受け付ける。"""
     try:
         ivalue = int(value)
-    except ValueError:
-        raise argparse.ArgumentTypeError(_("{value} is not a positive integer").format(value=value))
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(
+            _("{value} is not a positive integer").format(value=value)
+        ) from e
     if ivalue <= 0:
         raise argparse.ArgumentTypeError(_("{value} is not a positive integer").format(value=value))
     return ivalue

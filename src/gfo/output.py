@@ -67,12 +67,14 @@ def apply_jq_filter(json_str: str, expression: str) -> str:
             timeout=60,
         )
         return result.stdout.rstrip("\n")
-    except FileNotFoundError:
-        raise GfoError(_("jq command not found. Install it from https://jqlang.github.io/jq/"))
-    except subprocess.TimeoutExpired:
-        raise GfoError(_("jq filter timed out after 60 seconds."))
+    except FileNotFoundError as e:
+        raise GfoError(
+            _("jq command not found. Install it from https://jqlang.github.io/jq/")
+        ) from e
+    except subprocess.TimeoutExpired as e:
+        raise GfoError(_("jq filter timed out after 60 seconds.")) from e
     except subprocess.CalledProcessError as e:
-        raise GfoError(_("jq filter error: {error}").format(error=e.stderr.strip()))
+        raise GfoError(_("jq filter error: {error}").format(error=e.stderr.strip())) from e
 
 
 def format_error_json(err: GfoError) -> str:

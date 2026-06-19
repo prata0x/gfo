@@ -215,7 +215,7 @@ def read_file_arg(path: str) -> str:
     try:
         with open(path) as f:
             return f.read()
-    except FileNotFoundError:
-        raise GfoError(_("File not found: {file}").format(file=path))
-    except PermissionError:
-        raise GfoError(_("Permission denied: {file}").format(file=path))
+    except FileNotFoundError as e:
+        raise GfoError(_("File not found: {file}").format(file=path)) from e
+    except PermissionError as e:
+        raise GfoError(_("Permission denied: {file}").format(file=path)) from e
