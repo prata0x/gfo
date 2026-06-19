@@ -131,7 +131,7 @@ def output(
         print(format_table(items, fields))
 
 
-def format_table(items: list, fields: list[str]) -> str:
+def format_table(items: list[Any], fields: list[str]) -> str:
     """テーブル形式にフォーマットする。"""
     headers = [f.upper() for f in fields]
 
@@ -157,13 +157,13 @@ def format_table(items: list, fields: list[str]) -> str:
     return "\n".join(lines)
 
 
-def format_json(items: list) -> str:
+def format_json(items: list[Any]) -> str:
     """JSON 形式にフォーマットする。"""
     dicts = [dataclasses.asdict(item) for item in items]
     return json.dumps(dicts, indent=2, ensure_ascii=False, default=str)
 
 
-def format_plain(items: list, fields: list[str]) -> str:
+def format_plain(items: list[Any], fields: list[str]) -> str:
     """プレーン形式にフォーマットする。タブ区切り、ヘッダーなし。"""
     lines: list[str] = []
     for item in items:
@@ -173,7 +173,7 @@ def format_plain(items: list, fields: list[str]) -> str:
 
 
 def output_grouped(
-    groups: dict[str, list],
+    groups: dict[str, list[Any]],
     *,
     fields: list[str],
     fmt: str,

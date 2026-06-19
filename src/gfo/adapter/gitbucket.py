@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import urllib.parse
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 
@@ -51,7 +51,7 @@ class GitBucketAdapter(GitHubAdapter):
 
     # --- ヘルパー ---
 
-    def _parse_response(self, resp: requests.Response) -> dict:
+    def _parse_response(self, resp: requests.Response) -> dict[str, Any]:
         """GitBucket の create 系 API が返す二重エンコード JSON を解析する。"""
         data = resp.json()
         if isinstance(data, str):
@@ -161,7 +161,7 @@ class GitBucketAdapter(GitHubAdapter):
     # --- Release ---
 
     @staticmethod
-    def _to_release(data: dict) -> Release:
+    def _to_release(data: dict[str, Any]) -> Release:
         """GitBucket リリースの変換。created_at / html_url が省略される場合に対応する。"""
         try:
             return Release(
