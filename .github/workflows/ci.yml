@@ -89,8 +89,13 @@ jobs:
       - name: Security scan (bandit)
         run: uv run bandit -r src/gfo -c pyproject.toml -q
 
+      # runner は 4 vCPU 固定なので xdist は -n 4 を明示 (auto でも同等だが意図を固定)。
+      # CI ではカバレッジを維持する (addopts から外したぶん明示的に付与)。
+      # 3.13 (max) のみ coverage の sysmon コアを使い計測オーバーヘッドを抑える (3.11 は非対応)。
       - name: Unit tests (pytest)
-        run: uv run pytest -q
+        env:
+          COVERAGE_CORE: ${{ matrix.label == 'max' && 'sysmon' || '' }}
+        run: uv run pytest -n 4 --cov=gfo --cov-report=term-missing -q
 
   # matrix を束ねる安定名の必須チェック。Ruleset は "ci" だけを Require すればよく、
   # テスト対象バージョンを増減しても再設定不要。
