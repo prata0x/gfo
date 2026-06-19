@@ -31,7 +31,7 @@ gfo = "gfo.cli:main"
 # 開発依存は PEP 735 dependency-groups で管理する。`uv sync` が既定でインストールし、
 # Dependabot も development 依存として正しく分類・グルーピングできる。
 [dependency-groups]
-dev = ["pytest", "responses", "pytest-cov", "ruff", "bandit", "mypy", "types-requests", "pre-commit"]
+dev = ["pytest", "responses", "pytest-cov", "pytest-xdist", "ruff", "bandit", "mypy", "types-requests", "pre-commit"]
 
 [build-system]
 requires = ["hatchling"]
@@ -48,7 +48,13 @@ path = "hatch_build.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=gfo --cov-report=term-missing --ignore=tests/integration"
+# カバレッジは addopts に焼き込まない (計測オーバーヘッドが支配的で開発ループを毎回重くするため)。
+# 開発時の `uv run pytest` は cov 無し = 高速。カバレッジ計測は明示的に付与する:
+#   ローカル / test スキル: `uv run pytest --cov=gfo --cov-report=term-missing -n auto`
+#   CI: `uv run pytest -n 4 --cov=gfo --cov-report=term-missing`
+addopts = "--ignore=tests/integration --durations=10"
+# 走査対象外 (collection 高速化・誤検出回避)。
+norecursedirs = ["tmp", ".venv", ".git", "*.egg", "build", "dist"]
 markers = [
     "integration: integration tests requiring live services",
     "saas: integration tests requiring SaaS accounts (GitHub, GitLab, etc.)",
@@ -56,6 +62,15 @@ markers = [
     "cli: CLI integration tests (argparse -> handler -> adapter -> output)",
     "slow: slow tests (CI pipelines, network-heavy operations)",
 ]
+
+# xdist (並列ワーカー) × coverage 併用のための設定。
+# parallel = true で各ワーカーの計測を別ファイルに記録し combine 可能にする。
+# relative_files = true で worker の作業パス差を吸収する (未設定だと CI で 0% 化する)。
+# `coverage run -m pytest` は使わず `pytest --cov ... -n ...` 形式で計測する。
+[tool.coverage.run]
+source = ["gfo"]
+parallel = true
+relative_files = true
 
 [tool.ruff]
 line-length = 100
