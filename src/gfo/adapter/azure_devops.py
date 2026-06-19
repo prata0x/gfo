@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 import json as _json
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote, urlparse
 
@@ -877,7 +877,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     @_wrap_conversion_error
     def _to_pipeline(data: dict[str, Any]) -> Pipeline:
 
-        status_map = {
+        status_map: dict[str, Callable[[dict[str, Any]], str]] = {
             "completed": lambda d: {
                 "succeeded": "success",
                 "failed": "failure",

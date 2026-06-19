@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import base64
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from typing import Any, ClassVar
 from urllib.parse import quote
 
@@ -1506,7 +1506,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     @_wrap_conversion_error
     def _to_pipeline(data: dict[str, Any]) -> Pipeline:
 
-        status_map = {
+        status_map: dict[str, Callable[[dict[str, Any]], str]] = {
             "completed": lambda d: {
                 "success": "success",
                 "failure": "failure",
