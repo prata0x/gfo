@@ -82,12 +82,12 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         elif config.service_type == "backlog":
             try:
                 kwargs["issue_type"] = int(args.type)
-            except (ValueError, TypeError):
+            except (ValueError, TypeError) as e:
                 raise ConfigError(
                     _("--type must be a numeric issue type ID for Backlog, got {type}.").format(
                         type=repr(args.type)
                     )
-                )
+                ) from e
     if args.priority is not None and config.service_type == "backlog":
         kwargs["priority"] = args.priority
     milestone = getattr(args, "milestone", None)
@@ -272,12 +272,12 @@ def _parse_duration(s: str) -> int:
         # Try plain integer as seconds
         try:
             total = int(s)
-        except ValueError:
+        except ValueError as e:
             raise ConfigError(
                 _(
                     "Invalid duration format: '{s}'. Use format like '1h30m', '45m', or '3600'."
                 ).format(s=s)
-            )
+            ) from e
     return total
 
 

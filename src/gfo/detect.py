@@ -341,12 +341,12 @@ def _parse_repo_option(value: str) -> DetectResult:
         )
     try:
         return detect_from_url(f"https://{value}")
-    except DetectionError:
+    except DetectionError as e:
         raise ConfigError(
             _("Cannot parse --repo value: {value}. Use URL or HOST/OWNER/REPO format.").format(
                 value=value
             )
-        )
+        ) from e
 
 
 # ── 統合検出フロー ──
