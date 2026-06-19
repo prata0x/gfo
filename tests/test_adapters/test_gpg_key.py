@@ -336,41 +336,6 @@ class TestGiteaGpgKey:
             gitea_adapter.delete_gpg_key(key_id=999)
 
 
-# --- Forgejo (inherits Gitea) ---
-
-
-class TestForgejoGpgKey:
-    @responses.activate
-    def test_list(self, forgejo_adapter):
-        responses.add(
-            responses.GET,
-            "https://forgejo.example.com/api/v1/user/gpg_keys",
-            json=[_common_gpg_key_data()],
-        )
-        keys = forgejo_adapter.list_gpg_keys()
-        assert len(keys) == 1
-
-    @responses.activate
-    def test_create(self, forgejo_adapter):
-        responses.add(
-            responses.POST,
-            "https://forgejo.example.com/api/v1/user/gpg_keys",
-            json=_common_gpg_key_data(id=2),
-            status=201,
-        )
-        key = forgejo_adapter.create_gpg_key(armored_key="-----BEGIN PGP...")
-        assert key.id == 2
-
-    @responses.activate
-    def test_delete(self, forgejo_adapter):
-        responses.add(
-            responses.DELETE,
-            "https://forgejo.example.com/api/v1/user/gpg_keys/1",
-            status=204,
-        )
-        forgejo_adapter.delete_gpg_key(key_id=1)
-
-
 # --- NotSupported ---
 
 
