@@ -1,0 +1,45 @@
+# CodeQL による継続的セキュリティスキャン (Python)。
+# gfo は public リポジトリのため Code Scanning が無償提供される → SARIF が Security タブに乗る。
+# ruff/bandit が拾えないデータフロー/taint (例: ユーザ入力が subprocess 引数や URL 組み立てに
+# 流れ込む経路) を補完する。
+#
+# 既存 ci.yml と並行で走り互いを block しない。GitHub-hosted ubuntu-latest で実行。
+# 各 action は 40 桁 commit SHA で pin (ci.yml の SHA-pin 自己検証 step が全 workflow を検査する)。
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * 1" # 毎週月曜 03:17 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (python)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write # SARIF を Code Scanning へアップロードするため
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
+        with:
+          languages: python
+          # security 寄りの拡張クエリ集合。baseline が落ち着くまでは検出のみ (enforce は別途)。
+          queries: security-extended
+
+      # Python はインタプリタ言語のため build step (autobuild) は不要。
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
+        with:
+          category: "/language:python"
