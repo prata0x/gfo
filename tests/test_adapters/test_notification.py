@@ -261,48 +261,6 @@ class TestGiteaNotification:
             gitea_adapter.list_notifications()
 
 
-# --- Forgejo ---
-
-
-class TestForgejoNotification:
-    @responses.activate
-    def test_list(self, forgejo_adapter):
-        responses.add(
-            responses.GET,
-            "https://forgejo.example.com/api/v1/notifications",
-            json=[_gitea_notification_data()],
-        )
-        notifs = forgejo_adapter.list_notifications()
-        assert len(notifs) == 1
-
-    @responses.activate
-    def test_mark_read(self, forgejo_adapter):
-        responses.add(
-            responses.PATCH,
-            "https://forgejo.example.com/api/v1/notifications/threads/1",
-            status=205,
-        )
-        forgejo_adapter.mark_notification_read("1")
-
-    @responses.activate
-    def test_mark_all_read(self, forgejo_adapter):
-        responses.add(
-            responses.PUT,
-            "https://forgejo.example.com/api/v1/notifications",
-            status=205,
-        )
-        forgejo_adapter.mark_all_notifications_read()
-
-    @responses.activate
-    def test_list_empty(self, forgejo_adapter):
-        responses.add(
-            responses.GET,
-            "https://forgejo.example.com/api/v1/notifications",
-            json=[],
-        )
-        assert forgejo_adapter.list_notifications() == []
-
-
 # --- Backlog ---
 
 

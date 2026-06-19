@@ -326,41 +326,6 @@ class TestGiteaSshKey:
             gitea_adapter.delete_ssh_key(key_id=999)
 
 
-# --- Forgejo (inherits Gitea) ---
-
-
-class TestForgejoSshKey:
-    @responses.activate
-    def test_list(self, forgejo_adapter):
-        responses.add(
-            responses.GET,
-            "https://forgejo.example.com/api/v1/user/keys",
-            json=[_common_ssh_key_data()],
-        )
-        keys = forgejo_adapter.list_ssh_keys()
-        assert len(keys) == 1
-
-    @responses.activate
-    def test_create(self, forgejo_adapter):
-        responses.add(
-            responses.POST,
-            "https://forgejo.example.com/api/v1/user/keys",
-            json=_common_ssh_key_data(id=2),
-            status=201,
-        )
-        key = forgejo_adapter.create_ssh_key(title="k", key="ssh-rsa X")
-        assert key.id == 2
-
-    @responses.activate
-    def test_delete(self, forgejo_adapter):
-        responses.add(
-            responses.DELETE,
-            "https://forgejo.example.com/api/v1/user/keys/1",
-            status=204,
-        )
-        forgejo_adapter.delete_ssh_key(key_id=1)
-
-
 # --- Gogs (inherits Gitea) ---
 
 

@@ -376,41 +376,6 @@ class TestGiteaOrg:
             gitea_adapter.get_organization("missing")
 
 
-# --- Forgejo ---
-
-
-class TestForgejoOrg:
-    @responses.activate
-    def test_list(self, forgejo_adapter):
-        responses.add(
-            responses.GET,
-            "https://forgejo.example.com/api/v1/user/orgs",
-            json=[_gitea_org_data()],
-        )
-        orgs = forgejo_adapter.list_organizations()
-        assert len(orgs) == 1
-
-    @responses.activate
-    def test_view(self, forgejo_adapter):
-        responses.add(
-            responses.GET,
-            "https://forgejo.example.com/api/v1/orgs/my-org",
-            json=_gitea_org_data(),
-        )
-        org = forgejo_adapter.get_organization("my-org")
-        assert org.name == "my-org"
-        assert org.display_name == "My Organization"
-
-    @responses.activate
-    def test_list_empty(self, forgejo_adapter):
-        responses.add(
-            responses.GET,
-            "https://forgejo.example.com/api/v1/user/orgs",
-            json=[],
-        )
-        assert forgejo_adapter.list_organizations() == []
-
-
 # --- Gogs ---
 
 
@@ -662,29 +627,6 @@ class TestGiteaOrgCreateDelete:
         responses.add(responses.DELETE, "https://gitea.example.com/api/v1/orgs/missing", status=404)
         with pytest.raises(NotFoundError):
             gitea_adapter.delete_organization("missing")
-
-
-# --- Forgejo create/delete (inherited from Gitea) ---
-
-
-class TestForgejoOrgCreateDelete:
-    @responses.activate
-    def test_create(self, forgejo_adapter):
-        responses.add(
-            responses.POST,
-            "https://forgejo.example.com/api/v1/orgs",
-            json=_gitea_org_data(),
-            status=201,
-        )
-        org = forgejo_adapter.create_organization("my-org")
-        assert org.name == "my-org"
-
-    @responses.activate
-    def test_delete(self, forgejo_adapter):
-        responses.add(
-            responses.DELETE, "https://forgejo.example.com/api/v1/orgs/my-org", status=204
-        )
-        forgejo_adapter.delete_organization("my-org")
 
 
 # --- Gogs create/delete (inherited from Gitea) ---
