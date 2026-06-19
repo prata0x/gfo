@@ -44,146 +44,61 @@ class TestInheritance:
         assert gogs_adapter.service_name == "Gogs"
 
 
+_REPO_WEB = f"{WEB_BASE}/test-owner/test-repo"
+# web_url を検証しないケース（NotSupportedError が出ることだけ確認）の番兵。
+_NO_WEB_URL_CHECK = object()
+
+# (id, 呼び出し, 期待 web_url)。
+#   文字列 → exc.web_url が一致すること / None → exc.web_url is None /
+#   _NO_WEB_URL_CHECK → web_url を検証しない。
+_NOT_SUPPORTED_CASES = [
+    ("list_pull_requests", lambda a: a.list_pull_requests(), f"{_REPO_WEB}/pulls"),
+    (
+        "create_pull_request",
+        lambda a: a.create_pull_request(title="PR", base="main", head="feature"),
+        f"{_REPO_WEB}/compare",
+    ),
+    ("get_pull_request", lambda a: a.get_pull_request(1), f"{_REPO_WEB}/pulls/1"),
+    ("merge_pull_request", lambda a: a.merge_pull_request(1), f"{_REPO_WEB}/pulls/1"),
+    ("close_pull_request", lambda a: a.close_pull_request(1), f"{_REPO_WEB}/pulls/1"),
+    ("get_pr_checkout_refspec", lambda a: a.get_pr_checkout_refspec(1), f"{_REPO_WEB}/pulls/1"),
+    ("reopen_pull_request", lambda a: a.reopen_pull_request(1), f"{_REPO_WEB}/pulls/1"),
+    ("update_pull_request", lambda a: a.update_pull_request(1, title="New"), f"{_REPO_WEB}/pulls"),
+    ("list_reviews", lambda a: a.list_reviews(1), f"{_REPO_WEB}/pulls"),
+    ("create_review", lambda a: a.create_review(1, state="approve"), f"{_REPO_WEB}/pulls"),
+    ("list_labels", lambda a: a.list_labels(), None),
+    ("create_label", lambda a: a.create_label(name="bug"), None),
+    ("delete_label", lambda a: a.delete_label(name="bug"), None),
+    ("update_label", lambda a: a.update_label(name="bug", new_name="bug-fix"), None),
+    ("list_milestones", lambda a: a.list_milestones(), None),
+    ("create_milestone", lambda a: a.create_milestone(title="v1.0"), None),
+    ("delete_milestone", lambda a: a.delete_milestone(number=1), None),
+    ("get_milestone", lambda a: a.get_milestone(1), None),
+    ("update_milestone", lambda a: a.update_milestone(1, title="v2.0"), None),
+    ("list_releases", lambda a: a.list_releases(), None),
+    ("create_release", lambda a: a.create_release(tag="v1.0.0"), None),
+    ("delete_release", lambda a: a.delete_release(tag="v1.0.0"), None),
+    ("get_release", lambda a: a.get_release(tag="v1.0.0"), None),
+    ("update_release", lambda a: a.update_release(tag="v1.0.0"), None),
+    ("update_comment", lambda a: a.update_comment("issue", 10, body="Updated"), _NO_WEB_URL_CHECK),
+    ("delete_comment", lambda a: a.delete_comment("issue", 10), _NO_WEB_URL_CHECK),
+    ("list_pipelines", lambda a: a.list_pipelines(), _NO_WEB_URL_CHECK),
+    ("get_pipeline", lambda a: a.get_pipeline(1), _NO_WEB_URL_CHECK),
+    ("cancel_pipeline", lambda a: a.cancel_pipeline(1), _NO_WEB_URL_CHECK),
+]
+
+
 class TestNotSupportedOperations:
-    def test_list_pull_requests(self, gogs_adapter):
+    @pytest.mark.parametrize(
+        ("call", "expected_web_url"),
+        [(c, w) for _, c, w in _NOT_SUPPORTED_CASES],
+        ids=[name for name, _, _ in _NOT_SUPPORTED_CASES],
+    )
+    def test_raises_not_supported(self, gogs_adapter, call, expected_web_url):
         with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.list_pull_requests()
-        assert exc_info.value.web_url == f"{WEB_BASE}/test-owner/test-repo/pulls"
-
-    def test_create_pull_request(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.create_pull_request(title="PR", base="main", head="feature")
-        assert exc_info.value.web_url == f"{WEB_BASE}/test-owner/test-repo/compare"
-
-    def test_get_pull_request(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.get_pull_request(1)
-        assert exc_info.value.web_url == f"{WEB_BASE}/test-owner/test-repo/pulls/1"
-
-    def test_merge_pull_request(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.merge_pull_request(1)
-        assert exc_info.value.web_url == f"{WEB_BASE}/test-owner/test-repo/pulls/1"
-
-    def test_close_pull_request(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.close_pull_request(1)
-        assert exc_info.value.web_url == f"{WEB_BASE}/test-owner/test-repo/pulls/1"
-
-    def test_get_pr_checkout_refspec(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.get_pr_checkout_refspec(1)
-        assert exc_info.value.web_url == f"{WEB_BASE}/test-owner/test-repo/pulls/1"
-
-    def test_reopen_pull_request(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.reopen_pull_request(1)
-        assert exc_info.value.web_url == f"{WEB_BASE}/test-owner/test-repo/pulls/1"
-
-    def test_list_labels(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.list_labels()
-        assert exc_info.value.web_url is None
-
-    def test_create_label(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.create_label(name="bug")
-        assert exc_info.value.web_url is None
-
-    def test_list_milestones(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.list_milestones()
-        assert exc_info.value.web_url is None
-
-    def test_create_milestone(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.create_milestone(title="v1.0")
-        assert exc_info.value.web_url is None
-
-    def test_delete_label(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.delete_label(name="bug")
-        assert exc_info.value.web_url is None
-
-    def test_update_label(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.update_label(name="bug", new_name="bug-fix")
-        assert exc_info.value.web_url is None
-
-    def test_delete_milestone(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.delete_milestone(number=1)
-        assert exc_info.value.web_url is None
-
-    def test_get_milestone(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.get_milestone(1)
-        assert exc_info.value.web_url is None
-
-    def test_update_milestone(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.update_milestone(1, title="v2.0")
-        assert exc_info.value.web_url is None
-
-    def test_list_releases(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.list_releases()
-        assert exc_info.value.web_url is None
-
-    def test_create_release(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.create_release(tag="v1.0.0")
-        assert exc_info.value.web_url is None
-
-    def test_delete_release(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.delete_release(tag="v1.0.0")
-        assert exc_info.value.web_url is None
-
-    def test_get_release(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.get_release(tag="v1.0.0")
-        assert exc_info.value.web_url is None
-
-    def test_update_release(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.update_release(tag="v1.0.0")
-        assert exc_info.value.web_url is None
-
-    def test_update_pull_request(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.update_pull_request(1, title="New")
-        assert exc_info.value.web_url == f"{WEB_BASE}/test-owner/test-repo/pulls"
-
-    def test_update_comment(self, gogs_adapter):
-        with pytest.raises(NotSupportedError):
-            gogs_adapter.update_comment("issue", 10, body="Updated")
-
-    def test_delete_comment(self, gogs_adapter):
-        with pytest.raises(NotSupportedError):
-            gogs_adapter.delete_comment("issue", 10)
-
-    def test_list_reviews(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.list_reviews(1)
-        assert exc_info.value.web_url == f"{WEB_BASE}/test-owner/test-repo/pulls"
-
-    def test_create_review(self, gogs_adapter):
-        with pytest.raises(NotSupportedError) as exc_info:
-            gogs_adapter.create_review(1, state="approve")
-        assert exc_info.value.web_url == f"{WEB_BASE}/test-owner/test-repo/pulls"
-
-    def test_list_pipelines(self, gogs_adapter):
-        with pytest.raises(NotSupportedError):
-            gogs_adapter.list_pipelines()
-
-    def test_get_pipeline(self, gogs_adapter):
-        with pytest.raises(NotSupportedError):
-            gogs_adapter.get_pipeline(1)
-
-    def test_cancel_pipeline(self, gogs_adapter):
-        with pytest.raises(NotSupportedError):
-            gogs_adapter.cancel_pipeline(1)
+            call(gogs_adapter)
+        if expected_web_url is not _NO_WEB_URL_CHECK:
+            assert exc_info.value.web_url == expected_web_url
 
 
 class TestWebUrl:
