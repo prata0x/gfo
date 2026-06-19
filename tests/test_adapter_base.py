@@ -7,7 +7,6 @@ import pytest
 
 from gfo.adapter.base import (
     GitHubLikeAdapter,
-    GitServiceAdapter,
     Issue,
     Label,
     Milestone,
@@ -16,6 +15,7 @@ from gfo.adapter.base import (
     Repository,
 )
 from gfo.exceptions import NotSupportedError
+from tests.conftest import StubAdapter
 
 
 class TestPullRequest:
@@ -230,58 +230,8 @@ class TestGitServiceAdapterDeleteDefaults:
     """delete デフォルト実装が NotSupportedError を送出することを確認する。"""
 
     def _make_adapter(self):
-        """抽象メソッドを最小限に実装したコンクリートサブクラスのインスタンスを返す。"""
-
-        class MinimalAdapter(GitServiceAdapter):
-            service_name = "TestService"
-
-            def list_pull_requests(self, *, state="open", limit=30):
-                return []
-
-            def create_pull_request(self, *, title, body="", base, head, draft=False): ...
-            def get_pull_request(self, number): ...
-            def merge_pull_request(self, number, *, method="merge", title=None, message=None): ...
-            def close_pull_request(self, number): ...
-            def list_issues(self, *, state="open", assignee=None, label=None, limit=30):
-                return []
-
-            def create_issue(self, *, title, body="", assignee=None, label=None, **kwargs): ...
-            def get_issue(self, number): ...
-            def close_issue(self, number): ...
-            def list_repositories(self, *, owner=None, limit=30):
-                return []
-
-            def create_repository(self, *, name, visibility="public", description=""): ...
-            def get_repository(self, owner=None, name=None): ...
-            def list_releases(self, *, limit=30):
-                return []
-
-            def create_release(self, *, tag, title="", notes="", draft=False, prerelease=False): ...
-            def list_labels(self, *, limit=0):
-                return []
-
-            def create_label(self, *, name, color=None, description=None): ...
-            def list_milestones(self, *, limit=0):
-                return []
-
-            def create_milestone(self, *, title, description=None, due_date=None): ...
-
-            # Phase 1+ 追加抽象メソッドのスタブ
-            def list_comments(self, resource, number, *, limit=30):
-                return []
-
-            def create_comment(self, resource, number, *, body): ...
-
-            def update_pull_request(self, number, *, title=None, body=None, base=None): ...
-
-            def update_issue(self, number, *, title=None, body=None, assignee=None, label=None): ...
-
-            def list_branches(self, *, limit=30):
-                return []
-
-            def create_branch(self, *, name, ref): ...
-
-        return MinimalAdapter(MagicMock(), "owner", "repo")
+        """全抽象メソッドをスタブ実装した共通 StubAdapter のインスタンスを返す。"""
+        return StubAdapter(MagicMock(), "owner", "repo")
 
     def test_delete_issue_raises_not_supported(self):
         adapter = self._make_adapter()
