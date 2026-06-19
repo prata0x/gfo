@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 from urllib.parse import quote
 
 import requests
@@ -92,7 +92,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     ) -> list[PullRequest]:
         self._warn_unsupported_params("pr list", draft=draft)
         api_state = "closed" if state == "merged" else state
-        params: dict = {"state": api_state}
+        params: dict[str, Any] = {"state": api_state}
         if author:
             params["poster"] = author
         if label:
@@ -137,7 +137,13 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         labels: list[str] | None = None,
         milestone: str | None = None,
     ) -> PullRequest:
-        payload: dict = {"title": title, "body": body, "base": base, "head": head, "draft": draft}
+        payload: dict[str, Any] = {
+            "title": title,
+            "body": body,
+            "base": base,
+            "head": head,
+            "draft": draft,
+        }
         if assignees:
             payload["assignees"] = assignees
         if labels:
@@ -193,7 +199,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         title: str | None = None,
         message: str | None = None,
     ) -> None:
-        payload: dict = {"Do": method}
+        payload: dict[str, Any] = {"Do": method}
         if title is not None:
             payload["MergeTitleField"] = title
         if message is not None:
@@ -237,7 +243,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         milestone: str | None = None,
         search: str | None = None,
     ) -> list[Issue]:
-        params: dict = {"state": state, "type": "issues"}
+        params: dict[str, Any] = {"state": state, "type": "issues"}
         if assignee is not None:
             params["assignee"] = assignee
         if label is not None:
@@ -268,7 +274,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         due_date: str | None = None,
         **kwargs: object,
     ) -> Issue:
-        payload: dict = {"title": title, "body": body}
+        payload: dict[str, Any] = {"title": title, "body": body}
         if assignee is not None:
             payload["assignees"] = [assignee]
         if label is not None:
@@ -355,7 +361,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         if visibility == "internal":
             raise NotSupportedError(self.service_name, "internal visibility")
         private = visibility == "private"
-        payload: dict = {"name": name, "private": private, "description": description}
+        payload: dict[str, Any] = {"name": name, "private": private, "description": description}
         if auto_init:
             payload["auto_init"] = True
         if organization:
@@ -388,7 +394,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         allow_rebase_merge: bool | None = None,
         delete_branch_on_merge: bool | None = None,
     ) -> Repository:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if name is not None:
             payload["name"] = name
         if description is not None:
@@ -506,7 +512,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             raise NotSupportedError(self.service_name, "internal visibility")
         private = visibility == "private"
         repo_owner = organization if organization else self._owner
-        payload: dict = {
+        payload: dict[str, Any] = {
             "clone_addr": clone_url,
             "repo_name": name,
             "repo_owner": repo_owner,
@@ -583,7 +589,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     ) -> Release:
         resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
         release_id = resp.json()["id"]
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["name"] = title
         if notes is not None:
@@ -659,7 +665,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     ) -> ReleaseAsset:
         resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
         release_id = resp.json()["id"]
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if name is not None:
             payload["name"] = name
         resp = self._client.patch(
@@ -681,7 +687,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def create_label(
         self, *, name: str, color: str | None = None, description: str | None = None
     ) -> Label:
-        payload: dict = {"name": name}
+        payload: dict[str, Any] = {"name": name}
         if color is not None:
             payload["color"] = color
         if description is not None:
@@ -713,7 +719,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 break
         if label_id is None:
             raise NotFoundError()
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if new_name is not None:
             payload["name"] = new_name
         if color is not None:
@@ -737,7 +743,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def create_milestone(
         self, *, title: str, description: str | None = None, due_date: str | None = None
     ) -> Milestone:
-        payload: dict = {"title": title}
+        payload: dict[str, Any] = {"title": title}
         if description is not None:
             payload["description"] = description
         if due_date is not None:
@@ -761,7 +767,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         due_date: str | None = None,
         state: str | None = None,
     ) -> Milestone:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["title"] = title
         if description is not None:
@@ -818,7 +824,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         milestone: str | None = None,
         draft: bool | None = None,
     ) -> PullRequest:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["title"] = title
         if body is not None:
@@ -942,7 +948,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         milestone: str | None = None,
         due_date: str | None = None,
     ) -> Issue:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if title is not None:
             payload["title"] = title
         if body is not None:
@@ -992,7 +998,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def create_review(self, number: int, *, state: str, body: str = "") -> Review:
         event = self._REVIEW_EVENT_MAP.get(state.upper(), state.upper())
-        payload: dict = {"event": event}
+        payload: dict[str, Any] = {"event": event}
         if body:
             payload["body"] = body
         resp = self._client.post(
@@ -1042,7 +1048,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return [self._to_tag(r) for r in results]
 
     def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
-        payload: dict = {"tag_name": name, "target": ref}
+        payload: dict[str, Any] = {"tag_name": name, "target": ref}
         if message:
             payload["message"] = message
         resp = self._client.post(f"{self._repos_path()}/tags", json=payload)
@@ -1071,7 +1077,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         description: str = "",
         target_url: str = "",
     ) -> CommitStatus:
-        payload: dict = {"state": state}
+        payload: dict[str, Any] = {"state": state}
         if context:
             payload["context"] = context
         if description:
@@ -1087,7 +1093,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     # --- File ---
 
     def get_file_content(self, path: str, *, ref: str | None = None) -> tuple[str, str]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if ref is not None:
             params["ref"] = ref
         resp = self._client.get(
@@ -1111,7 +1117,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         sha: str | None = None,
         branch: str | None = None,
     ) -> str | None:
-        payload: dict = {
+        payload: dict[str, Any] = {
             "message": message,
             "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
         }
@@ -1140,7 +1146,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         message: str,
         branch: str | None = None,
     ) -> None:
-        payload: dict = {"message": message, "sha": sha}
+        payload: dict[str, Any] = {"message": message, "sha": sha}
         if branch is not None:
             payload["branch"] = branch
         self._client.delete(
@@ -1151,7 +1157,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     # --- Fork ---
 
     def fork_repository(self, *, organization: str | None = None) -> Repository:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if organization is not None:
             payload["organization"] = organization
         resp = self._client.post(f"{self._repos_path()}/forks", json=payload)
@@ -1174,10 +1180,15 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return [self._to_webhook(r) for r in results]
 
     def create_webhook(self, *, url: str, events: list[str], secret: str | None = None) -> Webhook:
-        config: dict = {"url": url, "content_type": "json"}
+        config: dict[str, Any] = {"url": url, "content_type": "json"}
         if secret is not None:
             config["secret"] = secret
-        payload: dict = {"config": config, "events": events, "active": True, "type": "gitea"}
+        payload: dict[str, Any] = {
+            "config": config,
+            "events": events,
+            "active": True,
+            "type": "gitea",
+        }
         resp = self._client.post(f"{self._repos_path()}/hooks", json=payload)
         return self._to_webhook(resp.json())
 
@@ -1196,9 +1207,9 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         secret: str | None = None,
         active: bool | None = None,
     ) -> Webhook:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if url is not None or secret is not None:
-            config: dict = {}
+            config: dict[str, Any] = {}
             if url is not None:
                 config["url"] = url
             config["content_type"] = "json"
@@ -1261,7 +1272,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     # --- Pipeline (Gitea Actions API - 1.19+) ---
 
     def list_pipelines(self, *, ref: str | None = None, limit: int = 30) -> list[Pipeline]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if ref is not None:
             params["branch"] = ref
         results = paginate_link_header(
@@ -1281,12 +1292,12 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.post(f"{self._repos_path()}/actions/runs/{pipeline_id}/cancel", json={})
 
     def trigger_pipeline(
-        self, ref: str, *, workflow: str | None = None, inputs: dict | None = None
+        self, ref: str, *, workflow: str | None = None, inputs: dict[str, Any] | None = None
     ) -> Pipeline:
 
         if not workflow:
             raise GfoError("Gitea requires --workflow to trigger a pipeline.")
-        payload: dict = {"ref": ref}
+        payload: dict[str, Any] = {"ref": ref}
         if inputs:
             payload["inputs"] = inputs
         self._client.post(
@@ -1301,7 +1312,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_pipeline_data(data: dict) -> Pipeline:
+    def _to_pipeline_data(data: dict[str, Any]) -> Pipeline:
 
         status_map = {
             "success": "success",
@@ -1321,7 +1332,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         )
 
     def list_workflows(self, *, limit: int = 30) -> list[Workflow]:
-        results: list[dict] = []
+        results: list[dict[str, Any]] = []
         per_page = min(limit, 30) if limit > 0 else 30
         page = 1
         while True:
@@ -1330,7 +1341,9 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 params={"limit": per_page, "page": page},
             )
             body = resp.json()
-            page_data: list[dict] = body.get("workflows", []) if isinstance(body, dict) else []
+            page_data: list[dict[str, Any]] = (
+                body.get("workflows", []) if isinstance(body, dict) else []
+            )
             if not page_data:
                 break
             results.extend(page_data)
@@ -1396,7 +1409,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_workflow_data(data: dict) -> Workflow:
+    def _to_workflow_data(data: dict[str, Any]) -> Workflow:
         state = data.get("state", "disabled")
         return Workflow(
             id=data["id"],
@@ -1407,7 +1420,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_artifact_data(data: dict) -> Artifact:
+    def _to_artifact_data(data: dict[str, Any]) -> Artifact:
         return Artifact(
             id=data["id"],
             name=data.get("name") or "",
@@ -1418,7 +1431,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- User ---
 
-    def get_current_user(self) -> dict:
+    def get_current_user(self) -> dict[str, Any]:
         resp = self._client.get("/user")
         return dict(resp.json())
 
@@ -1536,7 +1549,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         allow_force_push: bool | None = None,
         allow_deletions: bool | None = None,
     ) -> BranchProtection:
-        payload: dict = {"branch_name": branch}
+        payload: dict[str, Any] = {"branch_name": branch}
         if require_reviews is not None:
             payload["required_approvals"] = require_reviews
         if require_status_checks is not None:
@@ -1551,7 +1564,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_branch_protection(data: dict) -> BranchProtection:
+    def _to_branch_protection(data: dict[str, Any]) -> BranchProtection:
 
         return BranchProtection(
             branch=data.get("branch_name") or data.get("rule_name") or "",
@@ -1567,7 +1580,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def list_notifications(
         self, *, unread_only: bool = False, limit: int = 30
     ) -> list[Notification]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if unread_only:
             params["status-types"] = "unread"
         results = paginate_link_header(
@@ -1583,7 +1596,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_notification(data: dict) -> Notification:
+    def _to_notification(data: dict[str, Any]) -> Notification:
 
         subject = data.get("subject") or {}
         repo = data.get("repository") or {}
@@ -1630,7 +1643,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         )
         return [self._to_repository(r) for r in results]
 
-    def _to_organization(self, data: dict) -> Organization:
+    def _to_organization(self, data: dict[str, Any]) -> Organization:
         from urllib.parse import urlparse
 
         try:
@@ -1651,7 +1664,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def create_organization(
         self, name: str, *, display_name: str | None = None, description: str | None = None
     ) -> Organization:
-        payload: dict = {"username": name}
+        payload: dict[str, Any] = {"username": name}
         if display_name:
             payload["full_name"] = display_name
         if description:
@@ -1669,7 +1682,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         display_name: str | None = None,
         description: str | None = None,
     ) -> Organization:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if display_name is not None:
             payload["full_name"] = display_name
         if description is not None:
@@ -1698,7 +1711,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_ssh_key(data: dict) -> SshKey:
+    def _to_ssh_key(data: dict[str, Any]) -> SshKey:
 
         return SshKey(
             id=data["id"],
@@ -1727,7 +1740,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.delete(f"/user/gpg_keys/{key_id}")
 
     @staticmethod
-    def _to_gpg_key(data: dict) -> GpgKey:
+    def _to_gpg_key(data: dict[str, Any]) -> GpgKey:
         return GpgKey(
             id=data["id"],
             primary_key_id=data.get("primary_key_id") or "",
@@ -1752,7 +1765,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def create_tag_protection(
         self, pattern: str, *, create_access_level: str | None = None
     ) -> TagProtection:
-        payload: dict = {"name_pattern": pattern}
+        payload: dict[str, Any] = {"name_pattern": pattern}
         if create_access_level is not None:
             payload["whitelist_teams"] = create_access_level
         resp = self._client.post(f"/repos/{self._owner}/{self._repo}/tag_protections", json=payload)
@@ -1773,7 +1786,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         pattern: str | None = None,
         create_access_level: str | None = None,
     ) -> TagProtection:
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         if pattern is not None:
             payload["name_pattern"] = pattern
         if create_access_level is not None:
@@ -1868,7 +1881,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             current_content_b64 = base64.b64encode(content.encode()).decode()
         else:
             current_content_b64 = current.get("content_base64") or ""
-        payload: dict = {
+        payload: dict[str, Any] = {
             "title": current_title,
             "content_base64": current_content_b64,
         }
@@ -1889,7 +1902,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_wiki_page_data(data: dict) -> WikiPage:
+    def _to_wiki_page_data(data: dict[str, Any]) -> WikiPage:
 
         # Gitea 1.22+: content は content_base64（base64エンコード）
         content_b64 = data.get("content_base64") or ""
@@ -2038,7 +2051,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def search_pull_requests(
         self, query: str, *, state: str | None = None, limit: int = 30
     ) -> list[PullRequest]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if query:
             params["q"] = query
         if state and state != "all":
@@ -2061,7 +2074,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         until: str | None = None,
         limit: int = 30,
     ) -> list[Commit]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if query:
             params["keyword"] = query
         results = paginate_link_header(
@@ -2089,7 +2102,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     # --- Package ---
 
     def list_packages(self, *, package_type: str | None = None, limit: int = 30) -> list[Package]:
-        params: dict = {}
+        params: dict[str, Any] = {}
         if package_type:
             params["type"] = package_type
         results = paginate_link_header(
@@ -2217,7 +2230,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         sync_on_commit: bool = True,
         auth_token: str | None = None,
     ) -> PushMirror:
-        payload: dict = {
+        payload: dict[str, Any] = {
             "remote_address": remote_address,
             "interval": interval,
             "sync_on_commit": sync_on_commit,
@@ -2250,7 +2263,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     # --- Repo Transfer ---
 
     def transfer_repository(self, new_owner: str, *, team_ids: list[int] | None = None) -> None:
-        payload: dict = {"new_owner": new_owner}
+        payload: dict[str, Any] = {"new_owner": new_owner}
         if team_ids:
             payload["team_ids"] = team_ids
         self._client.post(f"{self._repos_path()}/transfer", json=payload)
