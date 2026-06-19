@@ -240,7 +240,7 @@ _OUTPUT_MAP: dict[tuple[str, str | None], type | None] = {
 }
 
 # file get / user whoami の特殊出力スキーマ
-_SPECIAL_OUTPUT: dict[tuple[str, str | None], dict] = {
+_SPECIAL_OUTPUT: dict[tuple[str, str | None], dict[str, Any]] = {
     ("file", "get"): {
         "type": "object",
         "properties": {
@@ -269,7 +269,7 @@ _SPECIAL_OUTPUT: dict[tuple[str, str | None], dict] = {
 }
 
 
-def _python_type_to_json_schema(tp: Any) -> dict:
+def _python_type_to_json_schema(tp: Any) -> dict[str, Any]:
     """Python 型アノテーションを JSON Schema に変換する。"""
     origin = typing.get_origin(tp)
 
@@ -307,7 +307,7 @@ def _python_type_to_json_schema(tp: Any) -> dict:
     return {"type": "string"}
 
 
-def _union_to_schema(args: tuple) -> dict:
+def _union_to_schema(args: tuple[Any, ...]) -> dict[str, Any]:
     """Union 型引数を JSON Schema に変換する。"""
     non_none = [a for a in args if a is not type(None)]
     has_none = len(non_none) < len(args)
@@ -327,11 +327,11 @@ def _union_to_schema(args: tuple) -> dict:
     return {"oneOf": schemas}
 
 
-def _dataclass_to_json_schema(cls: type) -> dict:
+def _dataclass_to_json_schema(cls: type) -> dict[str, Any]:
     """データクラスを JSON Schema に変換する。"""
     hints = get_type_hints(cls)
     fields = dataclasses.fields(cls)
-    properties: dict[str, dict] = {}
+    properties: dict[str, dict[str, Any]] = {}
     required: list[str] = []
 
     for f in fields:
@@ -345,7 +345,7 @@ def _dataclass_to_json_schema(cls: type) -> dict:
     return schema
 
 
-def _parser_to_input_schema(parser: argparse.ArgumentParser) -> dict:
+def _parser_to_input_schema(parser: argparse.ArgumentParser) -> dict[str, Any]:
     """argparse パーサーから入力スキーマを生成する。
 
     NOTE: argparse の非公開 API を使用している:
@@ -354,7 +354,7 @@ def _parser_to_input_schema(parser: argparse.ArgumentParser) -> dict:
         アクション種別の判定に使用
     argparse の内部実装変更により動作しなくなる可能性がある。
     """
-    properties: dict[str, dict] = {}
+    properties: dict[str, dict[str, Any]] = {}
     required: list[str] = []
     seen_dests: set[str] = set()
 
@@ -463,7 +463,7 @@ def _build_output_schema(key: tuple[str, str | None]) -> Any:
 def _build_command_schema(
     key: tuple[str, str | None],
     subparser_map: dict[str, argparse.ArgumentParser],
-) -> dict:
+) -> dict[str, Any]:
     """単一コマンドのスキーマを構築する。"""
     command, subcommand = key
 
@@ -507,7 +507,7 @@ def handle_schema(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 
     if list_commands or not target:
         # コマンド一覧
-        result: list[dict] = []
+        result: list[dict[str, Any]] = []
         for key in _DISPATCH:
             command, subcommand = key
             cmd_label = f"{command} {subcommand}" if subcommand else command

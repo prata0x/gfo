@@ -127,7 +127,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     adapter_cls = get_adapter_class(service_type)
 
     # サービスによってはコンストラクタに追加引数が必要
-    extra_kwargs: dict = {}
+    extra_kwargs: dict[str, str] = {}
     if service_type == "backlog":
         if not project_key:
             raise ConfigError(

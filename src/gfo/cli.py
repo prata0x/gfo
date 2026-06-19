@@ -1547,7 +1547,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     return parser, subparser_map
 
 
-_DISPATCH: dict[tuple[str, str | None], Callable] = {
+_DISPATCH: dict[tuple[str, str | None], Callable[..., None]] = {
     ("init", None): gfo.commands.init.handle,
     ("auth", "login"): gfo.commands.auth_cmd.handle_login,
     ("auth", "status"): gfo.commands.auth_cmd.handle_status,
