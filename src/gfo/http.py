@@ -181,7 +181,7 @@ class HttpClient:
         method: str,
         path: str,
         *,
-        params: dict | None = None,
+        params: dict[str, Any] | None = None,
         json: Any = None,
         data: str | None = None,
         headers: dict[str, str] | None = None,
@@ -231,8 +231,8 @@ class HttpClient:
         method: str,
         path: str,
         *,
-        params: dict | None = None,
-        headers: dict | None = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
         timeout: int = 300,
         chunk_size: int = 65536,
     ) -> Iterator[bytes]:
@@ -296,7 +296,12 @@ class HttpClient:
             resp.close()
 
     def download_file(
-        self, url: str, output_path: str, *, headers: dict | None = None, timeout: int = 300
+        self,
+        url: str,
+        output_path: str,
+        *,
+        headers: dict[str, str] | None = None,
+        timeout: int = 300,
     ) -> None:
         """ストリーミングダウンロード。
 
@@ -365,7 +370,7 @@ class HttpClient:
         *,
         name: str | None = None,
         content_type: str = "application/octet-stream",
-        params: dict | None = None,
+        params: dict[str, Any] | None = None,
         timeout: int = 300,
     ) -> requests.Response:
         """絶対 URL に対してファイルアップロード（raw binary）。GitHub Release Asset 用。
@@ -428,7 +433,7 @@ class HttpClient:
         return self._retry_loop(_post)
 
     def get_absolute(
-        self, url: str, *, params: dict | None = None, timeout: int = 30
+        self, url: str, *, params: dict[str, Any] | None = None, timeout: int = 30
     ) -> requests.Response:
         """絶対 URL に対して GET リクエストを実行する。認証パラメータ・リトライを適用する。
 
@@ -531,11 +536,11 @@ def paginate_link_header(
     client: HttpClient,
     path: str,
     *,
-    params: dict | None = None,
+    params: dict[str, Any] | None = None,
     per_page: int = 100,
     per_page_key: str = "per_page",
     limit: int = 30,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Link header ベースのページネーション（GitHub / Gitea / GitBucket 用）。
 
     per_page デフォルトは 100 (GitHub / Gitea の API 上限)。大量取得時の
@@ -548,7 +553,7 @@ def paginate_link_header(
         per_page = limit
     params = dict(params or {})
     params[per_page_key] = per_page
-    results: list[dict] = []
+    results: list[dict[str, Any]] = []
     next_url: str | None = None
 
     while True:
@@ -583,11 +588,11 @@ def paginate_page_param(
     client: HttpClient,
     path: str,
     *,
-    params: dict | None = None,
+    params: dict[str, Any] | None = None,
     per_page: int = 100,
     limit: int = 30,
     next_page_header: str = "X-Next-Page",
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """ページパラメータ + ヘッダーベースのページネーション（GitLab 用）。
 
     per_page デフォルトは 100 (GitLab API 上限)。大量取得時の
@@ -600,7 +605,7 @@ def paginate_page_param(
     params = dict(params or {})
     params["per_page"] = per_page
     params["page"] = 1
-    results: list[dict] = []
+    results: list[dict[str, Any]] = []
 
     while True:
         resp = client.get(path, params=params)
@@ -630,15 +635,15 @@ def paginate_response_body(
     client: HttpClient,
     path: str,
     *,
-    params: dict | None = None,
+    params: dict[str, Any] | None = None,
     limit: int = 30,
     values_key: str = "values",
     next_key: str = "next",
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """レスポンスボディベースのページネーション（Bitbucket Cloud 用）。"""
     if limit < 0:
         raise ValueError("limit must be non-negative")
-    results: list[dict] = []
+    results: list[dict[str, Any]] = []
     next_url: str | None = None
     first = True
 
@@ -680,12 +685,12 @@ def paginate_offset(
     client: HttpClient,
     path: str,
     *,
-    params: dict | None = None,
+    params: dict[str, Any] | None = None,
     count: int = 100,
     limit: int = 30,
     count_key: str = "count",
     offset_key: str = "offset",
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """オフセットベースのページネーション（Backlog 用）。
 
     count デフォルトは 100 (Backlog API 上限)。ラウンドトリップ削減のため。
@@ -697,7 +702,7 @@ def paginate_offset(
     params = dict(params or {})
     params[count_key] = count
     offset = 0
-    results: list[dict] = []
+    results: list[dict[str, Any]] = []
 
     while True:
         params[offset_key] = offset
@@ -723,11 +728,11 @@ def paginate_top_skip(
     client: HttpClient,
     path: str,
     *,
-    params: dict | None = None,
+    params: dict[str, Any] | None = None,
     top: int = 100,
     limit: int = 30,
     result_key: str = "value",
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """$top+$skip ベースのページネーション（Azure DevOps 用）。
 
     top デフォルトは 100。ラウンドトリップ削減のため。
@@ -739,7 +744,7 @@ def paginate_top_skip(
     params = dict(params or {})
     params["$top"] = top
     skip = 0
-    results: list[dict] = []
+    results: list[dict[str, Any]] = []
 
     while True:
         params["$skip"] = skip
