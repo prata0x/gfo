@@ -72,9 +72,6 @@ exclude_dirs = ["tests"]
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
-# 段階的に有効化できるチェック
-warn_unused_ignores = true
-warn_return_any = true
+strict = true
+# strict に含まれない追加チェック
 warn_unreachable = true
-disallow_untyped_defs = true
-disallow_any_generics = true
