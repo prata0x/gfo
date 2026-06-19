@@ -1,35 +1,37 @@
+# uv run 経由で実行する (WSL には `python` コマンドが無く `python3` のみのため、
+# `python -m ...` は使わない)。uv は mise で供給される。
 repos:
   - repo: local
     hooks:
       - id: ruff-check
         name: ruff (lint + auto-fix)
-        entry: python -m ruff check --fix
+        entry: uv run ruff check --fix
         language: system
         types: [python]
 
       - id: ruff-format
         name: ruff (format)
-        entry: python -m ruff format
+        entry: uv run ruff format
         language: system
         types: [python]
 
       - id: mypy
         name: mypy
-        entry: python -m mypy src/gfo
+        entry: uv run mypy src/gfo
         language: system
         pass_filenames: false
         types: [python]
 
       - id: bandit
         name: bandit
-        entry: python -m bandit -r src/gfo -c pyproject.toml
+        entry: uv run bandit -r src/gfo -c pyproject.toml
         language: system
         pass_filenames: false
         types: [python]
 
       - id: pytest
         name: pytest
-        entry: python -m pytest --tb=short -q
+        entry: uv run pytest --tb=short -q
         language: system
         pass_filenames: false
         always_run: true

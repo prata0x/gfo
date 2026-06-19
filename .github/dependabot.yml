@@ -1,0 +1,58 @@
+# 依存自動更新。直接依存の更新を GitHub PR で受け取り、CI が pass したものだけマージする運用。
+# 週次 (毎週月曜) で開く。日次は PR ノイズが多く maintenance burden になるため避ける。
+#
+# 供給網対策: cooldown で「リリース直後の新版」を一定期間隔離し、汚染版の即時取り込みを防ぐ
+# (npm/pnpm の minimumReleaseAge 相当)。uv.lock + hash により install 時の改竄も検知される。
+# security update には cooldown が適用されない (Dependabot 仕様) ので CVE patch の PR は引き続き来る。
+version: 2
+updates:
+  # Python 依存 (pyproject.toml + uv.lock)。uv エコシステムで lockfile ごと更新される。
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      # security 系 patch/minor は単独 group で目立たせる (緊急対応性が高い)。
+      security:
+        applies-to: security-updates
+        update-types:
+          - patch
+          - minor
+      # 開発依存 (ruff/mypy/pytest 等) の minor/patch はまとめて 1 PR にする。
+      dev-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+      # 実行時依存 (requests) の patch だけまとめる。minor 以上は単独 PR で changelog を確認しやすく。
+      production-patches:
+        dependency-type: production
+        update-types:
+          - patch
+
+  # GitHub Actions — CI で使う action の SHA pin 更新。
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      ci-actions:
+        patterns:
+          - "*"

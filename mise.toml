@@ -1,0 +1,9 @@
+# 開発ツールチェーンの宣言。CI (mise-action) とローカルで同一の python / uv を供給する。
+# auto-venv: このディレクトリに入ると .venv を自動有効化し、素の `python` / `pytest` を解決する
+# (WSL には `python` コマンドが無く `python3` のみのため、venv 有効化で `python` を成立させる)。
+[tools]
+python = "3.13"
+uv = "0.11"
+
+[env]
+_.python.venv = { path = ".venv", create = true }
