@@ -48,8 +48,12 @@ jobs:
         include:
           # min = 対応下限 / max = 最新。版を上げる時は python-version だけ差し替える
           # (label は変えない → check 名が安定し Ruleset 再設定が不要)。
-          - { label: min, python-version: "3.11" }
-          - { label: max, python-version: "3.13" }
+          #
+          # カバレッジは max (3.13) leg でのみ取得する。min leg は cov 無しで回し、
+          # 3.11 で sysmon 非対応ゆえ重い C-trace 計測を丸ごと省いてクリティカルパスを短縮する
+          # (cov 計測は実行行の追跡であり Python 版差はほぼ無いため max 一本で十分)。
+          - { label: min, python-version: "3.11", cov: "" }
+          - { label: max, python-version: "3.13", cov: "--cov=gfo --cov-report=term-missing" }
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -103,12 +107,12 @@ jobs:
         run: uv run bandit -r src/gfo -c pyproject.toml -q
 
       # runner は 4 vCPU 固定なので xdist は -n 4 を明示 (auto でも同等だが意図を固定)。
-      # CI ではカバレッジを維持する (addopts から外したぶん明示的に付与)。
-      # 3.13 (max) のみ coverage の sysmon コアを使い計測オーバーヘッドを抑える (3.11 は非対応)。
+      # カバレッジは max leg のみ取得する (matrix.cov)。min leg は cov 無し = 高速。
+      # 3.13 (max) は coverage の sysmon コアを使い計測オーバーヘッドを抑える (3.11 は非対応)。
       - name: Unit tests (pytest)
         env:
           COVERAGE_CORE: ${{ matrix.label == 'max' && 'sysmon' || '' }}
-        run: uv run pytest -n 4 --cov=gfo --cov-report=term-missing -q
+        run: uv run pytest -n 4 ${{ matrix.cov }} -q
 
   # matrix を束ねる安定名の必須チェック。Ruleset は "ci" だけを Require すればよく、
   # テスト対象バージョンを増減しても再設定不要。
