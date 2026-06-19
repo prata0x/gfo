@@ -23,18 +23,22 @@ allowed-tools: Bash, Read, Glob, Grep
 
 単体テスト（`tests/` 配下、`tests/integration/` を除く）を実行する。
 
+> カバレッジは `addopts` に焼き込んでいない（計測オーバーヘッドが支配的なため）。
+> このスキルはローカルのカバレッジ計測経路として `--cov` を明示付与し、`-n auto`（pytest-xdist）で並列実行する。
+
 ### 実行手順
 
 1. **引数の解析**: `$ARGUMENTS` を確認する
-   - 引数なし → `python -m pytest --ignore=tests/integration -v`
-   - ファイルやキーワード指定あり → そのまま pytest に渡す
+   - 引数なし → `python -m pytest --ignore=tests/integration --cov=gfo --cov-report=term-missing -n auto`
+   - ファイルやキーワード指定あり → そのまま pytest に渡す（`--cov=gfo --cov-report=term-missing -n auto` は維持）
 
 2. **テスト実行**: 以下のコマンドで実行する
    ```
-   python -m pytest {target} -v
+   python -m pytest {target} --cov=gfo --cov-report=term-missing -n auto
    ```
    - `{target}` は引数から構築する
    - `tests/integration/` は常に除外する（引数で明示的に指定された場合を除く）
+   - カバレッジ不要で素早く回したい場合は `--no-cov` を付ける
 
 3. **結果報告**: テスト結果をユーザーに簡潔に報告する
    - 全テスト通過: 通過数を報告
