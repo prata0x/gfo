@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -710,6 +711,33 @@ class TestHandleReviewers:
         out = capsys.readouterr().out
         assert "[]" in out
 
+    def test_list_action_non_empty_json(self, capsys):
+        """list[str] を json 出力してもクラッシュしないこと（output() 誤用の回帰）。"""
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.list_requested_reviewers.return_value = ["alice", "bob"]
+            args = make_args(number=1, reviewer_action=None)
+            pr_cmd.handle_reviewers(args, fmt="json")
+        out = capsys.readouterr().out
+        assert json.loads(out) == ["alice", "bob"]
+
+    def test_list_action_non_empty_table(self, capsys):
+        """table 出力では各レビュアーを1行ずつ表示すること。"""
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.list_requested_reviewers.return_value = ["alice", "bob"]
+            args = make_args(number=1, reviewer_action=None)
+            pr_cmd.handle_reviewers(args, fmt="table")
+        out = capsys.readouterr().out
+        assert out.splitlines() == ["alice", "bob"]
+
+    def test_list_action_jq(self, capsys):
+        """--jq が list[str] 出力に接続されていること。"""
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.list_requested_reviewers.return_value = ["alice", "bob"]
+            args = make_args(number=1, reviewer_action=None)
+            pr_cmd.handle_reviewers(args, fmt="json", jq=".[0]")
+        out = capsys.readouterr().out
+        assert "alice" in out
+
     def test_add_action(self):
         with patch_adapter("gfo.commands.pr") as adapter:
             args = make_args(number=1, reviewer_action="add", users=["user1", "user2"])
@@ -759,6 +787,15 @@ class TestHandleMergeAuto:
             assert "--subject/--body" in str(w[0].message)
         adapter.enable_auto_merge.assert_called_once()
 
+    def test_auto_with_delete_branch_raises(self):
+        """--auto + --delete-branch はマージ前にブランチが消えるため拒否すること。"""
+        with patch_adapter("gfo.commands.pr") as adapter:
+            args = make_args(number=1, squash=False, auto=True, delete_branch=True)
+            with pytest.raises(ConfigError, match="--delete-branch cannot be combined"):
+                pr_cmd.handle_merge(args, fmt="table")
+        adapter.enable_auto_merge.assert_not_called()
+        adapter.delete_branch.assert_not_called()
+
 
 class TestHandleMergeDisableAuto:
     def test_disable_auto_merge_calls_adapter(self):
@@ -767,6 +804,15 @@ class TestHandleMergeDisableAuto:
             pr_cmd.handle_merge(args, fmt="table")
         adapter.disable_auto_merge.assert_called_once_with(1)
         adapter.merge_pull_request.assert_not_called()
+
+    def test_disable_auto_with_delete_branch_raises(self):
+        """--disable-auto + --delete-branch も同様に拒否すること。"""
+        with patch_adapter("gfo.commands.pr") as adapter:
+            args = make_args(number=1, squash=False, disable_auto=True, delete_branch=True)
+            with pytest.raises(ConfigError, match="--delete-branch cannot be combined"):
+                pr_cmd.handle_merge(args, fmt="table")
+        adapter.disable_auto_merge.assert_not_called()
+        adapter.delete_branch.assert_not_called()
         adapter.enable_auto_merge.assert_not_called()
 
     def test_disable_auto_prints_message(self, capsys):
