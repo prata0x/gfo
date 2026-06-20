@@ -1415,8 +1415,10 @@ class TestExtractNextLink:
 
 class TestUploadFileRetry:
     @responses.activate
-    def test_upload_file_retry_sends_data_on_second_attempt(self, tmp_path):
+    def test_upload_file_retry_sends_data_on_second_attempt(self, tmp_path, monkeypatch):
         """429 → 200 リトライで2回目もファイルデータが送信されることを検証する。"""
+        # Retry-After:0 は下限 1s にクランプされるため実 sleep を無効化する (検証対象は body)。
+        monkeypatch.setattr("gfo.http.time.sleep", lambda _: None)
         test_file = tmp_path / "test.bin"
         test_file.write_bytes(b"hello world")
         client = HttpClient(BASE, auth_header={"Authorization": "Bearer tok"}, max_retries=1)
@@ -1438,8 +1440,10 @@ class TestUploadFileRetry:
         assert responses.calls[1].request.body == b"hello world"
 
     @responses.activate
-    def test_upload_multipart_retry_sends_data_on_second_attempt(self, tmp_path):
+    def test_upload_multipart_retry_sends_data_on_second_attempt(self, tmp_path, monkeypatch):
         """429 → 200 リトライで multipart でも2回目にデータが送信されることを検証する。"""
+        # Retry-After:0 は下限 1s にクランプされるため実 sleep を無効化する (検証対象は body)。
+        monkeypatch.setattr("gfo.http.time.sleep", lambda _: None)
         test_file = tmp_path / "test.bin"
         test_file.write_bytes(b"binary data")
         client = HttpClient(BASE, auth_header={"Authorization": "Bearer tok"}, max_retries=1)
