@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.1] - 2026-06-21
+
+### Fixed
+- Azure DevOps timeline: aggregate time entries by addition so records are no longer dropped (consistent summation)
+- Filtered `list` operations: apply `limit` after filtering instead of before, so matching items are no longer missed
+- Gitea `label delete` / `label update`: paginate the full label list instead of relying on a single page, fixing missed labels
+- `pr` requested reviewers: stop crashing on `list[str]` caused by misusing `output()`
+
+### Security
+- `gfo api`: restrict PATH to relative paths so the auth token is not sent when an absolute URL / external host is supplied
+- HTTP host validation: normalize trailing-dot hosts and verify TLS per absolute URL
+- `release --pattern`: prevent path traversal during asset download
+
 ## [0.10.0] - 2026-05-12
 
 ### Added
