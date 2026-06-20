@@ -964,3 +964,60 @@ class TestHandleViewWeb:
         ):
             with pytest.raises(ConfigError, match="tag must not be empty"):
                 release_cmd.handle_view(args, fmt="table")
+
+
+class TestHandleAssetDownloadPattern:
+    """_handle_asset_download の --pattern 経路。
+
+    サーバ由来のアセット名 (ReleaseAsset.name) は信頼できないため、
+    output_dir 外への書き込みを防ぐサニタイズを検証する。
+    """
+
+    def _asset(self, name: str) -> ReleaseAsset:
+        return ReleaseAsset(
+            id=1,
+            name=name,
+            size=1,
+            download_url="https://example.com/dl/" + name,
+            created_at="2024-01-01T00:00:00Z",
+        )
+
+    def _adapter(self, assets: list[ReleaseAsset]) -> MagicMock:
+        adapter = MagicMock()
+        adapter.list_release_assets.return_value = assets
+        return adapter
+
+    def test_safe_name_downloaded_into_dir(self, sample_config, tmp_path, capsys):
+        import os
+
+        adapter = self._adapter([self._asset("app.zip")])
+        args = make_args(tag="v1.0.0", asset_id=None, pattern="*.zip", dir=str(tmp_path))
+        with _patch_all(sample_config, adapter):
+            release_cmd._handle_asset_download(args, fmt="table")
+        adapter.client.download_file.assert_called_once()
+        out_path = adapter.client.download_file.call_args.args[1]
+        assert out_path == os.path.join(str(tmp_path), "app.zip")
+
+    def test_traversal_name_neutralized_to_basename(self, sample_config, tmp_path):
+        import os
+
+        adapter = self._adapter([self._asset("../../evil.zip")])
+        args = make_args(tag="v1.0.0", asset_id=None, pattern="*.zip", dir=str(tmp_path))
+        with _patch_all(sample_config, adapter):
+            release_cmd._handle_asset_download(args, fmt="table")
+        out_path = adapter.client.download_file.call_args.args[1]
+        # ディレクトリ成分が除去され output_dir 内に閉じ込められる
+        assert out_path == os.path.join(str(tmp_path), "evil.zip")
+        assert os.path.dirname(os.path.realpath(out_path)) == os.path.realpath(str(tmp_path))
+
+    def test_absolute_name_neutralized_to_basename(self, sample_config, tmp_path):
+        import os
+
+        adapter = self._adapter([self._asset("/etc/cron.d/evil")])
+        # fnmatch("/etc/cron.d/evil", "*evil*") にマッチさせる
+        args = make_args(tag="v1.0.0", asset_id=None, pattern="*evil*", dir=str(tmp_path))
+        with _patch_all(sample_config, adapter):
+            release_cmd._handle_asset_download(args, fmt="table")
+        out_path = adapter.client.download_file.call_args.args[1]
+        assert out_path == os.path.join(str(tmp_path), "evil")
+        assert os.path.dirname(os.path.realpath(out_path)) == os.path.realpath(str(tmp_path))
