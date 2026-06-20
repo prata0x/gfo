@@ -1698,7 +1698,10 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         resp = self._client.get(f"{self._wit_path()}/workitems/{number}/updates")
         updates = resp.json().get("value") or []
         events = []
-        for u in updates[:limit]:
+        # detail の無い update（フィールド変更を伴わないリビジョン）は除外する。
+        # フィルタ前に limit で切ると、先頭が空 detail の update のとき有効な
+        # イベントを取りこぼすため、全件走査してから limit を適用する。
+        for u in updates:
             fields = u.get("fields") or {}
             detail_parts = []
             for field_name, change in fields.items():
@@ -1719,6 +1722,8 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                         detail="; ".join(detail_parts[:3]),
                     )
                 )
+        if limit > 0:
+            events = events[:limit]
         return events
 
     # --- Search PRs ---
@@ -1783,8 +1788,22 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     def add_time_entry(self, issue_number: int, duration: int | float) -> TimeEntry:
         hours = duration / 3600
+        # CompletedWork への JSON Patch "add" は加算ではなく置換（設定）であり、
+        # 複数回呼ぶと過去の記録が消える。base の「加算」契約に合わせ、現在値を
+        # GET してから加算する read-modify-write にする。
+        resp = self._client.get(f"{self._wit_path()}/workitems/{issue_number}")
+        fields = resp.json().get("fields") or {}
+        current = fields.get("Microsoft.VSTS.Scheduling.CompletedWork") or 0
+        try:
+            new_total = float(current) + hours
+        except (TypeError, ValueError):
+            new_total = hours
         patch = [
-            {"op": "add", "path": "/fields/Microsoft.VSTS.Scheduling.CompletedWork", "value": hours}
+            {
+                "op": "add",
+                "path": "/fields/Microsoft.VSTS.Scheduling.CompletedWork",
+                "value": new_total,
+            }
         ]
         self._client.patch(
             f"{self._wit_path()}/workitems/{issue_number}",

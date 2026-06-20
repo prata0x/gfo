@@ -3889,6 +3889,28 @@ class TestOrgSecrets:
         gitlab_adapter.delete_secret("GROUP_SECRET", scope="my-group")
 
 
+class TestListSecretsFilterOrder:
+    def test_masked_on_later_page_not_dropped(self, mock_responses, gitlab_adapter):
+        """masked フィルタは全件取得後に適用し、後方ページの秘密を取りこぼさない。"""
+        # page1: masked でない変数のみ（続きあり）
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/variables",
+            json=[{"key": "PLAIN", "value": "v", "masked": False}],
+            status=200,
+            headers={"X-Next-Page": "2"},
+        )
+        # page2: 探している masked 秘密
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/variables",
+            json=[{"key": "SECRET", "value": "***", "masked": True}],
+            status=200,
+        )
+        secrets = gitlab_adapter.list_secrets(limit=1)
+        assert [s.name for s in secrets] == ["SECRET"]
+
+
 class TestOrgVariables:
     def test_list_org_variables(self, mock_responses, gitlab_adapter):
         mock_responses.add(

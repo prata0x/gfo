@@ -15,6 +15,28 @@ from gfo.output import apply_jq_filter
 _DISALLOWED_HEADERS = {"authorization", "cookie", "host", "proxy-authorization"}
 
 
+def _validate_api_path(path: str) -> str:
+    """API パスがベース URL のオリジンを変えないことを検証する。
+
+    `gfo api` の PATH は argparse の自由入力で、`HttpClient.request` は
+    `base_url + path` を素朴に連結する（同一オリジン検証を持たない）。
+    先頭 `/` で始まらないパス（例: `@evil.com/...`, `.evil.com/...`,
+    絶対 URL）はベースの authority を差し替えてしまい、認証トークンが
+    攻撃者ホストへ送出される。相対パス（先頭 `/`、ただし `//` は不可）に
+    限定し、制御文字も拒否する。
+    """
+    if any(c in path for c in ("\r", "\n", "\x00")):
+        raise ConfigError(_("PATH contains control characters; refused."))
+    if not path.startswith("/") or path.startswith("//"):
+        raise ConfigError(
+            _(
+                "PATH must be a relative path starting with '/' "
+                "(e.g. '/repos/owner/repo'). Absolute URLs are not allowed."
+            )
+        )
+    return path
+
+
 def _parse_headers(header_list: list[str] | None) -> dict[str, str]:
     """--header 引数をパースして dict に変換する。
 
@@ -57,7 +79,7 @@ def handle_api(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
     client = create_http_client(config.service_type, config.api_url, token)
 
     method = args.method.upper()
-    path = args.path
+    path = _validate_api_path(args.path)
     headers = _parse_headers(getattr(args, "header", None))
     data = getattr(args, "data", None)
     try:

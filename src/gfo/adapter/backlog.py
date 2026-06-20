@@ -919,5 +919,16 @@ class BacklogAdapter(GitServiceAdapter):
 
     def add_time_entry(self, issue_number: int, duration: int | float) -> TimeEntry:
         hours = round(duration / 3600, 2)
-        self._client.patch(f"/issues/{issue_number}", json={"actualHours": hours})
+        # 他の issue 操作と同じく issueKey 形式（PROJECT-番号）でアクセスする。
+        # 生の番号だと別 issue を更新するか 404 になる。
+        issue_key = f"{self._project_key}-{issue_number}"
+        # actualHours の PATCH は上書きであり、base の「加算」契約に反する。
+        # 現在値を GET してから加算する read-modify-write にする。
+        resp = self._client.get(f"/issues/{issue_key}")
+        current = resp.json().get("actualHours") or 0
+        try:
+            new_total = round(float(current) + hours, 2)
+        except (TypeError, ValueError):
+            new_total = hours
+        self._client.patch(f"/issues/{issue_key}", json={"actualHours": new_total})
         return TimeEntry(id=0, user="", duration=int(duration), created_at="")

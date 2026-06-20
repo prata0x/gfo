@@ -2581,6 +2581,34 @@ class TestGetIssueTimeline:
         assert events[0].actor == "Alice"
         assert "System.State: Active" in events[0].detail
 
+    def test_timeline_limit_applied_after_filter(self, mock_responses, azure_devops_adapter):
+        """detail 無し update を除外してから limit を適用する（フィルタ前 limit の回帰）。
+
+        先頭が detail 空の update でも、後続の有効な update を取りこぼさないこと。
+        """
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems/1/updates",
+            json={
+                "value": [
+                    # detail 空（フィールド変更なし）の update が先頭
+                    {"id": 1, "revisedBy": {"displayName": "Alice"}, "fields": {}},
+                    # 有効な update（limit=1 でもこれが返るべき）
+                    {
+                        "id": 2,
+                        "revisedBy": {"displayName": "Bob"},
+                        "revisedDate": "2025-01-02T00:00:00Z",
+                        "fields": {"System.State": {"newValue": "Active"}},
+                    },
+                ]
+            },
+            status=200,
+        )
+        events = azure_devops_adapter.get_issue_timeline(1, limit=1)
+        assert len(events) == 1
+        assert events[0].id == 2
+        assert "System.State: Active" in events[0].detail
+
     def test_timeline_empty_updates(self, mock_responses, azure_devops_adapter):
         """更新なし → 空リスト。"""
         mock_responses.add(
@@ -2799,8 +2827,22 @@ class TestSearchCommits:
 
 
 class TestAddTimeEntry:
+    @staticmethod
+    def _add_workitem_get(mock_responses, completed=None):
+        """add_time_entry が現在値読み取りに使う GET をモックする。"""
+        fields = {}
+        if completed is not None:
+            fields["Microsoft.VSTS.Scheduling.CompletedWork"] = completed
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems/1",
+            json={"id": 1, "fields": fields},
+            status=200,
+        )
+
     def test_add_time_entry_converts_seconds_to_hours(self, mock_responses, azure_devops_adapter):
-        """3600秒 → 1時間。"""
+        """3600秒 → 1時間（既存値なし）。"""
+        self._add_workitem_get(mock_responses)
         mock_responses.add(
             responses.PATCH,
             f"{WIT}/workitems/1",
@@ -2808,8 +2850,7 @@ class TestAddTimeEntry:
             status=200,
         )
         azure_devops_adapter.add_time_entry(1, 3600)
-        req = mock_responses.calls[0].request
-        body = json.loads(req.body)
+        body = json.loads(mock_responses.calls[-1].request.body)
         completed_op = next(
             op for op in body if op["path"] == "/fields/Microsoft.VSTS.Scheduling.CompletedWork"
         )
@@ -2817,6 +2858,7 @@ class TestAddTimeEntry:
 
     def test_add_time_entry_partial_hour(self, mock_responses, azure_devops_adapter):
         """1800秒 → 0.5時間。"""
+        self._add_workitem_get(mock_responses)
         mock_responses.add(
             responses.PATCH,
             f"{WIT}/workitems/1",
@@ -2824,15 +2866,31 @@ class TestAddTimeEntry:
             status=200,
         )
         azure_devops_adapter.add_time_entry(1, 1800)
-        req = mock_responses.calls[0].request
-        body = json.loads(req.body)
+        body = json.loads(mock_responses.calls[-1].request.body)
         completed_op = next(
             op for op in body if op["path"] == "/fields/Microsoft.VSTS.Scheduling.CompletedWork"
         )
         assert completed_op["value"] == 0.5
 
+    def test_add_time_entry_accumulates(self, mock_responses, azure_devops_adapter):
+        """既存 CompletedWork に加算する（上書きしない）回帰テスト。"""
+        self._add_workitem_get(mock_responses, completed=2.0)
+        mock_responses.add(
+            responses.PATCH,
+            f"{WIT}/workitems/1",
+            json=_issue_data(id=1),
+            status=200,
+        )
+        azure_devops_adapter.add_time_entry(1, 3600)  # +1h
+        body = json.loads(mock_responses.calls[-1].request.body)
+        completed_op = next(
+            op for op in body if op["path"] == "/fields/Microsoft.VSTS.Scheduling.CompletedWork"
+        )
+        assert completed_op["value"] == 3.0
+
     def test_add_time_entry_returns_stub(self, mock_responses, azure_devops_adapter):
         """返値の id=0, user="", created_at=""。"""
+        self._add_workitem_get(mock_responses)
         mock_responses.add(
             responses.PATCH,
             f"{WIT}/workitems/1",
