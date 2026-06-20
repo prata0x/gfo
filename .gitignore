@@ -18,4 +18,9 @@ build/
 coverage.xml
 htmlcov/
 tests/integration/.env
+# プロジェクト直下や任意階層の .env（トークン等）の誤コミットを防ぐ。
+# 例として配布する .env.example は追跡対象に残す。
+.env
+.env.*
+!.env.example
 *.mo
