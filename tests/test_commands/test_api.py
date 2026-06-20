@@ -102,6 +102,31 @@ class TestHandleApi:
             with pytest.raises(ConfigError):
                 api_cmd.handle_api(args, fmt="json")
 
+    @pytest.mark.parametrize(
+        "evil_path",
+        [
+            "@evil.com/x",  # userinfo 注入でホスト差し替え
+            ".evil.com/x",  # サフィックス付加でホスト差し替え
+            "//evil.com/x",  # プロトコル相対
+            "https://evil.com/x",  # 絶対 URL
+            "repos/owner/repo",  # 先頭スラッシュ無し（authority へ吸収され得る）
+        ],
+    )
+    def test_rejects_origin_changing_path(self, sample_config, mock_client, evil_path):
+        """ベース URL のオリジンを変え得る PATH はトークン漏えい防止のため拒否する。"""
+        args = make_args(method="GET", path=evil_path, data=None, header=None)
+        with _patch_all(sample_config, mock_client):
+            with pytest.raises(ConfigError, match="PATH"):
+                api_cmd.handle_api(args, fmt="json")
+        mock_client.request.assert_not_called()
+
+    def test_rejects_path_with_control_chars(self, sample_config, mock_client):
+        args = make_args(method="GET", path="/x\r\nHost: evil", data=None, header=None)
+        with _patch_all(sample_config, mock_client):
+            with pytest.raises(ConfigError, match="control characters"):
+                api_cmd.handle_api(args, fmt="json")
+        mock_client.request.assert_not_called()
+
     def test_method_uppercased(self, sample_config, mock_client, capsys):
         args = make_args(method="patch", path="/test", data='{"x": 1}', header=None)
         with _patch_all(sample_config, mock_client):
