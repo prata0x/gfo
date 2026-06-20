@@ -1159,12 +1159,16 @@ class BitbucketAdapter(GitServiceAdapter):
 
     def list_secrets(self, *, scope: str | None = None, limit: int = 30) -> list[Secret]:
         self._warn_unsupported_params("secret list", scope=scope)
+        # secured フィルタを伴うため、フィルタ前に limit を適用すると取りこぼす。
+        # 全件取得 → secured フィルタ → limit 適用の順にする。
         results = paginate_response_body(
             self._client,
             f"{self._repos_path()}/pipelines_config/variables/",
-            limit=limit,
+            limit=0,
         )
         secured = [d for d in results if d.get("secured")]
+        if limit > 0:
+            secured = secured[:limit]
         return [Secret(name=d["key"], created_at="", updated_at="") for d in secured]
 
     def set_secret(self, name: str, value: str, *, scope: str | None = None) -> Secret:
@@ -1204,12 +1208,16 @@ class BitbucketAdapter(GitServiceAdapter):
 
     def list_variables(self, *, scope: str | None = None, limit: int = 30) -> list[Variable]:
         self._warn_unsupported_params("variable list", scope=scope)
+        # not secured フィルタを伴うため、フィルタ前に limit を適用すると取りこぼす。
+        # 全件取得 → フィルタ → limit 適用の順にする。
         results = paginate_response_body(
             self._client,
             f"{self._repos_path()}/pipelines_config/variables/",
-            limit=limit,
+            limit=0,
         )
         unsecured = [d for d in results if not d.get("secured")]
+        if limit > 0:
+            unsecured = unsecured[:limit]
         return [
             Variable(name=d["key"], value=d.get("value") or "", created_at="", updated_at="")
             for d in unsecured

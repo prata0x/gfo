@@ -2165,3 +2165,51 @@ class TestListPullRequestsSearchEscape:
         decoded_url = unquote(url)
         # エスケープされた \" が title~ フィルタ内に含まれることを確認
         assert 'title~"test\\"value"' in decoded_url
+
+
+class TestPipelineVariablesFilterOrder:
+    _VARS = f"{REPOS}/pipelines_config/variables/"
+
+    def test_list_secrets_secured_on_later_page_not_dropped(
+        self, mock_responses, bitbucket_adapter
+    ):
+        """secured フィルタは全件取得後に適用し、後方ページの秘密を取りこぼさない。"""
+        mock_responses.add(
+            responses.GET,
+            self._VARS,
+            json={
+                "values": [{"key": "PLAIN", "uuid": "{1}", "secured": False}],
+                "next": f"{self._VARS}?page=2",
+            },
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            self._VARS,
+            json={"values": [{"key": "SECRET", "uuid": "{2}", "secured": True}]},
+            status=200,
+        )
+        secrets = bitbucket_adapter.list_secrets(limit=1)
+        assert [s.name for s in secrets] == ["SECRET"]
+
+    def test_list_variables_unsecured_on_later_page_not_dropped(
+        self, mock_responses, bitbucket_adapter
+    ):
+        """not secured フィルタも全件取得後に適用し、後方ページの変数を取りこぼさない。"""
+        mock_responses.add(
+            responses.GET,
+            self._VARS,
+            json={
+                "values": [{"key": "SECRET", "uuid": "{1}", "secured": True}],
+                "next": f"{self._VARS}?page=2",
+            },
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            self._VARS,
+            json={"values": [{"key": "PLAIN", "uuid": "{2}", "value": "v", "secured": False}]},
+            status=200,
+        )
+        variables = bitbucket_adapter.list_variables(limit=1)
+        assert [v.name for v in variables] == ["PLAIN"]

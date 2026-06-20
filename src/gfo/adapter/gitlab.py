@@ -1753,8 +1753,12 @@ class GitLabAdapter(GitServiceAdapter):
 
     def list_secrets(self, *, scope: str | None = None, limit: int = 30) -> list[Secret]:
         base = self._variables_base_path(scope)
-        results = paginate_page_param(self._client, base, limit=limit)
+        # masked フィルタを伴うため、フィルタ前に limit を適用すると取りこぼす。
+        # 全件取得 → masked フィルタ → limit 適用の順にする。
+        results = paginate_page_param(self._client, base, limit=0)
         masked = [d for d in results if d.get("masked")]
+        if limit > 0:
+            masked = masked[:limit]
         return [Secret(name=d["key"], created_at="", updated_at="") for d in masked]
 
     def set_secret(self, name: str, value: str, *, scope: str | None = None) -> Secret:
