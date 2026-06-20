@@ -1517,6 +1517,27 @@ class TestDeleteLabel:
         with pytest.raises(NotFoundError):
             gitea_adapter.delete_label(name="bug")
 
+    def test_delete_label_on_second_page(self, mock_responses, gitea_adapter):
+        """先頭ページに無いラベルも全件取得して削除できること（取りこぼし回帰）。"""
+        # 1 ページ目（Link ヘッダで 2 ページ目を示す。目的のラベルは無い）
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/labels",
+            json=[{"id": 1, "name": "other", "color": "d73a4a", "description": ""}],
+            status=200,
+            headers={"Link": f'<{REPOS}/labels?page=2>; rel="next"'},
+        )
+        # 2 ページ目（目的のラベルはこちら）
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/labels",
+            json=[{"id": 99, "name": "bug", "color": "d73a4a", "description": ""}],
+            status=200,
+        )
+        mock_responses.add(responses.DELETE, f"{REPOS}/labels/99", status=204)
+        gitea_adapter.delete_label(name="bug")
+        assert mock_responses.calls[-1].request.url.endswith("/labels/99")
+
 
 class TestUpdateLabel:
     def test_update(self, mock_responses, gitea_adapter):
@@ -1580,6 +1601,31 @@ class TestUpdateLabel:
         assert "name" not in req_body
         assert "color" not in req_body
         assert "description" not in req_body
+
+    def test_update_label_on_second_page(self, mock_responses, gitea_adapter):
+        """先頭ページに無いラベルも全件取得して更新できること（取りこぼし回帰）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/labels",
+            json=[{"id": 1, "name": "other", "color": "d73a4a", "description": ""}],
+            status=200,
+            headers={"Link": f'<{REPOS}/labels?page=2>; rel="next"'},
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/labels",
+            json=[{"id": 99, "name": "bug", "color": "d73a4a", "description": ""}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/labels/99",
+            json=_label_data(name="bug-fix"),
+            status=200,
+        )
+        label = gitea_adapter.update_label(name="bug", new_name="bug-fix")
+        assert label.name == "bug-fix"
+        assert mock_responses.calls[-1].request.url.endswith("/labels/99")
 
 
 class TestDeleteMilestone:

@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import json
 
 import gfo.git_util
 from gfo.commands import get_adapter, open_in_browser, read_file_arg
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import apply_jq_filter, output
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -88,6 +89,19 @@ def handle_merge(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     import warnings
 
     adapter = get_adapter()
+    # --delete-branch は実際のマージ完了後にのみブランチを削除する。
+    # --auto は「予約」のみで即時マージしないため、併用するとマージ前に
+    # ソースブランチが消える。--disable-auto も同様にマージしない。
+    # 即時削除の意味論を満たせない組み合わせは明示的に拒否する。
+    if getattr(args, "delete_branch", False) and (
+        getattr(args, "auto", False) or getattr(args, "disable_auto", False)
+    ):
+        raise ConfigError(
+            _(
+                "--delete-branch cannot be combined with --auto/--disable-auto "
+                "(the branch would be deleted before the merge completes)."
+            )
+        )
     if getattr(args, "squash", False):
         method = "squash"
     elif getattr(args, "rebase", False):
@@ -218,8 +232,19 @@ def handle_reviewers(args: argparse.Namespace, *, fmt: str, jq: str | None = Non
         adapter.remove_reviewers(args.number, args.users)
         print(_("Removed reviewers from PR #{number}.").format(number=args.number))
     else:
+        # list_requested_reviewers は list[str] を返すため output() は使えない
+        # (dataclass を前提に fields/asdict を呼びクラッシュする)。
+        # collaborator / org members 同様、apply_jq_filter を直接適用する。
         reviewers = adapter.list_requested_reviewers(args.number)
-        output(reviewers, fmt=fmt, jq=jq)
+        if fmt == "json":
+            json_str = json.dumps(reviewers, ensure_ascii=False)
+            if jq is not None:
+                print(apply_jq_filter(json_str, jq))
+            else:
+                print(json_str)
+        else:
+            for reviewer in reviewers:
+                print(reviewer)
 
 
 def handle_update_branch(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
