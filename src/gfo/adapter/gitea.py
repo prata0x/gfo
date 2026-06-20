@@ -696,8 +696,16 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return self._to_label(resp.json())
 
     def delete_label(self, *, name: str) -> None:
-        resp = self._client.get(f"{self._repos_path()}/labels")
-        for label in resp.json():
+        # ラベル一覧はデフォルトで先頭ページ（約30件）しか返さないため、
+        # 単発 GET だと30件超のリポジトリで実在ラベルを取りこぼし false
+        # NotFoundError になる。list_labels と同様に全件取得する。
+        labels = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/labels",
+            per_page_key="limit",
+            limit=0,
+        )
+        for label in labels:
             if label.get("name") == name:
                 self._client.delete(f"{self._repos_path()}/labels/{label['id']}")
                 return
@@ -711,9 +719,15 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         color: str | None = None,
         description: str | None = None,
     ) -> Label:
-        resp = self._client.get(f"{self._repos_path()}/labels")
+        # delete_label と同じ理由でページネーションして全件取得する。
+        labels = paginate_link_header(
+            self._client,
+            f"{self._repos_path()}/labels",
+            per_page_key="limit",
+            limit=0,
+        )
         label_id = None
-        for label in resp.json():
+        for label in labels:
             if label.get("name") == name:
                 label_id = label["id"]
                 break
