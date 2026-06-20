@@ -157,15 +157,18 @@ gh pr merge <pr-number> --merge --delete-branch
 
 ### 7. main を取得してタグを作成・push
 
-マージ後、main HEAD はマージコミットになる。ローカル main を同期し、その HEAD に注釈タグを打つ:
+マージ後、main HEAD はマージコミットになる。ローカル main を同期し、その HEAD に**署名タグ**を打つ:
 
 ```bash
 git switch main
 git pull --ff-only origin main
-git tag -a v<new> -m "<タグメッセージ>"
+git tag -s v<new> -m "<タグメッセージ>"
 git push origin v<new>
 ```
 
+- **`-s`（署名タグ）を使う**。`-a`（注釈のみ）だと `tag.gpgsign` 未設定の環境で未署名タグになり
+  GitHub で Verified が付かない。`-s` なら設定に依存せず常に署名する（署名鍵未設定なら失敗するので
+  異常に気づける）。タグ作成後、`git cat-file tag v<new> | grep -q 'BEGIN .* SIGNATURE'` で署名を確認するとよい。
 - タグメッセージは `git log --no-merges --oneline <last-tag>..HEAD` から要約（単一テーマなら命名、
   複数なら `Release v<new>`、いずれもリポ言語）。
 - **タグ push がリリースの不可逆点**。release.yml（`push` tags `v*`）が起動し PyPI へ公開される。
