@@ -1935,3 +1935,44 @@ class TestToWikiPage:
         data = {"id": 3, "name": None, "content": "body"}
         page = BacklogAdapter._to_wiki_page(data)
         assert page.title == ""
+
+
+class TestAddTimeEntry:
+    def test_uses_issue_key_and_accumulates(self, mock_responses, backlog_adapter):
+        """issueKey 形式でアクセスし、既存 actualHours に加算すること（回帰）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/issues/TEST-1",
+            json={"id": 1, "actualHours": 2.0},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/issues/TEST-1",
+            json=_issue_data(),
+            status=200,
+        )
+        result = backlog_adapter.add_time_entry(1, 3600)  # +1.0h
+        # 生番号 /issues/1 ではなく issueKey /issues/TEST-1 を使う
+        assert all("/issues/TEST-1" in c.request.url for c in mock_responses.calls)
+        req_body = json.loads(mock_responses.calls[-1].request.body)
+        assert req_body["actualHours"] == 3.0
+        assert result.duration == 3600
+
+    def test_no_existing_hours(self, mock_responses, backlog_adapter):
+        """既存値が無い場合は追加分のみになること。"""
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/issues/TEST-1",
+            json={"id": 1},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/issues/TEST-1",
+            json=_issue_data(),
+            status=200,
+        )
+        backlog_adapter.add_time_entry(1, 1800)  # 0.5h
+        req_body = json.loads(mock_responses.calls[-1].request.body)
+        assert req_body["actualHours"] == 0.5

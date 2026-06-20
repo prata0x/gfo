@@ -1054,6 +1054,13 @@ class GitServiceAdapter(ABC):
         raise NotSupportedError(self.service_name, "issue time list")
 
     def add_time_entry(self, issue_number: int, duration: int | float) -> TimeEntry:
+        """Issue に作業時間（秒）を**加算**する。
+
+        セマンティクス契約: 既存の記録時間に duration を足し込むこと（上書きしない）。
+        個別の time entry を持つ API（Gitea 等）は追加レコードを作り、合計値しか
+        持たない API（GitLab / Azure DevOps / Backlog 等）は read-modify-write で
+        既存値に加算する。全アダプターでこの「加算」契約を守ること。
+        """
         raise NotSupportedError(self.service_name, "issue time add")
 
     def delete_time_entry(self, issue_number: int, entry_id: int | str) -> None:
