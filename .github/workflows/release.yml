@@ -1,0 +1,116 @@
+# リリース公開ワークフロー。タグ push (v*) のたびに PyPI へ自動公開する。
+#
+# トリガー設計 (partywipe ではなく gfo 固有):
+# - push tags v*    : `release` skill が main のマージコミットに打ったタグを push した瞬間に起動する。
+#                     これがリリースの不可逆点 = 公開の唯一の正規経路。
+# - workflow_dispatch: 失敗時の再実行 / 手動公開用。inputs.ref に旧タグや commit SHA を渡すと
+#                     その地点をチェックアウトして公開する (空欄なら起動 ref = 既定ブランチ HEAD)。
+#
+# 認証 (PyPI Trusted Publishing / OIDC):
+#   API トークンを secret に保持せず、publish job の id-token: write で発行した OIDC トークンを
+#   PyPI 側の Trusted Publisher 設定 (repo + このファイル名 release.yml + environment "pypi") と
+#   突き合わせて公開する。長命トークンが存在しないため漏洩面が無い (CLAUDE.md の供給網方針に合致)。
+#   事前に PyPI 側で当該設定を一度登録しておく必要がある (README / 設定手順参照)。
+#
+# job 分割の意図 (権限最小化):
+#   build (checkout あり) には id-token を一切与えず contents: read のみ。OIDC 発行権限を持つ
+#   publish job は checkout せず artifact をダウンロードして公開するだけにし、ソース取得経路と
+#   公開トークン発行経路を分離する (供給網経由で build step が侵害されても OIDC を奪えない)。
+#
+# Runner / ハードニング (ci.yml と同方針):
+#   GitHub-hosted ubuntu-latest / action は 40桁 commit SHA で pin / persist-credentials: false /
+#   permissions は job ごとに最小付与。SHA pin の自己検証は ci.yml の quality job が全 workflow
+#   ファイルを対象に行うため (PR 時に強制)、ここでは重複させない。
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: '公開対象 ref (tag / commit SHA / branch)。空欄なら起動 ref'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+# 同一タグの重複起動 + 別タグ / 手動 dispatch とのレース防止。公開は途中キャンセルしない。
+concurrency:
+  group: release-pypi
+  cancel-in-progress: false
+
+jobs:
+  # ソースをチェックアウトして sdist / wheel をビルドし、artifact として publish job へ渡す。
+  # OIDC 権限は持たない (contents: read のみ)。
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # workflow_dispatch 時のみ inputs.ref が値を持つ。push 時は空 → checkout 既定 (tag ref)。
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      # mise.toml の python / uv を供給する (ローカル開発 / ci.yml と同一 toolchain)。
+      - name: Setup mise (python + uv)
+        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+
+      # hatchling のカスタムフック (.po → .mo) を含め sdist + wheel をビルドする。
+      # uv build は隔離環境で build-backend を実行するため事前の sync は不要。
+      - name: Build sdist and wheel
+        run: uv build
+
+      # タグ起動時はタグ (v<X.Y.Z>) と実際にビルドされた成果物のバージョンが一致するか検証する。
+      # __version__ の更新漏れたまま打たれたタグでの誤公開を防ぐ (不一致なら fail)。
+      - name: Verify tag matches built version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          tag="${GITHUB_REF#refs/tags/v}"
+          if [ ! -f "dist/gfo-${tag}.tar.gz" ]; then
+            echo "::error::tag v${tag} に対応する dist/gfo-${tag}.tar.gz が無い (__version__ とタグの不一致)"
+            ls -1 dist/
+            exit 1
+          fi
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  # build 成果物を PyPI へ公開する。OIDC トークン発行のため id-token: write を付与し、
+  # checkout は行わない (ソース取得経路と分離)。
+  publish:
+    name: publish
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # GitHub Environment "pypi" に紐付ける。PyPI の Trusted Publisher 設定で environment 名を
+    # "pypi" に絞ると、この environment を通る run のみが公開できる (保護ルール追加も可能)。
+    environment:
+      name: pypi
+      url: https://pypi.org/project/gfo/
+    permissions:
+      id-token: write
+    steps:
+      - name: Download dist artifact
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        with:
+          name: dist
+          path: dist/
+
+      # Trusted Publishing: id-token: write で発行した OIDC を PyPI 設定と突き合わせて公開する。
+      # トークン入力は不要。dist/ 配下の sdist + wheel を全てアップロードする。
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+        with:
+          packages-dir: dist/

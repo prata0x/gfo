@@ -76,6 +76,7 @@ uv run pre-commit install
   - **統合テストは CI で実行しない**（実サービスへアクセスするため）。pytest 設定（`pyproject.toml` の `addopts` に `--ignore=tests/integration`）で除外済み。
   - ハードニング: `permissions: contents: read` / `persist-credentials: false` / 各 action は 40桁 commit SHA で pin + 「SHA pin されているか」自己検証 step。
 - **Dependabot**: `.github/dependabot.yml`。`uv` + `github-actions` を週次（月曜 06:00 JST）。`cooldown: 7日` でリリース直後の新版を隔離（供給網対策）。CI が通った PR だけマージする。
+- **リリース / PyPI 公開**: `.github/workflows/release.yml`。タグ push（`v*`）で起動し PyPI へ自動公開する（手動 `twine upload` は廃止）。認証は **PyPI Trusted Publishing（OIDC）** で行いトークン secret を保持しない。`build` job（checkout・`contents: read`）と `publish` job（OIDC `id-token: write`・checkout 無し・GitHub Environment `pypi`）を分離し、ソース取得経路と公開トークン発行経路を切り離す。action は ci.yml 同様 40桁 SHA pin。リリース操作自体は `release` スキル（bump → PR → CI green → `--merge` → main のマージコミットにタグ → タグ push）で行う。初回のみ PyPI 側で Trusted Publisher（workflow `release.yml` / environment `pypi`）の登録が必要。
 - public リポジトリのため**秘密情報・トークン・内部 URL 等は一切コミット/issue/PR に出さない**。
 
 ---
