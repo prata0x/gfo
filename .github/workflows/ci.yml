@@ -1,5 +1,11 @@
-# CI ワークフロー。lint (ruff) + format-check + type-check (mypy) + security (bandit) +
-# 単体テスト (pytest) を実行する。
+# CI ワークフロー。version 非依存の品質チェック (quality job: ruff lint + format-check +
+# bandit) を 1 回だけ実行し、version 依存のチェック (test matrix: mypy + pytest) を
+# min/max の 2 version で並列実行する。
+#
+# job 分割の意図: ruff / bandit は Python 版に依存しないため min/max 両 leg で二重実行するのは
+# 無駄。単一の quality job に括り出し、test leg からはクリティカルパス分を削る。quality は
+# test leg と並列に走り (~10s < test ~25s) クリティカルパスには乗らない。
+# mypy は version_info 分岐等で版差が出うるため test 両 leg に残す。
 #
 # Runner: gfo は public リポジトリで GitHub Actions が無料のため、全ジョブを GitHub-hosted の
 # ubuntu-latest で回す (self-hosted は使わない)。
@@ -34,6 +40,56 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # version 非依存の品質チェックを 1 回だけ実行する (mise 既定の python = 3.13)。
+  # test matrix と並列に走るためクリティカルパスには乗らない。
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # 自分の workflow が SHA pin を維持しているかを自己検証 (mutable tag を fail させる)。
+      # workflow ファイル全体が対象で version 非依存なので quality 側に置く。
+      - name: Verify actions are SHA-pinned
+        run: |
+          bad=$(grep -rEn '^[[:space:]]*uses:[[:space:]]' .github/workflows | grep -vE '@[0-9a-f]{40}' || true)
+          if [ -n "$bad" ]; then
+            echo "::error::Action(s) not pinned to a 40-char commit SHA:"
+            echo "$bad"
+            exit 1
+          fi
+
+      - name: Setup mise (python + uv)
+        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+
+      - name: Cache uv packages
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-quality-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-quality-
+
+      # ruff / bandit は version 非依存なので mise 既定の python で frozen install すれば足りる。
+      - name: Install dependencies (frozen)
+        run: uv sync --locked
+
+      # 違反を GitHub Actions の annotation 形式で PR diff に inline 表示し、違反で fail。
+      - name: Lint (ruff)
+        run: uv run ruff check --output-format=github .
+
+      - name: Format check (ruff)
+        run: uv run ruff format --check .
+
+      - name: Security scan (bandit)
+        run: uv run bandit -r src/gfo -c pyproject.toml -q
+
   test:
     name: test (${{ matrix.label }})
     runs-on: ubuntu-latest
@@ -60,16 +116,6 @@ jobs:
         with:
           persist-credentials: false
 
-      # 自分の workflow が SHA pin を維持しているかを自己検証 (mutable tag を fail させる)。
-      - name: Verify actions are SHA-pinned
-        run: |
-          bad=$(grep -rEn '^[[:space:]]*uses:[[:space:]]' .github/workflows | grep -vE '@[0-9a-f]{40}' || true)
-          if [ -n "$bad" ]; then
-            echo "::error::Action(s) not pinned to a 40-char commit SHA:"
-            echo "$bad"
-            exit 1
-          fi
-
       # mise.toml の python / uv を供給する (ローカル開発と同一の toolchain)。
       # mise-action は python/uv の toolchain バイナリはキャッシュするが、uv の
       # パッケージキャッシュ (~/.cache/uv) はキャッシュしないため、下の cache step で補う。
@@ -93,18 +139,9 @@ jobs:
       - name: Install dependencies (frozen, python ${{ matrix.python-version }})
         run: uv sync --locked --python ${{ matrix.python-version }}
 
-      # 違反を GitHub Actions の annotation 形式で PR diff に inline 表示し、違反で fail。
-      - name: Lint (ruff)
-        run: uv run ruff check --output-format=github .
-
-      - name: Format check (ruff)
-        run: uv run ruff format --check .
-
+      # mypy は version_info 分岐等で版差が出うるため min/max 両 leg で実行する。
       - name: Type check (mypy)
         run: uv run mypy src/gfo
-
-      - name: Security scan (bandit)
-        run: uv run bandit -r src/gfo -c pyproject.toml -q
 
       # runner は 4 vCPU 固定なので xdist は -n 4 を明示 (auto でも同等だが意図を固定)。
       # カバレッジは max leg のみ取得する (matrix.cov)。min leg は cov 無し = 高速。
@@ -118,15 +155,19 @@ jobs:
   # テスト対象バージョンを増減しても再設定不要。
   ci:
     name: ci
-    needs: [test]
+    needs: [quality, test]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: read
     steps:
-      - name: Gate on test matrix result
+      - name: Gate on quality and test results
         run: |
+          if [ "${{ needs.quality.result }}" != "success" ]; then
+            echo "::error::quality job did not succeed (result=${{ needs.quality.result }})"
+            exit 1
+          fi
           if [ "${{ needs.test.result }}" != "success" ]; then
             echo "::error::test matrix did not succeed (result=${{ needs.test.result }})"
             exit 1
