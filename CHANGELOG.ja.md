@@ -1,5 +1,18 @@
 # 変更履歴
 
+## [0.10.1] - 2026-06-21
+
+### 修正
+- Azure DevOps timeline: time entry を加算で集計するよう統一し、レコードの取りこぼしを是正
+- フィルタ付き `list`: `limit` をフィルタ前ではなくフィルタ後に適用し、該当項目の取りこぼしを是正
+- Gitea `label delete` / `label update`: ラベル一覧を全件ページネートして取得し、取りこぼしを是正
+- `pr` requested reviewers: `output()` の誤用による `list[str]` でのクラッシュを是正
+
+### セキュリティ
+- `gfo api`: PATH を相対パスに限定し、絶対 URL / 外部ホスト指定時に認証トークンが送出されないようにした
+- HTTP host 検証: 末尾ドット付き host を正規化し、絶対 URL ごとに TLS 検証を行う
+- `release --pattern`: アセットダウンロード時のパストラバーサルを防止
+
 ## [0.10.0] - 2026-05-12
 
 ### 追加
