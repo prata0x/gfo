@@ -102,6 +102,24 @@ class TestTlsVerifyPolicy:
         assert _is_cloud_host_tls_forced("GitHub.com") is True
         assert _is_cloud_host_tls_forced("MYSPACE.BACKLOG.COM") is True
 
+    def test_trailing_dot_fqdn_normalized(self):
+        """末尾ドット付き FQDN もクラウド固定ホストとして判定する（TLS 強制すり抜け防止）。"""
+        from gfo.http import _is_cloud_host_tls_forced
+
+        assert _is_cloud_host_tls_forced("github.com.") is True
+        assert _is_cloud_host_tls_forced("api.github.com.") is True
+        assert _is_cloud_host_tls_forced("GitHub.com.") is True
+        assert _is_cloud_host_tls_forced("myspace.backlog.com.") is True
+
+    def test_trailing_dot_verify_forced_under_insecure(self, monkeypatch):
+        """GFO_INSECURE 相当 (_VERIFY_SSL=False) でも末尾ドット cloud host は TLS 検証する。"""
+        import gfo.http
+
+        monkeypatch.setattr(gfo.http, "_VERIFY_SSL", False)
+        assert gfo.http._verify_for_url("https://github.com./o/r") is True
+        # self-hosted は従来どおり _VERIFY_SSL に従う
+        assert gfo.http._verify_for_url("https://internal.example.com/x") is False
+
     def test_none_returns_false(self):
         from gfo.http import _is_cloud_host_tls_forced
 
@@ -1480,6 +1498,52 @@ class TestUploadFileRetry:
         resp = client.upload_file_absolute(upload_url, str(test_file), name="asset.zip")
         assert resp.status_code == 201
         assert responses.calls[0].request.body == b"zip content"
+
+    def test_upload_file_absolute_forces_tls_for_cloud_url(self, tmp_path, monkeypatch):
+        """self-hosted base (_VERIFY_SSL=False) でも cloud 宛 absolute upload は verify=True。"""
+        from unittest.mock import MagicMock
+
+        import gfo.http
+
+        monkeypatch.setattr(gfo.http, "_VERIFY_SSL", False)
+        test_file = tmp_path / "a.zip"
+        test_file.write_bytes(b"x")
+        client = HttpClient("https://internal.example.com")  # self-hosted base
+        captured: dict = {}
+        fake_resp = MagicMock()
+        fake_resp.status_code = 201
+
+        def fake_post(url, **kwargs):
+            captured.update(kwargs)
+            return fake_resp
+
+        monkeypatch.setattr(client._session, "post", fake_post)
+        client.upload_file_absolute(
+            "https://uploads.github.com/repos/o/r/releases/1/assets",
+            str(test_file),
+            name="a.zip",
+        )
+        assert captured["verify"] is True
+
+    def test_get_absolute_forces_tls_for_cloud_url(self, monkeypatch):
+        """self-hosted base (_VERIFY_SSL=False) でも cloud 宛 absolute GET は verify=True。"""
+        from unittest.mock import MagicMock
+
+        import gfo.http
+
+        monkeypatch.setattr(gfo.http, "_VERIFY_SSL", False)
+        client = HttpClient("https://internal.example.com")  # self-hosted base
+        captured: dict = {}
+        fake_resp = MagicMock()
+        fake_resp.status_code = 200
+
+        def fake_get(url, **kwargs):
+            captured.update(kwargs)
+            return fake_resp
+
+        monkeypatch.setattr(client._session, "get", fake_get)
+        client.get_absolute("https://api.github.com/repos/o/r/releases")
+        assert captured["verify"] is True
 
     @responses.activate
     def test_upload_multipart_name_override(self, tmp_path):
