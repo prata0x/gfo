@@ -85,7 +85,9 @@ def _is_cloud_host_tls_forced(host: str | None) -> bool:
     """クラウド固定ホスト（GFO_INSECURE で TLS 無効化を許さないホスト）かを判定する。"""
     if not host:
         return False
-    h = host.lower()
+    # 末尾ドット付き FQDN（例: "github.com."）も同一ホストとして正規化する。
+    # 正規化しないとクラウド固定ホストの TLS 強制判定を素通りしてしまう。
+    h = host.lower().rstrip(".")
     if h in _CLOUD_HOSTS_TLS_FORCED:
         return True
     return any(h.endswith(s) for s in _CLOUD_HOST_SUFFIXES_TLS_FORCED)
@@ -397,6 +399,9 @@ class HttpClient:
                     data=f,
                     headers=upload_headers,
                     timeout=timeout,
+                    # 呼び出し側指定の絶対 URL。クラウド固定ホスト宛なら GFO_INSECURE
+                    # でも TLS 検証を強制する（self-hosted base での upload 先漏えい防止）。
+                    verify=_verify_for_url(url),
                 )
 
         return self._retry_loop(_post)
@@ -443,7 +448,11 @@ class HttpClient:
         """
         merged_params = {**self._default_params, **self._auth_params, **(params or {})}
         return self._retry_loop(
-            lambda: self._session.get(url, params=merged_params, timeout=timeout)
+            # 呼び出し側指定の絶対 URL。クラウド固定ホスト宛なら GFO_INSECURE でも
+            # TLS 検証を強制する（self-hosted base からの absolute URL 取得時の保護）。
+            lambda: self._session.get(
+                url, params=merged_params, timeout=timeout, verify=_verify_for_url(url)
+            )
         )
 
     def _handle_response(self, response: requests.Response) -> None:
