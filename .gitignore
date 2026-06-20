@@ -18,6 +18,8 @@ build/
 coverage.xml
 htmlcov/
 tests/integration/.env
+# 作業用スクラッチ領域（handoff / 監査レポート / issue 下書き等）。追跡しない。
+tmp/
 # プロジェクト直下や任意階層の .env（トークン等）の誤コミットを防ぐ。
 # 例として配布する .env.example は追跡対象に残す。
 .env
