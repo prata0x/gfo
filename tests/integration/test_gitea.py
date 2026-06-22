@@ -59,7 +59,7 @@ class TestGiteaIntegration(GiteaFamilyIntegrationBase):
             wrapper_path = os.path.join(wrapper_dir, "askpass.sh")
             with open(wrapper_path, "w") as f:
                 f.write(f'#!/bin/sh\n"{sys.executable}" "{askpass_script}" "$1"\n')
-            os.chmod(wrapper_path, 0o755)
+            os.chmod(wrapper_path, 0o700)
         return {
             **os.environ,
             "GIT_ASKPASS": wrapper_path,
