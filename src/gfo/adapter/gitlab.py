@@ -5,7 +5,7 @@ from __future__ import annotations
 import base64
 from collections.abc import Iterable, Iterator
 from typing import TYPE_CHECKING, Any, ClassVar
-from urllib.parse import quote
+from urllib.parse import quote, urlparse, urlunparse
 
 import requests
 
@@ -16,7 +16,7 @@ from gfo.i18n import _
 if TYPE_CHECKING:
     from gfo.http import HttpClient
 
-from .base import GitServiceAdapter, _wrap_conversion_error
+from .base import GitServiceAdapter, _mask_token_in_exception, _wrap_conversion_error
 from .models import (
     Branch,
     BranchProtection,
@@ -2482,6 +2482,24 @@ class GitLabAdapter(GitServiceAdapter):
             for m in results
         ]
 
+    @staticmethod
+    def _embed_mirror_credentials(url: str, auth_token: str) -> str:
+        """auth_token をミラー先 URL の userinfo に埋め込む。
+
+        GitLab の remote mirrors API は認証情報を URL に含める仕様
+        （POST パラメータに password 相当がない）。userinfo 未指定なら
+        `oauth2:<token>@`、ユーザー名のみ指定済みなら token をパスワードとして
+        補完する。パスワード込み・非 http(s) URL はそのまま返す。
+        """
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https") or parsed.password:
+            return url
+        username = quote(parsed.username, safe="") if parsed.username else "oauth2"
+        host = parsed.hostname or ""
+        port = f":{parsed.port}" if parsed.port else ""
+        netloc = f"{username}:{quote(auth_token, safe='')}@{host}{port}"
+        return urlunparse(parsed._replace(netloc=netloc))
+
     def create_push_mirror(
         self,
         remote_address: str,
@@ -2490,12 +2508,21 @@ class GitLabAdapter(GitServiceAdapter):
         sync_on_commit: bool = True,
         auth_token: str | None = None,
     ) -> PushMirror:
+        url = remote_address
+        if auth_token:
+            url = self._embed_mirror_credentials(remote_address, auth_token)
         payload: dict[str, Any] = {
-            "url": remote_address,
+            "url": url,
             "enabled": True,
             "only_protected_branches": False,
         }
-        resp = self._client.post(f"{self._project_path()}/remote_mirrors", json=payload)
+        # auth_token は URL に embed されるため、サーバー応答エラー本文や
+        # ネットワーク例外メッセージに漏れないようマスクする
+        try:
+            resp = self._client.post(f"{self._project_path()}/remote_mirrors", json=payload)
+        except Exception as e:
+            _mask_token_in_exception(e, auth_token)
+            raise
         m = resp.json()
         return PushMirror(
             id=m["id"],
