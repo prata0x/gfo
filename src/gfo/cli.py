@@ -742,7 +742,23 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_migrate.add_argument("--description", "-d", default="", help=_("Description"))
     repo_migrate.add_argument("--mirror", action="store_true", help=_("Create as mirror"))
     repo_migrate.add_argument(
-        "--auth-token", dest="auth_token", help=_("Authentication token for source")
+        "--auth-token",
+        dest="auth_token",
+        help=_(
+            "Authentication token for source (insecure: visible in the process list; "
+            "prefer --auth-token-stdin or --auth-token-file)"
+        ),
+    )
+    repo_migrate.add_argument(
+        "--auth-token-stdin",
+        dest="auth_token_stdin",
+        action="store_true",
+        help=_("Read authentication token from stdin (recommended for scripts)"),
+    )
+    repo_migrate.add_argument(
+        "--auth-token-file",
+        dest="auth_token_file",
+        help=_("Read authentication token from file (path)"),
     )
 
     # gfo release → サブサブコマンド
@@ -1404,7 +1420,25 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_mirror_add = repo_mirror_sub.add_parser("add", help=_("Add push mirror"))
     repo_mirror_add.add_argument("remote_address", help=_("Remote address"))
     repo_mirror_add.add_argument("--interval", default="8h", help=_("Sync interval"))
-    repo_mirror_add.add_argument("--auth-token", dest="auth_token", help=_("Authentication token"))
+    repo_mirror_add.add_argument(
+        "--auth-token",
+        dest="auth_token",
+        help=_(
+            "Authentication token (insecure: visible in the process list; "
+            "prefer --auth-token-stdin or --auth-token-file)"
+        ),
+    )
+    repo_mirror_add.add_argument(
+        "--auth-token-stdin",
+        dest="auth_token_stdin",
+        action="store_true",
+        help=_("Read authentication token from stdin (recommended for scripts)"),
+    )
+    repo_mirror_add.add_argument(
+        "--auth-token-file",
+        dest="auth_token_file",
+        help=_("Read authentication token from file (path)"),
+    )
     repo_mirror_remove = repo_mirror_sub.add_parser("remove", help=_("Remove push mirror"))
     repo_mirror_remove.add_argument(
         "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")

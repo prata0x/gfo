@@ -1159,7 +1159,7 @@ Import (migrate) an external repository.
 > **Supported services**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
 
 ```
-gfo repo migrate CLONE_URL --name NAME [--private | --public | --internal] [--description DESC] [--mirror] [--auth-token TOKEN]
+gfo repo migrate CLONE_URL --name NAME [--private | --public | --internal] [--description DESC] [--mirror] [--auth-token TOKEN | --auth-token-stdin | --auth-token-file PATH]
 ```
 
 | Option | Required | Description |
@@ -1171,11 +1171,14 @@ gfo repo migrate CLONE_URL --name NAME [--private | --public | --internal] [--de
 | `--internal` | — | Create as an internal repository (organization only) |
 | `--description` / `-d` | — | Repository description |
 | `--mirror` | — | Create as a mirror repository |
-| `--auth-token` | — | Authentication token for private repositories |
+| `--auth-token` | — | Authentication token for private repositories (insecure: visible in the process list; prefer the options below) |
+| `--auth-token-stdin` | — | Read the authentication token from stdin (recommended for scripts) |
+| `--auth-token-file PATH` | — | Read the authentication token from a file |
 
 ```bash
 gfo repo migrate https://github.com/other/repo.git --name my-repo
-gfo repo migrate https://github.com/other/private-repo.git --name imported --private --auth-token ghp_xxxx
+echo "$SOURCE_TOKEN" | gfo repo migrate https://github.com/other/private-repo.git --name imported --private --auth-token-stdin
+gfo repo migrate https://github.com/other/private-repo.git --name imported --private --auth-token-file ~/.secrets/source-token
 gfo repo migrate https://github.com/other/repo.git --name my-org/imported --internal
 ```
 
@@ -1187,7 +1190,7 @@ Manage push mirrors.
 
 ```
 gfo repo mirror list
-gfo repo mirror add REMOTE_ADDRESS [--interval INTERVAL]
+gfo repo mirror add REMOTE_ADDRESS [--interval INTERVAL] [--auth-token TOKEN | --auth-token-stdin | --auth-token-file PATH]
 gfo repo mirror remove MIRROR_NAME [--yes]
 gfo repo mirror sync
 ```
@@ -1196,11 +1199,15 @@ gfo repo mirror sync
 |---|---|
 | `REMOTE_ADDRESS` | Mirror destination repository URL |
 | `--interval` | Sync interval (e.g., `8h0m0s`) |
+| `--auth-token` | Authentication token for the mirror destination (insecure: visible in the process list; prefer the options below) |
+| `--auth-token-stdin` | Read the authentication token from stdin (recommended for scripts) |
+| `--auth-token-file PATH` | Read the authentication token from a file |
 | `MIRROR_NAME` | Mirror name (as shown by `gfo repo mirror list`) |
 
 ```bash
 gfo repo mirror list
 gfo repo mirror add https://github.com/user/mirror.git
+echo "$MIRROR_TOKEN" | gfo repo mirror add https://github.com/user/mirror.git --auth-token-stdin
 gfo repo mirror remove origin-mirror
 gfo repo mirror sync        # Sync all mirrors
 ```
