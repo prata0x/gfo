@@ -1,6 +1,6 @@
 ---
 name: release
-description: PR 経由でリリースを一括実行する。main がクリーンか検証 → release-v<X.Y.Z> ブランチを切る → バージョン bump（__init__.py / test_cli.py / CHANGELOG 2種）→ PR 作成 → CI green 後に --merge → main のマージコミットに注釈タグ → タグ push。タグ push（v*）が release.yml をトリガーし PyPI へ自動公開する。「リリース」「リリースして」「deploy」「PyPI に公開」と言われたときに使う。
+description: PR 経由でリリースを一括実行する。main がクリーンか検証 → release-v<X.Y.Z> ブランチを切る → バージョン bump（__init__.py / CHANGELOG 2種）→ PR 作成 → CI green 後に --merge → main のマージコミットに注釈タグ → タグ push。タグ push（v*）が release.yml をトリガーし PyPI へ自動公開する。「リリース」「リリースして」「deploy」「PyPI に公開」と言われたときに使う。
 allowed-tools: AskUserQuestion, Bash, Read, Edit, Write, Glob, Grep
 ---
 
@@ -80,14 +80,13 @@ main（preflight で最新化済み）から:
 git switch -c release-v<new>
 ```
 
-### 3. バージョン bump（4 ファイル）と CHANGELOG 作成
+### 3. バージョン bump（3 ファイル）と CHANGELOG 作成
 
-release ブランチ上で以下 4 ファイルを更新する。CHANGELOG の中身は最新タグ以降のコミットを分類して書く
+release ブランチ上で以下 3 ファイルを更新する（`tests/test_cli.py` は `__version__` を動的参照するため bump 不要）。CHANGELOG の中身は最新タグ以降のコミットを分類して書く
 （`feat:`→Added/追加、`fix:`→Fixed/修正、`test:`→Tests/テスト、その他で価値あるもの→Other/その他。
 `docs:`/`chore:` 単独は原則含めない）。英語版と日本語版は項目数・順序を一致させる。
 
 - **`src/gfo/__init__.py`**: `__version__` を新バージョンに更新。
-- **`tests/test_cli.py`**: `gfo {旧バージョン}` を含むアサーションを `gfo {新バージョン}` に置換。
 - **`CHANGELOG.md`（英語）**: `# Changelog` 直後（最初の `## [...]` の前）に新セクションを挿入。
 
   ```markdown
@@ -110,7 +109,7 @@ CHANGELOG のエントリは具体的なコマンド名・オプション名を�
 ### 4. bump コミット
 
 ```bash
-git add src/gfo/__init__.py tests/test_cli.py CHANGELOG.md CHANGELOG.ja.md
+git add src/gfo/__init__.py CHANGELOG.md CHANGELOG.ja.md
 git commit -m "chore(release): バージョン <new> リリース準備"
 ```
 
