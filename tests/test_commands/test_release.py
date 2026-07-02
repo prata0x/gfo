@@ -64,6 +64,13 @@ class TestHandleList:
 
         self.adapter.list_releases.assert_called_once_with(limit=30)
 
+    def test_limit_zero_passed_through(self, sample_config):
+        args = make_args(limit=0)
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_list(args, fmt="table")
+
+        self.adapter.list_releases.assert_called_once_with(limit=0)
+
     def test_outputs_results(self, sample_config, capsys):
         args = make_args(limit=30)
         with _patch_all(sample_config, self.adapter):
