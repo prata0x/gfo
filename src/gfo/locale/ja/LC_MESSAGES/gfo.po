@@ -2376,6 +2376,9 @@ msgstr "未知のコマンド: {command}"
 msgid "Unknown command: {command} {subcommand}"
 msgstr "未知のコマンド: {command} {subcommand}"
 
+msgid "Unknown command: {command} {subcommand} {action}"
+msgstr "未知のコマンド: {command} {subcommand} {action}"
+
 msgid "Unknown subcommand: {command} {subcommand}"
 msgstr "未知のサブコマンド: {command} {subcommand}"
 
