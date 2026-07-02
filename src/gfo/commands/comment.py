@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from gfo.commands import get_adapter
+from gfo.commands import confirm_action, get_adapter
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
 from gfo.output import output, output_result
@@ -26,6 +26,15 @@ def _dispatch(args: argparse.Namespace, resource: str, *, fmt: str, jq: str | No
         comment = adapter.update_comment(resource, args.comment_id, body=args.body)
         output(comment, fmt=fmt, jq=jq)
     elif action == "delete":
+        if not confirm_action(
+            args,
+            _("Are you sure you want to delete comment '{comment_id}'? [y/N]: ").format(
+                comment_id=args.comment_id
+            ),
+            fmt=fmt,
+            jq=jq,
+        ):
+            return
         adapter.delete_comment(resource, args.comment_id)
         output_result(
             _("Deleted comment '{comment_id}'.").format(comment_id=args.comment_id),

@@ -7,7 +7,7 @@ import sys
 
 from gfo.adapter.registry import create_http_client, get_adapter_class
 from gfo.auth import resolve_token
-from gfo.commands import get_adapter, open_in_browser
+from gfo.commands import confirm_action, get_adapter, open_in_browser
 from gfo.config import (
     build_clone_url,
     build_default_api_url,
@@ -218,15 +218,15 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo repo delete のハンドラ。"""
     adapter = get_adapter()
     repo_name = f"{adapter.owner}/{adapter.repo}"
-    if not getattr(args, "yes", False):
-        confirm = input(
-            _(
-                "Are you sure you want to delete repository '{repo_name}'? This action cannot be undone. [y/N]: "
-            ).format(repo_name=repo_name)
-        )
-        if confirm.lower() not in ("y", "yes"):
-            output_result(_("Aborted."), result="aborted", fmt=fmt, jq=jq)
-            return
+    if not confirm_action(
+        args,
+        _(
+            "Are you sure you want to delete repository '{repo_name}'? This action cannot be undone. [y/N]: "
+        ).format(repo_name=repo_name),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter.delete_repository()
     output_result(
         _("Deleted repository '{repo_name}'.").format(repo_name=repo_name),
@@ -276,15 +276,15 @@ def handle_archive(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
     """gfo repo archive のハンドラ。"""
     adapter = get_adapter()
     repo_name = f"{adapter.owner}/{adapter.repo}"
-    if not getattr(args, "yes", False):
-        confirm = input(
-            _("Are you sure you want to archive repository '{repo_name}'? [y/N]: ").format(
-                repo_name=repo_name
-            )
-        )
-        if confirm.lower() not in ("y", "yes"):
-            output_result(_("Aborted."), result="aborted", fmt=fmt, jq=jq)
-            return
+    if not confirm_action(
+        args,
+        _("Are you sure you want to archive repository '{repo_name}'? [y/N]: ").format(
+            repo_name=repo_name
+        ),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter.archive_repository()
     output_result(
         _("Archived repository '{repo_name}'.").format(repo_name=repo_name),
@@ -417,6 +417,15 @@ def handle_mirror(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         )
         output(mirror, fmt=fmt, jq=jq)
     elif action == "remove":
+        if not confirm_action(
+            args,
+            _("Are you sure you want to remove push mirror '{name}'? [y/N]: ").format(
+                name=args.mirror_name
+            ),
+            fmt=fmt,
+            jq=jq,
+        ):
+            return
         adapter.delete_push_mirror(args.mirror_name)
         output_result(
             _("Deleted push mirror '{name}'.").format(name=args.mirror_name),
@@ -434,15 +443,15 @@ def handle_transfer(args: argparse.Namespace, *, fmt: str, jq: str | None = None
     """gfo repo transfer <new_owner> のハンドラ。"""
     adapter = get_adapter()
     repo_name = f"{adapter.owner}/{adapter.repo}"
-    if not getattr(args, "yes", False):
-        confirm = input(
-            _(
-                "Are you sure you want to transfer repository '{repo_name}' to '{new_owner}'? [y/N]: "
-            ).format(repo_name=repo_name, new_owner=args.new_owner)
-        )
-        if confirm.lower() not in ("y", "yes"):
-            output_result(_("Aborted."), result="aborted", fmt=fmt, jq=jq)
-            return
+    if not confirm_action(
+        args,
+        _(
+            "Are you sure you want to transfer repository '{repo_name}' to '{new_owner}'? [y/N]: "
+        ).format(repo_name=repo_name, new_owner=args.new_owner),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     team_ids = None
     raw = getattr(args, "team_id", None)
     if raw is not None:

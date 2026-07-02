@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from gfo.commands import (
+    confirm_action,
     create_adapter_from_spec,
     get_adapter,
     get_adapter_with_config,
@@ -147,6 +148,13 @@ def handle_reopen(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue delete <number> のハンドラ。"""
     adapter = get_adapter()
+    if not confirm_action(
+        args,
+        _("Are you sure you want to delete issue #{number}? [y/N]: ").format(number=args.number),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter.delete_issue(args.number)
     output_result(
         _("Deleted issue '{number}'.").format(number=args.number),
@@ -364,6 +372,15 @@ def handle_time(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         entry = adapter.add_time_entry(args.number, duration)
         output(entry, fmt=fmt, jq=jq)
     elif action == "delete":
+        if not confirm_action(
+            args,
+            _("Are you sure you want to delete time entry '{entry_id}'? [y/N]: ").format(
+                entry_id=args.entry_id
+            ),
+            fmt=fmt,
+            jq=jq,
+        ):
+            return
         adapter.delete_time_entry(args.number, args.entry_id)
         output_result(
             _("Deleted time entry '{entry_id}'.").format(entry_id=args.entry_id),

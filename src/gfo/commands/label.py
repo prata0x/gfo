@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import re
 
-from gfo.commands import get_adapter
+from gfo.commands import confirm_action, get_adapter
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
 from gfo.output import output, output_result
@@ -47,6 +47,13 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     if not name:
         raise ConfigError(_("name must not be empty."))
     adapter = get_adapter()
+    if not confirm_action(
+        args,
+        _("Are you sure you want to delete label '{name}'? [y/N]: ").format(name=name),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter.delete_label(name=name)
     output_result(
         _("Deleted label '{name}'.").format(name=name),

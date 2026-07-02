@@ -865,7 +865,7 @@ class TestHandleDelete:
         out = capsys.readouterr().out
         assert "test-owner/test-repo" in out
 
-    def test_delete_confirmation_yes(self, sample_config, mock_adapter, capsys):
+    def test_delete_confirmation_yes(self, sample_config, mock_adapter, capsys, interactive_stdin):
         args = make_args(yes=False)
         mock_adapter.owner = "test-owner"
         mock_adapter.repo = "test-repo"
@@ -874,7 +874,7 @@ class TestHandleDelete:
 
         mock_adapter.delete_repository.assert_called_once()
 
-    def test_delete_confirmation_no(self, sample_config, mock_adapter, capsys):
+    def test_delete_confirmation_no(self, sample_config, mock_adapter, capsys, interactive_stdin):
         args = make_args(yes=False)
         mock_adapter.owner = "test-owner"
         mock_adapter.repo = "test-repo"
@@ -909,7 +909,9 @@ class TestHandleDelete:
         assert data["repository"] == "my-org/my-repo"
         assert data["message"]
 
-    def test_delete_aborted_json_format(self, sample_config, mock_adapter, capsys):
+    def test_delete_aborted_json_format(
+        self, sample_config, mock_adapter, capsys, interactive_stdin
+    ):
         """fmt="json" で確認を拒否すると result="aborted" の JSON が出力される。"""
         args = make_args(yes=False)
         mock_adapter.owner = "my-org"
@@ -1120,7 +1122,7 @@ class TestHandleArchive:
         out = capsys.readouterr().out
         assert "Archived" in out
 
-    def test_archive_confirmation_no(self, sample_config, capsys):
+    def test_archive_confirmation_no(self, sample_config, capsys, interactive_stdin):
         adapter = MagicMock()
         adapter.owner = "test-owner"
         adapter.repo = "test-repo"
@@ -1135,7 +1137,7 @@ class TestHandleArchive:
         out = capsys.readouterr().out
         assert "Aborted" in out
 
-    def test_archive_confirmation_yes(self, sample_config, capsys):
+    def test_archive_confirmation_yes(self, sample_config, capsys, interactive_stdin):
         adapter = MagicMock()
         adapter.owner = "test-owner"
         adapter.repo = "test-repo"
@@ -1412,7 +1414,9 @@ class TestHandleTransfer:
             repo_cmd.handle_transfer(args, fmt="table")
         mock_adapter.transfer_repository.assert_called_once_with("new-owner", team_ids=None)
 
-    def test_transfer_confirmation_yes(self, sample_config, mock_adapter, capsys):
+    def test_transfer_confirmation_yes(
+        self, sample_config, mock_adapter, capsys, interactive_stdin
+    ):
         """ "y" → transfer_repository() 呼び出し。"""
         mock_adapter.owner = "test-owner"
         mock_adapter.repo = "test-repo"
@@ -1421,7 +1425,7 @@ class TestHandleTransfer:
             repo_cmd.handle_transfer(args, fmt="table")
         mock_adapter.transfer_repository.assert_called_once_with("new-owner", team_ids=None)
 
-    def test_transfer_confirmation_no(self, sample_config, mock_adapter, capsys):
+    def test_transfer_confirmation_no(self, sample_config, mock_adapter, capsys, interactive_stdin):
         """ "n" → "Aborted." 出力、未呼び出し。"""
         mock_adapter.owner = "test-owner"
         mock_adapter.repo = "test-repo"

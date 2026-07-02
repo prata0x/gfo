@@ -127,7 +127,7 @@ class TestHandleEdit:
 class TestHandleDelete:
     def test_calls_delete(self, capsys):
         with patch_adapter("gfo.commands.tag_protect") as adapter:
-            args = make_args(id=1)
+            args = make_args(id=1, yes=True)
             tp_cmd.handle_delete(args, fmt="table")
         adapter.delete_tag_protection.assert_called_once_with(1)
         out = capsys.readouterr().out
@@ -136,14 +136,14 @@ class TestHandleDelete:
 
     def test_string_id(self):
         with patch_adapter("gfo.commands.tag_protect") as adapter:
-            args = make_args(id="v*")
+            args = make_args(id="v*", yes=True)
             tp_cmd.handle_delete(args, fmt="table")
         adapter.delete_tag_protection.assert_called_once_with("v*")
 
     def test_delete_json_format(self, capsys):
         """fmt="json" で構造化 JSON（result / id / message）が出力される。"""
         with patch_adapter("gfo.commands.tag_protect"):
-            args = make_args(id=1)
+            args = make_args(id=1, yes=True)
             tp_cmd.handle_delete(args, fmt="json")
         out = capsys.readouterr().out
         data = json.loads(out)
@@ -154,6 +154,6 @@ class TestHandleDelete:
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.tag_protect") as adapter:
             adapter.delete_tag_protection.side_effect = HttpError(404, "Not found")
-            args = make_args(id=1)
+            args = make_args(id=1, yes=True)
             with pytest.raises(HttpError):
                 tp_cmd.handle_delete(args, fmt="table")

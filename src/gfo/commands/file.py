@@ -6,7 +6,7 @@ import argparse
 import json
 import sys
 
-from gfo.commands import get_adapter
+from gfo.commands import confirm_action, get_adapter
 from gfo.exceptions import ConfigError, NotFoundError
 from gfo.i18n import _
 from gfo.output import apply_jq_filter, output_result
@@ -87,6 +87,13 @@ def handle_put(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo file delete <path> --message TEXT のハンドラ。"""
     _validate_repo_path(args.path)
+    if not confirm_action(
+        args,
+        _("Are you sure you want to delete file '{path}'? [y/N]: ").format(path=args.path),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter = get_adapter()
     _content, sha = adapter.get_file_content(args.path, ref=args.branch)
     adapter.delete_file(args.path, sha=sha, message=args.message, branch=args.branch)

@@ -114,7 +114,7 @@ class TestHandleSet:
 class TestHandleRemove:
     def test_calls_remove(self, capsys):
         with patch_adapter("gfo.commands.branch_protect") as adapter:
-            args = make_args(branch="main")
+            args = make_args(branch="main", yes=True)
             bp_cmd.handle_remove(args, fmt="table")
         adapter.remove_branch_protection.assert_called_once_with("main")
         out = capsys.readouterr().out
@@ -124,7 +124,7 @@ class TestHandleRemove:
     def test_remove_json_format(self, capsys):
         """fmt="json" で構造化 JSON（result / branch / message）が出力される。"""
         with patch_adapter("gfo.commands.branch_protect"):
-            args = make_args(branch="main")
+            args = make_args(branch="main", yes=True)
             bp_cmd.handle_remove(args, fmt="json")
         out = capsys.readouterr().out
         data = json.loads(out)
@@ -135,6 +135,6 @@ class TestHandleRemove:
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.branch_protect") as adapter:
             adapter.remove_branch_protection.side_effect = HttpError(404, "Not found")
-            args = make_args(branch="main")
+            args = make_args(branch="main", yes=True)
             with pytest.raises(HttpError):
                 bp_cmd.handle_remove(args, fmt="table")

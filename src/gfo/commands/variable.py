@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from gfo.commands import get_adapter
+from gfo.commands import confirm_action, get_adapter
 from gfo.i18n import _
 from gfo.output import output, output_result
 
@@ -42,6 +42,13 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo variable delete <name> のハンドラ。"""
     adapter = get_adapter()
     scope = getattr(args, "org", None)
+    if not confirm_action(
+        args,
+        _("Are you sure you want to delete variable '{name}'? [y/N]: ").format(name=args.name),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter.delete_variable(args.name, scope=scope)
     output_result(
         _("Deleted variable '{name}'.").format(name=args.name),

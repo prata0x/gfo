@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from gfo.commands import get_adapter, open_in_browser, read_file_arg
+from gfo.commands import confirm_action, get_adapter, open_in_browser, read_file_arg
 from gfo.exceptions import ConfigError, GfoError
 from gfo.i18n import _
 from gfo.output import output, output_result
@@ -65,6 +65,13 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     if not tag:
         raise ConfigError(_("tag must not be empty. Use 'gfo release delete <tag>'."))
     adapter = get_adapter()
+    if not confirm_action(
+        args,
+        _("Are you sure you want to delete release '{tag}'? [y/N]: ").format(tag=tag),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter.delete_release(tag=tag)
     output_result(
         _("Deleted release '{tag}'.").format(tag=tag),
@@ -217,6 +224,15 @@ def _handle_asset_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = N
 
 def _handle_asset_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     adapter = get_adapter()
+    if not confirm_action(
+        args,
+        _("Are you sure you want to delete release asset '{asset_id}'? [y/N]: ").format(
+            asset_id=args.asset_id
+        ),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter.delete_release_asset(tag=args.tag, asset_id=args.asset_id)
     output_result(
         _("Deleted asset '{asset_id}'.").format(asset_id=args.asset_id),

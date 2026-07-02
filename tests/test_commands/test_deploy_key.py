@@ -80,14 +80,14 @@ class TestHandleCreate:
 class TestHandleDelete:
     def test_calls_delete_deploy_key(self):
         with patch_adapter("gfo.commands.deploy_key") as adapter:
-            args = make_args(id=1)
+            args = make_args(id=1, yes=True)
             deploy_key_cmd.handle_delete(args, fmt="table")
         adapter.delete_deploy_key.assert_called_once_with(key_id=1)
 
     def test_delete_prints_success_message(self, capsys):
         """handle_delete が成功メッセージに id を含む。"""
         with patch_adapter("gfo.commands.deploy_key"):
-            args = make_args(id=99)
+            args = make_args(id=99, yes=True)
             deploy_key_cmd.handle_delete(args, fmt="table")
         out = capsys.readouterr().out
         assert "99" in out
@@ -95,7 +95,7 @@ class TestHandleDelete:
     def test_json_format(self, capsys):
         """fmt="json" のとき構造化 JSON が出力される。"""
         with patch_adapter("gfo.commands.deploy_key"):
-            args = make_args(id=99)
+            args = make_args(id=99, yes=True)
             deploy_key_cmd.handle_delete(args, fmt="json")
         out = capsys.readouterr().out
         data = json.loads(out)

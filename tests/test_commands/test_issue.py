@@ -522,14 +522,14 @@ class TestHandleDelete:
         self.adapter = _make_adapter(self.issue)
 
     def test_calls_delete_issue(self):
-        args = make_args(number=5)
+        args = make_args(number=5, yes=True)
         with _patch_all(self.config, self.adapter):
             issue_cmd.handle_delete(args, fmt="table")
 
         self.adapter.delete_issue.assert_called_once_with(5)
 
     def test_prints_confirmation(self, capsys):
-        args = make_args(number=5)
+        args = make_args(number=5, yes=True)
         with _patch_all(self.config, self.adapter):
             issue_cmd.handle_delete(args, fmt="table")
 
@@ -722,7 +722,7 @@ class TestHandleTime:
 
     def test_delete_time_entry(self, capsys):
         with patch_adapter("gfo.commands.issue") as adapter:
-            args = make_args(time_action="delete", number=1, entry_id="42")
+            args = make_args(time_action="delete", number=1, entry_id="42", yes=True)
             issue_cmd.handle_time(args, fmt="table")
         adapter.delete_time_entry.assert_called_once_with(1, "42")
 

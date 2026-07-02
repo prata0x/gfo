@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from gfo.commands import get_adapter
+from gfo.commands import confirm_action, get_adapter
 from gfo.i18n import _
 from gfo.output import output, output_result
 
@@ -40,6 +40,13 @@ def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo wiki delete <id> のハンドラ。"""
     adapter = get_adapter()
+    if not confirm_action(
+        args,
+        _("Are you sure you want to delete wiki page '{id}'? [y/N]: ").format(id=args.id),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter.delete_wiki_page(args.id)
     output_result(
         _("Deleted wiki page '{id}'.").format(id=args.id),

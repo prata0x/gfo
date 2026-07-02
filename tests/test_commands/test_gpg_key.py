@@ -103,7 +103,7 @@ class TestHandleCreate:
 class TestHandleDelete:
     def test_calls_delete_gpg_key(self, capsys):
         with patch_adapter("gfo.commands.gpg_key") as adapter:
-            args = make_args(id=1)
+            args = make_args(id=1, yes=True)
             gpg_key_cmd.handle_delete(args, fmt="table")
         adapter.delete_gpg_key.assert_called_once_with(key_id=1)
         out = capsys.readouterr().out
@@ -113,7 +113,7 @@ class TestHandleDelete:
     def test_json_format(self, capsys):
         """fmt="json" のとき構造化 JSON が出力される。"""
         with patch_adapter("gfo.commands.gpg_key"):
-            args = make_args(id=1)
+            args = make_args(id=1, yes=True)
             gpg_key_cmd.handle_delete(args, fmt="json")
         out = capsys.readouterr().out
         data = json.loads(out)
@@ -123,13 +123,13 @@ class TestHandleDelete:
 
     def test_calls_delete_gpg_key_string_id(self):
         with patch_adapter("gfo.commands.gpg_key") as adapter:
-            args = make_args(id="abc-123")
+            args = make_args(id="abc-123", yes=True)
             gpg_key_cmd.handle_delete(args, fmt="table")
         adapter.delete_gpg_key.assert_called_once_with(key_id="abc-123")
 
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.gpg_key") as adapter:
             adapter.delete_gpg_key.side_effect = HttpError(404, "Not found")
-            args = make_args(id=1)
+            args = make_args(id=1, yes=True)
             with pytest.raises(HttpError):
                 gpg_key_cmd.handle_delete(args, fmt="table")

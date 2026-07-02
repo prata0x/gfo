@@ -210,14 +210,14 @@ class TestHandleDelete:
         self.adapter = _make_adapter(self.milestone)
 
     def test_delete_calls_adapter(self, sample_config):
-        args = make_args(number=3)
+        args = make_args(number=3, yes=True)
         with _patch_all(sample_config, self.adapter):
             milestone_cmd.handle_delete(args, fmt="table")
 
         self.adapter.delete_milestone.assert_called_once_with(number=3)
 
     def test_delete_prints_message(self, sample_config, capsys):
-        args = make_args(number=5)
+        args = make_args(number=5, yes=True)
         with _patch_all(sample_config, self.adapter):
             milestone_cmd.handle_delete(args, fmt="table")
 
@@ -226,7 +226,7 @@ class TestHandleDelete:
         assert "Deleted" in out
 
     def test_delete_json_format(self, sample_config, capsys):
-        args = make_args(number=5)
+        args = make_args(number=5, yes=True)
         with _patch_all(sample_config, self.adapter):
             milestone_cmd.handle_delete(args, fmt="json")
 

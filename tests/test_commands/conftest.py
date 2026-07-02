@@ -40,6 +40,13 @@ def sample_pr():
     )
 
 
+@pytest.fixture
+def interactive_stdin():
+    """confirm_action の TTY 判定を対話扱いに差し替える（プロンプトテスト用）。"""
+    with patch("gfo.commands._stdin_is_interactive", return_value=True):
+        yield
+
+
 def make_args(**kwargs) -> argparse.Namespace:
     """argparse.Namespace を簡単に生成するヘルパー。"""
     return argparse.Namespace(**kwargs)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from gfo.commands import get_adapter
+from gfo.commands import confirm_action, get_adapter
 from gfo.i18n import _
 from gfo.output import output, output_result
 
@@ -33,15 +33,15 @@ def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo package delete のハンドラ。"""
     adapter = get_adapter()
-    if not getattr(args, "yes", False):
-        confirm = input(
-            _("Are you sure you want to delete package '{type}/{name}@{version}'? [y/N]: ").format(
-                type=args.package_type, name=args.name, version=args.version
-            )
-        )
-        if confirm.lower() not in ("y", "yes"):
-            output_result(_("Aborted."), result="aborted", fmt=fmt, jq=jq)
-            return
+    if not confirm_action(
+        args,
+        _("Are you sure you want to delete package '{type}/{name}@{version}'? [y/N]: ").format(
+            type=args.package_type, name=args.name, version=args.version
+        ),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter.delete_package(args.package_type, args.name, args.version)
     output_result(
         _("Deleted package '{type}/{name}@{version}'.").format(

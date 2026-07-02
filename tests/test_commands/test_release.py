@@ -445,14 +445,14 @@ class TestHandleDelete:
         self.adapter = _make_adapter(self.release)
 
     def test_delete_calls_adapter(self, sample_config):
-        args = make_args(tag="v1.0.0")
+        args = make_args(tag="v1.0.0", yes=True)
         with _patch_all(sample_config, self.adapter):
             release_cmd.handle_delete(args, fmt="table")
 
         self.adapter.delete_release.assert_called_once_with(tag="v1.0.0")
 
     def test_delete_prints_message(self, sample_config, capsys):
-        args = make_args(tag="v1.0.0")
+        args = make_args(tag="v1.0.0", yes=True)
         with _patch_all(sample_config, self.adapter):
             release_cmd.handle_delete(args, fmt="table")
 
@@ -462,7 +462,7 @@ class TestHandleDelete:
 
     def test_delete_json_format(self, sample_config, capsys):
         """fmt="json" で構造化 JSON（result / tag / message）が出力される。"""
-        args = make_args(tag="v1.0.0")
+        args = make_args(tag="v1.0.0", yes=True)
         with _patch_all(sample_config, self.adapter):
             release_cmd.handle_delete(args, fmt="json")
 
@@ -816,7 +816,7 @@ class TestHandleAsset:
         )
 
     def test_asset_delete(self, sample_config, capsys):
-        args = make_args(asset_action="delete", tag="v1.0.0", asset_id="1")
+        args = make_args(asset_action="delete", tag="v1.0.0", asset_id="1", yes=True)
         with _patch_all(sample_config, self.adapter):
             release_cmd.handle_asset(args, fmt="table")
 
@@ -824,7 +824,7 @@ class TestHandleAsset:
 
     def test_asset_delete_json_format(self, sample_config, capsys):
         """fmt="json" で構造化 JSON（result / asset_id / message）が出力される。"""
-        args = make_args(asset_action="delete", tag="v1.0.0", asset_id="1")
+        args = make_args(asset_action="delete", tag="v1.0.0", asset_id="1", yes=True)
         with _patch_all(sample_config, self.adapter):
             release_cmd.handle_asset(args, fmt="json")
 
