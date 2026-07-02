@@ -6,6 +6,7 @@ import argparse
 import json
 
 import gfo.git_util
+from gfo._context import cli_remote
 from gfo.commands import get_adapter, open_in_browser, read_file_arg
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
@@ -39,7 +40,8 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         args.body = read_file_arg(args.body_file)
     adapter = get_adapter()
     head = args.head or gfo.git_util.get_current_branch()
-    base = args.base or gfo.git_util.get_default_branch()
+    # --remote 指定時はそのリモートの HEAD から base を推定する
+    base = args.base or gfo.git_util.get_default_branch(remote=cli_remote.get())
     title = (args.title or gfo.git_util.get_last_commit_subject() or "").strip()
     if not title:
         raise ConfigError(_("Could not determine PR title. Use --title option."))
@@ -214,7 +216,8 @@ def handle_checkout(args: argparse.Namespace, *, fmt: str, jq: str | None = None
     adapter = get_adapter()
     pr = adapter.get_pull_request(args.number)
     refspec = adapter.get_pr_checkout_refspec(args.number, pr=pr)
-    gfo.git_util.git_fetch("origin", refspec)
+    # --remote 指定時はそのリモートから fetch する（アダプターの参照先と揃える）
+    gfo.git_util.git_fetch(cli_remote.get() or "origin", refspec)
     gfo.git_util.git_checkout_branch(pr.source_branch)
 
 

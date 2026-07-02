@@ -164,6 +164,26 @@ class TestHandleCreate:
         call_kwargs = mock_adapter.create_pull_request.call_args.kwargs
         assert call_kwargs["base"] == "develop"
 
+    def test_infers_base_from_cli_remote(self, sample_config, mock_adapter, capsys):
+        """--remote 指定時は base 推定にそのリモートを使う。"""
+        from gfo._context import cli_remote
+
+        args = make_args(head="feature/x", base=None, title="My PR", body="", draft=False)
+        token = cli_remote.set("upstream")
+        try:
+            with (
+                _patch_all(sample_config, mock_adapter),
+                patch(
+                    "gfo.commands.pr.gfo.git_util.get_default_branch", return_value="develop"
+                ) as mock_gdb,
+            ):
+                pr_cmd.handle_create(args, fmt="table")
+        finally:
+            cli_remote.reset(token)
+
+        mock_gdb.assert_called_once_with(remote="upstream")
+        assert mock_adapter.create_pull_request.call_args.kwargs["base"] == "develop"
+
     def test_infers_title_from_last_commit(self, sample_config, mock_adapter, capsys):
         args = make_args(head="feature/x", base="main", title=None, body="", draft=False)
         with (
@@ -572,6 +592,25 @@ class TestHandleCheckout:
         mock_adapter.get_pull_request.assert_called_once_with(1)
         mock_adapter.get_pr_checkout_refspec.assert_called_once()
         mock_fetch.assert_called_once_with("origin", "refs/pull/1/head")
+        mock_checkout.assert_called_once_with("feature/test")
+
+    def test_checkout_fetches_from_cli_remote(self, sample_config, mock_adapter):
+        """--remote 指定時はそのリモートから fetch する。"""
+        from gfo._context import cli_remote
+
+        args = make_args(number=1)
+        token = cli_remote.set("upstream")
+        try:
+            with (
+                _patch_all(sample_config, mock_adapter),
+                patch("gfo.commands.pr.gfo.git_util.git_fetch") as mock_fetch,
+                patch("gfo.commands.pr.gfo.git_util.git_checkout_branch") as mock_checkout,
+            ):
+                pr_cmd.handle_checkout(args, fmt="table")
+        finally:
+            cli_remote.reset(token)
+
+        mock_fetch.assert_called_once_with("upstream", "refs/pull/1/head")
         mock_checkout.assert_called_once_with("feature/test")
 
     def test_checkout_pr_not_found_raises(self, sample_config, mock_adapter):
