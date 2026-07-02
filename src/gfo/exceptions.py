@@ -18,6 +18,7 @@ class ExitCode(IntEnum):
     NOT_SUPPORTED = 5
     CONFIG = 6
     NETWORK = 7
+    PARTIAL_FAILURE = 8
 
 
 class GfoError(Exception):
@@ -178,6 +179,26 @@ class NotSupportedError(GfoError):
         )
         if web_url:
             self.hint = web_url
+
+
+class PartialFailureError(GfoError):
+    """一括処理（batch / migrate 等）で 1 件以上が失敗した。
+
+    個々の失敗は結果リスト（status / success / error フィールド）に集約済みで、
+    stdout への結果出力後に raise される。exit code で失敗を検知できるようにする
+    ためのシグナルであり、全件失敗の場合もこの例外を用いる。
+    """
+
+    error_code = "partial_failure"
+    exit_code = ExitCode.PARTIAL_FAILURE
+
+    def __init__(self, failed: int, total: int):
+        self.failed = failed
+        self.total = total
+        super().__init__(
+            _("{failed} of {total} operations failed.").format(failed=failed, total=total)
+        )
+        self.hint = _("Inspect the status/error fields of each item in the output for details.")
 
 
 class UnsupportedServiceError(GfoError):

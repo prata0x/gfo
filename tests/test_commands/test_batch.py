@@ -9,7 +9,7 @@ import pytest
 
 from gfo.adapter.base import PullRequest
 from gfo.commands import batch as batch_cmd
-from gfo.exceptions import ConfigError, HttpError
+from gfo.exceptions import ConfigError, ExitCode, HttpError, PartialFailureError
 from tests.test_commands.conftest import make_args
 
 
@@ -100,8 +100,12 @@ class TestHandleBatchPr:
             batch_pr_action="create",
         )
 
-        batch_cmd.handle_batch_pr(args, fmt="table")
+        with pytest.raises(PartialFailureError) as exc:
+            batch_cmd.handle_batch_pr(args, fmt="table")
 
+        assert exc.value.failed == 1
+        assert exc.value.total == 2
+        assert exc.value.exit_code == ExitCode.PARTIAL_FAILURE
         captured = capsys.readouterr()
         assert "created" in captured.out
         assert "failed" in captured.out
@@ -224,8 +228,11 @@ class TestHandleBatchPr:
             batch_pr_action="create",
         )
 
-        batch_cmd.handle_batch_pr(args, fmt="json")
+        with pytest.raises(PartialFailureError) as exc:
+            batch_cmd.handle_batch_pr(args, fmt="json")
 
+        assert exc.value.failed == 2
+        assert exc.value.total == 2
         captured = capsys.readouterr()
         data = json.loads(captured.out)
         assert len(data) == 2
@@ -251,7 +258,8 @@ class TestHandleBatchPr:
             batch_pr_action="create",
         )
 
-        batch_cmd.handle_batch_pr(args, fmt="json")
+        with pytest.raises(PartialFailureError):
+            batch_cmd.handle_batch_pr(args, fmt="json")
 
         captured = capsys.readouterr()
         data = json.loads(captured.out)
@@ -379,8 +387,11 @@ class TestHandleBatchPr:
             batch_pr_action="create",
         )
 
-        batch_cmd.handle_batch_pr(args, fmt="json")
+        with pytest.raises(PartialFailureError) as exc:
+            batch_cmd.handle_batch_pr(args, fmt="json")
 
+        assert exc.value.failed == 1
+        assert exc.value.total == 3
         captured = capsys.readouterr()
         data = json.loads(captured.out)
         assert len(data) == 3

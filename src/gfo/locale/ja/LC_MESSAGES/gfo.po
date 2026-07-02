@@ -141,6 +141,12 @@ msgstr "サーバーエラーです。しばらくしてから再試行してく
 msgid "{service} does not support {operation}. Use the web interface instead."
 msgstr "{service} は {operation} に対応していません。Web インターフェースを使用してください。"
 
+msgid "{failed} of {total} operations failed."
+msgstr "{total} 件中 {failed} 件の操作が失敗しました。"
+
+msgid "Inspect the status/error fields of each item in the output for details."
+msgstr "詳細は出力の各項目の status / error フィールドを確認してください。"
+
 msgid "Unsupported service type: {service_type}"
 msgstr "未対応のサービス種別: {service_type}"
 

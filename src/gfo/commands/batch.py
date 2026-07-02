@@ -6,7 +6,7 @@ import argparse
 from dataclasses import dataclass
 
 from gfo.commands import create_adapter_from_spec, parse_service_spec
-from gfo.exceptions import ConfigError, GfoError
+from gfo.exceptions import ConfigError, GfoError, PartialFailureError
 from gfo.i18n import _
 from gfo.output import output
 
@@ -73,3 +73,8 @@ def handle_batch_pr(args: argparse.Namespace, *, fmt: str, jq: str | None = None
             )
 
     output(results, fmt=fmt, fields=["repo", "number", "url", "status", "error"], jq=jq)
+
+    # 1 件でも失敗があれば非 0 の exit code で失敗を通知する（結果出力は済んでいる）
+    failed = sum(1 for r in results if r.status == "failed")
+    if failed:
+        raise PartialFailureError(failed, len(results))
