@@ -66,7 +66,7 @@ jobs:
           fi
 
       - name: Setup mise (python + uv)
-        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        uses: prata0x/actions/setup-mise@8798a439844c9fd4545fc00fc3611e8b13d58ac1 # v1.0.0
 
       - name: Cache uv packages
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -120,7 +120,7 @@ jobs:
       # mise-action は python/uv の toolchain バイナリはキャッシュするが、uv の
       # パッケージキャッシュ (~/.cache/uv) はキャッシュしないため、下の cache step で補う。
       - name: Setup mise (python + uv)
-        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        uses: prata0x/actions/setup-mise@8798a439844c9fd4545fc00fc3611e8b13d58ac1 # v1.0.0
 
       # uv のパッケージキャッシュ (~/.cache/uv = 展開済み wheel) を復元/保存し、毎ジョブの
       # wheel ダウンロードを省く。キーは uv.lock のハッシュ + OS + python 版で構成し、
