@@ -268,9 +268,20 @@ class TestHandleSchema:
         assert missing == set(), f"_OUTPUT_MAP に不足: {missing}"
 
     def test_too_many_arguments(self):
-        """target に 3 個以上渡すと ConfigError。"""
+        """孫サブコマンドを持たないコマンドに 3 個目を渡すと ConfigError。"""
         args = make_args(
             command="schema", subcommand=None, list_commands=False, target=["pr", "list", "extra"]
+        )
+        with pytest.raises(ConfigError):
+            handle_schema(args, fmt="json")
+
+    def test_too_many_arguments_four_elements(self):
+        """target に 4 個以上渡すと ConfigError。"""
+        args = make_args(
+            command="schema",
+            subcommand=None,
+            list_commands=False,
+            target=["release", "asset", "delete", "extra"],
         )
         with pytest.raises(ConfigError):
             handle_schema(args, fmt="json")
@@ -376,3 +387,134 @@ class TestSchemaAlwaysEnglish:
         for item in out:
             desc = item.get("description", "")
             assert "[翻訳]" not in desc, f"{item['command']} の description に翻訳が混入: {desc}"
+
+
+# ---- 孫サブコマンド（#58） ----
+
+
+def _discover_grandchild_triples():
+    """create_parser() から (command, subcommand, action) の全組を動的に発見する。"""
+    import argparse as _ap
+
+    from gfo.cli import create_parser
+
+    _, subparser_map = create_parser()
+    triples = []
+    for command, cmd_parser in subparser_map.items():
+        for cmd_action in cmd_parser._actions:
+            if not isinstance(cmd_action, _ap._SubParsersAction):
+                continue
+            for subcommand, sub_parser in cmd_action.choices.items():
+                for sub_action in sub_parser._actions:
+                    if not isinstance(sub_action, _ap._SubParsersAction):
+                        continue
+                    for action in sub_action.choices:
+                        triples.append((command, subcommand, action))
+    return triples
+
+
+class TestGrandchildSchema:
+    """孫サブコマンド（release asset delete 等）の schema 取得（#58）。"""
+
+    def test_grandchild_single_command(self, capsys):
+        args = make_args(
+            command="schema",
+            subcommand=None,
+            list_commands=False,
+            target=["release", "asset", "delete"],
+        )
+        handle_schema(args, fmt="json")
+        out = json.loads(capsys.readouterr().out)
+        assert out["command"] == "release asset delete"
+        assert "asset_id" in out["input"]["properties"]
+        assert out["output"] is None
+
+    def test_grandchild_output_dataclass(self, capsys):
+        """release asset upload は単一オブジェクトを返す。"""
+        args = make_args(
+            command="schema",
+            subcommand=None,
+            list_commands=False,
+            target=["release", "asset", "upload"],
+        )
+        handle_schema(args, fmt="json")
+        out = json.loads(capsys.readouterr().out)
+        assert out["output"]["type"] == "object"
+        assert "download_url" in out["output"]["properties"]
+
+    def test_grandchild_list_str_output(self, capsys):
+        """repo topics add は list[str] を返す。"""
+        args = make_args(
+            command="schema",
+            subcommand=None,
+            list_commands=False,
+            target=["repo", "topics", "add"],
+        )
+        handle_schema(args, fmt="json")
+        out = json.loads(capsys.readouterr().out)
+        assert out["output"] == {"type": "array", "items": {"type": "string"}}
+
+    def test_grandchild_group_returns_array(self, capsys):
+        """2 要素指定が孫グループの場合は action 別スキーマの配列を返す。"""
+        args = make_args(
+            command="schema", subcommand=None, list_commands=False, target=["release", "asset"]
+        )
+        handle_schema(args, fmt="json")
+        out = json.loads(capsys.readouterr().out)
+        assert isinstance(out, list)
+        commands = [item["command"] for item in out]
+        assert commands == [
+            "release asset list",
+            "release asset upload",
+            "release asset download",
+            "release asset edit",
+            "release asset delete",
+        ]
+
+    def test_grandchild_unknown_action(self):
+        args = make_args(
+            command="schema",
+            subcommand=None,
+            list_commands=False,
+            target=["release", "asset", "nonexistent"],
+        )
+        with pytest.raises(ConfigError):
+            handle_schema(args, fmt="json")
+
+    def test_grandchild_on_non_grandchild_subcommand(self):
+        """孫を持たないコマンドに 3 要素目を渡すと ConfigError。"""
+        args = make_args(
+            command="schema", subcommand=None, list_commands=False, target=["pr", "list", "extra"]
+        )
+        with pytest.raises(ConfigError):
+            handle_schema(args, fmt="json")
+
+    def test_grandchild_unknown_command_subcommand(self):
+        args = make_args(
+            command="schema",
+            subcommand=None,
+            list_commands=False,
+            target=["nonexistent", "asset", "delete"],
+        )
+        with pytest.raises(ConfigError):
+            handle_schema(args, fmt="json")
+
+    def test_list_commands_includes_grandchildren(self, capsys):
+        """schema --list に孫サブコマンドも含まれる。"""
+        args = make_args(command="schema", subcommand=None, list_commands=True, target=[])
+        handle_schema(args, fmt="json")
+        out = json.loads(capsys.readouterr().out)
+        commands = [item["command"] for item in out]
+        assert "release asset delete" in commands
+        assert "issue time add" in commands
+        assert "batch pr create" in commands
+
+    def test_grandchild_output_map_covers_all_actions(self):
+        """_GRANDCHILD_OUTPUT_MAP が実際の argparse 構造の全 (command, subcommand, action) をカバーしている。"""
+        from gfo.commands.schema import _GRANDCHILD_OUTPUT_MAP
+
+        triples = set(_discover_grandchild_triples())
+        missing = triples - set(_GRANDCHILD_OUTPUT_MAP.keys())
+        assert missing == set(), f"_GRANDCHILD_OUTPUT_MAP に不足: {missing}"
+        extra = set(_GRANDCHILD_OUTPUT_MAP.keys()) - triples
+        assert extra == set(), f"_GRANDCHILD_OUTPUT_MAP に存在しない孫コマンド: {extra}"

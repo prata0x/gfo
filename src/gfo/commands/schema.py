@@ -52,6 +52,7 @@ from gfo.adapter.base import (
     WikiRevision,
     Workflow,
 )
+from gfo.commands.batch import BatchPrResult
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
 from gfo.output import apply_jq_filter
@@ -269,6 +270,53 @@ _SPECIAL_OUTPUT: dict[tuple[str, str | None], dict[str, Any]] = {
     },
 }
 
+# 孫サブコマンド（例: release asset delete）の出力スキーマ。
+# キーは (command, subcommand, action)。
+_GRANDCHILD_OUTPUT_MAP: dict[tuple[str, str, str], type | None] = {
+    ("pr", "reviewers", "list"): list[str],
+    ("pr", "reviewers", "add"): None,
+    ("pr", "reviewers", "remove"): None,
+    ("pr", "review", "list"): list[Review],
+    ("pr", "review", "create"): Review,
+    ("pr", "review", "dismiss"): None,
+    ("pr", "comment", "list"): list[Comment],
+    ("pr", "comment", "create"): Comment,
+    ("pr", "comment", "edit"): Comment,
+    ("pr", "comment", "delete"): None,
+    ("issue", "comment", "list"): list[Comment],
+    ("issue", "comment", "create"): Comment,
+    ("issue", "comment", "edit"): Comment,
+    ("issue", "comment", "delete"): None,
+    ("issue", "reaction", "list"): list[Reaction],
+    ("issue", "reaction", "add"): Reaction,
+    ("issue", "reaction", "remove"): None,
+    ("issue", "depends", "list"): list[Issue],
+    ("issue", "depends", "add"): None,
+    ("issue", "depends", "remove"): None,
+    ("issue", "time", "list"): list[TimeEntry],
+    ("issue", "time", "add"): TimeEntry,
+    ("issue", "time", "delete"): None,
+    ("repo", "topics", "list"): list[str],
+    ("repo", "topics", "add"): list[str],
+    ("repo", "topics", "remove"): list[str],
+    ("repo", "topics", "set"): list[str],
+    ("repo", "mirror", "list"): list[PushMirror],
+    ("repo", "mirror", "add"): PushMirror,
+    ("repo", "mirror", "remove"): None,
+    ("repo", "mirror", "sync"): None,
+    ("release", "asset", "list"): list[ReleaseAsset],
+    ("release", "asset", "upload"): ReleaseAsset,
+    ("release", "asset", "download"): None,
+    ("release", "asset", "edit"): ReleaseAsset,
+    ("release", "asset", "delete"): None,
+    ("ci", "workflow", "list"): list[Workflow],
+    ("ci", "workflow", "enable"): None,
+    ("ci", "workflow", "disable"): None,
+    ("ci", "artifact", "list"): list[Artifact],
+    ("ci", "artifact", "download"): None,
+    ("batch", "pr", "create"): list[BatchPrResult],
+}
+
 
 def _python_type_to_json_schema(tp: Any) -> dict[str, Any]:
     """Python 型アノテーションを JSON Schema に変換する。"""
@@ -441,12 +489,56 @@ def _get_subcommand_parser(
     )
 
 
-def _build_output_schema(key: tuple[str, str | None]) -> Any:
-    """コマンドキーから出力スキーマを生成する。"""
-    if key in _SPECIAL_OUTPUT:
-        return _SPECIAL_OUTPUT[key]
+def _get_nested_subparsers_action(
+    parser: argparse.ArgumentParser,
+) -> argparse._SubParsersAction[argparse.ArgumentParser] | None:
+    """パーサー直下の _SubParsersAction を返す（孫サブコマンドが無ければ None）。
 
-    output_type = _OUTPUT_MAP.get(key)
+    NOTE: argparse の非公開 API を使用: parser._actions, _SubParsersAction。
+    """
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            return action
+    return None
+
+
+def _get_grandchild_parser(
+    subparser_map: dict[str, argparse.ArgumentParser],
+    command: str,
+    subcommand: str,
+    action: str,
+) -> argparse.ArgumentParser:
+    """孫サブコマンドパーサーを取得する。"""
+    parser = _get_subcommand_parser(subparser_map, command, subcommand)
+    sub_action = _get_nested_subparsers_action(parser)
+    if sub_action is not None and action in sub_action.choices:
+        result: argparse.ArgumentParser = sub_action.choices[action]
+        return result
+    raise ConfigError(
+        _("Unknown command: {command} {subcommand} {action}").format(
+            command=command, subcommand=subcommand, action=action
+        )
+    )
+
+
+def _get_choice_description(parent_parser: argparse.ArgumentParser, choice: str) -> str:
+    """親パーサー直下の _SubParsersAction から choice の help テキストを取得する。
+
+    NOTE: action._choices_actions は argparse 非公開 API。
+    """
+    action = _get_nested_subparsers_action(parent_parser)
+    if action is None or choice not in action.choices:
+        return ""
+    desc = action.choices[choice].description or ""
+    if not desc:
+        for ca in action._choices_actions:
+            if ca.dest == choice and ca.help:
+                return ca.help
+    return desc
+
+
+def _output_type_to_schema(output_type: Any) -> Any:
+    """Python 型（dataclass / list[dataclass] 等）を出力 JSON Schema に変換する。"""
     if output_type is None:
         return None
 
@@ -463,6 +555,18 @@ def _build_output_schema(key: tuple[str, str | None]) -> Any:
         return _dataclass_to_json_schema(output_type)
 
     return None
+
+
+def _build_output_schema(key: tuple[str, str | None]) -> Any:
+    """コマンドキーから出力スキーマを生成する。"""
+    if key in _SPECIAL_OUTPUT:
+        return _SPECIAL_OUTPUT[key]
+    return _output_type_to_schema(_OUTPUT_MAP.get(key))
+
+
+def _build_grandchild_output_schema(key: tuple[str, str, str]) -> Any:
+    """孫サブコマンドキーから出力スキーマを生成する。"""
+    return _output_type_to_schema(_GRANDCHILD_OUTPUT_MAP.get(key))
 
 
 def _build_command_schema(
@@ -485,6 +589,22 @@ def _build_command_schema(
         "output": _build_output_schema(key),
     }
     return result
+
+
+def _build_grandchild_command_schema(
+    command: str,
+    subcommand: str,
+    action: str,
+    subparser_map: dict[str, argparse.ArgumentParser],
+) -> dict[str, Any]:
+    """孫サブコマンド（例: release asset delete）のスキーマを構築する。"""
+    parser = _get_grandchild_parser(subparser_map, command, subcommand, action)
+    key = (command, subcommand, action)
+    return {
+        "command": f"{command} {subcommand} {action}",
+        "input": _parser_to_input_schema(parser),
+        "output": _build_grandchild_output_schema(key),
+    }
 
 
 def _print_json(json_str: str, jq: str | None) -> None:
@@ -519,47 +639,55 @@ def handle_schema(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
             # description はサブパーサーの help から取得
             if subcommand is not None:
                 try:
-                    p = _get_subcommand_parser(subparser_map, command, subcommand)
-                    desc = p.description or ""
-                    # p.description が空の場合、add_parser() の help= を参照する
-                    # NOTE: _choices_actions は argparse 非公開 API
-                    if not desc:
-                        cmd_parser = subparser_map[command]
-                        for act in cmd_parser._actions:
-                            if isinstance(act, argparse._SubParsersAction):
-                                for ca in act._choices_actions:
-                                    if ca.dest == subcommand and ca.help:
-                                        desc = ca.help
-                                        break
-                                break
-                except (ConfigError, KeyError):
+                    desc = _get_choice_description(subparser_map[command], subcommand)
+                except KeyError:
                     logger.warning("Failed to get parser for %s %s", command, subcommand)
                     desc = ""
             else:
-                desc = subparser_map.get(command, argparse.ArgumentParser()).description or ""
-                # description が空の場合、add_parser() の help= を参照する
-                # NOTE: _choices_actions は argparse 非公開 API
-                if not desc:
-                    for act in main_parser._actions:
-                        if isinstance(act, argparse._SubParsersAction):
-                            for ca in act._choices_actions:
-                                if ca.dest == command and ca.help:
-                                    desc = ca.help
-                                    break
-                            break
+                desc = _get_choice_description(main_parser, command)
             result.append({"command": cmd_label, "description": desc})
+
+            # 孫サブコマンド（例: release asset delete）があれば併せて列挙する
+            if subcommand is not None:
+                try:
+                    parser = _get_subcommand_parser(subparser_map, command, subcommand)
+                except (ConfigError, KeyError):
+                    continue
+                grandchild_action = _get_nested_subparsers_action(parser)
+                if grandchild_action is not None:
+                    for action_name in grandchild_action.choices:
+                        result.append(
+                            {
+                                "command": f"{cmd_label} {action_name}",
+                                "description": _get_choice_description(parser, action_name),
+                            }
+                        )
         json_str = json.dumps(result, indent=2, ensure_ascii=False)
         _print_json(json_str, jq)
         return
 
-    if len(target) > 2:
+    if len(target) > 3:
         raise ConfigError(_("Too many arguments: {args}").format(args=" ".join(target)))
 
     command = target[0]
     subcommand = target[1] if len(target) > 1 else None
+    action = target[2] if len(target) > 2 else None
 
-    if subcommand is not None:
-        # 単一コマンドスキーマ
+    if action is not None:
+        # 孫サブコマンドスキーマ（例: release asset delete）
+        subcommand = target[1]
+        key2 = (command, subcommand)
+        if key2 not in _DISPATCH:
+            raise ConfigError(
+                _("Unknown command: {command} {subcommand}").format(
+                    command=command, subcommand=subcommand
+                )
+            )
+        schema = _build_grandchild_command_schema(command, subcommand, action, subparser_map)
+        json_str = json.dumps(schema, indent=2, ensure_ascii=False)
+        _print_json(json_str, jq)
+    elif subcommand is not None:
+        # 単一コマンドスキーマ、または孫サブコマンドを持つグループ
         key = (command, subcommand)
         if key not in _DISPATCH:
             raise ConfigError(
@@ -567,8 +695,18 @@ def handle_schema(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
                     command=command, subcommand=subcommand
                 )
             )
-        schema = _build_command_schema(key, subparser_map)
-        json_str = json.dumps(schema, indent=2, ensure_ascii=False)
+        parser = _get_subcommand_parser(subparser_map, command, subcommand)
+        grandchild_action = _get_nested_subparsers_action(parser)
+        if grandchild_action is not None:
+            # 孫グループ — action 別スキーマの一覧
+            schemas = [
+                _build_grandchild_command_schema(command, subcommand, act, subparser_map)
+                for act in grandchild_action.choices
+            ]
+            json_str = json.dumps(schemas, indent=2, ensure_ascii=False)
+        else:
+            schema = _build_command_schema(key, subparser_map)
+            json_str = json.dumps(schema, indent=2, ensure_ascii=False)
         _print_json(json_str, jq)
     else:
         # コマンドグループ — 該当 command 配下の全サブコマンド
