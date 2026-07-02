@@ -4,8 +4,7 @@
 文字列リテラルを直接 message に渡す raise を検出する。正しい形は
 `raise ConfigError(_("No tokens configured for host: {host}").format(host=host))`。
 
-対象は src/gfo 直下のトップレベルモジュールのみ。adapter/ と commands/ には
-未対応箇所が残っているため対象外（issue #83 で追跡）。
+対象は src/gfo 配下の全モジュール（adapter/ と commands/ を含む）。
 `ValueError` 等の内部契約エラーは対象外（rules 01 参照）。
 """
 
@@ -30,7 +29,7 @@ _USER_FACING_EXCEPTIONS = {
     "ValidationError",
 }
 
-_MODULES = sorted(_SRC_DIR.glob("*.py"))
+_MODULES = sorted(_SRC_DIR.rglob("*.py"))
 
 
 def _exception_name(func: ast.expr) -> str | None:
@@ -71,11 +70,65 @@ def _iter_violations(path: Path) -> list[int]:
     return violations
 
 
-@pytest.mark.parametrize("path", _MODULES, ids=lambda p: p.name)
+@pytest.mark.parametrize("path", _MODULES, ids=lambda p: str(p.relative_to(_SRC_DIR)))
 def test_user_facing_error_messages_are_translated(path: Path):
     violations = _iter_violations(path)
     assert not violations, (
-        f"{path.name}:{violations} — user-facing exception raised with a string literal "
+        f"{path.relative_to(_SRC_DIR)}:{violations} — user-facing exception raised with a string literal "
         "that does not go through _(). Wrap the message in _() and add a ja translation "
         "to gfo.po (see .claude/rules/01-exceptions.md)."
+    )
+
+
+# ── .po カバレッジ検査 ──
+
+_PO_PATH = _SRC_DIR / "locale" / "ja" / "LC_MESSAGES" / "gfo.po"
+
+
+def _parse_po_msgids(po_path: Path) -> set[str]:
+    """PO ファイルから msgid の集合を返す（hatch_build.py と同じ単純パーサ）。"""
+    msgids: set[str] = set()
+    lines = po_path.read_text(encoding="utf-8").splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        if line.startswith("msgid "):
+            msgid = ast.literal_eval(line[6:])
+            i += 1
+            while i < len(lines) and lines[i].strip().startswith('"'):
+                msgid += ast.literal_eval(lines[i].strip())
+                i += 1
+            msgids.add(msgid)
+        else:
+            i += 1
+    return msgids
+
+
+def _collect_source_msgids(path: Path) -> set[str]:
+    """モジュール内の _() 呼び出しの文字列リテラル msgid を収集する。"""
+    msgids: set[str] = set()
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "_"
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and isinstance(node.args[0].value, str)
+        ):
+            msgids.add(node.args[0].value)
+    return msgids
+
+
+def test_all_msgids_have_ja_translation():
+    """src/gfo 配下の全 _() msgid が gfo.po に登録されている（未訳の混入防止）。"""
+    po_msgids = _parse_po_msgids(_PO_PATH)
+    missing: dict[str, list[str]] = {}
+    for path in _MODULES:
+        for msgid in _collect_source_msgids(path):
+            if msgid not in po_msgids:
+                missing.setdefault(str(path.relative_to(_SRC_DIR)), []).append(msgid)
+    assert not missing, (
+        f"msgids missing from gfo.po: {missing} — add a ja translation entry for each."
     )

@@ -11,6 +11,7 @@ import requests
 
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 from gfo.http import paginate_link_header
+from gfo.i18n import _
 
 if TYPE_CHECKING:
     from gfo.http import HttpClient
@@ -180,7 +181,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             if name in name_to_id:
                 ids.append(name_to_id[name])
             else:
-                raise GfoError(f"Label not found: {name}")
+                raise GfoError(_("Label not found: {name}").format(name=name))
         return ids
 
     def _invalidate_label_cache(self) -> None:
@@ -647,7 +648,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         asset_name = os.path.basename(data.get("name") or f"asset-{asset_id}")
         output_path = os.path.join(output_dir, asset_name)
         if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
-            raise GfoError(f"Invalid asset name: {asset_name}")
+            raise GfoError(_("Invalid asset name: {name}").format(name=asset_name))
         url = (
             data.get("browser_download_url")
             or f"{self._client.base_url}{self._repos_path()}/releases/{release_id}/assets/{asset_id}"
@@ -1119,7 +1120,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             content = base64.b64decode(data["content"]).decode("utf-8")
             sha = data["sha"]
         except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+            raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
         return content, sha
 
     def create_or_update_file(
@@ -1272,7 +1273,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         try:
             return [r["login"] for r in results]
         except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+            raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
 
     def add_collaborator(self, *, username: str, permission: str = "write") -> None:
         self._client.put(
@@ -1310,7 +1311,9 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     ) -> Pipeline:
 
         if not workflow:
-            raise GfoError("Gitea requires --workflow to trigger a pipeline.")
+            raise GfoError(
+                _("{service} requires --workflow to trigger a pipeline.").format(service="Gitea")
+            )
         payload: dict[str, Any] = {"ref": ref}
         if inputs:
             payload["inputs"] = inputs
@@ -1401,7 +1404,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         name = os.path.basename(data.get("name", f"artifact-{artifact_id}"))
         output_path = os.path.join(output_dir, f"{name}.zip")
         if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
-            raise GfoError(f"Invalid artifact name: {name}")
+            raise GfoError(_("Invalid artifact name: {name}").format(name=name))
         url = f"{self._client.base_url}{self._repos_path()}/actions/artifacts/{artifact_id}/zip"
         self._client.download_file(url, output_path)
         return output_path
@@ -1416,7 +1419,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         safe_run = os.path.basename(str(run_id))
         output_path = os.path.join(output_dir, f"logs-{safe_run}.zip")
         if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
-            raise GfoError(f"Invalid run_id: {run_id}")
+            raise GfoError(_("Invalid run_id: {run_id}").format(run_id=run_id))
         url = f"{self._client.base_url}{self._repos_path()}/actions/runs/{run_id}/logs"
         self._client.download_file(url, output_path)
         return output_path
@@ -1646,7 +1649,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         try:
             return [r["login"] for r in results]
         except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+            raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
 
     def list_org_repos(self, name: str, *, limit: int = 30) -> list[Repository]:
         results = paginate_link_header(
@@ -1673,7 +1676,9 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 url=url,
             )
         except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+            raise GfoError(
+                _("Unexpected API response: missing field {error}").format(error=e)
+            ) from e
 
     def create_organization(
         self, name: str, *, display_name: str | None = None, description: str | None = None

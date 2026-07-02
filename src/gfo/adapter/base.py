@@ -62,6 +62,7 @@ from gfo.adapter.models import (
     Workflow,
 )
 from gfo.exceptions import GfoError, NotSupportedError
+from gfo.i18n import _
 
 if TYPE_CHECKING:
     from gfo.http import HttpClient
@@ -531,7 +532,7 @@ class GitServiceAdapter(ABC):
         for ms in self.list_milestones():
             if ms.title == title:
                 return ms.number
-        raise GfoError(f"Milestone not found: {title}")
+        raise GfoError(_("Milestone not found: {title}").format(title=title))
 
     # --- Comment ---
     @abstractmethod
@@ -764,7 +765,7 @@ class GitServiceAdapter(ABC):
         for key in ("login", "username", "nickname", "userId"):
             if key in user and user[key]:
                 return str(user[key])
-        raise GfoError("Cannot determine username from current user response")
+        raise GfoError(_("Cannot determine username from current user response"))
 
     # --- Search ---
     def search_repositories(self, query: str, *, limit: int = 30) -> list[Repository]:

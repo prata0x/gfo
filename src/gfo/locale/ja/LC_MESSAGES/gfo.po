@@ -20,8 +20,6 @@ msgstr ""
 msgid "Git Forge Operator v{version} — manage GitHub, GitLab, Bitbucket, and 6 more forges from a unified CLI"
 msgstr "Git Forge Operator v{version} — GitHub, GitLab, Bitbucket 他6サービスを統一 CLI で操作"
 
-msgid "Setup:\n  init             Initialize config (auto-detects from remote URL)\n  auth             Manage authentication tokens\n  completion       Generate shell completion script\n  config           Manage configuration\n\nWorkflow:\n  pr               Pull requests (list, create, merge, review)\n  issue            Issues (list, create, close, comment)\n  issue-template   List issue templates\n  ci               CI pipelines (list, view, trigger, logs)\n  status           Commit statuses (list, create)\n  notification     Notifications (list, read)\n\nRepository:\n  repo             Repositories (list, create, clone, edit, delete)\n  branch           Branches (list, create, delete)\n  tag              Tags (list, create, delete)\n  file             Repository files (get, put, delete)\n  release          Releases (list, create, edit, delete)\n  label            Labels (list, create, edit, clone)\n  milestone        Milestones (list, create, edit, close)\n  wiki             Wiki pages (list, create, edit, delete)\n\nSecurity:\n  collaborator     Collaborators (list, add, remove)\n  deploy-key       Deploy keys (list, create, delete)\n  ssh-key          SSH keys (list, create, delete)\n  gpg-key          GPG keys (list, create, delete)\n  secret           Secrets (list, set, delete)\n  variable         Variables (list, set, get, delete)\n  branch-protect   Branch protection rules (list, set, remove)\n  tag-protect      Tag protection rules (list, create, delete)\n\nOther:\n  user             User commands (whoami)\n  search           Search (repos, issues, prs, commits, code)\n  org              Organizations (list, create, members)\n  package          Packages (list, view, delete)\n  browse           Open repository in browser\n  api              Send raw API requests (e.g. gfo api GET /repos/o/r)\n  batch            Batch PR operations (create multiple PRs)\n  schema           Show JSON Schema for commands\n\nGetting started:\n  gfo auth login                  Register authentication token\n  gfo init                        Initialize config (auto-detects from remote URL)\n\nExamples:\n  gfo pr list                     List pull requests\n  gfo issue create -t 'Bug'       Create an issue\n  gfo pr list -R github.com/o/r   List PRs of another repo (no init required)\n  gfo pr list --format json       Output as JSON\n\nSupported forges:\n  GitHub, GitLab, Gitea, Forgejo, Bitbucket,\n  Azure DevOps, Gogs, GitBucket, Backlog\n\nEnvironment variables (checked after 'gfo auth login' tokens):\n  GITHUB_TOKEN      GitHub          GITEA_TOKEN       Gitea/Forgejo/Gogs\n  GITLAB_TOKEN      GitLab          GITBUCKET_TOKEN   GitBucket\n  BITBUCKET_TOKEN   Bitbucket       BACKLOG_API_KEY   Backlog\n  AZURE_DEVOPS_PAT  Azure DevOps    GFO_TOKEN         Fallback (any service)\n\nRun 'gfo <command> -h' for details on each command."
-msgstr "セットアップ:\n  init             設定を初期化（remote URL から自動検出）\n  auth             認証トークンを管理\n  completion       シェル補完スクリプトを生成\n  config           設定を管理\n\nワークフロー:\n  pr               プルリクエスト（list, create, merge, review）\n  issue            Issue（list, create, close, comment）\n  issue-template   Issue テンプレートの一覧\n  ci               CI パイプライン（list, view, trigger, logs）\n  status           コミットステータス（list, create）\n  notification     通知（list, read）\n\nリポジトリ:\n  repo             リポジトリ（list, create, clone, edit, delete）\n  branch           ブランチ（list, create, delete）\n  tag              タグ（list, create, delete）\n  file             リポジトリのファイル（get, put, delete）\n  release          リリース（list, create, edit, delete）\n  label            ラベル（list, create, edit, clone）\n  milestone        マイルストーン（list, create, edit, close）\n  wiki             Wiki ページ（list, create, edit, delete）\n\nセキュリティ:\n  collaborator     コラボレーター（list, add, remove）\n  deploy-key       デプロイキー（list, create, delete）\n  ssh-key          SSH 鍵（list, create, delete）\n  gpg-key          GPG 鍵（list, create, delete）\n  secret           シークレット（list, set, delete）\n  variable         変数（list, set, get, delete）\n  branch-protect   ブランチ保護ルール（list, set, remove）\n  tag-protect      タグ保護ルール（list, create, delete）\n\nその他:\n  user             ユーザーコマンド（whoami）\n  search           検索（repos, issues, prs, commits, code）\n  org              組織（list, create, members）\n  package          パッケージ（list, view, delete）\n  browse           リポジトリをブラウザで開く\n  api              未加工の API リクエスト（例: gfo api GET /repos/o/r）\n  batch            PR のバッチ操作（複数 PR の一括作成）\n  schema           コマンドの JSON Schema を表示\n\nはじめに:\n  gfo auth login                  認証トークンを登録\n  gfo init                        設定を初期化（remote URL から自動検出）\n\n使用例:\n  gfo pr list                     PR の一覧\n  gfo issue create -t 'Bug'       Issue を作成\n  gfo pr list -R github.com/o/r   別リポジトリの PR を表示（init 不要）\n  gfo pr list --format json       JSON で出力\n\n対応サービス:\n  GitHub, GitLab, Gitea, Forgejo, Bitbucket,\n  Azure DevOps, Gogs, GitBucket, Backlog\n\n環境変数（'gfo auth login' のトークンが優先）:\n  GITHUB_TOKEN      GitHub          GITEA_TOKEN       Gitea/Forgejo/Gogs\n  GITLAB_TOKEN      GitLab          GITBUCKET_TOKEN   GitBucket\n  BITBUCKET_TOKEN   Bitbucket       BACKLOG_API_KEY   Backlog\n  AZURE_DEVOPS_PAT  Azure DevOps    GFO_TOKEN         フォールバック（全サービス）\n\n詳細は 'gfo <command> -h' を参照してください。"
 
 msgid "Show help and exit"
 msgstr "ヘルプを表示して終了"
@@ -2219,3 +2217,194 @@ msgstr "api_url は https:// で始まる必要があります（指定値: {val
 
 msgid "Warning: GFO_INSECURE is set; TLS verification is disabled for self-hosted hosts. Cloud-hosted services (github.com, gitlab.com, bitbucket.org, dev.azure.com, *.backlog.com/jp, *.visualstudio.com) still enforce TLS verification."
 msgstr "警告: GFO_INSECURE が設定されているため、セルフホスト先の TLS 検証が無効化されています。クラウドサービス（github.com, gitlab.com, bitbucket.org, dev.azure.com, *.backlog.com/jp, *.visualstudio.com）では引き続き TLS 検証が強制されます。"
+
+# --- adapter / commands / 既存未訳分の i18n 化 (issue #83) ---
+
+msgid "  No results found."
+msgstr "  結果が見つかりません。"
+
+msgid "--delete-branch cannot be combined with --auto/--disable-auto (the branch would be deleted before the merge completes)."
+msgstr "--delete-branch は --auto/--disable-auto と併用できません（マージ完了前にブランチが削除されてしまうため）。"
+
+msgid "--internal requires an organization. Use 'org/name' format for the repository name."
+msgstr "--internal には組織が必要です。リポジトリ名は 'org/name' 形式で指定してください。"
+
+msgid "--notes and --notes-file are mutually exclusive."
+msgstr "--notes と --notes-file は同時に指定できません。"
+
+msgid "Aborted by user."
+msgstr "ユーザーにより中断されました。"
+
+msgid "Are you sure you want to delete organization '{name}'? This action cannot be undone. [y/N]: "
+msgstr "組織 '{name}' を削除してもよいですか？この操作は取り消せません。 [y/N]: "
+
+msgid "Are you sure you want to transfer repository '{repo_name}' to '{new_owner}'? [y/N]: "
+msgstr "リポジトリ '{repo_name}' を '{new_owner}' に移管してもよいですか？ [y/N]: "
+
+msgid "Authentication token (DEPRECATED, will be removed in a future release; insecure because the token is visible in the process list. Use --token-stdin or --token-file instead)"
+msgstr "認証トークン（非推奨。将来のリリースで削除されます。プロセス一覧にトークンが見えるため安全ではありません。--token-stdin または --token-file を使用してください）"
+
+msgid "Azure DevOps requires both organization and project. Run 'gfo init'."
+msgstr "Azure DevOps には組織とプロジェクトの両方が必要です。'gfo init' を実行してください。"
+
+msgid "Bitbucket token must be in 'email:api-token' format. Run 'gfo auth login --host bitbucket.org' to reconfigure."
+msgstr "Bitbucket のトークンは 'email:api-token' 形式である必要があります。'gfo auth login --host bitbucket.org' で再設定してください。"
+
+msgid "Branch '{name}' not found after creation"
+msgstr "作成後にブランチ '{name}' が見つかりません"
+
+msgid "Cannot create issue: no issue types found for project '{project}'. Configure issue types in Backlog."
+msgstr "Issue を作成できません: プロジェクト '{project}' に Issue 種別がありません。Backlog で Issue 種別を設定してください。"
+
+msgid "Cannot create issue: no priorities found. Configure priorities in Backlog."
+msgstr "Issue を作成できません: 優先度が見つかりません。Backlog で優先度を設定してください。"
+
+msgid "Cannot determine username from current user response"
+msgstr "現在のユーザー情報からユーザー名を特定できません"
+
+msgid "Cannot merge pull request #{number}: lastMergeSourceCommit not found. The pull request may have no commits or may be in an invalid state."
+msgstr "PR #{number} をマージできません: lastMergeSourceCommit が見つかりません。PR にコミットがないか、不正な状態の可能性があります。"
+
+msgid "Cannot read token file {path}: {error}"
+msgstr "トークンファイル {path} を読み込めません: {error}"
+
+msgid "Empty token in file {path}"
+msgstr "ファイル {path} のトークンが空です"
+
+msgid "Empty token received from stdin"
+msgstr "stdin から受け取ったトークンが空です"
+
+msgid "GitBucket: failed to parse response JSON: {error}"
+msgstr "GitBucket: レスポンス JSON の解析に失敗しました: {error}"
+
+msgid "GitBucket: unexpected response type: {type}"
+msgstr "GitBucket: 予期しないレスポンス型: {type}"
+
+msgid "GitLab user(s) not found: {users}"
+msgstr "GitLab ユーザーが見つかりません: {users}"
+
+msgid "Header '{key}' cannot be set via --header (managed by gfo). Use gfo auth / config options instead."
+msgstr "ヘッダー '{key}' は --header では設定できません（gfo が管理します）。gfo auth / config のオプションを使用してください。"
+
+msgid "Header '{key}' contains control characters; refused."
+msgstr "ヘッダー '{key}' に制御文字が含まれているため拒否しました。"
+
+msgid "Invalid artifact name: {name}"
+msgstr "不正なアーティファクト名: {name}"
+
+msgid "Invalid asset name: {name}"
+msgstr "不正なアセット名: {name}"
+
+msgid "Invalid duration format: '{s}'. Use format like '1h30m', '45m', or '3600'."
+msgstr "不正な期間形式: '{s}'。'1h30m'、'45m'、'3600' のような形式で指定してください。"
+
+msgid "Invalid header: empty key in '{h}'."
+msgstr "不正なヘッダー: '{h}' のキーが空です。"
+
+msgid "Invalid name format '{name}'. Expected 'org/repo' with non-empty org and repo."
+msgstr "不正な名前形式 '{name}'。org と repo が空でない 'org/repo' 形式で指定してください。"
+
+msgid "Invalid run_id/job_id: {run_id}/{job_id}"
+msgstr "不正な run_id/job_id: {run_id}/{job_id}"
+
+msgid "Invalid run_id: {run_id}"
+msgstr "不正な run_id: {run_id}"
+
+msgid "Invalid service spec format: {spec}. Expected 'service:host:owner/repo'."
+msgstr "不正なサービス指定形式: {spec}。'service:host:owner/repo' 形式で指定してください。"
+
+msgid "Invalid service spec format: {spec}. Expected 'service:owner/repo' or 'service:host:owner/repo'."
+msgstr "不正なサービス指定形式: {spec}。'service:owner/repo' または 'service:host:owner/repo' 形式で指定してください。"
+
+msgid "Label not found: {name}"
+msgstr "ラベルが見つかりません: {name}"
+
+msgid "Milestone not found: {title}"
+msgstr "マイルストーンが見つかりません: {title}"
+
+msgid "PATH contains control characters; refused."
+msgstr "PATH に制御文字が含まれているため拒否しました。"
+
+msgid "PATH must be a relative path starting with '/' (e.g. '/repos/owner/repo'). Absolute URLs are not allowed."
+msgstr "PATH は '/' で始まる相対パスである必要があります（例: '/repos/owner/repo'）。絶対 URL は使用できません。"
+
+msgid "PyNaCl is required for GitHub Secret encryption: pip install PyNaCl"
+msgstr "GitHub Secret の暗号化には PyNaCl が必要です: pip install PyNaCl"
+
+msgid "Read token from file (path)"
+msgstr "ファイルからトークンを読み込む（パス）"
+
+msgid "Read token from stdin (recommended for scripts)"
+msgstr "stdin からトークンを読み込む（スクリプトでの利用を推奨）"
+
+msgid "Repository name or org/name"
+msgstr "リポジトリ名または org/name"
+
+msgid "Self-hosted service '{service_type}' requires a host: '{service_type}:host:owner/repo'."
+msgstr "セルフホスト型サービス '{service_type}' にはホストが必要です: '{service_type}:host:owner/repo'。"
+
+msgid "Tag '{name}' not found after creation"
+msgstr "作成後にタグ '{name}' が見つかりません"
+
+msgid "Token file {path} is readable by other users (mode {mode}). Run 'chmod 600 {path}' to restrict access."
+msgstr "トークンファイル {path} は他のユーザーから読み取り可能です（mode {mode}）。'chmod 600 {path}' でアクセスを制限してください。"
+
+msgid "Too many arguments: {args}"
+msgstr "引数が多すぎます: {args}"
+
+msgid "Unexpected API response from {endpoint} endpoint: {error}"
+msgstr "{endpoint} エンドポイントからの予期しない API レスポンス: {error}"
+
+msgid "Unexpected API response: missing field {error}"
+msgstr "予期しない API レスポンス: フィールド {error} がありません"
+
+msgid "Unexpected API response: {error}"
+msgstr "予期しない API レスポンス: {error}"
+
+msgid "Unexpected Azure DevOps PR changes response type: {type}"
+msgstr "Azure DevOps PR changes の予期しないレスポンス型: {type}"
+
+msgid "Unexpected Azure DevOps PR iterations response type: {type}"
+msgstr "Azure DevOps PR iterations の予期しないレスポンス型: {type}"
+
+msgid "Unexpected Azure DevOps reviewers response type: {type}"
+msgstr "Azure DevOps reviewers の予期しないレスポンス型: {type}"
+
+msgid "Unknown command: {command}"
+msgstr "未知のコマンド: {command}"
+
+msgid "Unknown command: {command} {subcommand}"
+msgstr "未知のコマンド: {command} {subcommand}"
+
+msgid "Unknown subcommand: {command} {subcommand}"
+msgstr "未知のサブコマンド: {command} {subcommand}"
+
+msgid "Unsupported merge method '{method}'. Use one of: {allowed}."
+msgstr "未対応のマージ方式 '{method}'。次のいずれかを使用してください: {allowed}。"
+
+msgid "User '{username}' not found"
+msgstr "ユーザー '{username}' が見つかりません"
+
+msgid "Warning: --token is deprecated and will be removed in a future release. Passing tokens via --token is insecure (visible in process list). Use --token-stdin or --token-file instead."
+msgstr "警告: --token は非推奨で、将来のリリースで削除されます。--token でのトークン指定は安全ではありません（プロセス一覧に見えます）。--token-stdin または --token-file を使用してください。"
+
+msgid "jq filter timed out after 60 seconds."
+msgstr "jq フィルタが 60 秒でタイムアウトしました。"
+
+msgid "method must be one of {allowed}, got {method!r}"
+msgstr "method は {allowed} のいずれかである必要があります（指定値: {method!r}）"
+
+msgid "path contains control characters; refused."
+msgstr "path に制御文字が含まれているため拒否しました。"
+
+msgid "path must not be empty."
+msgstr "path は空にできません。"
+
+msgid "path must not contain '..' segments."
+msgstr "path に '..' セグメントを含めることはできません。"
+
+msgid "{service} requires --workflow to trigger a pipeline."
+msgstr "{service} でパイプラインをトリガーするには --workflow が必要です。"
+
+msgid "Setup:\n  init             Initialize config (auto-detects from remote URL)\n  auth             Manage authentication tokens\n  completion       Generate shell completion script\n  config           Manage configuration\n\nWorkflow:\n  pr               Pull requests (list, create, merge, review)\n  issue            Issues (list, create, close, comment)\n  issue-template   List issue templates\n  ci               CI pipelines (list, view, trigger, logs)\n  status           Commit statuses (list, create)\n  notification     Notifications (list, read)\n\nRepository:\n  repo             Repositories (list, create, clone, edit, delete)\n  branch           Branches (list, create, delete)\n  tag              Tags (list, create, delete)\n  file             Repository files (get, put, delete)\n  release          Releases (list, create, edit, delete)\n  label            Labels (list, create, edit, clone)\n  milestone        Milestones (list, create, edit, close)\n  wiki             Wiki pages (list, create, edit, delete)\n\nSecurity:\n  collaborator     Collaborators (list, add, remove)\n  deploy-key       Deploy keys (list, view, create, delete)\n  ssh-key          SSH keys (list, view, create, delete)\n  gpg-key          GPG keys (list, view, create, delete)\n  secret           Secrets (list, set, delete)\n  variable         Variables (list, set, get, delete)\n  branch-protect   Branch protection rules (list, set, remove)\n  tag-protect      Tag protection rules (list, create, delete)\n\nOther:\n  user             User commands (whoami)\n  search           Search (repos, issues, prs, commits, code)\n  org              Organizations (list, view, members, repos, create, edit, delete)\n  package          Packages (list, view, delete)\n  browse           Open repository in browser\n  api              Send raw API requests (e.g. gfo api GET /repos/o/r)\n  batch            Batch PR operations (create multiple PRs)\n  schema           Show JSON Schema for commands\n\nGetting started:\n  gfo auth login                  Register authentication token\n  gfo init                        Initialize config (auto-detects from remote URL)\n\nExamples:\n  gfo pr list                     List pull requests\n  gfo issue create -t 'Bug'       Create an issue\n  gfo pr list -R github.com/o/r   List PRs of another repo (no init required)\n  gfo pr list --format json       Output as JSON\n\nSupported forges:\n  GitHub, GitLab, Gitea, Forgejo, Bitbucket,\n  Azure DevOps, Gogs, GitBucket, Backlog\n\nEnvironment variables (checked after 'gfo auth login' tokens):\n  GITHUB_TOKEN      GitHub          GITEA_TOKEN       Gitea/Forgejo/Gogs\n  GITLAB_TOKEN      GitLab          GITBUCKET_TOKEN   GitBucket\n  BITBUCKET_TOKEN   Bitbucket       BACKLOG_API_KEY   Backlog\n  AZURE_DEVOPS_PAT  Azure DevOps    GFO_TOKEN         Fallback (any service)\n\nBehavior variables:\n  GFO_NO_AUTO_JSON  Disable auto JSON output when stdout is not a TTY\n  GFO_RETRY_AFTER_MAX  Max seconds to honor a 429 Retry-After (default 300)\n\nRun 'gfo <command> -h' for details on each command."
+msgstr "セットアップ:\n  init             設定を初期化（remote URL から自動検出）\n  auth             認証トークンを管理\n  completion       シェル補完スクリプトを生成\n  config           設定を管理\n\nワークフロー:\n  pr               プルリクエスト（list, create, merge, review）\n  issue            Issue（list, create, close, comment）\n  issue-template   Issue テンプレートの一覧\n  ci               CI パイプライン（list, view, trigger, logs）\n  status           コミットステータス（list, create）\n  notification     通知（list, read）\n\nリポジトリ:\n  repo             リポジトリ（list, create, clone, edit, delete）\n  branch           ブランチ（list, create, delete）\n  tag              タグ（list, create, delete）\n  file             リポジトリのファイル（get, put, delete）\n  release          リリース（list, create, edit, delete）\n  label            ラベル（list, create, edit, clone）\n  milestone        マイルストーン（list, create, edit, close）\n  wiki             Wiki ページ（list, create, edit, delete）\n\nセキュリティ:\n  collaborator     コラボレーター（list, add, remove）\n  deploy-key       デプロイキー（list, view, create, delete）\n  ssh-key          SSH 鍵（list, view, create, delete）\n  gpg-key          GPG 鍵（list, view, create, delete）\n  secret           シークレット（list, set, delete）\n  variable         変数（list, set, get, delete）\n  branch-protect   ブランチ保護ルール（list, set, remove）\n  tag-protect      タグ保護ルール（list, create, delete）\n\nその他:\n  user             ユーザーコマンド（whoami）\n  search           検索（repos, issues, prs, commits, code）\n  org              組織（list, view, members, repos, create, edit, delete）\n  package          パッケージ（list, view, delete）\n  browse           リポジトリをブラウザで開く\n  api              未加工の API リクエスト（例: gfo api GET /repos/o/r）\n  batch            PR のバッチ操作（複数 PR の一括作成）\n  schema           コマンドの JSON Schema を表示\n\nはじめに:\n  gfo auth login                  認証トークンを登録\n  gfo init                        設定を初期化（remote URL から自動検出）\n\n使用例:\n  gfo pr list                     PR の一覧\n  gfo issue create -t 'Bug'       Issue を作成\n  gfo pr list -R github.com/o/r   別リポジトリの PR を表示（init 不要）\n  gfo pr list --format json       JSON で出力\n\n対応サービス:\n  GitHub, GitLab, Gitea, Forgejo, Bitbucket,\n  Azure DevOps, Gogs, GitBucket, Backlog\n\n環境変数（'gfo auth login' のトークンが優先）:\n  GITHUB_TOKEN      GitHub          GITEA_TOKEN       Gitea/Forgejo/Gogs\n  GITLAB_TOKEN      GitLab          GITBUCKET_TOKEN   GitBucket\n  BITBUCKET_TOKEN   Bitbucket       BACKLOG_API_KEY   Backlog\n  AZURE_DEVOPS_PAT  Azure DevOps    GFO_TOKEN         フォールバック（全サービス）\n\n動作設定の環境変数:\n  GFO_NO_AUTO_JSON  stdout が TTY でないときの自動 JSON 出力を無効化\n  GFO_RETRY_AFTER_MAX  429 の Retry-After を尊重する最大秒数（既定 300）\n\n詳細は 'gfo <command> -h' を参照してください。"

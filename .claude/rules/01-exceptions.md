@@ -66,7 +66,7 @@ raise ConfigError(_("No tokens configured for host: {host}").format(host=host))
 ```
 
 - f-string を直接渡さない（msgid はリテラルである必要がある。`_("...").format(...)` を使う）
-- `tests/test_i18n_lint.py` が `src/gfo/*.py`（トップレベル）を AST 検査で強制する。
-  adapter/ と commands/ は未対応箇所が残るため対象外（issue #83 で追跡）
+- `tests/test_i18n_lint.py` が `src/gfo/` 配下全モジュールを AST 検査で強制し、
+  あわせて全 `_()` msgid が `gfo.po` に登録されていること（未訳の混入なし）も検査する
 - 内部契約エラー（`ValueError` 等、上表参照）と `NotSupportedError` /
   `UnsupportedServiceError`（識別子を受け取り内部で i18n 済みテンプレートに埋め込む）は対象外

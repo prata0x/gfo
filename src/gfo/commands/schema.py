@@ -53,6 +53,7 @@ from gfo.adapter.base import (
     Workflow,
 )
 from gfo.exceptions import ConfigError
+from gfo.i18n import _
 from gfo.output import apply_jq_filter
 
 logger = logging.getLogger(__name__)
@@ -433,7 +434,11 @@ def _get_subcommand_parser(
             if subcommand in action.choices:
                 parser: argparse.ArgumentParser = action.choices[subcommand]
                 return parser
-    raise ConfigError(f"Unknown subcommand: {command} {subcommand}")
+    raise ConfigError(
+        _("Unknown subcommand: {command} {subcommand}").format(
+            command=command, subcommand=subcommand
+        )
+    )
 
 
 def _build_output_schema(key: tuple[str, str | None]) -> Any:
@@ -548,7 +553,7 @@ def handle_schema(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         return
 
     if len(target) > 2:
-        raise ConfigError(f"Too many arguments: {' '.join(target)}")
+        raise ConfigError(_("Too many arguments: {args}").format(args=" ".join(target)))
 
     command = target[0]
     subcommand = target[1] if len(target) > 1 else None
@@ -557,17 +562,21 @@ def handle_schema(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         # 単一コマンドスキーマ
         key = (command, subcommand)
         if key not in _DISPATCH:
-            raise ConfigError(f"Unknown command: {command} {subcommand}")
+            raise ConfigError(
+                _("Unknown command: {command} {subcommand}").format(
+                    command=command, subcommand=subcommand
+                )
+            )
         schema = _build_command_schema(key, subparser_map)
         json_str = json.dumps(schema, indent=2, ensure_ascii=False)
         _print_json(json_str, jq)
     else:
         # コマンドグループ — 該当 command 配下の全サブコマンド
         if command not in subparser_map:
-            raise ConfigError(f"Unknown command: {command}")
+            raise ConfigError(_("Unknown command: {command}").format(command=command))
         group_keys = [k for k in _DISPATCH if k[0] == command]
         if not group_keys:
-            raise ConfigError(f"Unknown command: {command}")
+            raise ConfigError(_("Unknown command: {command}").format(command=command))
         # サブコマンドなしのコマンド（browse 等）
         if len(group_keys) == 1 and group_keys[0][1] is None:
             schema = _build_command_schema(group_keys[0], subparser_map)
