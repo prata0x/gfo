@@ -3803,6 +3803,93 @@ class TestMigrateRepositoryTokenMask:
         assert "***" in str(exc_info.value)
 
 
+class TestCreatePushMirrorAuthToken:
+    """create_push_mirror の auth_token は URL の userinfo に埋め込まれる（GitLab API 仕様）。"""
+
+    MIRROR_URL = f"{BASE}/projects/test-owner%2Ftest-repo/remote_mirrors"
+    MIRROR_RESP = {
+        "id": 101486,
+        "enabled": True,
+        "url": "https://*****:*****@github.com/o/r.git",
+        "created_at": "2026-01-01T00:00:00Z",
+        "last_successful_update_at": None,
+        "last_error": None,
+    }
+
+    @responses.activate
+    def test_auth_token_embedded_as_oauth2(self, gitlab_adapter):
+        responses.add(responses.POST, self.MIRROR_URL, json=self.MIRROR_RESP, status=201)
+        mirror = gitlab_adapter.create_push_mirror("https://github.com/o/r.git", auth_token="tok")
+        import json as _json
+
+        body = _json.loads(responses.calls[0].request.body)
+        assert body["url"] == "https://oauth2:tok@github.com/o/r.git"
+        # レスポンス側の URL は GitLab がマスク済みの値をそのまま返す
+        assert mirror.remote_address == "https://*****:*****@github.com/o/r.git"
+
+    @responses.activate
+    def test_auth_token_fills_password_when_username_present(self, gitlab_adapter):
+        responses.add(responses.POST, self.MIRROR_URL, json=self.MIRROR_RESP, status=201)
+        gitlab_adapter.create_push_mirror("https://user@github.com/o/r.git", auth_token="tok")
+        import json as _json
+
+        body = _json.loads(responses.calls[0].request.body)
+        assert body["url"] == "https://user:tok@github.com/o/r.git"
+
+    @responses.activate
+    def test_url_with_password_kept_as_is(self, gitlab_adapter):
+        responses.add(responses.POST, self.MIRROR_URL, json=self.MIRROR_RESP, status=201)
+        gitlab_adapter.create_push_mirror("https://user:pass@github.com/o/r.git", auth_token="tok")
+        import json as _json
+
+        body = _json.loads(responses.calls[0].request.body)
+        assert body["url"] == "https://user:pass@github.com/o/r.git"
+
+    @responses.activate
+    def test_non_http_url_kept_as_is(self, gitlab_adapter):
+        responses.add(responses.POST, self.MIRROR_URL, json=self.MIRROR_RESP, status=201)
+        gitlab_adapter.create_push_mirror("ssh://git@github.com/o/r.git", auth_token="tok")
+        import json as _json
+
+        body = _json.loads(responses.calls[0].request.body)
+        assert body["url"] == "ssh://git@github.com/o/r.git"
+
+    @responses.activate
+    def test_no_auth_token_url_unchanged(self, gitlab_adapter):
+        responses.add(responses.POST, self.MIRROR_URL, json=self.MIRROR_RESP, status=201)
+        gitlab_adapter.create_push_mirror("https://github.com/o/r.git")
+        import json as _json
+
+        body = _json.loads(responses.calls[0].request.body)
+        assert body["url"] == "https://github.com/o/r.git"
+
+    @responses.activate
+    def test_token_masked_on_error(self, gitlab_adapter):
+        """エラー応答本文経由でも auth_token が例外メッセージに漏れない。"""
+        from gfo.exceptions import GfoError
+
+        responses.add(
+            responses.POST,
+            self.MIRROR_URL,
+            json={
+                "message": "url is invalid: https://oauth2:super-secret-token@github.com/o/r.git"
+            },
+            status=400,
+        )
+        with pytest.raises(GfoError) as exc_info:
+            gitlab_adapter.create_push_mirror(
+                "https://github.com/o/r.git", auth_token="super-secret-token"
+            )
+        assert "super-secret-token" not in str(exc_info.value)
+        assert "***" in str(exc_info.value)
+
+    def test_special_chars_in_token_are_quoted(self):
+        from gfo.adapter.gitlab import GitLabAdapter
+
+        url = GitLabAdapter._embed_mirror_credentials("https://github.com/o/r.git", "t@k/en:1")
+        assert url == "https://oauth2:t%40k%2Fen%3A1@github.com/o/r.git"
+
+
 class TestUpdateOrganization:
     def test_update_display_name(self, mock_responses, gitlab_adapter):
         mock_responses.add(
