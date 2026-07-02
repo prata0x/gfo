@@ -55,13 +55,10 @@ git log $(git describe --tags --abbrev=0)..HEAD --oneline
 
 ### 3. ファイル更新
 
-以下の 4 ファイルを更新する:
+以下の 3 ファイルを更新する（`tests/test_cli.py` は `__version__` を動的参照するため bump 不要）:
 
 #### `src/gfo/__init__.py`
 - `__version__` を新バージョンに更新
-
-#### `tests/test_cli.py`
-- `gfo {旧バージョン}` を含むアサーションを `gfo {新バージョン}` に置換
 
 #### `CHANGELOG.md`（英語）
 - `# Changelog` の直後（最初の `## [...]` の前）に新バージョンのセクションを挿入
@@ -91,9 +88,9 @@ git log $(git describe --tags --abbrev=0)..HEAD --oneline
 
 ### 4. コミット
 
-更新した 4 ファイルをステージしてコミットする:
+更新した 3 ファイルをステージしてコミットする:
 ```bash
-git add src/gfo/__init__.py tests/test_cli.py CHANGELOG.md CHANGELOG.ja.md
+git add src/gfo/__init__.py CHANGELOG.md CHANGELOG.ja.md
 git commit -m "chore: バージョン X.Y.Z リリース準備"
 ```
 
