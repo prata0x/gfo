@@ -7,7 +7,7 @@ import sys
 
 from gfo.adapter.registry import create_http_client, get_adapter_class
 from gfo.auth import resolve_token
-from gfo.commands import confirm_action, get_adapter, open_in_browser
+from gfo.commands import confirm_action, get_adapter, open_in_browser, read_token_input
 from gfo.config import (
     build_clone_url,
     build_default_api_url,
@@ -377,6 +377,30 @@ def handle_compare(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
     output(result, fmt=fmt, jq=jq)
 
 
+def _resolve_auth_token(args: argparse.Namespace) -> str | None:
+    """--auth-token-stdin / --auth-token-file / --auth-token からトークンを解決する。
+
+    argv 経由（--auth-token）はプロセス一覧等に露出するため、使用時は
+    stderr に警告を出す（後方互換のため受け付けは継続する）。
+    """
+    token = read_token_input(
+        stdin=getattr(args, "auth_token_stdin", False),
+        file_path=getattr(args, "auth_token_file", None),
+    )
+    if token is not None:
+        return token
+    token = getattr(args, "auth_token", None)
+    if token:
+        print(
+            _(
+                "Warning: passing tokens via --auth-token is insecure (visible in the process "
+                "list). Use --auth-token-stdin or --auth-token-file instead."
+            ),
+            file=sys.stderr,
+        )
+    return token
+
+
 def handle_migrate(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo migrate のハンドラ。"""
     org, repo_name = _parse_create_name(args.name)
@@ -394,7 +418,7 @@ def handle_migrate(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
         visibility=visibility,
         description=getattr(args, "description", "") or "",
         mirror=getattr(args, "mirror", False),
-        auth_token=getattr(args, "auth_token", None),
+        auth_token=_resolve_auth_token(args),
         organization=org,
     )
     output(repo, fmt=fmt, jq=jq)
@@ -413,7 +437,7 @@ def handle_mirror(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         mirror = adapter.create_push_mirror(
             args.remote_address,
             interval=getattr(args, "interval", "8h"),
-            auth_token=getattr(args, "auth_token", None),
+            auth_token=_resolve_auth_token(args),
         )
         output(mirror, fmt=fmt, jq=jq)
     elif action == "remove":

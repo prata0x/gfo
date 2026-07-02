@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 import json
 from unittest.mock import MagicMock, patch
 
@@ -1357,6 +1358,123 @@ class TestHandleMigrate:
         )
         with pytest.raises(ConfigError, match="--internal requires an organization"):
             repo_cmd.handle_migrate(args, fmt="table")
+
+
+class TestAuthTokenInput:
+    """--auth-token-stdin / --auth-token-file / --auth-token の解決テスト。"""
+
+    def _migrate_args(self, **overrides):
+        base = dict(
+            clone_url="https://github.com/old/repo.git",
+            name="new-repo",
+            visibility="public",
+            description="",
+            mirror=False,
+            auth_token=None,
+        )
+        base.update(overrides)
+        return make_args(**base)
+
+    def _run_migrate(self, sample_repo, args):
+        adapter = MagicMock()
+        adapter.migrate_repository.return_value = sample_repo
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_migrate(args, fmt="table")
+        return adapter
+
+    def test_migrate_auth_token_stdin(self, sample_config, sample_repo, monkeypatch, capsys):
+        monkeypatch.setattr("sys.stdin", io.StringIO("stdin-tok\n"))
+        adapter = self._run_migrate(sample_repo, self._migrate_args(auth_token_stdin=True))
+        assert adapter.migrate_repository.call_args.kwargs["auth_token"] == "stdin-tok"
+
+    def test_migrate_auth_token_file(self, sample_config, sample_repo, tmp_path, capsys):
+        token_path = tmp_path / "token.txt"
+        token_path.write_text("file-tok\n")
+        token_path.chmod(0o600)
+        adapter = self._run_migrate(
+            sample_repo, self._migrate_args(auth_token_file=str(token_path))
+        )
+        assert adapter.migrate_repository.call_args.kwargs["auth_token"] == "file-tok"
+
+    def test_migrate_auth_token_file_not_found(self, sample_config, sample_repo):
+        adapter = MagicMock()
+        args = self._migrate_args(auth_token_file="/no/such/token.txt")
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            with pytest.raises(ConfigError, match="Cannot read token file"):
+                repo_cmd.handle_migrate(args, fmt="table")
+        adapter.migrate_repository.assert_not_called()
+
+    def test_migrate_empty_stdin_raises(self, sample_config, sample_repo, monkeypatch):
+        monkeypatch.setattr("sys.stdin", io.StringIO(""))
+        adapter = MagicMock()
+        args = self._migrate_args(auth_token_stdin=True)
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            with pytest.raises(ConfigError, match="Empty token"):
+                repo_cmd.handle_migrate(args, fmt="table")
+        adapter.migrate_repository.assert_not_called()
+
+    def test_migrate_auth_token_argv_warns(self, sample_config, sample_repo, capsys):
+        adapter = self._run_migrate(sample_repo, self._migrate_args(auth_token="argv-tok"))
+        assert adapter.migrate_repository.call_args.kwargs["auth_token"] == "argv-tok"
+        err = capsys.readouterr().err
+        assert "--auth-token-stdin" in err
+
+    def test_migrate_stdin_takes_precedence_over_argv(
+        self, sample_config, sample_repo, monkeypatch, capsys
+    ):
+        monkeypatch.setattr("sys.stdin", io.StringIO("stdin-tok\n"))
+        adapter = self._run_migrate(
+            sample_repo, self._migrate_args(auth_token="argv-tok", auth_token_stdin=True)
+        )
+        assert adapter.migrate_repository.call_args.kwargs["auth_token"] == "stdin-tok"
+        assert capsys.readouterr().err == ""
+
+    def test_migrate_no_token_no_warning(self, sample_config, sample_repo, capsys):
+        adapter = self._run_migrate(sample_repo, self._migrate_args())
+        assert adapter.migrate_repository.call_args.kwargs["auth_token"] is None
+        assert capsys.readouterr().err == ""
+
+    def _mirror_add_args(self, **overrides):
+        base = dict(
+            mirror_action="add",
+            remote_address="https://mirror.example.com/user/repo.git",
+            interval="8h",
+            auth_token=None,
+        )
+        base.update(overrides)
+        return make_args(**base)
+
+    def _run_mirror_add(self, args):
+        from gfo.adapter.base import PushMirror
+
+        adapter = MagicMock()
+        adapter.create_push_mirror.return_value = PushMirror(
+            id=1,
+            remote_name="mirror",
+            remote_address="https://mirror.example.com/user/repo.git",
+            interval="8h",
+            created_at="2024-01-01T00:00:00Z",
+        )
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_mirror(args, fmt="table")
+        return adapter
+
+    def test_mirror_add_auth_token_stdin(self, sample_config, monkeypatch, capsys):
+        monkeypatch.setattr("sys.stdin", io.StringIO("stdin-tok\n"))
+        adapter = self._run_mirror_add(self._mirror_add_args(auth_token_stdin=True))
+        assert adapter.create_push_mirror.call_args.kwargs["auth_token"] == "stdin-tok"
+
+    def test_mirror_add_auth_token_file(self, sample_config, tmp_path, capsys):
+        token_path = tmp_path / "token.txt"
+        token_path.write_text("file-tok\n")
+        token_path.chmod(0o600)
+        adapter = self._run_mirror_add(self._mirror_add_args(auth_token_file=str(token_path)))
+        assert adapter.create_push_mirror.call_args.kwargs["auth_token"] == "file-tok"
+
+    def test_mirror_add_auth_token_argv_warns(self, sample_config, capsys):
+        adapter = self._run_mirror_add(self._mirror_add_args(auth_token="argv-tok"))
+        assert adapter.create_push_mirror.call_args.kwargs["auth_token"] == "argv-tok"
+        assert "--auth-token-stdin" in capsys.readouterr().err
 
 
 # --- Phase 5: star / unstar / mirror / transfer ---

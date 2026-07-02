@@ -9,6 +9,7 @@ import sys
 
 import gfo.auth
 import gfo.detect
+from gfo.commands import read_token_input
 from gfo.detect import normalize_host
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 from gfo.i18n import _
@@ -44,41 +45,12 @@ def handle_login(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     #   2. --token-file (ファイルから読み込み)
     #   3. --token (argv 経由・非推奨)
     #   4. 対話的に getpass で入力
-    token_stdin = getattr(args, "token_stdin", False)
-    token_file = getattr(args, "token_file", None)
-    if token_stdin:
-        token = sys.stdin.read().strip()
-        if not token:
-            raise ConfigError(_("Empty token received from stdin"))
-    elif token_file:
-        try:
-            with open(token_file, encoding="utf-8") as f:
-                token = f.read().strip()
-        except OSError as e:
-            raise ConfigError(
-                _("Cannot read token file {path}: {error}").format(path=token_file, error=e)
-            ) from e
-        if not token:
-            raise ConfigError(_("Empty token in file {path}").format(path=token_file))
-        # POSIX 系で world/group readable のファイルからトークンを読むと
-        # 他ユーザに漏れうるため警告 (Windows では mode bit が同じ意味を持たないのでスキップ)
-        if sys.platform != "win32":
-            import os as _os
-            import warnings
-
-            try:
-                mode = _os.stat(token_file).st_mode
-                if mode & 0o077:
-                    warnings.warn(
-                        _(
-                            "Token file {path} is readable by other users "
-                            "(mode {mode}). Run 'chmod 600 {path}' to restrict access."
-                        ).format(path=token_file, mode=oct(mode & 0o777)),
-                        stacklevel=2,
-                    )
-            except OSError:
-                # 権限取得失敗は致命傷ではないので無視
-                pass
+    token_input = read_token_input(
+        stdin=getattr(args, "token_stdin", False),
+        file_path=getattr(args, "token_file", None),
+    )
+    if token_input is not None:
+        token = token_input
     elif args.token:
         print(
             _(

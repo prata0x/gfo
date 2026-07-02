@@ -46,6 +46,56 @@ def confirm_action(
     return True
 
 
+def read_token_input(*, stdin: bool = False, file_path: str | None = None) -> str | None:
+    """``--*-stdin`` / ``--*-file`` 形式のフラグからトークンを読み込む共通ヘルパー。
+
+    stdin が優先。どちらも指定されていなければ None を返す（呼び出し側で
+    argv 経由フラグ等へフォールバックする）。空トークンは ConfigError。
+    file 読み込み時は POSIX で group/other readable なら警告する。
+    """
+    import sys
+
+    from gfo.exceptions import ConfigError
+    from gfo.i18n import _
+
+    if stdin:
+        token = sys.stdin.read().strip()
+        if not token:
+            raise ConfigError(_("Empty token received from stdin"))
+        return token
+    if file_path:
+        try:
+            with open(file_path, encoding="utf-8") as f:
+                token = f.read().strip()
+        except OSError as e:
+            raise ConfigError(
+                _("Cannot read token file {path}: {error}").format(path=file_path, error=e)
+            ) from e
+        if not token:
+            raise ConfigError(_("Empty token in file {path}").format(path=file_path))
+        # POSIX 系で world/group readable のファイルからトークンを読むと
+        # 他ユーザに漏れうるため警告 (Windows では mode bit が同じ意味を持たないのでスキップ)
+        if sys.platform != "win32":
+            import os
+            import warnings
+
+            try:
+                mode = os.stat(file_path).st_mode
+                if mode & 0o077:
+                    warnings.warn(
+                        _(
+                            "Token file {path} is readable by other users "
+                            "(mode {mode}). Run 'chmod 600 {path}' to restrict access."
+                        ).format(path=file_path, mode=oct(mode & 0o777)),
+                        stacklevel=2,
+                    )
+            except OSError:
+                # 権限取得失敗は致命傷ではないので無視
+                pass
+        return token
+    return None
+
+
 def get_adapter() -> GitServiceAdapter:
     """設定を解決してアダプターインスタンスを返す共通ヘルパー。"""
     config = gfo.config.resolve_project_config()

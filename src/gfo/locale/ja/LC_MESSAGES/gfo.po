@@ -2477,3 +2477,18 @@ msgstr "変数 '{name}' を削除しますか？ [y/N]: "
 
 msgid "Are you sure you want to remove push mirror '{name}'? [y/N]: "
 msgstr "プッシュミラー '{name}' を削除しますか？ [y/N]: "
+
+msgid "Authentication token for source (insecure: visible in the process list; prefer --auth-token-stdin or --auth-token-file)"
+msgstr "移行元の認証トークン（プロセス一覧に見えるため安全ではありません。--auth-token-stdin または --auth-token-file を推奨）"
+
+msgid "Authentication token (insecure: visible in the process list; prefer --auth-token-stdin or --auth-token-file)"
+msgstr "認証トークン（プロセス一覧に見えるため安全ではありません。--auth-token-stdin または --auth-token-file を推奨）"
+
+msgid "Read authentication token from stdin (recommended for scripts)"
+msgstr "stdin から認証トークンを読み込む（スクリプトでの利用を推奨）"
+
+msgid "Read authentication token from file (path)"
+msgstr "ファイルから認証トークンを読み込む（パス）"
+
+msgid "Warning: passing tokens via --auth-token is insecure (visible in the process list). Use --auth-token-stdin or --auth-token-file instead."
+msgstr "警告: --auth-token でのトークン指定は安全ではありません（プロセス一覧に見えます）。--auth-token-stdin または --auth-token-file を使用してください。"

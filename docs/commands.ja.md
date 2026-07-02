@@ -1173,7 +1173,7 @@ gfo repo compare <base>..<head>
 > **対応サービス**: GitHub, GitLab, Azure DevOps, Gitea, Forgejo
 
 ```
-gfo repo migrate CLONE_URL --name NAME [--private | --public | --internal] [--description DESC] [--mirror] [--auth-token TOKEN]
+gfo repo migrate CLONE_URL --name NAME [--private | --public | --internal] [--description DESC] [--mirror] [--auth-token TOKEN | --auth-token-stdin | --auth-token-file PATH]
 ```
 
 | オプション | 必須 | 説明 |
@@ -1185,11 +1185,14 @@ gfo repo migrate CLONE_URL --name NAME [--private | --public | --internal] [--de
 | `--internal` | — | internal リポジトリとして作成（組織のみ） |
 | `--description` / `-d` | — | リポジトリの説明 |
 | `--mirror` | — | ミラーリポジトリとして作成 |
-| `--auth-token` | — | プライベートリポジトリの認証トークン |
+| `--auth-token` | — | プライベートリポジトリの認証トークン（プロセス一覧に見えるため安全ではありません。下記オプションを推奨） |
+| `--auth-token-stdin` | — | 認証トークンを stdin から読み込む（スクリプトでの利用を推奨） |
+| `--auth-token-file PATH` | — | 認証トークンをファイルから読み込む |
 
 ```bash
 gfo repo migrate https://github.com/other/repo.git --name my-repo
-gfo repo migrate https://github.com/other/private-repo.git --name imported --private --auth-token ghp_xxxx
+echo "$SOURCE_TOKEN" | gfo repo migrate https://github.com/other/private-repo.git --name imported --private --auth-token-stdin
+gfo repo migrate https://github.com/other/private-repo.git --name imported --private --auth-token-file ~/.secrets/source-token
 gfo repo migrate https://github.com/other/repo.git --name my-org/imported --internal
 ```
 
@@ -1201,7 +1204,7 @@ gfo repo migrate https://github.com/other/repo.git --name my-org/imported --inte
 
 ```
 gfo repo mirror list
-gfo repo mirror add REMOTE_ADDRESS [--interval INTERVAL]
+gfo repo mirror add REMOTE_ADDRESS [--interval INTERVAL] [--auth-token TOKEN | --auth-token-stdin | --auth-token-file PATH]
 gfo repo mirror remove MIRROR_NAME [--yes]
 gfo repo mirror sync
 ```
@@ -1210,11 +1213,15 @@ gfo repo mirror sync
 |---|---|
 | `REMOTE_ADDRESS` | ミラー先リポジトリの URL |
 | `--interval` | 同期間隔（例: `8h0m0s`） |
+| `--auth-token` | ミラー先の認証トークン（プロセス一覧に見えるため安全ではありません。下記オプションを推奨） |
+| `--auth-token-stdin` | 認証トークンを stdin から読み込む（スクリプトでの利用を推奨） |
+| `--auth-token-file PATH` | 認証トークンをファイルから読み込む |
 | `MIRROR_NAME` | ミラー名（`gfo repo mirror list` で表示される名前） |
 
 ```bash
 gfo repo mirror list
 gfo repo mirror add https://github.com/user/mirror.git
+echo "$MIRROR_TOKEN" | gfo repo mirror add https://github.com/user/mirror.git --auth-token-stdin
 gfo repo mirror remove origin-mirror
 gfo repo mirror sync        # 全ミラーを同期
 ```
