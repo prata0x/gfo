@@ -223,7 +223,7 @@ gfo pr list [--state {open,closed,merged,all}] [--limit N] [--author USER] [--la
 | `--search` / `-S` | — | タイトル/説明でフィルタ |
 | `--base` / `-B` | — | ベースブランチでフィルタ |
 | `--head` / `-H` | — | ヘッドブランチでフィルタ |
-| `--draft` / `-d` / `--no-draft` | — | ドラフト状態でフィルタ |
+| `--draft` / `--no-draft` | — | ドラフト状態でフィルタ |
 | `--milestone` / `-m` | — | マイルストーンでフィルタ |
 
 ```bash
@@ -246,8 +246,8 @@ gfo pr create [--title TITLE] [--body BODY] [--body-file FILE] [--base BRANCH] [
 | `--body-file` / `-F` | ファイルから本文を読み込む |
 | `--base` / `-B` | マージ先ブランチ（省略時はデフォルトブランチ） |
 | `--head` / `-H` | マージ元ブランチ（省略時は現在のブランチ） |
-| `--draft` / `-d` | ドラフト PR として作成 |
-| `--reviewer` / `-r` | レビュアーのユーザー名（繰り返し可） |
+| `--draft` | ドラフト PR として作成 |
+| `--reviewer` | レビュアーのユーザー名（繰り返し可） |
 | `--assignee` / `-a` | 担当者のユーザー名（繰り返し可） |
 | `--label` / `-l` | ラベル名（繰り返し可） |
 | `--milestone` / `-m` | マイルストーン名 |
@@ -285,8 +285,8 @@ gfo pr merge NUMBER [--merge | --squash | --rebase] [--delete-branch] [--subject
 | `--merge` / `-m` | マージコミットを作成（デフォルト） |
 | `--squash` / `-s` | スカッシュしてマージ |
 | `--rebase` / `-r` | リベースしてマージ |
-| `--delete-branch` / `-d` | マージ後にブランチを削除 |
-| `--subject` / `-t` | マージコミットのタイトル |
+| `--delete-branch` | マージ後にブランチを削除 |
+| `--subject` | マージコミットのタイトル |
 | `--body` / `-b` | マージコミットの本文 |
 | `--auto` | 自動マージを有効化（条件を満たしたら自動でマージ） |
 | `--disable-auto` | 自動マージを無効化 |
@@ -398,7 +398,7 @@ gfo pr edit NUMBER [--title TITLE] [--body BODY] [--base BRANCH] [--add-label LA
 | `--add-assignee` | 担当者を追加（繰り返し可） |
 | `--remove-assignee` | 担当者を削除（繰り返し可） |
 | `--milestone` / `-m` | マイルストーン名 |
-| `--draft` / `-d` / `--ready` | ドラフトと公開状態を切り替え |
+| `--draft` / `--ready` | ドラフトと公開状態を切り替え |
 
 ```bash
 gfo pr edit 42 --title "Updated title"
@@ -765,7 +765,7 @@ gfo issue develop NUMBER [--name BRANCH] [--base BRANCH]
 
 | オプション | 説明 |
 |---|---|
-| `--name` / `-n` | ブランチ名（デフォルト: `issue-{number}-{slug}`） |
+| `--name` | ブランチ名（デフォルト: `issue-{number}-{slug}`） |
 | `--base` / `-B` | ベースブランチ（デフォルト: デフォルトブランチ） |
 
 ```bash
@@ -1179,7 +1179,7 @@ gfo repo migrate CLONE_URL --name NAME [--private | --public | --internal] [--de
 | オプション | 必須 | 説明 |
 |---|---|---|
 | `CLONE_URL` | **必須** | インポート元リポジトリの clone URL |
-| `--name` / `-n` | **必須** | 作成するリポジトリ名（組織リポジトリは `org/repo` 形式） |
+| `--name` | **必須** | 作成するリポジトリ名（組織リポジトリは `org/repo` 形式） |
 | `--private` | — | 非公開リポジトリとして作成 |
 | `--public` | — | 公開リポジトリとして作成（デフォルト） |
 | `--internal` | — | internal リポジトリとして作成（組織のみ） |
@@ -1259,7 +1259,7 @@ gfo repo sync [--branch BRANCH]
 
 | オプション | 説明 |
 |---|---|
-| `--branch` / `-b` | 同期するブランチ（省略時はデフォルトブランチ） |
+| `--branch` | 同期するブランチ（省略時はデフォルトブランチ） |
 
 ```bash
 gfo repo sync
@@ -1299,7 +1299,7 @@ gfo release list [--limit N] [--draft | --no-draft] [--prerelease | --no-prerele
 | オプション | 説明 |
 |---|---|
 | `--limit N` | 最大取得件数（デフォルト: 30） |
-| `--draft` / `-d` / `--no-draft` | ドラフトのみ / ドラフト除外 |
+| `--draft` / `--no-draft` | ドラフトのみ / ドラフト除外 |
 | `--prerelease` / `-p` / `--no-prerelease` | プレリリースのみ / プレリリース除外 |
 
 ```bash
@@ -1319,7 +1319,7 @@ gfo release create TAG [--title TITLE] [--notes NOTES] [--notes-file FILE] [--dr
 | `--title` / `-t` | リリースタイトル |
 | `--notes` / `-n` | リリースノート |
 | `--notes-file` / `-F` | ファイルからリリースノートを読み込み |
-| `--draft` / `-d` | ドラフトとして作成 |
+| `--draft` | ドラフトとして作成 |
 | `--prerelease` / `-p` | プレリリースとしてマーク |
 | `--target` | ターゲットブランチまたはコミット SHA |
 | `--generate-notes` | リリースノートを自動生成（GitHub/GitLab） |
@@ -1373,7 +1373,7 @@ gfo release edit TAG [--title TITLE] [--notes NOTES] [--notes-file FILE] [--draf
 | `--title` / `-t` | リリースタイトル |
 | `--notes` / `-n` | リリースノート |
 | `--notes-file` / `-F` | ファイルからリリースノートを読み込み |
-| `--draft` / `-d` / `--no-draft` | ドラフト状態の切り替え |
+| `--draft` / `--no-draft` | ドラフト状態の切り替え |
 | `--prerelease` / `-p` / `--no-prerelease` | プレリリース状態の切り替え |
 | `--tag` | 新しいタグ名（GitHub, Gitea, Forgejo） |
 | `--target` | ターゲットブランチまたはコミット SHA（GitHub, Gitea, Forgejo） |
@@ -1445,7 +1445,7 @@ gfo label edit NAME [--name NEW_NAME] [--color COLOR] [--description DESC]
 
 | オプション | 説明 |
 |---|---|
-| `--name` / `-n` | 新しいラベル名 |
+| `--name` | 新しいラベル名 |
 | `--color` / `-c` | 色（`RRGGBB` 形式、`#` なし） |
 | `--description` / `-d` | 説明 |
 
@@ -1956,8 +1956,8 @@ gfo ci watch ID [--interval N] [--timeout N]
 
 | オプション | デフォルト | 説明 |
 |---|---|---|
-| `--interval` / `-i` | `5` | ポーリング間隔（秒） |
-| `--timeout` / `-t` | `1800` | タイムアウト秒数（0 で無制限） |
+| `--interval` | `5` | ポーリング間隔（秒） |
+| `--timeout` | `1800` | タイムアウト秒数（0 で無制限） |
 
 ```bash
 gfo ci watch 12345678
@@ -2616,8 +2616,8 @@ gfo api <METHOD> <PATH> [--data JSON] [--header HEADER]
 |---|---|
 | `METHOD` | HTTP メソッド（GET, POST, PUT, PATCH, DELETE） |
 | `PATH` | API パス（例: `/repos/owner/repo`） |
-| `--data` / `-d` | リクエストボディ（JSON 文字列） |
-| `--header` / `-H` | HTTP ヘッダー（複数指定可、形式: `Key: Value`） |
+| `--data` | リクエストボディ（JSON 文字列） |
+| `--header` | HTTP ヘッダー（複数指定可、形式: `Key: Value`） |
 
 **例:**
 
@@ -2683,7 +2683,7 @@ gfo gpg-key delete 12345
 
 > **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
 >
-> **注意**: GitHub / Gitea は `--workflow` / `-w` が必須です。
+> **注意**: GitHub / Gitea は `--workflow` が必須です。
 
 ```
 gfo ci trigger --ref REF [--workflow WORKFLOW] [--input KEY=VALUE ...]
@@ -2692,7 +2692,7 @@ gfo ci trigger --ref REF [--workflow WORKFLOW] [--input KEY=VALUE ...]
 | オプション | 必須 | 説明 |
 |---|---|---|
 | `--ref` | **必須** | 対象ブランチまたはタグ |
-| `--workflow` / `-w` | GitHub/Gitea で必須 | ワークフロー名またはファイル名 |
+| `--workflow` | GitHub/Gitea で必須 | ワークフロー名またはファイル名 |
 | `--input` / `-i` | — | 入力パラメータ（`KEY=VALUE` 形式、複数指定可） |
 
 ```bash
@@ -2934,7 +2934,7 @@ gfo batch pr create --repos SPECS --title TITLE --head BRANCH [options]
 | `--body` / `-b` | PR 本文 | `""` |
 | `--head` / `-H` | ソースブランチ | （必須） |
 | `--base` / `-B` | ターゲットブランチ | `main` |
-| `--draft` / `-d` | ドラフト PR として作成 | — |
+| `--draft` | ドラフト PR として作成 | — |
 | `--dry-run` | PR を作成せず検証のみ実行 | — |
 
 リポジトリ指定は `gfo issue migrate` の SERVICE_SPEC と同じ形式。

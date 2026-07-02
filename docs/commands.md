@@ -209,7 +209,7 @@ gfo pr list [--state {open,closed,merged,all}] [--limit N] [--author USER] [--la
 | `--search` / `-S` | — | Filter by title/description |
 | `--base` / `-B` | — | Filter by base branch |
 | `--head` / `-H` | — | Filter by head branch |
-| `--draft` / `-d` / `--no-draft` | — | Filter by draft status |
+| `--draft` / `--no-draft` | — | Filter by draft status |
 | `--milestone` / `-m` | — | Filter by milestone |
 
 ```bash
@@ -232,8 +232,8 @@ gfo pr create [--title TITLE] [--body BODY] [--body-file FILE] [--base BRANCH] [
 | `--body-file` / `-F` | Read body from file |
 | `--base` / `-B` | Target branch (default branch if omitted) |
 | `--head` / `-H` | Source branch (current branch if omitted) |
-| `--draft` / `-d` | Create as draft PR |
-| `--reviewer` / `-r` | Reviewer username (repeatable) |
+| `--draft` | Create as draft PR |
+| `--reviewer` | Reviewer username (repeatable) |
 | `--assignee` / `-a` | Assignee username (repeatable) |
 | `--label` / `-l` | Label name (repeatable) |
 | `--milestone` / `-m` | Milestone name |
@@ -271,8 +271,8 @@ gfo pr merge NUMBER [--merge | --squash | --rebase] [--delete-branch] [--subject
 | `--merge` / `-m` | Create a merge commit (default) |
 | `--squash` / `-s` | Squash and merge |
 | `--rebase` / `-r` | Rebase and merge |
-| `--delete-branch` / `-d` | Delete branch after merge |
-| `--subject` / `-t` | Merge commit title |
+| `--delete-branch` | Delete branch after merge |
+| `--subject` | Merge commit title |
 | `--body` / `-b` | Merge commit body |
 | `--auto` | Enable auto-merge (merges automatically when conditions are met) |
 | `--disable-auto` | Disable auto-merge |
@@ -384,7 +384,7 @@ gfo pr edit NUMBER [--title TITLE] [--body BODY] [--base BRANCH] [--add-label LA
 | `--add-assignee` | Add assignee (repeatable) |
 | `--remove-assignee` | Remove assignee (repeatable) |
 | `--milestone` / `-m` | Milestone name |
-| `--draft` / `-d` / `--ready` | Switch between draft and ready state |
+| `--draft` / `--ready` | Switch between draft and ready state |
 
 ```bash
 gfo pr edit 42 --title "Updated title"
@@ -751,7 +751,7 @@ gfo issue develop NUMBER [--name BRANCH] [--base BRANCH]
 
 | Option | Description |
 |---|---|
-| `--name` / `-n` | Branch name (default: `issue-{number}-{slug}`) |
+| `--name` | Branch name (default: `issue-{number}-{slug}`) |
 | `--base` / `-B` | Base branch (default: default branch) |
 
 ```bash
@@ -1165,7 +1165,7 @@ gfo repo migrate CLONE_URL --name NAME [--private | --public | --internal] [--de
 | Option | Required | Description |
 |---|---|---|
 | `CLONE_URL` | **Required** | Clone URL of the source repository |
-| `--name` / `-n` | **Required** | Name of the repository to create (`org/repo` format for organization repositories) |
+| `--name` | **Required** | Name of the repository to create (`org/repo` format for organization repositories) |
 | `--private` | — | Create as a private repository |
 | `--public` | — | Create as a public repository (default) |
 | `--internal` | — | Create as an internal repository (organization only) |
@@ -1245,7 +1245,7 @@ gfo repo sync [--branch BRANCH]
 
 | Option | Description |
 |---|---|
-| `--branch` / `-b` | Branch to sync (default branch if omitted) |
+| `--branch` | Branch to sync (default branch if omitted) |
 
 ```bash
 gfo repo sync
@@ -1285,7 +1285,7 @@ gfo release list [--limit N] [--draft | --no-draft] [--prerelease | --no-prerele
 | Option | Description |
 |---|---|
 | `--limit N` | Maximum number of results (default: 30) |
-| `--draft` / `-d` / `--no-draft` | Filter draft only / exclude drafts |
+| `--draft` / `--no-draft` | Filter draft only / exclude drafts |
 | `--prerelease` / `-p` / `--no-prerelease` | Filter prerelease only / exclude prereleases |
 
 ```bash
@@ -1305,7 +1305,7 @@ gfo release create TAG [--title TITLE] [--notes NOTES] [--notes-file FILE] [--dr
 | `--title` / `-t` | Release title |
 | `--notes` / `-n` | Release notes |
 | `--notes-file` / `-F` | Read release notes from file |
-| `--draft` / `-d` | Create as draft |
+| `--draft` | Create as draft |
 | `--prerelease` / `-p` | Mark as prerelease |
 | `--target` | Target branch or commit SHA |
 | `--generate-notes` | Auto-generate release notes (GitHub/GitLab) |
@@ -1359,7 +1359,7 @@ gfo release edit TAG [--title TITLE] [--notes NOTES] [--notes-file FILE] [--draf
 | `--title` / `-t` | Release title |
 | `--notes` / `-n` | Release notes |
 | `--notes-file` / `-F` | Read release notes from file |
-| `--draft` / `-d` / `--no-draft` | Toggle draft status |
+| `--draft` / `--no-draft` | Toggle draft status |
 | `--prerelease` / `-p` / `--no-prerelease` | Toggle prerelease status |
 | `--tag` | New tag name (GitHub, Gitea, Forgejo) |
 | `--target` | Target branch or commit SHA (GitHub, Gitea, Forgejo) |
@@ -1431,7 +1431,7 @@ gfo label edit NAME [--name NEW_NAME] [--color COLOR] [--description DESC]
 
 | Option | Description |
 |---|---|
-| `--name` / `-n` | New name for the label |
+| `--name` | New name for the label |
 | `--color` / `-c` | Color (`RRGGBB` format, without `#`) |
 | `--description` / `-d` | Description |
 
@@ -1942,8 +1942,8 @@ gfo ci watch ID [--interval N] [--timeout N]
 
 | Option | Default | Description |
 |---|---|---|
-| `--interval` / `-i` | `5` | Poll interval in seconds |
-| `--timeout` / `-t` | `1800` | Timeout in seconds (0 for unlimited) |
+| `--interval` | `5` | Poll interval in seconds |
+| `--timeout` | `1800` | Timeout in seconds (0 for unlimited) |
 
 ```bash
 gfo ci watch 12345678
@@ -2602,8 +2602,8 @@ gfo api <METHOD> <PATH> [--data JSON] [--header HEADER]
 |---|---|
 | `METHOD` | HTTP method (GET, POST, PUT, PATCH, DELETE) |
 | `PATH` | API path (e.g., `/repos/owner/repo`) |
-| `--data` / `-d` | Request body as JSON string |
-| `--header` / `-H` | HTTP header (can be repeated, format: `Key: Value`) |
+| `--data` | Request body as JSON string |
+| `--header` | HTTP header (can be repeated, format: `Key: Value`) |
 
 **Examples:**
 
@@ -2669,7 +2669,7 @@ Manually trigger a pipeline / workflow.
 
 > **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
 >
-> **Note**: `--workflow` / `-w` is required for GitHub / Gitea.
+> **Note**: `--workflow` is required for GitHub / Gitea.
 
 ```
 gfo ci trigger --ref REF [--workflow WORKFLOW] [--input KEY=VALUE ...]
@@ -2678,7 +2678,7 @@ gfo ci trigger --ref REF [--workflow WORKFLOW] [--input KEY=VALUE ...]
 | Option | Required | Description |
 |---|---|---|
 | `--ref` | **Required** | Target branch or tag |
-| `--workflow` / `-w` | Required for GitHub/Gitea | Workflow name or filename |
+| `--workflow` | Required for GitHub/Gitea | Workflow name or filename |
 | `--input` / `-i` | — | Input parameters (`KEY=VALUE` format, can be specified multiple times) |
 
 ```bash
@@ -2920,7 +2920,7 @@ gfo batch pr create --repos SPECS --title TITLE --head BRANCH [options]
 | `--body` / `-b` | PR body | `""` |
 | `--head` / `-H` | Source branch | (required) |
 | `--base` / `-B` | Target branch | `main` |
-| `--draft` / `-d` | Create as draft PR | — |
+| `--draft` | Create as draft PR | — |
 | `--dry-run` | Validate only, do not create PRs | — |
 
 Repository specification uses the same SERVICE_SPEC format as `gfo issue migrate`.
