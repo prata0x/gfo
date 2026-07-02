@@ -896,6 +896,32 @@ class TestHandleDelete:
         assert "Deleted repository" in out
         assert "my-org/my-repo" in out
 
+    def test_delete_json_format(self, sample_config, mock_adapter, capsys):
+        """fmt="json" で構造化された成功 JSON が出力される。"""
+        args = make_args(yes=True)
+        mock_adapter.owner = "my-org"
+        mock_adapter.repo = "my-repo"
+        with _patch_all(sample_config, mock_adapter):
+            repo_cmd.handle_delete(args, fmt="json")
+
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "deleted"
+        assert data["repository"] == "my-org/my-repo"
+        assert data["message"]
+
+    def test_delete_aborted_json_format(self, sample_config, mock_adapter, capsys):
+        """fmt="json" で確認を拒否すると result="aborted" の JSON が出力される。"""
+        args = make_args(yes=False)
+        mock_adapter.owner = "my-org"
+        mock_adapter.repo = "my-repo"
+        with _patch_all(sample_config, mock_adapter), patch("builtins.input", return_value="n"):
+            repo_cmd.handle_delete(args, fmt="json")
+
+        mock_adapter.delete_repository.assert_not_called()
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "aborted"
+        assert data["message"]
+
 
 class TestParseRepoArg:
     def test_valid_format(self):

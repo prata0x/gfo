@@ -117,6 +117,17 @@ class TestHandleDelete:
             wiki_cmd.handle_delete(args, fmt="table")
         adapter.delete_wiki_page.assert_called_once_with("1")
 
+    def test_delete_json_format(self, capsys):
+        """fmt="json" で構造化 JSON（result / id / message）が出力される。"""
+        with patch_adapter("gfo.commands.wiki"):
+            args = make_args(id="1")
+            wiki_cmd.handle_delete(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "deleted"
+        assert data["id"] == "1"
+        assert data["message"]
+
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.wiki") as adapter:
             adapter.delete_wiki_page.side_effect = HttpError(403, "Forbidden")

@@ -6,7 +6,7 @@ import argparse
 import json
 
 from gfo.commands import get_adapter
-from gfo.output import apply_jq_filter, output
+from gfo.output import apply_jq_filter, output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -79,7 +79,13 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
             ).format(name=args.name)
         )
         if confirm.lower() not in ("y", "yes"):
-            print(_("Aborted."))
+            output_result(_("Aborted."), result="aborted", fmt=fmt, jq=jq)
             return
     adapter.delete_organization(args.name)
-    print(_("Deleted organization '{name}'.").format(name=args.name))
+    output_result(
+        _("Deleted organization '{name}'.").format(name=args.name),
+        result="deleted",
+        fmt=fmt,
+        jq=jq,
+        name=args.name,
+    )

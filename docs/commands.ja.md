@@ -13,6 +13,20 @@
 | `--account ACCOUNT` | マルチアカウントのトークン解決に使用するアカウント名（`gfo auth login --account` 参照） | — |
 | `--version` | バージョンを表示して終了 | — |
 
+### mutation 系コマンドの JSON 出力
+
+create / delete / close などの mutation 系コマンドの成功メッセージは、`--format json`（および非 TTY 時の auto-JSON）では構造化 JSON になります。`result`（実行結果の動詞）+ 対象を特定するフィールド + `message`（ローカライズ済みメッセージ）の形式です。
+
+```console
+$ gfo repo delete --yes --format json
+{"result": "deleted", "repository": "owner/repo", "message": "Deleted repository 'owner/repo'."}
+
+$ gfo issue close 7 --jq .result
+"closed"
+```
+
+エラー側の JSON（`{"error": ..., "message": ..., "exit_code": ...}`）と対になっており、成功・失敗とも機械可読です。確認プロンプトを拒否した場合は `{"result": "aborted", ...}` が返ります。
+
 ---
 
 ## gfo init

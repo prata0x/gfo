@@ -7,7 +7,7 @@ import argparse
 from gfo.commands import get_adapter, open_in_browser, read_file_arg
 from gfo.exceptions import ConfigError, GfoError
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -66,7 +66,13 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         raise ConfigError(_("tag must not be empty. Use 'gfo release delete <tag>'."))
     adapter = get_adapter()
     adapter.delete_release(tag=tag)
-    print(_("Deleted release '{tag}'.").format(tag=tag))
+    output_result(
+        _("Deleted release '{tag}'.").format(tag=tag),
+        result="deleted",
+        fmt=fmt,
+        jq=jq,
+        tag=tag,
+    )
 
 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -163,7 +169,13 @@ def _handle_asset_download(args: argparse.Namespace, *, fmt: str, jq: str | None
             asset_id=asset_id,
             output_dir=output_dir,
         )
-        print(_("Downloaded: {path}").format(path=path))
+        output_result(
+            _("Downloaded: {path}").format(path=path),
+            result="downloaded",
+            fmt=fmt,
+            jq=jq,
+            path=path,
+        )
     elif pattern:
         # --pattern 経路は list_release_assets で取得済みの download_url を直接使う。
         # 旧実装は match 毎に download_release_asset を呼んでメタ情報を再取得していたが、
@@ -182,7 +194,13 @@ def _handle_asset_download(args: argparse.Namespace, *, fmt: str, jq: str | None
             if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
                 raise GfoError(_("Invalid asset name: {name}").format(name=a.name))
             adapter.client.download_file(a.download_url, output_path)
-            print(_("Downloaded: {path}").format(path=output_path))
+            output_result(
+                _("Downloaded: {path}").format(path=output_path),
+                result="downloaded",
+                fmt=fmt,
+                jq=jq,
+                path=output_path,
+            )
     else:
         raise ConfigError(_("Specify --asset-id or --pattern."))
 
@@ -200,4 +218,10 @@ def _handle_asset_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = N
 def _handle_asset_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     adapter = get_adapter()
     adapter.delete_release_asset(tag=args.tag, asset_id=args.asset_id)
-    print(_("Deleted asset '{asset_id}'.").format(asset_id=args.asset_id))
+    output_result(
+        _("Deleted asset '{asset_id}'.").format(asset_id=args.asset_id),
+        result="deleted",
+        fmt=fmt,
+        jq=jq,
+        asset_id=args.asset_id,
+    )

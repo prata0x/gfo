@@ -483,6 +483,16 @@ class TestHandleClose:
 
         self.adapter.close_issue.assert_called_once_with(42)
 
+    def test_json_format(self, capsys):
+        args = make_args(number=7)
+        with _patch_all(self.config, self.adapter):
+            issue_cmd.handle_close(args, fmt="json")
+
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "closed"
+        assert data["number"] == 7
+        assert data["message"]
+
 
 class TestHandleReopen:
     def setup_method(self):

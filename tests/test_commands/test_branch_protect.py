@@ -121,6 +121,17 @@ class TestHandleRemove:
         assert "Removed" in out
         assert "main" in out
 
+    def test_remove_json_format(self, capsys):
+        """fmt="json" で構造化 JSON（result / branch / message）が出力される。"""
+        with patch_adapter("gfo.commands.branch_protect"):
+            args = make_args(branch="main")
+            bp_cmd.handle_remove(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "removed"
+        assert data["branch"] == "main"
+        assert data["message"]
+
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.branch_protect") as adapter:
             adapter.remove_branch_protection.side_effect = HttpError(404, "Not found")

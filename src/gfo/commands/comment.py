@@ -7,7 +7,7 @@ import argparse
 from gfo.commands import get_adapter
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 def _dispatch(args: argparse.Namespace, resource: str, *, fmt: str, jq: str | None = None) -> None:
@@ -27,7 +27,13 @@ def _dispatch(args: argparse.Namespace, resource: str, *, fmt: str, jq: str | No
         output(comment, fmt=fmt, jq=jq)
     elif action == "delete":
         adapter.delete_comment(resource, args.comment_id)
-        print(_("Deleted comment '{comment_id}'.").format(comment_id=args.comment_id))
+        output_result(
+            _("Deleted comment '{comment_id}'.").format(comment_id=args.comment_id),
+            result="deleted",
+            comment_id=args.comment_id,
+            fmt=fmt,
+            jq=jq,
+        )
 
 
 def handle_pr_comment(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

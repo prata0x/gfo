@@ -8,7 +8,7 @@ import os
 from gfo.commands import get_adapter, read_file_arg
 from gfo.exceptions import GfoError
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -45,4 +45,10 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     adapter = get_adapter()
     scope = getattr(args, "org", None)
     adapter.delete_secret(args.name, scope=scope)
-    print(_("Deleted secret '{name}'.").format(name=args.name))
+    output_result(
+        _("Deleted secret '{name}'.").format(name=args.name),
+        result="deleted",
+        fmt=fmt,
+        jq=jq,
+        name=args.name,
+    )

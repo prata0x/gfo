@@ -6,7 +6,7 @@ import argparse
 
 from gfo.commands import get_adapter
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -34,4 +34,10 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo branch delete <name> のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_branch(name=args.name)
-    print(_("Deleted branch '{name}'.").format(name=args.name))
+    output_result(
+        _("Deleted branch '{name}'.").format(name=args.name),
+        result="deleted",
+        fmt=fmt,
+        jq=jq,
+        branch=args.name,
+    )

@@ -6,7 +6,7 @@ import argparse
 
 from gfo.commands import get_adapter
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -46,4 +46,10 @@ def handle_remove(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo branch-protect remove <branch> のハンドラ。"""
     adapter = get_adapter()
     adapter.remove_branch_protection(args.branch)
-    print(_("Removed branch protection for '{branch}'.").format(branch=args.branch))
+    output_result(
+        _("Removed branch protection for '{branch}'.").format(branch=args.branch),
+        result="removed",
+        fmt=fmt,
+        jq=jq,
+        branch=args.branch,
+    )

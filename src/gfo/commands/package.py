@@ -6,7 +6,7 @@ import argparse
 
 from gfo.commands import get_adapter
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -40,11 +40,17 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
             )
         )
         if confirm.lower() not in ("y", "yes"):
-            print(_("Aborted."))
+            output_result(_("Aborted."), result="aborted", fmt=fmt, jq=jq)
             return
     adapter.delete_package(args.package_type, args.name, args.version)
-    print(
+    output_result(
         _("Deleted package '{type}/{name}@{version}'.").format(
             type=args.package_type, name=args.name, version=args.version
-        )
+        ),
+        result="deleted",
+        fmt=fmt,
+        jq=jq,
+        package_type=args.package_type,
+        name=args.name,
+        version=args.version,
     )

@@ -7,7 +7,7 @@ import argparse
 from gfo.commands import get_adapter
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -28,14 +28,26 @@ def handle_cancel(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo ci cancel <id> のハンドラ。"""
     adapter = get_adapter()
     adapter.cancel_pipeline(args.id)
-    print(_("Canceled pipeline run '{id}'.").format(id=args.id))
+    output_result(
+        _("Canceled pipeline run '{id}'.").format(id=args.id),
+        result="canceled",
+        id=args.id,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo ci delete <id> のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_pipeline_run(args.id)
-    print(_("Deleted pipeline run '{id}'.").format(id=args.id))
+    output_result(
+        _("Deleted pipeline run '{id}'.").format(id=args.id),
+        result="deleted",
+        id=args.id,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_trigger(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -89,7 +101,7 @@ def handle_watch(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
             break
         if timeout > 0 and (time.monotonic() - start) >= timeout:
             sys.stderr.write("\n")
-            print(_("Timed out after {timeout} seconds.").format(timeout=timeout))
+            print(_("Timed out after {timeout} seconds.").format(timeout=timeout), file=sys.stderr)
             break
         time.sleep(args.interval)
     output(pipeline, fmt=fmt, jq=jq)
@@ -102,7 +114,13 @@ def handle_download(args: argparse.Namespace, *, fmt: str, jq: str | None = None
     path = adapter.download_run_logs(
         args.id, job_id=getattr(args, "job", None), output_dir=output_dir
     )
-    print(_("Downloaded: {path}").format(path=path))
+    output_result(
+        _("Downloaded: {path}").format(path=path),
+        result="downloaded",
+        path=path,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_workflow(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -111,9 +129,9 @@ def handle_workflow(args: argparse.Namespace, *, fmt: str, jq: str | None = None
     if action == "list":
         _handle_workflow_list(args, fmt=fmt, jq=jq)
     elif action == "enable":
-        _handle_workflow_enable(args)
+        _handle_workflow_enable(args, fmt=fmt, jq=jq)
     elif action == "disable":
-        _handle_workflow_disable(args)
+        _handle_workflow_disable(args, fmt=fmt, jq=jq)
     else:
         raise ConfigError(_("Specify a subcommand: list, enable, disable"))
 
@@ -124,16 +142,28 @@ def _handle_workflow_list(args: argparse.Namespace, *, fmt: str, jq: str | None 
     output(workflows, fmt=fmt, fields=["id", "name", "path", "state"], jq=jq)
 
 
-def _handle_workflow_enable(args: argparse.Namespace) -> None:
+def _handle_workflow_enable(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     adapter = get_adapter()
     adapter.enable_workflow(args.id)
-    print(_("Enabled workflow '{id}'.").format(id=args.id))
+    output_result(
+        _("Enabled workflow '{id}'.").format(id=args.id),
+        result="enabled",
+        id=args.id,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
-def _handle_workflow_disable(args: argparse.Namespace) -> None:
+def _handle_workflow_disable(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     adapter = get_adapter()
     adapter.disable_workflow(args.id)
-    print(_("Disabled workflow '{id}'.").format(id=args.id))
+    output_result(
+        _("Disabled workflow '{id}'.").format(id=args.id),
+        result="disabled",
+        id=args.id,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_artifact(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -142,7 +172,7 @@ def handle_artifact(args: argparse.Namespace, *, fmt: str, jq: str | None = None
     if action == "list":
         _handle_artifact_list(args, fmt=fmt, jq=jq)
     elif action == "download":
-        _handle_artifact_download(args)
+        _handle_artifact_download(args, fmt=fmt, jq=jq)
     else:
         raise ConfigError(_("Specify a subcommand: list, download"))
 
@@ -153,8 +183,14 @@ def _handle_artifact_list(args: argparse.Namespace, *, fmt: str, jq: str | None 
     output(artifacts, fmt=fmt, fields=["id", "name", "size", "created_at"], jq=jq)
 
 
-def _handle_artifact_download(args: argparse.Namespace) -> None:
+def _handle_artifact_download(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     adapter = get_adapter()
     output_dir = getattr(args, "dir", ".") or "."
     path = adapter.download_artifact(args.run_id, args.artifact_id, output_dir=output_dir)
-    print(_("Downloaded: {path}").format(path=path))
+    output_result(
+        _("Downloaded: {path}").format(path=path),
+        result="downloaded",
+        path=path,
+        fmt=fmt,
+        jq=jq,
+    )

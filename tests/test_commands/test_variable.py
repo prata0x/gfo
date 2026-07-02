@@ -105,6 +105,17 @@ class TestHandleDelete:
             variable_cmd.handle_delete(args, fmt="table")
         adapter.delete_variable.assert_called_once_with("MY_VAR", scope=None)
 
+    def test_json_format(self, capsys):
+        """fmt="json" のとき構造化 JSON が出力される。"""
+        with patch_adapter("gfo.commands.variable"):
+            args = make_args(name="MY_VAR")
+            variable_cmd.handle_delete(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "deleted"
+        assert data["name"] == "MY_VAR"
+        assert data["message"]
+
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.variable") as adapter:
             adapter.delete_variable.side_effect = GfoError("not found")

@@ -12,7 +12,7 @@ import gfo.detect
 from gfo.detect import normalize_host
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 @dataclasses.dataclass
@@ -94,7 +94,14 @@ def handle_login(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
 
     account = getattr(args, "account", "default")
     gfo.auth.save_token(host, token, account=account)
-    print(_("Token saved for {host} (account: {account})").format(host=host, account=account))
+    output_result(
+        _("Token saved for {host} (account: {account})").format(host=host, account=account),
+        result="saved",
+        host=host,
+        account=account,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -132,7 +139,14 @@ def handle_switch(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
             ) from e
 
     gfo.auth.switch_account(host, args.account)
-    print(_("Switched to account '{account}' for {host}").format(account=args.account, host=host))
+    output_result(
+        _("Switched to account '{account}' for {host}").format(account=args.account, host=host),
+        result="switched",
+        host=host,
+        account=args.account,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_token(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -184,6 +198,19 @@ def handle_logout(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     gfo.auth.remove_token(host, account=account)
 
     if account:
-        print(_("Logged out account '{account}' from {host}").format(account=account, host=host))
+        output_result(
+            _("Logged out account '{account}' from {host}").format(account=account, host=host),
+            result="logged_out",
+            host=host,
+            account=account,
+            fmt=fmt,
+            jq=jq,
+        )
     else:
-        print(_("Logged out from {host}").format(host=host))
+        output_result(
+            _("Logged out from {host}").format(host=host),
+            result="logged_out",
+            host=host,
+            fmt=fmt,
+            jq=jq,
+        )

@@ -7,7 +7,7 @@ import argparse
 from gfo.commands import get_adapter, open_in_browser
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -38,7 +38,13 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo milestone delete のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_milestone(number=args.number)
-    print(_("Deleted milestone '{number}'.").format(number=args.number))
+    output_result(
+        _("Deleted milestone '{number}'.").format(number=args.number),
+        result="deleted",
+        number=args.number,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -68,11 +74,23 @@ def handle_close(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     """gfo milestone close のハンドラ。"""
     adapter = get_adapter()
     adapter.update_milestone(args.number, state="closed")
-    print(_("Closed milestone '{number}'.").format(number=args.number))
+    output_result(
+        _("Closed milestone '{number}'.").format(number=args.number),
+        result="closed",
+        number=args.number,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_reopen(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo milestone reopen のハンドラ。"""
     adapter = get_adapter()
     adapter.update_milestone(args.number, state="open")
-    print(_("Reopened milestone '{number}'.").format(number=args.number))
+    output_result(
+        _("Reopened milestone '{number}'.").format(number=args.number),
+        result="reopened",
+        number=args.number,
+        fmt=fmt,
+        jq=jq,
+    )

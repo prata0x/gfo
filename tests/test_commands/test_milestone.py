@@ -225,6 +225,16 @@ class TestHandleDelete:
         assert "5" in out
         assert "Deleted" in out
 
+    def test_delete_json_format(self, sample_config, capsys):
+        args = make_args(number=5)
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_delete(args, fmt="json")
+
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "deleted"
+        assert data["number"] == 5
+        assert data["message"]
+
 
 class TestHandleView:
     def setup_method(self):

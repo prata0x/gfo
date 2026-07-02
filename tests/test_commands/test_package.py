@@ -117,6 +117,19 @@ class TestHandleDelete:
         out = capsys.readouterr().out
         assert "Aborted" in out
 
+    def test_delete_json_format(self, capsys):
+        """fmt="json" で構造化された成功 JSON が出力される。"""
+        with patch_adapter("gfo.commands.package") as adapter:
+            args = make_args(package_type="npm", name="test-pkg", version="1.0.0", yes=True)
+            package_cmd.handle_delete(args, fmt="json")
+        adapter.delete_package.assert_called_once_with("npm", "test-pkg", "1.0.0")
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "deleted"
+        assert data["package_type"] == "npm"
+        assert data["name"] == "test-pkg"
+        assert data["version"] == "1.0.0"
+        assert data["message"]
+
     def test_delete_success_message(self, capsys):
         """削除成功メッセージの出力内容検証。"""
         with patch_adapter("gfo.commands.package"):

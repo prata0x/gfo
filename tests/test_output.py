@@ -18,6 +18,7 @@ from gfo.output import (
     format_plain,
     format_table,
     output,
+    output_result,
 )
 
 
@@ -306,6 +307,49 @@ class TestOutput:
         captured = capsys.readouterr()
         parsed = json.loads(captured.out)
         assert parsed[0]["number"] == 1
+
+
+class TestOutputResult:
+    def test_table_prints_message_plain(self, capsys):
+        output_result("Deleted repository 'o/r'.", result="deleted", fmt="table", repository="o/r")
+        assert capsys.readouterr().out == "Deleted repository 'o/r'.\n"
+
+    def test_plain_prints_message_plain(self, capsys):
+        output_result("Deleted repository 'o/r'.", result="deleted", fmt="plain", repository="o/r")
+        assert capsys.readouterr().out == "Deleted repository 'o/r'.\n"
+
+    def test_json_outputs_structured(self, capsys):
+        output_result("Deleted repository 'o/r'.", result="deleted", fmt="json", repository="o/r")
+        data = json.loads(capsys.readouterr().out)
+        assert data == {
+            "result": "deleted",
+            "repository": "o/r",
+            "message": "Deleted repository 'o/r'.",
+        }
+
+    def test_json_key_order_result_first(self, capsys):
+        """result が先頭、message が末尾に来る。"""
+        output_result("msg", result="closed", fmt="json", number=7)
+        keys = list(json.loads(capsys.readouterr().out).keys())
+        assert keys == ["result", "number", "message"]
+
+    def test_json_non_ascii_not_escaped(self, capsys):
+        output_result("ラベル 'バグ' を削除しました。", result="deleted", fmt="json", name="バグ")
+        out = capsys.readouterr().out
+        assert "バグ" in out
+        assert json.loads(out)["name"] == "バグ"
+
+    def test_jq_forces_json(self, capsys):
+        """jq 指定時は fmt が table でも JSON になり jq が適用される。"""
+        with patch("gfo.output.apply_jq_filter", return_value='"deleted"') as mock_jq:
+            output_result("msg", result="deleted", fmt="table", jq=".result")
+        mock_jq.assert_called_once()
+        assert capsys.readouterr().out.strip() == '"deleted"'
+
+    def test_json_no_extra_fields(self, capsys):
+        output_result("Aborted.", result="aborted", fmt="json")
+        data = json.loads(capsys.readouterr().out)
+        assert data == {"result": "aborted", "message": "Aborted."}
 
 
 class TestFormatErrorJson:

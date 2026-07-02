@@ -9,7 +9,7 @@ import sys
 from gfo.commands import get_adapter
 from gfo.exceptions import ConfigError, NotFoundError
 from gfo.i18n import _
-from gfo.output import apply_jq_filter
+from gfo.output import apply_jq_filter, output_result
 
 
 def _validate_repo_path(path: str) -> None:
@@ -65,9 +65,23 @@ def handle_put(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
         branch=args.branch,
     )
     if commit_sha:
-        print(_("Updated file '{path}' (commit: {sha}).").format(path=args.path, sha=commit_sha))
+        output_result(
+            _("Updated file '{path}' (commit: {sha}).").format(path=args.path, sha=commit_sha),
+            result="updated",
+            fmt=fmt,
+            jq=jq,
+            path=args.path,
+            sha=commit_sha,
+        )
     else:
-        print(_("Updated file '{path}'.").format(path=args.path))
+        output_result(
+            _("Updated file '{path}'.").format(path=args.path),
+            result="updated",
+            fmt=fmt,
+            jq=jq,
+            path=args.path,
+            sha=None,
+        )
 
 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -76,4 +90,10 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     adapter = get_adapter()
     _content, sha = adapter.get_file_content(args.path, ref=args.branch)
     adapter.delete_file(args.path, sha=sha, message=args.message, branch=args.branch)
-    print(_("Deleted file '{path}'.").format(path=args.path))
+    output_result(
+        _("Deleted file '{path}'.").format(path=args.path),
+        result="deleted",
+        fmt=fmt,
+        jq=jq,
+        path=args.path,
+    )

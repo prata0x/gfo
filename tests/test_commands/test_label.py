@@ -242,6 +242,16 @@ class TestHandleDelete:
         assert "bug" in out
         assert "Deleted" in out
 
+    def test_delete_json_format(self, sample_config, capsys):
+        args = make_args(name="bug")
+        with _patch_all(sample_config, self.adapter):
+            label_cmd.handle_delete(args, fmt="json")
+
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "deleted"
+        assert data["name"] == "bug"
+        assert data["message"]
+
     def test_whitespace_only_name_raises_config_error(self, sample_config):
         args = make_args(name="   ")
         with _patch_all(sample_config, self.adapter):

@@ -6,7 +6,7 @@ import argparse
 
 from gfo.commands import get_adapter
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -43,4 +43,10 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     adapter = get_adapter()
     scope = getattr(args, "org", None)
     adapter.delete_variable(args.name, scope=scope)
-    print(_("Deleted variable '{name}'.").format(name=args.name))
+    output_result(
+        _("Deleted variable '{name}'.").format(name=args.name),
+        result="deleted",
+        fmt=fmt,
+        jq=jq,
+        name=args.name,
+    )
