@@ -91,3 +91,14 @@ class TestHandleDelete:
             deploy_key_cmd.handle_delete(args, fmt="table")
         out = capsys.readouterr().out
         assert "99" in out
+
+    def test_json_format(self, capsys):
+        """fmt="json" のとき構造化 JSON が出力される。"""
+        with patch_adapter("gfo.commands.deploy_key"):
+            args = make_args(id=99)
+            deploy_key_cmd.handle_delete(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "deleted"
+        assert data["id"] == 99
+        assert data["message"]

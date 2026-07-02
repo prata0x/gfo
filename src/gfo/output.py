@@ -89,6 +89,33 @@ def format_error_json(err: GfoError) -> str:
     return json.dumps(d, ensure_ascii=False)
 
 
+def output_result(
+    message: str,
+    *,
+    result: str,
+    fmt: str = "table",
+    jq: str | None = None,
+    **fields: Any,
+) -> None:
+    """mutation 系コマンドの成功メッセージを出力する。
+
+    table / plain では従来どおり message を平文で出力し、json では
+    `{"result": <result>, **fields, "message": <message>}` の構造化 JSON を
+    出力する（エラー側の format_error_json と対になる成功側の機械可読出力）。
+    """
+    # output() と同様、jq 指定時は fmt を json に強制する
+    if jq and fmt != "json":
+        fmt = "json"
+    if fmt == "json":
+        json_str = json.dumps({"result": result, **fields, "message": message}, ensure_ascii=False)
+        if jq is not None:
+            print(apply_jq_filter(json_str, jq))
+        else:
+            print(json_str)
+    else:
+        print(message)
+
+
 def output(
     data: Any, *, fmt: str = "table", fields: list[str] | None = None, jq: str | None = None
 ) -> None:

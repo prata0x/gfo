@@ -7,7 +7,7 @@ import argparse
 from gfo.commands import get_adapter
 from gfo.exceptions import GfoError
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -34,7 +34,19 @@ def handle_read(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         raise GfoError(_("Specify a notification ID or --all."))
     if args.mark_all:
         adapter.mark_all_notifications_read()
-        print(_("Marked all notifications as read."))
+        output_result(
+            _("Marked all notifications as read."),
+            result="marked_read",
+            fmt=fmt,
+            jq=jq,
+            all=True,
+        )
     else:
         adapter.mark_notification_read(args.id)
-        print(_("Marked notification '{id}' as read.").format(id=args.id))
+        output_result(
+            _("Marked notification '{id}' as read.").format(id=args.id),
+            result="marked_read",
+            fmt=fmt,
+            jq=jq,
+            id=args.id,
+        )

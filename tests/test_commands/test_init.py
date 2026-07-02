@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import patch
 
 import pytest
@@ -353,6 +354,30 @@ class TestHandleNonInteractive:
         assert saved.host == "github.com"
         assert saved.owner == "owner"
         assert saved.repo == "repo"
+
+    def test_non_interactive_json_output(self, capsys):
+        """fmt="json" で result / service_type / host / message を含む構造化 JSON を出力する。"""
+        args = make_args(
+            non_interactive=True,
+            type="github",
+            host="github.com",
+            api_url=None,
+            project_key=None,
+        )
+
+        with (
+            patch(
+                "gfo.commands.init.get_remote_url", return_value="https://github.com/owner/repo.git"
+            ),
+            patch("gfo.commands.init.save_project_config"),
+        ):
+            init_cmd.handle(args, fmt="json")
+
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "initialized"
+        assert data["service_type"] == "github"
+        assert data["host"] == "github.com"
+        assert data["message"]
 
     def test_missing_type_raises_config_error(self):
         """type 未指定 → ConfigError。"""

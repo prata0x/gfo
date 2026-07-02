@@ -460,6 +460,18 @@ class TestHandleDelete:
         assert "v1.0.0" in out
         assert "Deleted" in out
 
+    def test_delete_json_format(self, sample_config, capsys):
+        """fmt="json" で構造化 JSON（result / tag / message）が出力される。"""
+        args = make_args(tag="v1.0.0")
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_delete(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "deleted"
+        assert data["tag"] == "v1.0.0"
+        assert data["message"]
+
     def test_empty_tag_raises_config_error(self, sample_config):
         args = make_args(tag="")
         with _patch_all(sample_config, self.adapter):
@@ -809,6 +821,37 @@ class TestHandleAsset:
             release_cmd.handle_asset(args, fmt="table")
 
         self.adapter.delete_release_asset.assert_called_once_with(tag="v1.0.0", asset_id="1")
+
+    def test_asset_delete_json_format(self, sample_config, capsys):
+        """fmt="json" で構造化 JSON（result / asset_id / message）が出力される。"""
+        args = make_args(asset_action="delete", tag="v1.0.0", asset_id="1")
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_asset(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "deleted"
+        assert data["asset_id"] == "1"
+        assert data["message"]
+
+    def test_asset_download_by_id_json_format(self, sample_config, capsys):
+        """fmt="json" で構造化 JSON（result / path / message）が出力される。"""
+        self.adapter.download_release_asset.return_value = "/tmp/app.zip"
+        args = make_args(
+            asset_action="download",
+            tag="v1.0.0",
+            asset_id="1",
+            pattern=None,
+            dir=".",
+        )
+        with _patch_all(sample_config, self.adapter):
+            release_cmd.handle_asset(args, fmt="json")
+
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "downloaded"
+        assert data["path"] == "/tmp/app.zip"
+        assert data["message"]
 
     def test_no_action_raises(self, sample_config):
         args = make_args(asset_action=None)

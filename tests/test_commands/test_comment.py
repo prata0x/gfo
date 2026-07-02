@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from gfo.adapter.base import Comment
@@ -69,6 +71,16 @@ class TestHandlePrComment:
         adapter.delete_comment.assert_called_once_with("pr", 42)
         out = capsys.readouterr().out
         assert "42" in out
+
+    def test_delete_json_format(self, capsys):
+        with patch_adapter("gfo.commands.comment") as adapter:
+            args = make_args(comment_action="delete", comment_id=42)
+            comment_cmd.handle_pr_comment(args, fmt="json")
+        adapter.delete_comment.assert_called_once_with("pr", 42)
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "deleted"
+        assert data["comment_id"] == 42
+        assert data["message"]
 
     def test_no_action_raises(self):
         args = make_args(comment_action=None)

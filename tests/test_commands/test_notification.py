@@ -70,6 +70,28 @@ class TestHandleRead:
             notif_cmd.handle_read(args, fmt="table")
         adapter.mark_all_notifications_read.assert_called_once()
 
+    def test_read_single_json_format(self, capsys):
+        """fmt="json" のとき構造化 JSON が出力される。"""
+        with patch_adapter("gfo.commands.notification"):
+            args = make_args(id="1", mark_all=False)
+            notif_cmd.handle_read(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "marked_read"
+        assert data["id"] == "1"
+        assert data["message"]
+
+    def test_read_all_json_format(self, capsys):
+        """--all + fmt="json" のとき構造化 JSON が出力される。"""
+        with patch_adapter("gfo.commands.notification"):
+            args = make_args(id=None, mark_all=True)
+            notif_cmd.handle_read(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "marked_read"
+        assert data["all"] is True
+        assert data["message"]
+
     def test_error_both_id_and_all(self):
         with patch_adapter("gfo.commands.notification"):
             args = make_args(id="1", mark_all=True)

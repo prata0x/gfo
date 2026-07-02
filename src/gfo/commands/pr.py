@@ -9,7 +9,7 @@ import gfo.git_util
 from gfo.commands import get_adapter, open_in_browser, read_file_arg
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
-from gfo.output import apply_jq_filter, output
+from gfo.output import apply_jq_filter, output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -48,13 +48,26 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     else:
         body = args.body or ""
     if getattr(args, "dry_run", False):
-        print(_("Title: {title}").format(title=title))
-        print(_("Head:  {head} -> Base: {base}").format(head=head, base=base))
-        if args.draft:
-            print(_("Draft: yes"))
-        if body:
-            print(_("Body:"))
-            print(body)
+        if fmt == "json":
+            output_result(
+                _("Title: {title}").format(title=title),
+                result="dry_run",
+                fmt=fmt,
+                jq=jq,
+                title=title,
+                head=head,
+                base=base,
+                draft=bool(args.draft),
+                body=body,
+            )
+        else:
+            print(_("Title: {title}").format(title=title))
+            print(_("Head:  {head} -> Base: {base}").format(head=head, base=base))
+            if args.draft:
+                print(_("Draft: yes"))
+            if body:
+                print(_("Body:"))
+                print(body)
         return
     pr = adapter.create_pull_request(
         title=title,
@@ -115,12 +128,14 @@ def handle_merge(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
         source_branch = pr_info.source_branch
     if getattr(args, "disable_auto", False):
         adapter.disable_auto_merge(args.number)
-        print(_("Disabled auto-merge for PR #{number}.").format(number=args.number))
+        result = "auto_merge_disabled"
+        message = _("Disabled auto-merge for PR #{number}.").format(number=args.number)
     elif getattr(args, "auto", False):
         if getattr(args, "subject", None) or getattr(args, "body", None):
             warnings.warn(_("--subject/--body are ignored when --auto is used."), stacklevel=1)
         adapter.enable_auto_merge(args.number, merge_method=method)
-        print(_("Enabled auto-merge for PR #{number}.").format(number=args.number))
+        result = "auto_merge_enabled"
+        message = _("Enabled auto-merge for PR #{number}.").format(number=args.number)
     else:
         adapter.merge_pull_request(
             args.number,
@@ -128,38 +143,70 @@ def handle_merge(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
             title=getattr(args, "subject", None),
             message=getattr(args, "body", None),
         )
-        print(_("Merged PR #{number}.").format(number=args.number))
+        result = "merged"
+        message = _("Merged PR #{number}.").format(number=args.number)
+    deleted_branch = None
     if source_branch:
         adapter.delete_branch(name=source_branch)
-        print(_("Deleted branch '{branch}'.").format(branch=source_branch))
+        deleted_branch = source_branch
+    fields: dict[str, object] = {"number": args.number}
+    if deleted_branch:
+        fields["deleted_branch"] = deleted_branch
+    output_result(message, result=result, fmt=fmt, jq=jq, **fields)
+    if deleted_branch and fmt != "json":
+        print(_("Deleted branch '{branch}'.").format(branch=deleted_branch))
 
 
 def handle_close(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr close <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.close_pull_request(args.number)
-    print(_("Closed PR #{number}.").format(number=args.number))
+    output_result(
+        _("Closed PR #{number}.").format(number=args.number),
+        result="closed",
+        fmt=fmt,
+        jq=jq,
+        number=args.number,
+    )
 
 
 def handle_reopen(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr reopen <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.reopen_pull_request(args.number)
-    print(_("Reopened PR #{number}.").format(number=args.number))
+    output_result(
+        _("Reopened PR #{number}.").format(number=args.number),
+        result="reopened",
+        fmt=fmt,
+        jq=jq,
+        number=args.number,
+    )
 
 
 def handle_lock(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr lock <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.lock_pull_request(args.number, reason=getattr(args, "reason", None))
-    print(_("Locked PR #{number}.").format(number=args.number))
+    output_result(
+        _("Locked PR #{number}.").format(number=args.number),
+        result="locked",
+        fmt=fmt,
+        jq=jq,
+        number=args.number,
+    )
 
 
 def handle_unlock(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr unlock <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.unlock_pull_request(args.number)
-    print(_("Unlocked PR #{number}.").format(number=args.number))
+    output_result(
+        _("Unlocked PR #{number}.").format(number=args.number),
+        result="unlocked",
+        fmt=fmt,
+        jq=jq,
+        number=args.number,
+    )
 
 
 def handle_checkout(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -227,10 +274,22 @@ def handle_reviewers(args: argparse.Namespace, *, fmt: str, jq: str | None = Non
     action = getattr(args, "reviewer_action", None)
     if action == "add":
         adapter.request_reviewers(args.number, args.users)
-        print(_("Added reviewers to PR #{number}.").format(number=args.number))
+        output_result(
+            _("Added reviewers to PR #{number}.").format(number=args.number),
+            result="reviewers_added",
+            fmt=fmt,
+            jq=jq,
+            number=args.number,
+        )
     elif action == "remove":
         adapter.remove_reviewers(args.number, args.users)
-        print(_("Removed reviewers from PR #{number}.").format(number=args.number))
+        output_result(
+            _("Removed reviewers from PR #{number}.").format(number=args.number),
+            result="reviewers_removed",
+            fmt=fmt,
+            jq=jq,
+            number=args.number,
+        )
     else:
         # list_requested_reviewers は list[str] を返すため output() は使えない
         # (dataclass を前提に fields/asdict を呼びクラッシュする)。
@@ -251,14 +310,26 @@ def handle_update_branch(args: argparse.Namespace, *, fmt: str, jq: str | None =
     """gfo pr update-branch <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.update_pull_request_branch(args.number)
-    print(_("Updated branch for PR #{number}.").format(number=args.number))
+    output_result(
+        _("Updated branch for PR #{number}.").format(number=args.number),
+        result="branch_updated",
+        fmt=fmt,
+        jq=jq,
+        number=args.number,
+    )
 
 
 def handle_ready(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr ready <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.mark_pull_request_ready(args.number)
-    print(_("Marked PR #{number} as ready for review.").format(number=args.number))
+    output_result(
+        _("Marked PR #{number} as ready for review.").format(number=args.number),
+        result="ready",
+        fmt=fmt,
+        jq=jq,
+        number=args.number,
+    )
 
 
 def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -285,11 +356,23 @@ def handle_subscribe(args: argparse.Namespace, *, fmt: str, jq: str | None = Non
     """gfo pr subscribe <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.subscribe_pull_request(args.number)
-    print(_("Subscribed to PR #{number}.").format(number=args.number))
+    output_result(
+        _("Subscribed to PR #{number}.").format(number=args.number),
+        result="subscribed",
+        fmt=fmt,
+        jq=jq,
+        number=args.number,
+    )
 
 
 def handle_unsubscribe(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo pr unsubscribe <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.unsubscribe_pull_request(args.number)
-    print(_("Unsubscribed from PR #{number}.").format(number=args.number))
+    output_result(
+        _("Unsubscribed from PR #{number}.").format(number=args.number),
+        result="unsubscribed",
+        fmt=fmt,
+        jq=jq,
+        number=args.number,
+    )

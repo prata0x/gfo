@@ -639,6 +639,31 @@ class TestHandleLogoutJson:
         assert "work" in captured.out
         assert "github.com" in captured.out
 
+    def test_logout_json_structured_output(self, capsys):
+        """fmt="json" で result / host / message を含む構造化 JSON を出力する。"""
+        args = make_args(host="github.com", account=None)
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.remove_token"):
+            auth_cmd.handle_logout(args, fmt="json")
+
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "logged_out"
+        assert data["host"] == "github.com"
+        assert data["message"]
+
+    def test_logout_with_account_json_structured_output(self, capsys):
+        """fmt="json" + --account で account フィールドも含まれる。"""
+        args = make_args(host="github.com", account="work")
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.remove_token"):
+            auth_cmd.handle_logout(args, fmt="json")
+
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "logged_out"
+        assert data["host"] == "github.com"
+        assert data["account"] == "work"
+        assert data["message"]
+
 
 class TestHandleSwitchJson:
     """handle_switch の fmt="json" テスト。"""
@@ -653,6 +678,19 @@ class TestHandleSwitchJson:
         captured = capsys.readouterr()
         assert "work" in captured.out
         assert "github.com" in captured.out
+
+    def test_switch_json_structured_output(self, capsys):
+        """fmt="json" で result / host / account / message を含む構造化 JSON を出力する。"""
+        args = make_args(host="github.com", account="work")
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.switch_account"):
+            auth_cmd.handle_switch(args, fmt="json")
+
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "switched"
+        assert data["host"] == "github.com"
+        assert data["account"] == "work"
+        assert data["message"]
 
 
 class TestHandleStatusJson:

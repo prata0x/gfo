@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import patch
 
 import pytest
@@ -75,6 +76,16 @@ class TestHandleCancel:
             ci_cmd.handle_cancel(args, fmt="table")
         out = capsys.readouterr().out
         assert "456" in out
+
+    def test_cancel_json_output(self, capsys):
+        """fmt="json" で構造化 JSON を出力する。"""
+        with patch_adapter("gfo.commands.ci"):
+            args = make_args(id="456")
+            ci_cmd.handle_cancel(args, fmt="json")
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "canceled"
+        assert data["id"] == "456"
+        assert data["message"]
 
 
 class TestHandleDelete:
@@ -251,8 +262,10 @@ class TestHandleWatch:
             args = make_args(id="123", interval=0, timeout=1)
             with patch("time.sleep"), patch("time.monotonic", side_effect=[0, 0, 2]):
                 ci_cmd.handle_watch(args, fmt="table")
-        out = capsys.readouterr().out
-        assert "Timed out" in out
+        # タイムアウト通知は診断メッセージのため stderr に出力される
+        # (json モードで stdout の JSON を壊さないため)
+        err = capsys.readouterr().err
+        assert "Timed out" in err
 
     def test_watch_error_propagation(self):
         with patch_adapter("gfo.commands.ci") as adapter:

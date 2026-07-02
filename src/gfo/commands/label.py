@@ -8,7 +8,7 @@ import re
 from gfo.commands import get_adapter
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -48,7 +48,13 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         raise ConfigError(_("name must not be empty."))
     adapter = get_adapter()
     adapter.delete_label(name=name)
-    print(_("Deleted label '{name}'.").format(name=name))
+    output_result(
+        _("Deleted label '{name}'.").format(name=name),
+        result="deleted",
+        name=name,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -122,4 +128,11 @@ def handle_clone(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
         else:
             adapter.create_label(name=lb.name, color=lb.color, description=lb.description)
         created += 1
-    print(_("Cloned {count} labels from '{source}'.").format(count=created, source=source_repo))
+    output_result(
+        _("Cloned {count} labels from '{source}'.").format(count=created, source=source_repo),
+        result="cloned",
+        count=created,
+        source=source_repo,
+        fmt=fmt,
+        jq=jq,
+    )

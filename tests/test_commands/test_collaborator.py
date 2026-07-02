@@ -84,6 +84,17 @@ class TestHandleAdd:
                 collab_cmd.handle_add(args, fmt="table")
             adapter.add_collaborator.assert_called_once_with(username="user1", permission=perm)
 
+    def test_add_json_format(self, capsys):
+        """fmt="json" で構造化された成功 JSON が出力される。"""
+        with patch_adapter("gfo.commands.collaborator") as adapter:
+            args = make_args(username="charlie", permission="write")
+            collab_cmd.handle_add(args, fmt="json")
+        adapter.add_collaborator.assert_called_once_with(username="charlie", permission="write")
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "added"
+        assert data["username"] == "charlie"
+        assert data["message"]
+
     def test_add_error_propagation(self):
         """HttpError(403) がそのまま伝搬する。"""
         with patch_adapter("gfo.commands.collaborator") as adapter:

@@ -176,6 +176,38 @@ class TestHandlePutSuccessMessage:
         assert "new.txt" in out
         assert "commit" not in out
 
+    def test_put_json_format_with_sha(self, capsys):
+        """fmt="json" で構造化 JSON（result / path / sha / message）が出力される。"""
+        with patch_adapter("gfo.commands.file") as adapter:
+            adapter.get_file_content.return_value = ("old content", "abc123")
+            adapter.create_or_update_file.return_value = "def456"
+            args = make_args(path="readme.md", message="Update", branch=None)
+            with patch("gfo.commands.file.sys.stdin") as mock_stdin:
+                mock_stdin.read.return_value = "new content"
+                file_cmd.handle_put(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "updated"
+        assert data["path"] == "readme.md"
+        assert data["sha"] == "def456"
+        assert data["message"]
+
+    def test_put_json_format_without_sha(self, capsys):
+        """fmt="json" で commit SHA なしの場合 sha が null になる。"""
+        with patch_adapter("gfo.commands.file") as adapter:
+            adapter.get_file_content.side_effect = NotFoundError()
+            adapter.create_or_update_file.return_value = None
+            args = make_args(path="new.txt", message="Add file", branch=None)
+            with patch("gfo.commands.file.sys.stdin") as mock_stdin:
+                mock_stdin.read.return_value = "hello"
+                file_cmd.handle_put(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "updated"
+        assert data["path"] == "new.txt"
+        assert data["sha"] is None
+        assert data["message"]
+
 
 class TestHandleDeleteSuccessMessage:
     def test_delete_prints_success_message(self, capsys):
@@ -186,3 +218,15 @@ class TestHandleDeleteSuccessMessage:
             file_cmd.handle_delete(args, fmt="table")
         out = capsys.readouterr().out
         assert "old.txt" in out
+
+    def test_delete_json_format(self, capsys):
+        """fmt="json" で構造化 JSON（result / path / message）が出力される。"""
+        with patch_adapter("gfo.commands.file") as adapter:
+            adapter.get_file_content.return_value = ("content", "deadbeef")
+            args = make_args(path="old.txt", message="Remove file", branch=None)
+            file_cmd.handle_delete(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "deleted"
+        assert data["path"] == "old.txt"
+        assert data["message"]

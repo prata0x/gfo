@@ -6,7 +6,7 @@ import argparse
 
 from gfo.commands import get_adapter
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -34,4 +34,10 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo gpg-key delete <id> のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_gpg_key(key_id=args.id)
-    print(_("Deleted GPG key '{id}'.").format(id=args.id))
+    output_result(
+        _("Deleted GPG key '{id}'.").format(id=args.id),
+        result="deleted",
+        fmt=fmt,
+        jq=jq,
+        id=args.id,
+    )

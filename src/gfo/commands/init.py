@@ -15,6 +15,7 @@ from gfo.detect import DetectResult, detect_from_url, detect_service, normalize_
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 from gfo.git_util import get_remote_url, git_config_set
 from gfo.i18n import _
+from gfo.output import output_result
 
 _VALID_SERVICE_TYPES = frozenset(
     {
@@ -34,12 +35,12 @@ _VALID_SERVICE_TYPES = frozenset(
 def handle(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo init のハンドラ。"""
     if getattr(args, "non_interactive", False):
-        _handle_non_interactive(args)
+        _handle_non_interactive(args, fmt=fmt, jq=jq)
     else:
-        _handle_interactive(args)
+        _handle_interactive(args, fmt=fmt, jq=jq)
 
 
-def _handle_non_interactive(args: argparse.Namespace) -> None:
+def _handle_non_interactive(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """--non-interactive モードの処理。"""
     service_type = getattr(args, "type", None)
     host = getattr(args, "host", None)
@@ -97,10 +98,17 @@ def _handle_non_interactive(args: argparse.Namespace) -> None:
     account = getattr(args, "account", None)
     if account:
         git_config_set("gfo.account", account)
-    print(_("Initialized: {service_type} at {host}").format(service_type=service_type, host=host))
+    output_result(
+        _("Initialized: {service_type} at {host}").format(service_type=service_type, host=host),
+        result="initialized",
+        service_type=service_type,
+        host=host,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
-def _handle_interactive(args: argparse.Namespace) -> None:
+def _handle_interactive(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """対話モードの処理。"""
     detect_result: DetectResult | None = None
 
@@ -217,4 +225,11 @@ def _handle_interactive(args: argparse.Namespace) -> None:
     account = getattr(args, "account", None)
     if account:
         git_config_set("gfo.account", account)
-    print(_("Initialized: {service_type} at {host}").format(service_type=service_type, host=host))
+    output_result(
+        _("Initialized: {service_type} at {host}").format(service_type=service_type, host=host),
+        result="initialized",
+        service_type=service_type,
+        host=host,
+        fmt=fmt,
+        jq=jq,
+    )

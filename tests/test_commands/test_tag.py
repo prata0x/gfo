@@ -174,3 +174,14 @@ class TestHandleDeleteSuccessMessage:
             tag_cmd.handle_delete(args, fmt="table")
         out = capsys.readouterr().out
         assert "v1.0.0" in out
+
+    def test_delete_json_format(self, capsys):
+        """fmt="json" で構造化 JSON（result / tag / message）が出力される。"""
+        with patch_adapter("gfo.commands.tag"):
+            args = make_args(name="v1.0.0")
+            tag_cmd.handle_delete(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "deleted"
+        assert data["tag"] == "v1.0.0"
+        assert data["message"]

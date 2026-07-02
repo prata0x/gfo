@@ -262,6 +262,17 @@ class TestHandleDelete:
         out = capsys.readouterr().out
         assert "Aborted" in out
 
+    def test_delete_json_format(self, capsys):
+        """fmt="json" で構造化された成功 JSON が出力される。"""
+        with patch_adapter("gfo.commands.org") as adapter:
+            args = make_args(name="my-org", yes=True)
+            org_cmd.handle_delete(args, fmt="json")
+        adapter.delete_organization.assert_called_once_with("my-org")
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "deleted"
+        assert data["name"] == "my-org"
+        assert data["message"]
+
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.org") as adapter:
             adapter.delete_organization.side_effect = HttpError(403, "Forbidden")

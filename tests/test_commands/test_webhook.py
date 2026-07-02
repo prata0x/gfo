@@ -45,6 +45,17 @@ class TestHandleDelete:
             webhook_cmd.handle_delete(args, fmt="table")
         adapter.delete_webhook.assert_called_once_with(hook_id=1)
 
+    def test_json_format(self, capsys):
+        """fmt="json" のとき構造化 JSON が出力される。"""
+        with patch_adapter("gfo.commands.webhook"):
+            args = make_args(id=42)
+            webhook_cmd.handle_delete(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "deleted"
+        assert data["id"] == 42
+        assert data["message"]
+
 
 class TestHandleTest:
     def test_calls_test_webhook(self):
@@ -58,6 +69,17 @@ class TestHandleTest:
             args = make_args(id=42)
             webhook_cmd.handle_test(args, fmt="table")
         adapter.test_webhook.assert_called_once_with(hook_id=42)
+
+    def test_json_format(self, capsys):
+        """fmt="json" のとき構造化 JSON が出力される。"""
+        with patch_adapter("gfo.commands.webhook"):
+            args = make_args(id=42)
+            webhook_cmd.handle_test(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "tested"
+        assert data["id"] == 42
+        assert data["message"]
 
 
 class TestHandleEdit:

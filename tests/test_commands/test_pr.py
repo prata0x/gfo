@@ -485,6 +485,20 @@ class TestHandleMerge:
             1, method="merge", title="Title only", message=None
         )
 
+    def test_json_output_with_delete_branch(self, sample_config, mock_adapter, capsys):
+        """fmt=json + --delete-branch では単一の構造化 JSON を出力する。"""
+        args = make_args(number=1, merge=False, squash=False, rebase=False, delete_branch=True)
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_merge(args, fmt="json")
+
+        out = capsys.readouterr().out
+        assert len(out.strip().splitlines()) == 1
+        data = json.loads(out)
+        assert data["result"] == "merged"
+        assert data["number"] == 1
+        assert data["deleted_branch"] == "feature/test"
+        assert data["message"]
+
 
 class TestHandleClose:
     def test_calls_close_pull_request(self, sample_config, mock_adapter):
@@ -493,6 +507,17 @@ class TestHandleClose:
             pr_cmd.handle_close(args, fmt="table")
 
         mock_adapter.close_pull_request.assert_called_once_with(1)
+
+    def test_json_output(self, sample_config, mock_adapter, capsys):
+        """fmt=json では構造化された成功 JSON を出力する。"""
+        args = make_args(number=42)
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_close(args, fmt="json")
+
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "closed"
+        assert data["number"] == 42
+        assert data["message"]
 
 
 class TestHandleReopen:
@@ -1206,6 +1231,27 @@ class TestHandleCreateDryRun:
         mock_adapter.create_pull_request.assert_not_called()
         out = capsys.readouterr().out
         assert "My PR" in out
+
+    def test_dry_run_json_structured_output(self, sample_config, mock_adapter, capsys):
+        """--dry-run + fmt=json では単一の構造化 JSON を出力する。"""
+        args = make_args(
+            head="feature/test",
+            base="main",
+            title="My PR",
+            body="Detailed description",
+            draft=True,
+            dry_run=True,
+        )
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_create(args, fmt="json")
+        mock_adapter.create_pull_request.assert_not_called()
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "dry_run"
+        assert data["title"] == "My PR"
+        assert data["head"] == "feature/test"
+        assert data["base"] == "main"
+        assert data["draft"] is True
+        assert data["body"] == "Detailed description"
 
 
 class TestHandleCreateWeb:

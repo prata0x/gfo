@@ -20,7 +20,7 @@ from gfo.exceptions import ConfigError, GfoError, NotSupportedError, PartialFail
 if TYPE_CHECKING:
     from gfo.adapter.base import GitServiceAdapter
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,21 +122,39 @@ def handle_close(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     """gfo issue close <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.close_issue(args.number)
-    print(_("Closed issue #{number}.").format(number=args.number))
+    output_result(
+        _("Closed issue #{number}.").format(number=args.number),
+        result="closed",
+        number=args.number,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_reopen(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue reopen <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.reopen_issue(args.number)
-    print(_("Reopened issue #{number}.").format(number=args.number))
+    output_result(
+        _("Reopened issue #{number}.").format(number=args.number),
+        result="reopened",
+        number=args.number,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue delete <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_issue(args.number)
-    print(_("Deleted issue '{number}'.").format(number=args.number))
+    output_result(
+        _("Deleted issue '{number}'.").format(number=args.number),
+        result="deleted",
+        number=args.number,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -172,10 +190,15 @@ def handle_reaction(args: argparse.Namespace, *, fmt: str, jq: str | None = None
         output(reaction, fmt=fmt, jq=jq)
     elif action == "remove":
         adapter.remove_issue_reaction(args.number, args.reaction)
-        print(
+        output_result(
             _("Removed reaction '{reaction}' from issue #{number}.").format(
                 reaction=args.reaction, number=args.number
-            )
+            ),
+            result="removed",
+            reaction=args.reaction,
+            number=args.number,
+            fmt=fmt,
+            jq=jq,
         )
 
 
@@ -190,17 +213,27 @@ def handle_depends(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
         output(deps, fmt=fmt, fields=["number", "title", "state"], jq=jq)
     elif action == "add":
         adapter.add_issue_dependency(args.number, args.depends_on)
-        print(
+        output_result(
             _("Added dependency #{depends_on} to issue #{number}.").format(
                 depends_on=args.depends_on, number=args.number
-            )
+            ),
+            result="added",
+            depends_on=args.depends_on,
+            number=args.number,
+            fmt=fmt,
+            jq=jq,
         )
     elif action == "remove":
         adapter.remove_issue_dependency(args.number, args.depends_on)
-        print(
+        output_result(
             _("Removed dependency #{depends_on} from issue #{number}.").format(
                 depends_on=args.depends_on, number=args.number
-            )
+            ),
+            result="removed",
+            depends_on=args.depends_on,
+            number=args.number,
+            fmt=fmt,
+            jq=jq,
         )
 
 
@@ -215,42 +248,78 @@ def handle_lock(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     """gfo issue lock <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.lock_issue(args.number, reason=getattr(args, "reason", None))
-    print(_("Locked issue #{number}.").format(number=args.number))
+    output_result(
+        _("Locked issue #{number}.").format(number=args.number),
+        result="locked",
+        number=args.number,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_unlock(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue unlock <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.unlock_issue(args.number)
-    print(_("Unlocked issue #{number}.").format(number=args.number))
+    output_result(
+        _("Unlocked issue #{number}.").format(number=args.number),
+        result="unlocked",
+        number=args.number,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_subscribe(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue subscribe <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.subscribe_issue(args.number)
-    print(_("Subscribed to issue #{number}.").format(number=args.number))
+    output_result(
+        _("Subscribed to issue #{number}.").format(number=args.number),
+        result="subscribed",
+        number=args.number,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_unsubscribe(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue unsubscribe <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.unsubscribe_issue(args.number)
-    print(_("Unsubscribed from issue #{number}.").format(number=args.number))
+    output_result(
+        _("Unsubscribed from issue #{number}.").format(number=args.number),
+        result="unsubscribed",
+        number=args.number,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_pin(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue pin <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.pin_issue(args.number)
-    print(_("Pinned issue '{number}'.").format(number=args.number))
+    output_result(
+        _("Pinned issue '{number}'.").format(number=args.number),
+        result="pinned",
+        number=args.number,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def handle_unpin(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo issue unpin <number> のハンドラ。"""
     adapter = get_adapter()
     adapter.unpin_issue(args.number)
-    print(_("Unpinned issue '{number}'.").format(number=args.number))
+    output_result(
+        _("Unpinned issue '{number}'.").format(number=args.number),
+        result="unpinned",
+        number=args.number,
+        fmt=fmt,
+        jq=jq,
+    )
 
 
 def _parse_duration(s: str) -> int:
@@ -296,7 +365,13 @@ def handle_time(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         output(entry, fmt=fmt, jq=jq)
     elif action == "delete":
         adapter.delete_time_entry(args.number, args.entry_id)
-        print(_("Deleted time entry '{entry_id}'.").format(entry_id=args.entry_id))
+        output_result(
+            _("Deleted time entry '{entry_id}'.").format(entry_id=args.entry_id),
+            result="deleted",
+            entry_id=args.entry_id,
+            fmt=fmt,
+            jq=jq,
+        )
 
 
 def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

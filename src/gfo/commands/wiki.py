@@ -6,7 +6,7 @@ import argparse
 
 from gfo.commands import get_adapter
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -41,7 +41,13 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo wiki delete <id> のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_wiki_page(args.id)
-    print(_("Deleted wiki page '{id}'.").format(id=args.id))
+    output_result(
+        _("Deleted wiki page '{id}'.").format(id=args.id),
+        result="deleted",
+        fmt=fmt,
+        jq=jq,
+        id=args.id,
+    )
 
 
 def handle_revisions(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

@@ -175,3 +175,14 @@ class TestHandleDeleteSuccessMessage:
             branch_cmd.handle_delete(args, fmt="table")
         out = capsys.readouterr().out
         assert "feature/old" in out
+
+    def test_delete_json_format(self, capsys):
+        """fmt="json" で構造化 JSON（result / branch / message）が出力される。"""
+        with patch_adapter("gfo.commands.branch"):
+            args = make_args(name="feature/old")
+            branch_cmd.handle_delete(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "deleted"
+        assert data["branch"] == "feature/old"
+        assert data["message"]

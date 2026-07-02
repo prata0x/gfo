@@ -140,6 +140,17 @@ class TestHandleDelete:
             tp_cmd.handle_delete(args, fmt="table")
         adapter.delete_tag_protection.assert_called_once_with("v*")
 
+    def test_delete_json_format(self, capsys):
+        """fmt="json" で構造化 JSON（result / id / message）が出力される。"""
+        with patch_adapter("gfo.commands.tag_protect"):
+            args = make_args(id=1)
+            tp_cmd.handle_delete(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "deleted"
+        assert data["id"] == 1
+        assert data["message"]
+
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.tag_protect") as adapter:
             adapter.delete_tag_protection.side_effect = HttpError(404, "Not found")

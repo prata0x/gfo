@@ -19,7 +19,7 @@ from gfo.detect import detect_service, get_known_service_type, probe_unknown_hos
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 from gfo.git_util import git_clone
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -225,10 +225,16 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
             ).format(repo_name=repo_name)
         )
         if confirm.lower() not in ("y", "yes"):
-            print(_("Aborted."))
+            output_result(_("Aborted."), result="aborted", fmt=fmt, jq=jq)
             return
     adapter.delete_repository()
-    print(_("Deleted repository '{repo_name}'.").format(repo_name=repo_name))
+    output_result(
+        _("Deleted repository '{repo_name}'.").format(repo_name=repo_name),
+        result="deleted",
+        fmt=fmt,
+        jq=jq,
+        repository=repo_name,
+    )
 
 
 def handle_fork(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -242,7 +248,7 @@ def handle_sync_fork(args: argparse.Namespace, *, fmt: str, jq: str | None = Non
     """gfo repo sync のハンドラ。"""
     adapter = get_adapter()
     adapter.sync_fork(branch=getattr(args, "branch", None))
-    print(_("Fork synced with upstream."))
+    output_result(_("Fork synced with upstream."), result="synced", fmt=fmt, jq=jq)
 
 
 def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -277,10 +283,16 @@ def handle_archive(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
             )
         )
         if confirm.lower() not in ("y", "yes"):
-            print(_("Aborted."))
+            output_result(_("Aborted."), result="aborted", fmt=fmt, jq=jq)
             return
     adapter.archive_repository()
-    print(_("Archived repository '{repo_name}'.").format(repo_name=repo_name))
+    output_result(
+        _("Archived repository '{repo_name}'.").format(repo_name=repo_name),
+        result="archived",
+        fmt=fmt,
+        jq=jq,
+        repository=repo_name,
+    )
 
 
 def handle_unarchive(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -288,7 +300,13 @@ def handle_unarchive(args: argparse.Namespace, *, fmt: str, jq: str | None = Non
     adapter = get_adapter()
     repo_name = f"{adapter.owner}/{adapter.repo}"
     adapter.update_repository(archived=False)
-    print(_("Unarchived repository '{repo_name}'.").format(repo_name=repo_name))
+    output_result(
+        _("Unarchived repository '{repo_name}'.").format(repo_name=repo_name),
+        result="unarchived",
+        fmt=fmt,
+        jq=jq,
+        repository=repo_name,
+    )
 
 
 def handle_languages(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -400,10 +418,16 @@ def handle_mirror(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         output(mirror, fmt=fmt, jq=jq)
     elif action == "remove":
         adapter.delete_push_mirror(args.mirror_name)
-        print(_("Deleted push mirror '{name}'.").format(name=args.mirror_name))
+        output_result(
+            _("Deleted push mirror '{name}'.").format(name=args.mirror_name),
+            result="deleted",
+            fmt=fmt,
+            jq=jq,
+            name=args.mirror_name,
+        )
     elif action == "sync":
         adapter.sync_mirror()
-        print(_("Mirror sync triggered."))
+        output_result(_("Mirror sync triggered."), result="sync_triggered", fmt=fmt, jq=jq)
 
 
 def handle_transfer(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -417,17 +441,22 @@ def handle_transfer(args: argparse.Namespace, *, fmt: str, jq: str | None = None
             ).format(repo_name=repo_name, new_owner=args.new_owner)
         )
         if confirm.lower() not in ("y", "yes"):
-            print(_("Aborted."))
+            output_result(_("Aborted."), result="aborted", fmt=fmt, jq=jq)
             return
     team_ids = None
     raw = getattr(args, "team_id", None)
     if raw is not None:
         team_ids = [raw]
     adapter.transfer_repository(args.new_owner, team_ids=team_ids)
-    print(
+    output_result(
         _("Transferred repository '{repo_name}' to '{new_owner}'.").format(
             repo_name=repo_name, new_owner=args.new_owner
-        )
+        ),
+        result="transferred",
+        fmt=fmt,
+        jq=jq,
+        repository=repo_name,
+        new_owner=args.new_owner,
     )
 
 
@@ -435,13 +464,23 @@ def handle_star(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     """gfo repo star のハンドラ。"""
     adapter = get_adapter()
     adapter.star_repository()
-    print(_("Starred repository '{owner}/{repo}'.").format(owner=adapter.owner, repo=adapter.repo))
+    output_result(
+        _("Starred repository '{owner}/{repo}'.").format(owner=adapter.owner, repo=adapter.repo),
+        result="starred",
+        fmt=fmt,
+        jq=jq,
+        repository=f"{adapter.owner}/{adapter.repo}",
+    )
 
 
 def handle_unstar(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo unstar のハンドラ。"""
     adapter = get_adapter()
     adapter.unstar_repository()
-    print(
-        _("Unstarred repository '{owner}/{repo}'.").format(owner=adapter.owner, repo=adapter.repo)
+    output_result(
+        _("Unstarred repository '{owner}/{repo}'.").format(owner=adapter.owner, repo=adapter.repo),
+        result="unstarred",
+        fmt=fmt,
+        jq=jq,
+        repository=f"{adapter.owner}/{adapter.repo}",
     )

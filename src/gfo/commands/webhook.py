@@ -6,7 +6,7 @@ import argparse
 
 from gfo.commands import get_adapter
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -27,14 +27,26 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo webhook delete <id> のハンドラ。"""
     adapter = get_adapter()
     adapter.delete_webhook(hook_id=args.id)
-    print(_("Deleted webhook '{id}'.").format(id=args.id))
+    output_result(
+        _("Deleted webhook '{id}'.").format(id=args.id),
+        result="deleted",
+        fmt=fmt,
+        jq=jq,
+        id=args.id,
+    )
 
 
 def handle_test(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo webhook test <id> のハンドラ。"""
     adapter = get_adapter()
     adapter.test_webhook(hook_id=args.id)
-    print(_("Tested webhook '{id}'.").format(id=args.id))
+    output_result(
+        _("Tested webhook '{id}'.").format(id=args.id),
+        result="tested",
+        fmt=fmt,
+        jq=jq,
+        id=args.id,
+    )
 
 
 def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

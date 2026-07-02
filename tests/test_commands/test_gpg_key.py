@@ -110,6 +110,17 @@ class TestHandleDelete:
         assert "Deleted" in out
         assert "1" in out
 
+    def test_json_format(self, capsys):
+        """fmt="json" のとき構造化 JSON が出力される。"""
+        with patch_adapter("gfo.commands.gpg_key"):
+            args = make_args(id=1)
+            gpg_key_cmd.handle_delete(args, fmt="json")
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["result"] == "deleted"
+        assert data["id"] == 1
+        assert data["message"]
+
     def test_calls_delete_gpg_key_string_id(self):
         with patch_adapter("gfo.commands.gpg_key") as adapter:
             args = make_args(id="abc-123")
