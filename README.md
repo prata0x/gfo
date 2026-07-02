@@ -53,6 +53,16 @@ gfo issue create --title "Bug report"
 gfo repo clone alice/my-project
 ```
 
+### Non-interactive environments (CI / AI agents)
+
+`gfo init` asks for confirmation of the detected service, so it fails with an EOF error when stdin is unavailable. In CI pipelines or when driven by an AI agent, use `--non-interactive`:
+
+```bash
+gfo init --non-interactive --type github --host github.com
+```
+
+For token setup without a prompt, use `gfo auth login --token-stdin` (or a service-specific environment variable such as `GITHUB_TOKEN`).
+
 ## Authentication
 
 Token resolution order:

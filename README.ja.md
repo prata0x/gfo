@@ -53,6 +53,16 @@ gfo issue create --title "Bug report"
 gfo repo clone alice/my-project
 ```
 
+### 非対話環境（CI / AI agent）
+
+`gfo init` は検出結果の確認プロンプトを出すため、stdin がない環境では EOF エラーで失敗する。CI パイプラインや AI agent から実行する場合は `--non-interactive` を使うこと:
+
+```bash
+gfo init --non-interactive --type github --host github.com
+```
+
+トークンもプロンプトなしで設定するには `gfo auth login --token-stdin`（またはサービス別環境変数 `GITHUB_TOKEN` 等）を使う。
+
 ## 認証
 
 トークンの解決順序:
