@@ -55,3 +55,18 @@ def _to_pull_request(data: dict) -> PullRequest:
 
 `ValueError` や `IndexError` 等の追加例外も捕捉する必要があるケースだけ
 手書きの try/except を残す (デコレータでは捕捉しないため)。
+
+## エラーメッセージの i18n（必須）
+
+ユーザー向け例外（`GfoError` / `ConfigError` / `AuthError` / `DetectionError` /
+`HttpError` 系）に渡すメッセージは必ず `_()` を通し、`.po` に ja 訳を追加する:
+
+```python
+raise ConfigError(_("No tokens configured for host: {host}").format(host=host))
+```
+
+- f-string を直接渡さない（msgid はリテラルである必要がある。`_("...").format(...)` を使う）
+- `tests/test_i18n_lint.py` が `src/gfo/*.py`（トップレベル）を AST 検査で強制する。
+  adapter/ と commands/ は未対応箇所が残るため対象外（issue #83 で追跡）
+- 内部契約エラー（`ValueError` 等、上表参照）と `NotSupportedError` /
+  `UnsupportedServiceError`（識別子を受け取り内部で i18n 済みテンプレートに埋め込む）は対象外

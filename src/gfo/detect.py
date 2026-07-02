@@ -13,6 +13,7 @@ import requests
 
 from gfo.exceptions import DetectionError, GitCommandError
 from gfo.git_util import _mask_credentials, get_remote_url, git_config_get
+from gfo.i18n import _
 
 
 def normalize_host(value: str) -> str:
@@ -107,7 +108,7 @@ def _parse_url(remote_url: str) -> tuple[str, str]:
         m = pattern.match(remote_url)
         if m:
             return m.group("host"), m.group("path")
-    raise DetectionError(f"Cannot parse URL: {_mask_credentials(remote_url)}")
+    raise DetectionError(_("Cannot parse URL: {url}").format(url=_mask_credentials(remote_url)))
 
 
 def detect_from_url(remote_url: str) -> DetectResult:
@@ -153,7 +154,9 @@ def detect_from_url(remote_url: str) -> DetectResult:
                 repo=m.group("repo"),
                 project=m.group("owner"),
             )
-        raise DetectionError(f"Cannot parse Backlog path: {_mask_credentials(path)}")
+        raise DetectionError(
+            _("Cannot parse Backlog path: {path}").format(path=_mask_credentials(path))
+        )
 
     # 既知ホストテーブル照合
     service_type = _KNOWN_HOSTS.get(host.lower())
@@ -178,7 +181,9 @@ def detect_from_url(remote_url: str) -> DetectResult:
                 organization=org,
                 project=m.group("project"),
             )
-        raise DetectionError(f"Cannot parse Azure DevOps path: {_mask_credentials(path)}")
+        raise DetectionError(
+            _("Cannot parse Azure DevOps path: {path}").format(path=_mask_credentials(path))
+        )
 
     # 既知ホスト + 汎用パス
     if service_type is not None:
@@ -190,7 +195,7 @@ def detect_from_url(remote_url: str) -> DetectResult:
                 owner=m.group("owner"),
                 repo=m.group("repo"),
             )
-        raise DetectionError(f"Cannot parse path: {_mask_credentials(path)}")
+        raise DetectionError(_("Cannot parse path: {path}").format(path=_mask_credentials(path)))
 
     # 未知ホスト → service_type=None
     m = _GENERIC_PATH_RE.match(path)
@@ -201,7 +206,7 @@ def detect_from_url(remote_url: str) -> DetectResult:
             owner=m.group("owner"),
             repo=m.group("repo"),
         )
-    raise DetectionError(f"Cannot parse path: {_mask_credentials(path)}")
+    raise DetectionError(_("Cannot parse path: {path}").format(path=_mask_credentials(path)))
 
 
 # ── API プローブ ──
@@ -319,7 +324,6 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
 def _parse_repo_option(value: str) -> DetectResult:
     """--repo オプションの値をパースして DetectResult を返す。"""
     from gfo.exceptions import ConfigError
-    from gfo.i18n import _
 
     if not value or not value.strip():
         raise ConfigError(_("--repo value must not be empty. Use URL or HOST/OWNER/REPO format."))
@@ -426,6 +430,6 @@ def detect_service(cwd: str | None = None) -> DetectResult:
 
     # 5. 全失敗
     if result.service_type is None:
-        raise DetectionError(f"Unknown host: {result.host}")
+        raise DetectionError(_("Unknown host: {host}").format(host=result.host))
 
     return result
