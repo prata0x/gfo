@@ -5,10 +5,12 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from gfo.adapter.base import Comment, Issue, Label
 from gfo.commands import issue as issue_cmd
 from gfo.commands.issue import _migrate_one_issue, _sync_labels
-from gfo.exceptions import HttpError, NotSupportedError
+from gfo.exceptions import ExitCode, HttpError, NotSupportedError, PartialFailureError
 from tests.test_commands.conftest import make_args
 
 
@@ -332,8 +334,12 @@ class TestMigratePartialFailure:
             numbers="1,2",
             migrate_all=False,
         )
-        issue_cmd.handle_migrate(args, fmt="json")
+        with pytest.raises(PartialFailureError) as exc:
+            issue_cmd.handle_migrate(args, fmt="json")
 
+        assert exc.value.failed == 1
+        assert exc.value.total == 2
+        assert exc.value.exit_code == ExitCode.PARTIAL_FAILURE
         captured = capsys.readouterr()
         results = json.loads(captured.out)
         assert len(results) == 2

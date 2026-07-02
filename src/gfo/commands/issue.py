@@ -15,7 +15,7 @@ from gfo.commands import (
     parse_service_spec,
     read_file_arg,
 )
-from gfo.exceptions import ConfigError, GfoError, NotSupportedError
+from gfo.exceptions import ConfigError, GfoError, NotSupportedError, PartialFailureError
 
 if TYPE_CHECKING:
     from gfo.adapter.base import GitServiceAdapter
@@ -471,3 +471,8 @@ def handle_migrate(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
         results.append(result)
 
     output(results, fmt=fmt, fields=["source_number", "target_number", "success", "error"], jq=jq)
+
+    # 1 件でも失敗があれば非 0 の exit code で失敗を通知する（結果出力は済んでいる）
+    failed = sum(1 for r in results if not r.success)
+    if failed:
+        raise PartialFailureError(failed, len(results))

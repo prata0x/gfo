@@ -21,6 +21,7 @@ GfoError
 │   └── ServerError         # 5xx
 ├── NetworkError            # ConnectionError/Timeout/SSLError
 ├── NotSupportedError       # サービスが非対応の操作
+├── PartialFailureError     # 一括処理（batch / migrate）で 1 件以上失敗
 └── UnsupportedServiceError # 未知のサービス種別
 ```
 
@@ -32,6 +33,7 @@ GfoError
 | トークン未設定 | `AuthError` |
 | API レスポンス構造が予期しない | `GfoError`（KeyError/TypeError/AttributeError をラップ） |
 | HTTP 内部のバリデーション | `ValueError`（そのまま OK） |
+| 一括処理の部分失敗（結果出力後の exit code シグナル） | `PartialFailureError` |
 
 ## `_to_*` 内のラップパターン（必須）
 
