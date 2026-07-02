@@ -107,6 +107,18 @@ msgstr "{value} は正の整数ではありません"
 msgid "{value} is not a non-negative integer"
 msgstr "{value} は 0 以上の整数ではありません"
 
+msgid "No command specified."
+msgstr "コマンドが指定されていません。"
+
+msgid "Run 'gfo --help' to see available commands."
+msgstr "利用可能なコマンドは 'gfo --help' で確認できます。"
+
+msgid "No subcommand specified for '{command}'."
+msgstr "'{command}' のサブコマンドが指定されていません。"
+
+msgid "Run 'gfo {command} --help' to see available subcommands."
+msgstr "利用可能なサブコマンドは 'gfo {command} --help' で確認できます。"
+
 msgid "Unexpected error: {err}"
 msgstr "予期しないエラー: {err}"
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -15,6 +16,7 @@ from gfo.cli import (
     _non_negative_int,
     _positive_int,
     _pre_parse_format,
+    _pre_parse_resolve_format,
     _resolve_format,
     create_parser,
     main,
@@ -839,7 +841,11 @@ def test_dispatch_table_all_callable():
 
 
 def test_main_no_args_returns_1(capsys):
-    result = main([])
+    with (
+        patch("gfo.cli.get_configured_output_format", return_value=None),
+        patch.dict("os.environ", {"GFO_NO_AUTO_JSON": "1"}, clear=False),
+    ):
+        result = main([])
     assert result == 1
     captured = capsys.readouterr()
     assert "gfo" in captured.out  # help テキストに prog 名が含まれる
@@ -854,8 +860,93 @@ def test_main_version(capsys):
 
 
 def test_main_subcommand_only_returns_1(capsys):
-    result = main(["pr"])
+    with (
+        patch("gfo.cli.get_configured_output_format", return_value=None),
+        patch.dict("os.environ", {"GFO_NO_AUTO_JSON": "1"}, clear=False),
+    ):
+        result = main(["pr"])
     assert result == 1
+    captured = capsys.readouterr()
+    assert "pr" in captured.out  # サブコマンドの help が表示される
+
+
+def test_main_no_args_json_when_non_tty(capsys):
+    """非 TTY の auto-JSON でコマンド未指定が構造化エラーになる。"""
+    with (
+        patch("gfo.cli.get_configured_output_format", return_value=None),
+        patch("gfo.cli.sys.stdout") as mock_stdout,
+        patch.dict("os.environ", {}, clear=False),
+    ):
+        mock_stdout.isatty.return_value = False
+        import os
+
+        os.environ.pop("GFO_NO_AUTO_JSON", None)
+        result = main([])
+    assert result == 1
+    err = capsys.readouterr().err
+    data = json.loads(err)
+    assert data["error"] == "general_error"
+    assert data["exit_code"] == 1
+    assert "hint" in data
+
+
+def test_main_subcommand_only_json_when_non_tty(capsys):
+    """非 TTY の auto-JSON でサブコマンド未指定が構造化エラーになる。"""
+    with (
+        patch("gfo.cli.get_configured_output_format", return_value=None),
+        patch("gfo.cli.sys.stdout") as mock_stdout,
+        patch.dict("os.environ", {}, clear=False),
+    ):
+        mock_stdout.isatty.return_value = False
+        import os
+
+        os.environ.pop("GFO_NO_AUTO_JSON", None)
+        result = main(["pr"])
+    assert result == 1
+    err = capsys.readouterr().err
+    data = json.loads(err)
+    assert data["error"] == "general_error"
+    assert "pr" in data["message"]
+    assert "hint" in data
+
+
+def test_main_argparse_error_auto_json_when_non_tty(capsys):
+    """非 TTY の auto-JSON で argparse エラーが構造化される。"""
+    with (
+        patch("gfo.cli.get_configured_output_format", return_value=None),
+        patch("gfo.cli.sys.stdout") as mock_stdout,
+        patch.dict("os.environ", {}, clear=False),
+    ):
+        mock_stdout.isatty.return_value = False
+        import os
+
+        os.environ.pop("GFO_NO_AUTO_JSON", None)
+        result = main(["pr", "list", "--unknown-flag"])
+    assert result == 6
+    err = capsys.readouterr().err
+    data = json.loads(err)
+    assert data["error"] == "config_error"
+    assert "unrecognized arguments" in data["message"]
+
+
+def test_main_repo_remote_exclusive_auto_json_when_non_tty(capsys):
+    """非 TTY の auto-JSON で --repo/--remote 排他エラーが構造化される。"""
+    with (
+        patch("gfo.cli.get_configured_output_format", return_value=None),
+        patch("gfo.cli.sys.stdout") as mock_stdout,
+        patch.dict("os.environ", {}, clear=False),
+    ):
+        mock_stdout.isatty.return_value = False
+        import os
+
+        os.environ.pop("GFO_NO_AUTO_JSON", None)
+        result = main(["--repo", "github.com/o/r", "--remote", "upstream", "pr", "list"])
+    assert result == 6
+    err = capsys.readouterr().err
+    data = json.loads(err)
+    assert data["error"] == "config_error"
+    assert "--repo" in data["message"]
+    assert "--remote" in data["message"]
 
 
 def test_main_normal_dispatch():
@@ -1254,6 +1345,54 @@ def test_pre_parse_format_flag():
 
 def test_pre_parse_format_jq():
     assert _pre_parse_format(["--jq", ".command"]) == "json"
+
+
+# ── _pre_parse_resolve_format のテスト ──
+
+
+def test_pre_parse_resolve_format_explicit_wins():
+    assert _pre_parse_resolve_format(["--format", "plain", "pr", "list"]) == "plain"
+
+
+def test_pre_parse_resolve_format_config_wins():
+    with (
+        patch("gfo.cli.get_configured_output_format", return_value="plain"),
+        patch("gfo.cli.sys.stdout") as mock_stdout,
+    ):
+        mock_stdout.isatty.return_value = False
+        assert _pre_parse_resolve_format(["pr", "list"]) == "plain"
+
+
+def test_pre_parse_resolve_format_non_tty_auto_json():
+    with (
+        patch("gfo.cli.get_configured_output_format", return_value=None),
+        patch("gfo.cli.sys.stdout") as mock_stdout,
+        patch.dict("os.environ", {}, clear=False),
+    ):
+        mock_stdout.isatty.return_value = False
+        import os
+
+        os.environ.pop("GFO_NO_AUTO_JSON", None)
+        assert _pre_parse_resolve_format(["pr", "list"]) == "json"
+
+
+def test_pre_parse_resolve_format_no_auto_json_env():
+    with (
+        patch("gfo.cli.get_configured_output_format", return_value=None),
+        patch("gfo.cli.sys.stdout") as mock_stdout,
+        patch.dict("os.environ", {"GFO_NO_AUTO_JSON": "1"}, clear=False),
+    ):
+        mock_stdout.isatty.return_value = False
+        assert _pre_parse_resolve_format(["pr", "list"]) == "table"
+
+
+def test_pre_parse_resolve_format_broken_config_falls_back_to_table():
+    """config.toml が壊れていてもエラー報告を継続できるよう table に落ちる。"""
+    with patch(
+        "gfo.cli.get_configured_output_format",
+        side_effect=ConfigError("broken config"),
+    ):
+        assert _pre_parse_resolve_format(["pr", "list"]) == "table"
 
 
 # ── --remote グローバルオプションのテスト ──
