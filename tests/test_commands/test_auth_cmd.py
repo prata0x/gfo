@@ -698,3 +698,71 @@ class TestHandleStatusJson:
         captured = capsys.readouterr()
         data = json.loads(captured.out)
         assert data == []
+
+    def test_status_jq_applied(self, capsys):
+        """--jq 指定時に jq フィルタが適用される。"""
+        entries = [
+            {
+                "host": "github.com",
+                "status": "configured",
+                "source": "credentials.toml",
+                "account": "default",
+                "active": "*",
+            },
+        ]
+        args = make_args()
+
+        with (
+            patch("gfo.commands.auth_cmd.gfo.auth.get_auth_status", return_value=entries),
+            patch("gfo.output.apply_jq_filter", return_value='"github.com"') as mock_jq,
+        ):
+            auth_cmd.handle_status(args, fmt="json", jq=".[].host")
+
+        mock_jq.assert_called_once()
+        assert ".[].host" in mock_jq.call_args[0]
+        captured = capsys.readouterr()
+        assert '"github.com"' in captured.out
+
+    def test_status_jq_applied_when_empty(self, capsys):
+        """トークンなしでも --jq 指定時は jq フィルタを通す。"""
+        args = make_args()
+
+        with (
+            patch("gfo.commands.auth_cmd.gfo.auth.get_auth_status", return_value=[]),
+            patch("gfo.output.apply_jq_filter", return_value="0") as mock_jq,
+        ):
+            auth_cmd.handle_status(args, fmt="json", jq="length")
+
+        mock_jq.assert_called_once()
+        captured = capsys.readouterr()
+        assert "0" in captured.out
+
+    def test_status_plain_format(self, capsys):
+        """fmt="plain" でタブ区切り・ヘッダーなしの出力になる。"""
+        entries = [
+            {
+                "host": "github.com",
+                "status": "configured",
+                "source": "credentials.toml",
+                "account": "default",
+                "active": "*",
+            },
+        ]
+        args = make_args()
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.get_auth_status", return_value=entries):
+            auth_cmd.handle_status(args, fmt="plain")
+
+        captured = capsys.readouterr()
+        assert "HOST" not in captured.out
+        assert "github.com\tdefault *\tconfigured\tcredentials.toml" in captured.out
+
+    def test_status_plain_empty_outputs_nothing(self, capsys):
+        """fmt="plain" かつトークンなし → 何も出力しない。"""
+        args = make_args()
+
+        with patch("gfo.commands.auth_cmd.gfo.auth.get_auth_status", return_value=[]):
+            auth_cmd.handle_status(args, fmt="plain")
+
+        captured = capsys.readouterr()
+        assert captured.out == ""

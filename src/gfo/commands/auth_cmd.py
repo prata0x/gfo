@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import getpass
 import sys
 
@@ -11,6 +12,18 @@ import gfo.detect
 from gfo.detect import normalize_host
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 from gfo.i18n import _
+from gfo.output import output
+
+
+@dataclasses.dataclass
+class _AuthStatusEntry:
+    """auth status の 1 エントリ。共通 output() に乗せるための dataclass。"""
+
+    host: str
+    status: str
+    source: str
+    account: str
+    active: str
 
 
 def handle_login(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -86,50 +99,23 @@ def handle_login(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
 
 def handle_status(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo auth status のハンドラ。"""
-    entries = gfo.auth.get_auth_status()
+    entries = [_AuthStatusEntry(**e) for e in gfo.auth.get_auth_status()]
+
+    if fmt == "json":
+        output(entries, fmt=fmt, jq=jq)
+        return
 
     if not entries:
-        if fmt == "json":
-            print("[]")
-        else:
+        if fmt != "plain":
             print(_("No tokens configured."))
         return
 
-    if fmt == "json":
-        import json
-
-        print(json.dumps(entries, ensure_ascii=False, indent=2))
-        return
-
-    col_widths = {
-        "host": max(len(e["host"]) for e in entries),
-        "account": max(
-            (len(e["account"]) + len(e["active"]) + (1 if e["active"] else 0)) for e in entries
-        ),
-        "status": max(len(e["status"]) for e in entries),
-        "source": max(len(e["source"]) for e in entries),
-    }
-    col_widths["host"] = min(max(col_widths["host"], 4), 50)
-    col_widths["account"] = min(max(col_widths["account"], 7), 30)
-    col_widths["status"] = min(max(col_widths["status"], 6), 20)
-    col_widths["source"] = min(max(col_widths["source"], 6), 40)
-
-    header = (
-        f"{_('HOST'):<{col_widths['host']}}  "
-        f"{_('ACCOUNT'):<{col_widths['account']}}  "
-        f"{_('STATUS'):<{col_widths['status']}}  "
-        f"{_('SOURCE'):<{col_widths['source']}}"
-    )
-    print(header)
-    print("-" * len(header))
-    for e in entries:
-        account_display = f"{e['account']} {e['active']}" if e["active"] else e["account"]
-        print(
-            f"{e['host']:<{col_widths['host']}}  "
-            f"{account_display:<{col_widths['account']}}  "
-            f"{e['status']:<{col_widths['status']}}  "
-            f"{e['source']:<{col_widths['source']}}"
-        )
+    # table / plain では active マーク (*) を account 列に畳み込んで表示する
+    display = [
+        dataclasses.replace(e, account=f"{e.account} {e.active}" if e.active else e.account)
+        for e in entries
+    ]
+    output(display, fmt=fmt, fields=["host", "account", "status", "source"])
 
 
 def handle_switch(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
