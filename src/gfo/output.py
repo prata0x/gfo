@@ -8,7 +8,7 @@ import subprocess  # nosec B404 - jq is a fixed, well-known command
 import unicodedata
 from typing import Any
 
-from gfo.exceptions import GfoError
+from gfo.exceptions import GfoError, HttpError
 from gfo.i18n import _
 
 
@@ -84,6 +84,11 @@ def format_error_json(err: GfoError) -> str:
         "message": str(err),
         "exit_code": int(err.exit_code),
     }
+    if isinstance(err, HttpError):
+        d["status_code"] = err.status_code
+        # エラーレスポンスの JSON body をパースした構造化詳細（4xx バリデーション等）
+        if err.details is not None:
+            d["details"] = err.details
     if hasattr(err, "hint") and err.hint:
         d["hint"] = err.hint
     return json.dumps(d, ensure_ascii=False)

@@ -12,6 +12,7 @@ from gfo.exceptions import (
     NotFoundError,
     RateLimitError,
     ServerError,
+    ValidationError,
 )
 from gfo.http import (
     HttpClient,
@@ -339,6 +340,110 @@ class TestErrorBodyTruncation:
         m = re.search(r"\[truncated (\d+) chars\]", msg)
         assert m is not None
         assert int(m.group(1)) == extra
+
+
+class TestStructuredErrorBody:
+    """汎用 4xx の JSON エラーボディは message 抽出 + details 構造化される。"""
+
+    @responses.activate
+    def test_github_422_validation_error(self):
+        """GitHub 形式の 422 は ValidationError になり、errors 配列が message に要約される。"""
+        body = {
+            "message": "Validation Failed",
+            "errors": [{"resource": "Issue", "field": "title", "code": "missing_field"}],
+            "documentation_url": "https://docs.github.com/rest",
+        }
+        responses.add(responses.POST, f"{BASE}/repos/o/r/issues", json=body, status=422)
+        c = HttpClient(BASE)
+        with pytest.raises(ValidationError) as exc_info:
+            c.post("/repos/o/r/issues")
+        err = exc_info.value
+        assert str(err) == "HTTP 422: Validation Failed (Issue.title: missing_field)"
+        assert err.error_code == "validation_error"
+        assert err.details == body
+        assert err.hint
+
+    @responses.activate
+    def test_gitlab_400_message_dict(self):
+        """GitLab 形式の message dict はフィールド名付きで平坦化される。"""
+        body = {"message": {"name": ["has already been taken"]}}
+        responses.add(responses.POST, f"{BASE}/projects", json=body, status=400)
+        c = HttpClient(BASE)
+        with pytest.raises(ValidationError) as exc_info:
+            c.post("/projects")
+        assert "name: has already been taken" in str(exc_info.value)
+        assert exc_info.value.details == body
+
+    @responses.activate
+    def test_bitbucket_error_object(self):
+        """Bitbucket 形式の {"error": {"message": ...}} から message を抽出する。"""
+        body = {"error": {"message": "Repository already exists.", "fields": {"name": ["taken"]}}}
+        responses.add(responses.POST, f"{BASE}/repositories/w", json=body, status=400)
+        c = HttpClient(BASE)
+        with pytest.raises(ValidationError) as exc_info:
+            c.post("/repositories/w")
+        assert "Repository already exists." in str(exc_info.value)
+        assert exc_info.value.details == body
+
+    @responses.activate
+    def test_backlog_errors_list(self):
+        """Backlog 形式の errors 配列から message を抽出する。"""
+        body = {"errors": [{"message": "No project.", "code": 6, "moreInfo": ""}]}
+        responses.add(responses.GET, f"{BASE}/projects/X", json=body, status=400)
+        c = HttpClient(BASE)
+        with pytest.raises(ValidationError) as exc_info:
+            c.get("/projects/X")
+        assert "No project." in str(exc_info.value)
+        assert exc_info.value.details == body
+
+    @responses.activate
+    def test_409_is_generic_http_error_with_details(self):
+        """400/422 以外の汎用 4xx は HttpError のまま details だけ構造化される。"""
+        body = {"message": "Reference already exists"}
+        responses.add(responses.POST, f"{BASE}/repos/o/r/git/refs", json=body, status=409)
+        c = HttpClient(BASE)
+        with pytest.raises(HttpError) as exc_info:
+            c.post("/repos/o/r/git/refs")
+        err = exc_info.value
+        assert not isinstance(err, ValidationError)
+        assert str(err) == "HTTP 409: Reference already exists"
+        assert err.error_code == "general_error"
+        assert err.details == body
+
+    @responses.activate
+    def test_non_json_body_falls_back_to_raw_text(self):
+        """非 JSON body は従来どおり raw テキストが message になり details は付かない。"""
+        responses.add(responses.GET, f"{BASE}/items", body="<html>conflict</html>", status=409)
+        c = HttpClient(BASE)
+        with pytest.raises(HttpError) as exc_info:
+            c.get("/items")
+        assert "<html>conflict</html>" in str(exc_info.value)
+        assert exc_info.value.details is None
+
+    @responses.activate
+    def test_unrecognized_json_keys_fall_back_to_raw_text(self):
+        """message / error / errors を持たない JSON dict は raw テキストに fallback するが
+        details にはパース結果を載せる。"""
+        body = {"reason": "unknown shape"}
+        responses.add(responses.GET, f"{BASE}/items", json=body, status=422)
+        c = HttpClient(BASE)
+        with pytest.raises(ValidationError) as exc_info:
+            c.get("/items")
+        assert "unknown shape" in str(exc_info.value)
+        assert exc_info.value.details == body
+
+    @responses.activate
+    def test_huge_json_body_is_not_parsed(self):
+        """_MAX_ERROR_BODY_CHARS 超の body はパースせず切り詰めのみ（JSON 出力の肥大防止）。"""
+        from gfo.http import _MAX_ERROR_BODY_CHARS
+
+        body = {"message": "X" * (_MAX_ERROR_BODY_CHARS * 2)}
+        responses.add(responses.GET, f"{BASE}/items", json=body, status=422)
+        c = HttpClient(BASE)
+        with pytest.raises(ValidationError) as exc_info:
+            c.get("/items")
+        assert "truncated" in str(exc_info.value)
+        assert exc_info.value.details is None
 
 
 class TestDownloadFileCrossOrigin:

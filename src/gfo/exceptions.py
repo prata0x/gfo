@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from enum import IntEnum
+from typing import Any
 
 from gfo.i18n import _
 
@@ -89,9 +90,12 @@ class AuthError(GfoError):
 class HttpError(GfoError):
     """HTTP リクエストのエラー（基底）。"""
 
-    def __init__(self, status_code: int, message: str, url: str = ""):
+    def __init__(self, status_code: int, message: str, url: str = "", details: Any = None):
         self.status_code = status_code
         self.url = url
+        # エラーレスポンスの JSON body をパースした構造化詳細。
+        # --format json 出力時に details フィールドとして載せる（人間可読 message と対）。
+        self.details = details
         super().__init__(
             _("HTTP {status_code}: {message}").format(status_code=status_code, message=message)
         )
@@ -138,6 +142,21 @@ class RateLimitError(HttpError):
         super().__init__(429, msg, url)
         if retry_after:
             self.hint = _("Retry after {retry_after}s.").format(retry_after=retry_after)
+
+
+class ValidationError(HttpError):
+    """400/422 リクエスト内容のバリデーションエラー。
+
+    サービスがフィールド別のエラーを JSON body で返すケース（GitHub の 422 等）。
+    パース済み body は details に載る。
+    """
+
+    error_code = "validation_error"
+    exit_code = ExitCode.GENERAL
+
+    def __init__(self, status_code: int, message: str, url: str = "", details: Any = None):
+        super().__init__(status_code, message, url, details)
+        self.hint = _("Check the request parameters for invalid or missing values.")
 
 
 class ServerError(HttpError):
@@ -228,8 +247,8 @@ def lookup_http_exception(status_code: int) -> type[HttpError] | None:
 
     - 401 / 403 / 404 のような単純な status → exception 対応はテーブル参照。
     - 5xx は range で一括 `ServerError` にマップする。
-    - 429 や汎用 4xx などコンストラクタに追加引数が必要なケースは `None` を返し、
-      呼び出し側で個別に組み立てる。
+    - 429 / 400 / 422 / 汎用 4xx などコンストラクタに追加引数（retry_after,
+      body, details 等）が必要なケースは `None` を返し、呼び出し側で個別に組み立てる。
     """
     cls = _SIMPLE_HTTP_EXCEPTIONS.get(status_code)
     if cls is not None:

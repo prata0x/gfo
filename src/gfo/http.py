@@ -41,6 +41,105 @@ _MAX_RETRY_AFTER = _max_retry_after_seconds()
 _MAX_ERROR_BODY_CHARS = 4096
 
 
+def _truncate_error_body(body: str) -> str:
+    """エラーレスポンス body を _MAX_ERROR_BODY_CHARS 文字に切り詰める。"""
+    if len(body) > _MAX_ERROR_BODY_CHARS:
+        return (
+            body[:_MAX_ERROR_BODY_CHARS]
+            + f"... [truncated {len(body) - _MAX_ERROR_BODY_CHARS} chars]"
+        )
+    return body
+
+
+def _flatten_message_value(msg: Any) -> str | None:
+    """エラー JSON の message フィールド値を 1 行の文字列に平坦化する。
+
+    GitLab は message に {"name": ["has already been taken"]} のような
+    dict / list を返すことがあるため、文字列以外もフィールド名付きで展開する。
+    """
+    if isinstance(msg, str):
+        return msg.strip() or None
+    if isinstance(msg, list):
+        parts = [str(x) for x in msg if x]
+        return "; ".join(parts) or None
+    if isinstance(msg, dict):
+        parts = []
+        for key, val in msg.items():
+            val_str = "; ".join(str(x) for x in val) if isinstance(val, list) else str(val)
+            parts.append(f"{key}: {val_str}")
+        return ", ".join(parts) or None
+    return None
+
+
+def _summarize_error_item(item: Any) -> str | None:
+    """errors 配列の 1 要素を人間可読な文字列に要約する。
+
+    Backlog は {"message": ...}、GitHub は message を持たない場合
+    {"resource": ..., "field": ..., "code": ...} の形式で返す。
+    """
+    if isinstance(item, str):
+        return item.strip() or None
+    if not isinstance(item, dict):
+        return None
+    msg = _flatten_message_value(item.get("message"))
+    if msg:
+        return msg
+    label = ".".join(str(item[k]) for k in ("resource", "field") if item.get(k))
+    code = item.get("code")
+    if label and code:
+        return f"{label}: {code}"
+    return label or (str(code) if code else None)
+
+
+def _extract_error_message(data: dict[str, Any]) -> str | None:
+    """エラーレスポンスの JSON dict から主要メッセージを抽出する。
+
+    サービスごとの代表的な形式:
+    - GitHub / Gitea 系 / Azure DevOps: {"message": str, "errors": [...]}
+    - GitLab: {"message": str | dict | list} または {"error": str}
+    - Bitbucket: {"error": {"message": str, "fields": {...}}}
+    - Backlog: {"errors": [{"message": str}, ...]}
+    """
+    main = _flatten_message_value(data.get("message"))
+    if not main:
+        err = data.get("error")
+        if isinstance(err, str):
+            main = err.strip() or None
+        elif isinstance(err, dict):
+            main = _flatten_message_value(err.get("message"))
+    errors = data.get("errors")
+    detail = None
+    if isinstance(errors, list):
+        summaries = [s for s in (_summarize_error_item(e) for e in errors) if s]
+        if summaries:
+            detail = "; ".join(summaries)
+    if main and detail:
+        return f"{main} ({detail})"
+    return main or detail
+
+
+def _summarize_error_body(response: requests.Response) -> tuple[str, dict[str, Any] | None]:
+    """エラーレスポンス body から (人間可読メッセージ, 構造化詳細) を抽出する。
+
+    JSON dict の body は主要メッセージを抽出し、パース結果を details として返す。
+    非 JSON・非 dict・巨大 body（_MAX_ERROR_BODY_CHARS 超）は従来どおり
+    切り詰めた raw テキストを message にし、details は付けない。
+    """
+    text = response.text
+    data: Any = None
+    if len(text) <= _MAX_ERROR_BODY_CHARS:
+        try:
+            data = response.json()
+        except ValueError:
+            data = None
+    if not isinstance(data, dict):
+        return _truncate_error_body(text), None
+    message = _extract_error_message(data)
+    if message is None:
+        return _truncate_error_body(text), data
+    return message, data
+
+
 def _max_download_bytes() -> int:
     """GFO_MAX_DOWNLOAD_BYTES の値を返す。未設定なら 5 GiB。0 は無制限。
 
@@ -475,14 +574,12 @@ class HttpClient:
             raise gfo.exceptions.AuthenticationError(code, url)
         if cls is gfo.exceptions.ServerError:
             raise gfo.exceptions.ServerError(code, url)
-        # その他 (汎用 4xx 等) は HttpError として body 付きで送出。
-        body = response.text
-        if len(body) > _MAX_ERROR_BODY_CHARS:
-            body = (
-                body[:_MAX_ERROR_BODY_CHARS]
-                + f"... [truncated {len(body) - _MAX_ERROR_BODY_CHARS} chars]"
-            )
-        raise gfo.exceptions.HttpError(code, body, url)
+        # その他 (汎用 4xx 等) は body を解析し、人間可読 message + 構造化 details で送出。
+        # 400/422 はバリデーションエラーとして専用の error_code / hint を付ける。
+        message, details = _summarize_error_body(response)
+        if code in (400, 422):
+            raise gfo.exceptions.ValidationError(code, message, url, details=details)
+        raise gfo.exceptions.HttpError(code, message, url, details=details)
 
     @staticmethod
     def _parse_retry_after(value: str | None, default: int = 60) -> int:

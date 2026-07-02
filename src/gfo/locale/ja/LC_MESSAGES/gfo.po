@@ -1486,6 +1486,9 @@ msgid "Cannot parse --repo value: {value}. Use URL or HOST/OWNER/REPO format."
 msgstr "--repo の値を解析できません: {value}。URL または HOST/OWNER/REPO 形式で指定してください。"
 
 
+msgid "Check the request parameters for invalid or missing values."
+msgstr "リクエストパラメータに不正な値や不足がないか確認してください。"
+
 msgid "Check your network connection and try again."
 msgstr "ネットワーク接続を確認して再試行してください。"
 

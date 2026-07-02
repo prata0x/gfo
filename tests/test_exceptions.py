@@ -17,6 +17,7 @@ from gfo.exceptions import (
     RateLimitError,
     ServerError,
     UnsupportedServiceError,
+    ValidationError,
 )
 
 
@@ -140,6 +141,31 @@ class TestServerError:
         assert isinstance(err, GfoError)
 
 
+class TestValidationError:
+    def test_attributes(self):
+        details = {
+            "message": "Validation Failed",
+            "errors": [{"resource": "Issue", "field": "title", "code": "missing_field"}],
+        }
+        err = ValidationError(422, "Validation Failed", "https://api.github.com", details=details)
+        assert err.status_code == 422
+        assert err.url == "https://api.github.com"
+        assert err.error_code == "validation_error"
+        assert err.exit_code == ExitCode.GENERAL
+        assert err.details == details
+        assert err.hint
+        assert "Validation Failed" in str(err)
+
+    def test_default_details_none(self):
+        err = ValidationError(400, "Bad Request")
+        assert err.details is None
+
+    def test_inherits_http_error(self):
+        err = ValidationError(422, "Validation Failed")
+        assert isinstance(err, HttpError)
+        assert isinstance(err, GfoError)
+
+
 class TestNetworkError:
     def test_message(self):
         err = NetworkError("Connection refused")
@@ -186,6 +212,7 @@ class TestErrorCode:
             (NotFoundError(), "not_found"),
             (RateLimitError(), "rate_limited"),
             (ServerError(500), "server_error"),
+            (ValidationError(422, "x"), "validation_error"),
             (NetworkError("x"), "network_error"),
             (NotSupportedError("S", "op"), "not_supported"),
             (UnsupportedServiceError("x"), "unsupported_service"),
@@ -210,6 +237,7 @@ class TestExitCode:
             (NotFoundError(), ExitCode.NOT_FOUND),
             (RateLimitError(), ExitCode.RATE_LIMIT),
             (ServerError(500), ExitCode.GENERAL),
+            (ValidationError(422, "x"), ExitCode.GENERAL),
             (NetworkError("x"), ExitCode.NETWORK),
             (NotSupportedError("S", "op"), ExitCode.NOT_SUPPORTED),
             (UnsupportedServiceError("x"), ExitCode.GENERAL),
@@ -272,6 +300,10 @@ class TestHint:
 
     def test_server_error_hint(self):
         assert ServerError(500).hint == "Please try again later."
+
+    def test_validation_error_hint(self):
+        err = ValidationError(422, "Validation Failed")
+        assert err.hint == "Check the request parameters for invalid or missing values."
 
 
 class TestCatchByBaseClass:

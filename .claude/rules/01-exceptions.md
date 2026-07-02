@@ -18,6 +18,7 @@ GfoError
 │   ├── AuthenticationError # 401/403
 │   ├── NotFoundError       # 404
 │   ├── RateLimitError      # 429
+│   ├── ValidationError     # 400/422（JSON body パース済み details 付き）
 │   └── ServerError         # 5xx
 ├── NetworkError            # ConnectionError/Timeout/SSLError
 ├── NotSupportedError       # サービスが非対応の操作
