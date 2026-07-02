@@ -9,7 +9,14 @@ from unittest.mock import patch
 
 import pytest
 
-from gfo.exceptions import AuthError, GfoError, NotSupportedError, RateLimitError
+from gfo.exceptions import (
+    AuthError,
+    GfoError,
+    HttpError,
+    NotSupportedError,
+    RateLimitError,
+    ValidationError,
+)
 from gfo.output import (
     _display_width,
     apply_jq_filter,
@@ -400,6 +407,30 @@ class TestFormatErrorJson:
         err = GfoError("日本語エラー")
         raw = format_error_json(err)
         assert "日本語エラー" in raw
+
+    def test_http_error_includes_status_code(self):
+        err = HttpError(409, "Conflict")
+        result = json.loads(format_error_json(err))
+        assert result["status_code"] == 409
+        # details なしの HttpError には details フィールドを付けない
+        assert "details" not in result
+
+    def test_validation_error_includes_details(self):
+        details = {
+            "message": "Validation Failed",
+            "errors": [{"resource": "Issue", "field": "title", "code": "missing_field"}],
+        }
+        err = ValidationError(422, "Validation Failed", details=details)
+        result = json.loads(format_error_json(err))
+        assert result["error"] == "validation_error"
+        assert result["status_code"] == 422
+        assert result["details"] == details
+        assert result["hint"]
+
+    def test_non_http_error_has_no_status_code(self):
+        err = GfoError("plain")
+        result = json.loads(format_error_json(err))
+        assert "status_code" not in result
 
 
 class TestApplyJqFilter:
