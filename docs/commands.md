@@ -2505,14 +2505,15 @@ Show JSON Schema for commands. Designed for AI agents to discover command inputs
 > **Supported services**: N/A (metadata command, no API calls)
 
 ```
-gfo schema [--list] [COMMAND [SUBCOMMAND]]
+gfo schema [--list] [COMMAND [SUBCOMMAND [ACTION]]]
 ```
 
 | Option / Argument | Description |
 |---|---|
-| `--list` | List all available commands with descriptions |
+| `--list` | List all available commands with descriptions (includes grandchild actions, e.g. `release asset delete`) |
 | `COMMAND` | Show schemas for all subcommands under this command group |
-| `COMMAND SUBCOMMAND` | Show input/output schema for a specific command |
+| `COMMAND SUBCOMMAND` | Show input/output schema for a specific command. If `SUBCOMMAND` itself has grandchild actions (e.g. `release asset`), returns an array of per-action schemas instead |
+| `COMMAND SUBCOMMAND ACTION` | Show input/output schema for a grandchild subcommand (e.g. `release asset delete`, `issue time add`) |
 | (none) | Same as `--list` |
 
 Output is always JSON regardless of `--format`.
@@ -2528,6 +2529,12 @@ gfo schema pr list
 
 # Show schemas for all pr subcommands
 gfo schema pr
+
+# Show schema for a grandchild subcommand
+gfo schema release asset delete
+
+# Show schemas for all actions in a grandchild group
+gfo schema release asset
 
 # Apply jq filter
 gfo schema pr list --jq '.output'
@@ -2556,9 +2563,28 @@ gfo schema pr list --jq '.output'
       },
       "required": ["number", "title", ...]
     }
+  },
+  "safety": {
+    "destructive": false,
+    "requires_confirmation": false,
+    "prints_secret": false,
+    "network_write": false,
+    "local_git_write": false
   }
 }
 ```
+
+**`safety` fields:**
+
+| Field | Meaning |
+|---|---|
+| `destructive` | Irreversible or hard-to-reverse operation (e.g. delete, archive) |
+| `requires_confirmation` | Prompts for confirmation (or requires `--yes` in non-interactive environments) |
+| `prints_secret` | Prints a secret value to stdout (e.g. `auth token`) |
+| `network_write` | Mutates state on the remote service |
+| `local_git_write` | Performs a local git operation (clone, fetch, checkout) |
+
+`gfo api` always reports the worst case (`destructive: true, network_write: true`) since its actual risk depends on the HTTP method passed at runtime.
 
 ---
 
