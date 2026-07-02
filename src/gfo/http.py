@@ -426,7 +426,9 @@ class HttpClient:
                     except OSError:
                         pass
                     raise gfo.exceptions.GfoError(
-                        f"Download exceeded GFO_MAX_DOWNLOAD_BYTES ({max_bytes} bytes); aborted."
+                        _(
+                            "Download exceeded GFO_MAX_DOWNLOAD_BYTES ({max_bytes} bytes); aborted."
+                        ).format(max_bytes=max_bytes)
                     )
                 f.write(chunk)
 

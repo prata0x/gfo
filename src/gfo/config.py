@@ -57,12 +57,14 @@ def validate_api_url(value: str) -> None:
         ).lower() in ("1", "true", "yes"):
             return
         raise ConfigError(
-            f"api_url must use https:// (got: {value}). "
-            "For localhost development use http://localhost/..., "
-            "or set GFO_ALLOW_INSECURE_HTTP=1 to bypass (insecure, "
-            "ignored on cloud hosts)."
+            _(
+                "api_url must use https:// (got: {value}). "
+                "For localhost development use http://localhost/..., "
+                "or set GFO_ALLOW_INSECURE_HTTP=1 to bypass (insecure, "
+                "ignored on cloud hosts)."
+            ).format(value=value)
         )
-    raise ConfigError(f"api_url must use http:// or https:// (got: {value})")
+    raise ConfigError(_("api_url must use http:// or https:// (got: {value})").format(value=value))
 
 
 # ── パス ──
@@ -105,9 +107,13 @@ def load_user_config() -> dict[str, Any]:
             try:
                 return tomllib.load(f)
             except tomllib.TOMLDecodeError as e:
-                raise ConfigError(f"Failed to parse config file {path}: {e}") from e
+                raise ConfigError(
+                    _("Failed to parse config file {path}: {error}").format(path=path, error=e)
+                ) from e
     except OSError as e:
-        raise ConfigError(f"Failed to read config file {path}: {e}") from e
+        raise ConfigError(
+            _("Failed to read config file {path}: {error}").format(path=path, error=e)
+        ) from e
 
 
 def get_default_output_format() -> str:
@@ -185,7 +191,9 @@ def _parse_key_parts(key: str) -> list[str]:
             except ValueError:
                 # 閉じ引用符がない不正入力は ConfigError に変換する
                 # （素の ValueError だと CLI で "Unexpected error" 扱いになる）
-                raise ConfigError(f"Invalid quoted key: missing closing quote in {key!r}") from None
+                raise ConfigError(
+                    _("Invalid quoted key: missing closing quote in {key!r}").format(key=key)
+                ) from None
             parts.append(key[i + 1 : end])
             i = end + 1
             # 直後のドットをスキップ
@@ -228,10 +236,12 @@ def set_config_value(key: str, value: str) -> None:
     引用符記法に対応: ``hosts."gitlab.example.com".type``
     """
     if not key:
-        raise ConfigError("Key must not be empty.")
+        raise ConfigError(_("Key must not be empty."))
     parts = _parse_key_parts(key)
     if len(parts) < 2:
-        raise ConfigError(f"Key must have at least two parts (e.g. defaults.output), got: {key}")
+        raise ConfigError(
+            _("Key must have at least two parts (e.g. defaults.output), got: {key}").format(key=key)
+        )
 
     # api_url を設定するキーの場合、平文 http:// を拒否する（PAT 漏えい防止）。
     if parts[-1] == "api_url":
@@ -246,7 +256,9 @@ def set_config_value(key: str, value: str) -> None:
             current[part] = {}
         child = current[part]
         if not isinstance(child, dict):
-            raise ConfigError(f"Cannot set '{key}': '{part}' is not a table.")
+            raise ConfigError(
+                _("Cannot set '{key}': '{part}' is not a table.").format(key=key, part=part)
+            )
         current = child
     current[parts[-1]] = value
 
@@ -256,10 +268,12 @@ def set_config_value(key: str, value: str) -> None:
 def unset_config_value(key: str) -> bool:
     """ドット区切りキーで config.toml の値を削除する。削除できたら True。"""
     if not key:
-        raise ConfigError("Key must not be empty.")
+        raise ConfigError(_("Key must not be empty."))
     parts = _parse_key_parts(key)
     if len(parts) < 2:
-        raise ConfigError(f"Key must have at least two parts (e.g. defaults.output), got: {key}")
+        raise ConfigError(
+            _("Key must have at least two parts (e.g. defaults.output), got: {key}").format(key=key)
+        )
 
     cfg = load_user_config()
 
@@ -397,11 +411,11 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
         "or use '--repo HOST/OWNER/REPO' to specify directly."
     )
     if not saved_type:
-        err = ConfigError("Could not resolve service type.")
+        err = ConfigError(_("Could not resolve service type."))
         err.hint = _init_hint
         raise err
     if not saved_host:
-        err = ConfigError("Could not resolve host.")
+        err = ConfigError(_("Could not resolve host."))
         err.hint = _init_hint
         raise err
 
@@ -467,7 +481,10 @@ def build_clone_url(
     """サービス種別・ホスト・owner/name から clone 用 HTTPS URL を構築する。"""
     if not owner or not name:
         raise ConfigError(
-            f"Invalid repo format. Both owner and name must be non-empty, got owner={owner!r}, name={name!r}."
+            _(
+                "Invalid repo format. Both owner and name must be non-empty, "
+                "got owner={owner!r}, name={name!r}."
+            ).format(owner=owner, name=name)
         )
     if service_type in ("github", "bitbucket"):
         return f"https://{host}/{owner}/{name}.git"
@@ -499,10 +516,12 @@ def build_default_api_url(
     if service_type == "azure-devops":
         if not organization:
             raise ConfigError(
-                "Azure DevOps requires an organization. Run 'gfo init' first to configure."
+                _("Azure DevOps requires an organization. Run 'gfo init' first to configure.")
             )
         if not project:
-            raise ConfigError("Azure DevOps requires a project. Run 'gfo init' first to configure.")
+            raise ConfigError(
+                _("Azure DevOps requires a project. Run 'gfo init' first to configure.")
+            )
         return f"https://{host}/{organization}/{project}/_apis"
     if service_type in ("gitea", "forgejo", "gogs"):
         return f"https://{host}/api/v1"
@@ -510,4 +529,4 @@ def build_default_api_url(
         return f"https://{host}/api/v3"
     if service_type == "backlog":
         return f"https://{host}/api/v2"
-    raise ConfigError(f"Unknown service type: {service_type}")
+    raise ConfigError(_("Unknown service type: {service_type}").format(service_type=service_type))

@@ -2130,3 +2130,92 @@ msgstr "タグは空にできません。"
 
 msgid "tag must not be empty. Specify a tag or use --latest."
 msgstr "タグは空にできません。タグを指定するか --latest を使用してください。"
+
+# --- auth.py / config.py / detect.py / http.py エラーメッセージ i18n 化 (issue #67) ---
+
+msgid "'_default' is a reserved key and cannot be used as an account name."
+msgstr "'_default' は予約キーのため、アカウント名として使用できません。"
+
+msgid "Account '{account}' not found for host: {host}"
+msgstr "ホスト {host} にアカウント '{account}' が見つかりません"
+
+msgid "Account '{account}' not found for host: {host}. Available accounts: {accounts}"
+msgstr "ホスト {host} にアカウント '{account}' が見つかりません。利用可能なアカウント: {accounts}"
+
+msgid "Azure DevOps requires a project. Run 'gfo init' first to configure."
+msgstr "Azure DevOps にはプロジェクトが必要です。先に 'gfo init' を実行して設定してください。"
+
+msgid "Azure DevOps requires an organization. Run 'gfo init' first to configure."
+msgstr "Azure DevOps には組織が必要です。先に 'gfo init' を実行して設定してください。"
+
+msgid "Cannot parse Azure DevOps path: {path}"
+msgstr "Azure DevOps のパスを解析できません: {path}"
+
+msgid "Cannot parse Backlog path: {path}"
+msgstr "Backlog のパスを解析できません: {path}"
+
+msgid "Cannot parse URL: {url}"
+msgstr "URL を解析できません: {url}"
+
+msgid "Cannot parse path: {path}"
+msgstr "パスを解析できません: {path}"
+
+msgid "Cannot set '{key}': '{part}' is not a table."
+msgstr "'{key}' を設定できません: '{part}' はテーブルではありません。"
+
+msgid "Could not resolve host."
+msgstr "ホストを解決できませんでした。"
+
+msgid "Could not resolve service type."
+msgstr "サービス種別を解決できませんでした。"
+
+msgid "Download exceeded GFO_MAX_DOWNLOAD_BYTES ({max_bytes} bytes); aborted."
+msgstr "ダウンロードが GFO_MAX_DOWNLOAD_BYTES（{max_bytes} バイト）を超えたため中断しました。"
+
+msgid "Failed to parse config file {path}: {error}"
+msgstr "設定ファイル {path} の解析に失敗しました: {error}"
+
+msgid "Failed to parse credentials file {path}: {error}"
+msgstr "認証情報ファイル {path} の解析に失敗しました: {error}"
+
+msgid "Failed to read config file {path}: {error}"
+msgstr "設定ファイル {path} の読み込みに失敗しました: {error}"
+
+msgid "Failed to read credentials file {path}: {error}"
+msgstr "認証情報ファイル {path} の読み込みに失敗しました: {error}"
+
+msgid "Failed to write credentials file {path}: {error}"
+msgstr "認証情報ファイル {path} の書き込みに失敗しました: {error}"
+
+msgid "Invalid quoted key: missing closing quote in {key!r}"
+msgstr "不正な引用符付きキー: {key!r} に閉じ引用符がありません"
+
+msgid "Invalid repo format. Both owner and name must be non-empty, got owner={owner!r}, name={name!r}."
+msgstr "リポジトリ形式が不正です。owner と name は両方必須です（owner={owner!r}, name={name!r}）。"
+
+msgid "Key must have at least two parts (e.g. defaults.output), got: {key}"
+msgstr "キーは 2 つ以上のパーツが必要です（例: defaults.output）: {key}"
+
+msgid "Key must not be empty."
+msgstr "キーは空にできません。"
+
+msgid "No tokens configured for host: {host}"
+msgstr "ホスト {host} にトークンが設定されていません"
+
+msgid "Token must not be empty."
+msgstr "トークンは空にできません。"
+
+msgid "Unknown host: {host}"
+msgstr "未知のホスト: {host}"
+
+msgid "Unknown service type: {service_type}"
+msgstr "未知のサービス種別: {service_type}"
+
+msgid "api_url must use http:// or https:// (got: {value})"
+msgstr "api_url は http:// または https:// で始まる必要があります（指定値: {value}）"
+
+msgid "api_url must use https:// (got: {value}). For localhost development use http://localhost/..., or set GFO_ALLOW_INSECURE_HTTP=1 to bypass (insecure, ignored on cloud hosts)."
+msgstr "api_url は https:// で始まる必要があります（指定値: {value}）。localhost での開発には http://localhost/... を使用するか、GFO_ALLOW_INSECURE_HTTP=1 でバイパスできます（安全ではありません。クラウドホストでは無視されます）。"
+
+msgid "Warning: GFO_INSECURE is set; TLS verification is disabled for self-hosted hosts. Cloud-hosted services (github.com, gitlab.com, bitbucket.org, dev.azure.com, *.backlog.com/jp, *.visualstudio.com) still enforce TLS verification."
+msgstr "警告: GFO_INSECURE が設定されているため、セルフホスト先の TLS 検証が無効化されています。クラウドサービス（github.com, gitlab.com, bitbucket.org, dev.azure.com, *.backlog.com/jp, *.visualstudio.com）では引き続き TLS 検証が強制されます。"

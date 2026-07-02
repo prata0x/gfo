@@ -16,6 +16,7 @@ from pathlib import Path
 from gfo._context import cli_account
 from gfo.config import get_config_dir, get_credentials_path
 from gfo.exceptions import AuthError, ConfigError, GitCommandError
+from gfo.i18n import _
 
 _SERVICE_ENV_MAP: dict[str, str] = {
     "github": "GITHUB_TOKEN",
@@ -60,8 +61,13 @@ def resolve_token(host: str, service_type: str) -> str:
         if account_name not in host_accounts:
             raise AuthError(
                 host,
-                f"Account '{account_name}' not found for host: {host}. "
-                f"Available accounts: {', '.join(k for k in host_accounts if k != '_default')}",
+                _(
+                    "Account '{account}' not found for host: {host}. Available accounts: {accounts}"
+                ).format(
+                    account=account_name,
+                    host=host,
+                    accounts=", ".join(k for k in host_accounts if k != "_default"),
+                ),
             )
 
     # 2. サービス別環境変数
@@ -83,9 +89,9 @@ def resolve_token(host: str, service_type: str) -> str:
 def save_token(host: str, token: str, account: str = "default") -> None:
     """credentials.toml にトークンを保存する。"""
     if account == "_default":
-        raise ConfigError("'_default' is a reserved key and cannot be used as an account name.")
+        raise ConfigError(_("'_default' is a reserved key and cannot be used as an account name."))
     if not token.strip():
-        raise AuthError(host, "Token must not be empty.")
+        raise AuthError(host, _("Token must not be empty."))
     host = host.lower()
     config_dir = get_config_dir()
     config_dir.mkdir(parents=True, exist_ok=True)
@@ -106,14 +112,16 @@ def save_token(host: str, token: str, account: str = "default") -> None:
 def switch_account(host: str, account: str) -> None:
     """アクティブアカウントを切り替える。"""
     if account == "_default":
-        raise ConfigError("'_default' is a reserved key and cannot be used as an account name.")
+        raise ConfigError(_("'_default' is a reserved key and cannot be used as an account name."))
     host = host.lower()
     tokens = load_tokens()
     host_accounts = tokens.get(host)
     if not host_accounts:
-        raise ConfigError(f"No tokens configured for host: {host}")
+        raise ConfigError(_("No tokens configured for host: {host}").format(host=host))
     if account not in host_accounts:
-        raise ConfigError(f"Account '{account}' not found for host: {host}")
+        raise ConfigError(
+            _("Account '{account}' not found for host: {host}").format(account=account, host=host)
+        )
     host_accounts["_default"] = account
     tokens[host] = host_accounts
 
@@ -133,18 +141,22 @@ def list_accounts(host: str) -> list[str]:
 def remove_token(host: str, account: str | None = None) -> None:
     """トークンを削除する。account 指定時はそのアカウントのみ、None 時はホスト全体を削除。"""
     if account == "_default":
-        raise ConfigError("'_default' is a reserved key and cannot be used as an account name.")
+        raise ConfigError(_("'_default' is a reserved key and cannot be used as an account name."))
     host = host.lower()
     tokens = load_tokens()
     if host not in tokens:
-        raise ConfigError(f"No tokens configured for host: {host}")
+        raise ConfigError(_("No tokens configured for host: {host}").format(host=host))
 
     if account is None:
         del tokens[host]
     else:
         host_accounts = tokens[host]
         if account not in host_accounts:
-            raise ConfigError(f"Account '{account}' not found for host: {host}")
+            raise ConfigError(
+                _("Account '{account}' not found for host: {host}").format(
+                    account=account, host=host
+                )
+            )
         del host_accounts[account]
         # _default が削除されたアカウントを指していた場合、残りの最初のアカウントに切り替え
         if host_accounts.get("_default") == account:
@@ -170,11 +182,15 @@ def load_tokens() -> dict[str, dict[str, str]]:
             try:
                 data = tomllib.load(f)
             except tomllib.TOMLDecodeError as e:
-                raise ConfigError(f"Failed to parse credentials file {path}: {e}") from e
+                raise ConfigError(
+                    _("Failed to parse credentials file {path}: {error}").format(path=path, error=e)
+                ) from e
     except FileNotFoundError:
         return {}
     except OSError as e:
-        raise ConfigError(f"Failed to read credentials file {path}: {e}") from e
+        raise ConfigError(
+            _("Failed to read credentials file {path}: {error}").format(path=path, error=e)
+        ) from e
     tokens = data.get("tokens", {})
     old_format_hosts = [str(k) for k, v in tokens.items() if isinstance(v, str)]
     if old_format_hosts:
@@ -331,7 +347,9 @@ def _write_credentials_toml(path: Path, tokens: dict[str, dict[str, str]]) -> No
                 os.unlink(tmp_path)
             raise
     except OSError as e:
-        raise ConfigError(f"Failed to write credentials file {path}: {e}") from e
+        raise ConfigError(
+            _("Failed to write credentials file {path}: {error}").format(path=path, error=e)
+        ) from e
 
 
 def _resolve_account_name(host: str, host_accounts: dict[str, str]) -> str:
