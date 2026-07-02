@@ -37,7 +37,7 @@
 ## 技術スタック
 
 - **ランタイム依存**: `requests` のみ
-- **開発依存**（`[dependency-groups]` で管理）: `pytest`, `responses`（HTTP モック）, `pytest-cov`, `ruff`, `bandit`, `mypy`, `types-requests`, `pre-commit`
+- **開発依存**（`[dependency-groups]` で管理）: `pytest`, `responses`（HTTP モック）, `pytest-cov`, `pytest-xdist`（CI の `-n 4` 並列実行）, `ruff`, `bandit`, `mypy`, `types-requests`, `pre-commit`
 - **ビルド**: `hatchling`（バージョンは `src/gfo/__init__.py`）
 - **toolchain**: `mise`（python / uv を pin）+ `uv`（依存解決・`uv.lock` で frozen install）
 
@@ -85,7 +85,7 @@ uv run pre-commit install
 
 GitHub Rules（`main` ブランチ保護・リリースタグ保護）は free プランでは実効しないが、**規律として遵守する**。
 
-- **`main` へ直接 commit / push・force-push しない。** 必ず feature branch を切る（`git switch -c <kebab>`）→ commit → push → `gh pr create --base main` → **CI green を確認して self-merge**（squash）。
+- **`main` へ直接 commit / push・force-push しない。** 必ず feature branch を切る（`git switch -c <kebab>`）→ commit → push → `gh pr create --base main` → **CI green を確認して self-merge**（`gh pr merge --merge`。squash はリポジトリ設定で無効）。
 - **赤い CI はマージしない。**
 - 問題を見つけたら **issue を起票** してから着手する。
 - リリースタグ（保護対象）を勝手に作成・移動・削除しない。
@@ -118,8 +118,12 @@ Conventional Commits（日本語 subject、header ≤72 目安）。scope 例: `
 src/gfo/
 ├── cli.py / auth.py / config.py / detect.py / exceptions.py
 ├── git_util.py / http.py / output.py
+├── i18n.py / _context.py / locale/   # gettext（ja）。.po を commit、.mo は hatch_build.py がビルド時生成
 ├── adapter/
-│   ├── base.py          # 抽象基底クラス + データクラス定義
+│   ├── base.py          # GitServiceAdapter 抽象基底クラス（共有ヘルパーの再 export 元）
+│   ├── models.py        # データクラス定義（PullRequest, Issue ほか）
+│   ├── github_like.py   # GitHubLikeAdapter: GitHub/Gitea 系共通の _to_* 変換 Mixin
+│   ├── _helpers.py      # _wrap_conversion_error 等（base ⇔ github_like の循環参照回避）
 │   ├── registry.py      # @register デコレータ, create_adapter()
 │   ├── github.py / gitlab.py / bitbucket.py / azure_devops.py
 │   ├── backlog.py / gitea.py / forgejo.py / gogs.py / gitbucket.py
