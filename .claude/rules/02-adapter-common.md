@@ -10,23 +10,39 @@ paths:
 
 ```
 GitServiceAdapter (ABC, adapter/base.py)
-├── GitHubAdapter           @register("github")
+├── GitHubAdapter           @register("github")      ※ GitHubLikeAdapter Mixin を併用
+│   └── GitBucketAdapter    @register("gitbucket")
 ├── GitLabAdapter           @register("gitlab")
 ├── BitbucketAdapter        @register("bitbucket")
 ├── BacklogAdapter          @register("backlog")
 ├── AzureDevOpsAdapter      @register("azure-devops")
-└── GiteaAdapter            @register("gitea")
+└── GiteaAdapter            @register("gitea")       ※ GitHubLikeAdapter Mixin を併用
     ├── ForgejoAdapter      @register("forgejo")
-    ├── GogsAdapter         @register("gogs")
-    └── GitBucketAdapter    @register("gitbucket")
+    └── GogsAdapter         @register("gogs")
 ```
 
-`GitHubLikeAdapter`（`adapter/base.py`）は GitHub/Gitea 系の共通 `_to_*` 変換ヘルパー Mixin。
+- `GitHubAdapter` / `GiteaAdapter` は `class XxxAdapter(GitHubLikeAdapter, GitServiceAdapter)` の多重継承。
+- `GitBucketAdapter` は **`GitHubAdapter` のサブクラス**（`GiteaAdapter` ではない。GitBucket は GitHub API 互換のため）。
+- `GitHubLikeAdapter`（`adapter/github_like.py`）は GitHub/Gitea 系の共通 `_to_*` 変換ヘルパー Mixin。
+  `base.py` 末尾の `GitHubLikeAdapter` は後方互換の再 export であり、定義の実体ではない。
+
+## 共有シンボルの import 経路（正典）
+
+新規アダプターは既存の具象アダプターと同じ経路で import すること:
+
+| シンボル | 経路 |
+|---|---|
+| `GitServiceAdapter`, `_wrap_conversion_error`, `_mask_token_in_exception` | `from .base import ...`（実体は `_helpers.py` だが `base.py` が再 export） |
+| データクラス（`PullRequest` 等） | `from .models import ...` |
+| `GitHubLikeAdapter`（GitHub/Gitea 系のみ） | `from .github_like import ...` |
+
+`github_like.py` 自身だけは `base.py` との循環参照回避のため `._helpers` から直接 import している。アダプター実装はこれを真似しないこと。
 
 ## データクラス規約
 
+全データクラスは `adapter/models.py` に集約する（標準ライブラリ以外に依存しない）。
 すべて `frozen=True, slots=True` の `@dataclass`:
-`PullRequest`, `Issue`, `Repository`, `Release`, `Label`, `Milestone`
+`PullRequest`, `Issue`, `Repository`, `Release`, `Label`, `Milestone` ほか
 
 ## create_or_update_file の戻り値
 

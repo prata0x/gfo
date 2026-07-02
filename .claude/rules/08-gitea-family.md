@@ -20,7 +20,7 @@ paths:
 - **list_issues**: `type: "issues"` + `not r.get("pull_request")` でフィルタ
   - Gitea はissueレスポンスに `pull_request: null` が含まれる
 - **ページネーション**: `per_page_key="limit"`
-- **マイルストーン**: `number` フィールドなし → `id` でフォールバック（`base.py: _to_milestone`）
+- **マイルストーン**: `number` フィールドなし → `id` でフォールバック（`github_like.py: _to_milestone`）
 
 ## Gogs 固有
 
