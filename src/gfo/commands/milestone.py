@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from gfo.commands import get_adapter, open_in_browser
+from gfo.commands import confirm_action, get_adapter, open_in_browser
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
 from gfo.output import output, output_result
@@ -37,6 +37,15 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo milestone delete のハンドラ。"""
     adapter = get_adapter()
+    if not confirm_action(
+        args,
+        _("Are you sure you want to delete milestone '{number}'? [y/N]: ").format(
+            number=args.number
+        ),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter.delete_milestone(number=args.number)
     output_result(
         _("Deleted milestone '{number}'.").format(number=args.number),

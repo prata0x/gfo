@@ -113,14 +113,14 @@ class TestHandleEdit:
 class TestHandleDelete:
     def test_calls_delete_wiki_page(self):
         with patch_adapter("gfo.commands.wiki") as adapter:
-            args = make_args(id="1")
+            args = make_args(id="1", yes=True)
             wiki_cmd.handle_delete(args, fmt="table")
         adapter.delete_wiki_page.assert_called_once_with("1")
 
     def test_delete_json_format(self, capsys):
         """fmt="json" で構造化 JSON（result / id / message）が出力される。"""
         with patch_adapter("gfo.commands.wiki"):
-            args = make_args(id="1")
+            args = make_args(id="1", yes=True)
             wiki_cmd.handle_delete(args, fmt="json")
         out = capsys.readouterr().out
         data = json.loads(out)
@@ -131,7 +131,7 @@ class TestHandleDelete:
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.wiki") as adapter:
             adapter.delete_wiki_page.side_effect = HttpError(403, "Forbidden")
-            args = make_args(id="1")
+            args = make_args(id="1", yes=True)
             with pytest.raises(HttpError):
                 wiki_cmd.handle_delete(args, fmt="table")
 

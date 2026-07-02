@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 
-from gfo.commands import get_adapter
+from gfo.commands import confirm_action, get_adapter
 from gfo.i18n import _
 from gfo.output import apply_jq_filter, output_result
 
@@ -41,6 +41,15 @@ def handle_add(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
 def handle_remove(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo collaborator remove <username> のハンドラ。"""
     adapter = get_adapter()
+    if not confirm_action(
+        args,
+        _("Are you sure you want to remove collaborator '{username}'? [y/N]: ").format(
+            username=args.username
+        ),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter.remove_collaborator(username=args.username)
     output_result(
         _("Removed collaborator '{username}'.").format(username=args.username),

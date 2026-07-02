@@ -60,13 +60,13 @@ class TestHandlePrComment:
 
     def test_delete_calls_delete_comment(self):
         with patch_adapter("gfo.commands.comment") as adapter:
-            args = make_args(comment_action="delete", comment_id=42)
+            args = make_args(comment_action="delete", comment_id=42, yes=True)
             comment_cmd.handle_pr_comment(args, fmt="table")
         adapter.delete_comment.assert_called_once_with("pr", 42)
 
     def test_delete_prints_success_message(self, capsys):
         with patch_adapter("gfo.commands.comment") as adapter:
-            args = make_args(comment_action="delete", comment_id=42)
+            args = make_args(comment_action="delete", comment_id=42, yes=True)
             comment_cmd.handle_pr_comment(args, fmt="table")
         adapter.delete_comment.assert_called_once_with("pr", 42)
         out = capsys.readouterr().out
@@ -74,7 +74,7 @@ class TestHandlePrComment:
 
     def test_delete_json_format(self, capsys):
         with patch_adapter("gfo.commands.comment") as adapter:
-            args = make_args(comment_action="delete", comment_id=42)
+            args = make_args(comment_action="delete", comment_id=42, yes=True)
             comment_cmd.handle_pr_comment(args, fmt="json")
         adapter.delete_comment.assert_called_once_with("pr", 42)
         data = json.loads(capsys.readouterr().out)
@@ -130,7 +130,7 @@ class TestHandleIssueComment:
 
     def test_delete_calls_delete_comment(self):
         with patch_adapter("gfo.commands.comment") as adapter:
-            args = make_args(comment_action="delete", comment_id=10)
+            args = make_args(comment_action="delete", comment_id=10, yes=True)
             comment_cmd.handle_issue_comment(args, fmt="table")
         adapter.delete_comment.assert_called_once_with("issue", 10)
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 
-from gfo.commands import get_adapter
+from gfo.commands import confirm_action, get_adapter
 from gfo.output import apply_jq_filter, output, output_result
 
 
@@ -72,15 +72,15 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     from gfo.i18n import _
 
     adapter = get_adapter()
-    if not getattr(args, "yes", False):
-        confirm = input(
-            _(
-                "Are you sure you want to delete organization '{name}'? This action cannot be undone. [y/N]: "
-            ).format(name=args.name)
-        )
-        if confirm.lower() not in ("y", "yes"):
-            output_result(_("Aborted."), result="aborted", fmt=fmt, jq=jq)
-            return
+    if not confirm_action(
+        args,
+        _(
+            "Are you sure you want to delete organization '{name}'? This action cannot be undone. [y/N]: "
+        ).format(name=args.name),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter.delete_organization(args.name)
     output_result(
         _("Deleted organization '{name}'.").format(name=args.name),

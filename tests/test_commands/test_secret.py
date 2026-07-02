@@ -111,14 +111,14 @@ class TestHandleSet:
 class TestHandleDelete:
     def test_calls_delete(self):
         with patch_adapter("gfo.commands.secret") as adapter:
-            args = make_args(name="MY_SECRET")
+            args = make_args(name="MY_SECRET", yes=True)
             secret_cmd.handle_delete(args, fmt="table")
         adapter.delete_secret.assert_called_once_with("MY_SECRET", scope=None)
 
     def test_json_format(self, capsys):
         """fmt="json" のとき構造化 JSON が出力される。"""
         with patch_adapter("gfo.commands.secret"):
-            args = make_args(name="MY_SECRET")
+            args = make_args(name="MY_SECRET", yes=True)
             secret_cmd.handle_delete(args, fmt="json")
         out = capsys.readouterr().out
         data = json.loads(out)
@@ -129,7 +129,7 @@ class TestHandleDelete:
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.secret") as adapter:
             adapter.delete_secret.side_effect = HttpError(404, "Not found")
-            args = make_args(name="MY_SECRET")
+            args = make_args(name="MY_SECRET", yes=True)
             with pytest.raises(HttpError):
                 secret_cmd.handle_delete(args, fmt="table")
 
@@ -153,6 +153,6 @@ class TestOrgScope:
 
     def test_delete_org_secret(self):
         with patch_adapter("gfo.commands.secret") as adapter:
-            args = make_args(name="ORG_SECRET", org="my-org")
+            args = make_args(name="ORG_SECRET", org="my-org", yes=True)
             secret_cmd.handle_delete(args, fmt="table")
         adapter.delete_secret.assert_called_once_with("ORG_SECRET", scope="my-org")

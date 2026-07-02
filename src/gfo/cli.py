@@ -467,6 +467,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_comment_edit.add_argument("comment_id", type=int, help=_("Comment ID"))
     pr_comment_edit.add_argument("--body", "-b", required=True, help=_("Body"))
     pr_comment_delete = pr_comment_sub.add_parser("delete", help=_("Delete comment"))
+    pr_comment_delete.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     pr_comment_delete.add_argument("comment_id", type=int, help=_("Comment ID"))
 
     # gfo issue → サブサブコマンド
@@ -513,6 +516,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_close = issue_sub.add_parser("close", help=_("Close issue"))
     issue_close.add_argument("number", type=int, help=_("Issue number"))
     issue_delete = issue_sub.add_parser("delete", help=_("Delete issue"))
+    issue_delete.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     issue_delete.add_argument("number", type=int, help=_("Issue number"))
     issue_reopen = issue_sub.add_parser("reopen", help=_("Reopen issue"))
     issue_reopen.add_argument("number", type=int, help=_("Issue number"))
@@ -804,6 +810,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "--web", "-w", action="store_true", help=_("Open in browser after creating")
     )
     release_delete = release_sub.add_parser("delete", help=_("Delete release"))
+    release_delete.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     release_delete.add_argument("tag", help=_("Tag name"))
     release_view = release_sub.add_parser("view", help=_("View release details"))
     release_view.add_argument("tag", nargs="?", help=_("Tag name"))
@@ -853,6 +862,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     asset_edit.add_argument("asset_id", help=_("Asset ID"))
     asset_edit.add_argument("--name", help=_("Asset name"))
     asset_delete = release_asset_sub.add_parser("delete", help=_("Delete asset"))
+    asset_delete.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     asset_delete.add_argument("--tag", required=True, help=_("Tag name"))
     asset_delete.add_argument("asset_id", help=_("Asset ID"))
 
@@ -865,6 +877,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     label_create.add_argument("--color", "-c", help=_("Color (hex)"))
     label_create.add_argument("--description", "-d", help=_("Description"))
     label_delete = label_sub.add_parser("delete", help=_("Delete label"))
+    label_delete.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     label_delete.add_argument("name", help=_("Label name"))
     label_edit = label_sub.add_parser("edit", help=_("Edit label"))
     label_edit.add_argument("current_name", metavar="NAME", help=_("Label name"))
@@ -884,6 +899,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     milestone_create.add_argument("--description", "-d", help=_("Description"))
     milestone_create.add_argument("--due", help=_("Due date"))
     milestone_delete = milestone_sub.add_parser("delete", help=_("Delete milestone"))
+    milestone_delete.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     milestone_delete.add_argument("number", type=int, help=_("Milestone number"))
     milestone_view = milestone_sub.add_parser("view", help=_("View milestone details"))
     milestone_view.add_argument("number", type=int, help=_("Milestone number"))
@@ -951,6 +969,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_comment_edit.add_argument("comment_id", type=int, help=_("Comment ID"))
     issue_comment_edit.add_argument("--body", "-b", required=True, help=_("Body"))
     issue_comment_delete = issue_comment_sub.add_parser("delete", help=_("Delete comment"))
+    issue_comment_delete.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     issue_comment_delete.add_argument("comment_id", type=int, help=_("Comment ID"))
 
     # gfo repo fork（既存 repo に追加）
@@ -980,6 +1001,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     branch_create.add_argument("name", help=_("Branch name"))
     branch_create.add_argument("--ref", required=True, help=_("Source ref"))
     branch_delete = branch_sub.add_parser("delete", help=_("Delete branch"))
+    branch_delete.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     branch_delete.add_argument("name", help=_("Branch name"))
 
     # gfo tag → サブサブコマンド
@@ -1000,6 +1024,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     tag_create.add_argument("--ref", required=True, help=_("Source ref"))
     tag_create.add_argument("--message", "-m", default="", help=_("Tag message"))
     tag_delete = tag_sub.add_parser("delete", help=_("Delete tag"))
+    tag_delete.add_argument("--yes", "-y", action="store_true", help=_("Skip confirmation prompt"))
     tag_delete.add_argument("name", help=_("Tag name"))
 
     # gfo status → サブサブコマンド
@@ -1041,6 +1066,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     file_put.add_argument("--message", required=True, help=_("Commit message"))
     file_put.add_argument("--branch", help=_("Target branch"))
     file_delete = file_sub.add_parser("delete", help=_("Delete file"))
+    file_delete.add_argument("--yes", "-y", action="store_true", help=_("Skip confirmation prompt"))
     file_delete.add_argument("path", help=_("File path"))
     file_delete.add_argument("--message", required=True, help=_("Commit message"))
     file_delete.add_argument("--branch", help=_("Target branch"))
@@ -1063,6 +1089,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     webhook_create.add_argument("--event", action="append", required=True, help=_("Event type"))
     webhook_create.add_argument("--secret", help=_("Webhook secret"))
     webhook_delete = webhook_sub.add_parser("delete", help=_("Delete webhook"))
+    webhook_delete.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     webhook_delete.add_argument("id", type=int, help=_("Webhook ID"))
     webhook_test = webhook_sub.add_parser("test", help=_("Test webhook"))
     webhook_test.add_argument("id", type=int, help=_("Webhook ID"))
@@ -1101,6 +1130,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         "--read-write", dest="read_write", action="store_true", help=_("Allow write access")
     )
     deploy_key_delete = deploy_key_sub.add_parser("delete", help=_("Delete deploy key"))
+    deploy_key_delete.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     deploy_key_delete.add_argument("id", type=int, help=_("Deploy key ID"))
 
     # gfo collaborator → サブサブコマンド
@@ -1125,6 +1157,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         help=_("Permission level"),
     )
     collab_remove = collab_sub.add_parser("remove", help=_("Remove collaborator"))
+    collab_remove.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     collab_remove.add_argument("username", help=_("Username"))
 
     # gfo ci → サブサブコマンド
@@ -1144,6 +1179,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     ci_cancel = ci_sub.add_parser("cancel", help=_("Cancel pipeline"))
     ci_cancel.add_argument("id", help=_("Pipeline ID"))
     ci_delete = ci_sub.add_parser("delete", help=_("Delete pipeline run"))
+    ci_delete.add_argument("--yes", "-y", action="store_true", help=_("Skip confirmation prompt"))
     ci_delete.add_argument("id", help=_("Pipeline ID"))
     ci_trigger = ci_sub.add_parser("trigger", help=_("Trigger pipeline"))
     ci_trigger.add_argument("--ref", required=True, help=_("Git ref"))
@@ -1248,6 +1284,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     wiki_edit.add_argument("--title", "-t", help=_("Title"))
     wiki_edit.add_argument("--content", help=_("Content"))
     wiki_delete = wiki_sub.add_parser("delete", help=_("Delete wiki page"))
+    wiki_delete.add_argument("--yes", "-y", action="store_true", help=_("Skip confirmation prompt"))
     wiki_delete.add_argument("id", help=_("Page ID"))
 
     # -- New Phase 5 parsers --
@@ -1302,6 +1339,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_time_add.add_argument("number", type=int, help=_("Issue number"))
     issue_time_add.add_argument("duration", help=_("Duration (e.g. 1h30m)"))
     issue_time_delete = issue_time_sub.add_parser("delete", help=_("Delete time entry"))
+    issue_time_delete.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     issue_time_delete.add_argument("number", type=int, help=_("Issue number"))
     issue_time_delete.add_argument("entry_id", help=_("Time entry ID"))
 
@@ -1366,6 +1406,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_mirror_add.add_argument("--interval", default="8h", help=_("Sync interval"))
     repo_mirror_add.add_argument("--auth-token", dest="auth_token", help=_("Authentication token"))
     repo_mirror_remove = repo_mirror_sub.add_parser("remove", help=_("Remove push mirror"))
+    repo_mirror_remove.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     repo_mirror_remove.add_argument("mirror_name", help=_("Mirror name"))
     repo_mirror_sub.add_parser("sync", help=_("Sync push mirrors"))
 
@@ -1461,6 +1504,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         help=_("Disallow branch deletion"),
     )
     bp_remove = bp_sub.add_parser("remove", help=_("Remove branch protection rule"))
+    bp_remove.add_argument("--yes", "-y", action="store_true", help=_("Skip confirmation prompt"))
     bp_remove.add_argument("branch", help=_("Branch name"))
 
     # gfo tag-protect → サブサブコマンド
@@ -1484,6 +1528,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     tp_edit.add_argument("--pattern", help=_("Tag pattern"))
     tp_edit.add_argument("--access-level", dest="access_level", help=_("Access level"))
     tp_delete = tp_sub.add_parser("delete", help=_("Delete tag protection rule"))
+    tp_delete.add_argument("--yes", "-y", action="store_true", help=_("Skip confirmation prompt"))
     tp_delete.add_argument("id", help=_("Rule ID"))
 
     # gfo notification → サブサブコマンド
@@ -1568,6 +1613,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     ssh_key_create.add_argument("--title", "-t", required=True, help=_("Title"))
     ssh_key_create.add_argument("--key", required=True, help=_("Public key"))
     ssh_key_delete = ssh_key_sub.add_parser("delete", help=_("Delete SSH key"))
+    ssh_key_delete.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     ssh_key_delete.add_argument("id", type=int, help=_("SSH key ID"))
 
     # gfo gpg-key → サブサブコマンド
@@ -1588,6 +1636,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     gpg_key_create = gpg_key_sub.add_parser("create", help=_("Create GPG key"))
     gpg_key_create.add_argument("--key", required=True, help=_("GPG public key"))
     gpg_key_delete = gpg_key_sub.add_parser("delete", help=_("Delete GPG key"))
+    gpg_key_delete.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     gpg_key_delete.add_argument("id", type=int, help=_("GPG key ID"))
 
     # gfo secret → サブサブコマンド
@@ -1614,6 +1665,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     )
     _secret_value_group.add_argument("--file", help=_("File path"))
     secret_delete = secret_sub.add_parser("delete", help=_("Delete secret"))
+    secret_delete.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     secret_delete.add_argument("name", help=_("Secret name"))
     secret_delete.add_argument("--org", help=_("Organization scope"))
 
@@ -1640,6 +1694,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     variable_get.add_argument("name", help=_("Variable name"))
     variable_get.add_argument("--org", help=_("Organization scope"))
     variable_delete = variable_sub.add_parser("delete", help=_("Delete variable"))
+    variable_delete.add_argument(
+        "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
+    )
     variable_delete.add_argument("name", help=_("Variable name"))
     variable_delete.add_argument("--org", help=_("Organization scope"))
 

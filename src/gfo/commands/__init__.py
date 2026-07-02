@@ -1,11 +1,49 @@
 from __future__ import annotations
 
+import argparse
 from dataclasses import dataclass
 
 import gfo.adapter.registry
 import gfo.config
 from gfo.adapter.base import GitServiceAdapter
 from gfo.config import ProjectConfig
+
+
+def _stdin_is_interactive() -> bool:
+    """stdin が対話端末かどうか（テストで差し替えるためのシーム）。"""
+    import sys
+
+    return sys.stdin.isatty()
+
+
+def confirm_action(
+    args: argparse.Namespace, message: str, *, fmt: str, jq: str | None = None
+) -> bool:
+    """破壊的操作の実行前確認ヘルパー。
+
+    - ``--yes`` 指定時は確認せず True を返す。
+    - 非対話環境（stdin が TTY でない）ではプロンプトを出さずに ConfigError を
+      投げる。パイプ・自動化・AI agent からの誤操作を防ぐため、非対話実行では
+      ``--yes`` による明示同意を要求する。
+    - プロンプトへの回答が y/yes 以外なら "Aborted." を出力して False を返す。
+    """
+    from gfo.exceptions import ConfigError
+    from gfo.i18n import _
+    from gfo.output import output_result
+
+    if getattr(args, "yes", False):
+        return True
+    if not _stdin_is_interactive():
+        raise ConfigError(
+            _(
+                "Confirmation required. Re-run with --yes to skip the prompt in non-interactive mode."
+            )
+        )
+    answer = input(message)
+    if answer.strip().lower() not in ("y", "yes"):
+        output_result(_("Aborted."), result="aborted", fmt=fmt, jq=jq)
+        return False
+    return True
 
 
 def get_adapter() -> GitServiceAdapter:

@@ -78,7 +78,7 @@ class TestHandleCreate:
 class TestHandleDelete:
     def test_calls_delete_branch(self):
         with patch_adapter("gfo.commands.branch") as adapter:
-            args = make_args(name="feature/old")
+            args = make_args(name="feature/old", yes=True)
             branch_cmd.handle_delete(args, fmt="table")
         adapter.delete_branch.assert_called_once_with(name="feature/old")
 
@@ -86,7 +86,7 @@ class TestHandleDelete:
         """404 エラーが伝搬する。"""
         with patch_adapter("gfo.commands.branch") as adapter:
             adapter.delete_branch.side_effect = HttpError(404, "Not found")
-            args = make_args(name="nonexistent")
+            args = make_args(name="nonexistent", yes=True)
             with pytest.raises(HttpError) as exc_info:
                 branch_cmd.handle_delete(args, fmt="table")
             assert exc_info.value.status_code == 404
@@ -95,7 +95,7 @@ class TestHandleDelete:
         """403 保護されたブランチの削除が伝搬する。"""
         with patch_adapter("gfo.commands.branch") as adapter:
             adapter.delete_branch.side_effect = HttpError(403, "Protected branch")
-            args = make_args(name="main")
+            args = make_args(name="main", yes=True)
             with pytest.raises(HttpError) as exc_info:
                 branch_cmd.handle_delete(args, fmt="table")
             assert exc_info.value.status_code == 403
@@ -171,7 +171,7 @@ class TestHandleDeleteSuccessMessage:
     def test_delete_prints_success_message(self, capsys):
         """handle_delete が成功メッセージにブランチ名を含む。"""
         with patch_adapter("gfo.commands.branch"):
-            args = make_args(name="feature/old")
+            args = make_args(name="feature/old", yes=True)
             branch_cmd.handle_delete(args, fmt="table")
         out = capsys.readouterr().out
         assert "feature/old" in out
@@ -179,7 +179,7 @@ class TestHandleDeleteSuccessMessage:
     def test_delete_json_format(self, capsys):
         """fmt="json" で構造化 JSON（result / branch / message）が出力される。"""
         with patch_adapter("gfo.commands.branch"):
-            args = make_args(name="feature/old")
+            args = make_args(name="feature/old", yes=True)
             branch_cmd.handle_delete(args, fmt="json")
         out = capsys.readouterr().out
         data = json.loads(out)

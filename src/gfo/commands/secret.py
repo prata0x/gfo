@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 
-from gfo.commands import get_adapter, read_file_arg
+from gfo.commands import confirm_action, get_adapter, read_file_arg
 from gfo.exceptions import GfoError
 from gfo.i18n import _
 from gfo.output import output, output_result
@@ -44,6 +44,13 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo secret delete <name> のハンドラ。"""
     adapter = get_adapter()
     scope = getattr(args, "org", None)
+    if not confirm_action(
+        args,
+        _("Are you sure you want to delete secret '{name}'? [y/N]: ").format(name=args.name),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter.delete_secret(args.name, scope=scope)
     output_result(
         _("Deleted secret '{name}'.").format(name=args.name),

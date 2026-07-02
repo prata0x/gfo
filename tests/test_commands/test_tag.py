@@ -78,7 +78,7 @@ class TestHandleCreate:
 class TestHandleDelete:
     def test_calls_delete_tag(self):
         with patch_adapter("gfo.commands.tag") as adapter:
-            args = make_args(name="v1.0.0")
+            args = make_args(name="v1.0.0", yes=True)
             tag_cmd.handle_delete(args, fmt="table")
         adapter.delete_tag.assert_called_once_with(name="v1.0.0")
 
@@ -86,7 +86,7 @@ class TestHandleDelete:
         """404 エラーが伝搬する。"""
         with patch_adapter("gfo.commands.tag") as adapter:
             adapter.delete_tag.side_effect = HttpError(404, "Not found")
-            args = make_args(name="nonexistent")
+            args = make_args(name="nonexistent", yes=True)
             with pytest.raises(HttpError) as exc_info:
                 tag_cmd.handle_delete(args, fmt="table")
             assert exc_info.value.status_code == 404
@@ -170,7 +170,7 @@ class TestHandleDeleteSuccessMessage:
     def test_delete_prints_success_message(self, capsys):
         """handle_delete が成功メッセージにタグ名を含む。"""
         with patch_adapter("gfo.commands.tag"):
-            args = make_args(name="v1.0.0")
+            args = make_args(name="v1.0.0", yes=True)
             tag_cmd.handle_delete(args, fmt="table")
         out = capsys.readouterr().out
         assert "v1.0.0" in out
@@ -178,7 +178,7 @@ class TestHandleDeleteSuccessMessage:
     def test_delete_json_format(self, capsys):
         """fmt="json" で構造化 JSON（result / tag / message）が出力される。"""
         with patch_adapter("gfo.commands.tag"):
-            args = make_args(name="v1.0.0")
+            args = make_args(name="v1.0.0", yes=True)
             tag_cmd.handle_delete(args, fmt="json")
         out = capsys.readouterr().out
         data = json.loads(out)

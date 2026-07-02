@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from gfo.commands import get_adapter
+from gfo.commands import confirm_action, get_adapter
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
 from gfo.output import output, output_result
@@ -40,6 +40,13 @@ def handle_cancel(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo ci delete <id> のハンドラ。"""
     adapter = get_adapter()
+    if not confirm_action(
+        args,
+        _("Are you sure you want to delete pipeline run '{id}'? [y/N]: ").format(id=args.id),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter.delete_pipeline_run(args.id)
     output_result(
         _("Deleted pipeline run '{id}'.").format(id=args.id),

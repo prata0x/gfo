@@ -124,7 +124,7 @@ class TestHandleDelete:
     def test_calls_delete_file(self):
         with patch_adapter("gfo.commands.file") as adapter:
             adapter.get_file_content.return_value = ("content", "deadbeef")
-            args = make_args(path="old.txt", message="Remove file", branch=None)
+            args = make_args(path="old.txt", message="Remove file", branch=None, yes=True)
             file_cmd.handle_delete(args, fmt="table")
         adapter.delete_file.assert_called_once_with(
             "old.txt", sha="deadbeef", message="Remove file", branch=None
@@ -134,7 +134,7 @@ class TestHandleDelete:
         """handle_delete で NotFoundError が伝搬する。"""
         with patch_adapter("gfo.commands.file") as adapter:
             adapter.get_file_content.side_effect = NotFoundError()
-            args = make_args(path="missing.txt", message="Delete", branch=None)
+            args = make_args(path="missing.txt", message="Delete", branch=None, yes=True)
             with pytest.raises(NotFoundError):
                 file_cmd.handle_delete(args, fmt="table")
 
@@ -143,7 +143,7 @@ class TestHandleDelete:
         with patch_adapter("gfo.commands.file") as adapter:
             adapter.get_file_content.return_value = ("content", "sha123")
             adapter.delete_file.side_effect = HttpError(403, "Forbidden")
-            args = make_args(path="protected.txt", message="Delete", branch=None)
+            args = make_args(path="protected.txt", message="Delete", branch=None, yes=True)
             with pytest.raises(HttpError) as exc_info:
                 file_cmd.handle_delete(args, fmt="table")
             assert exc_info.value.status_code == 403
@@ -214,7 +214,7 @@ class TestHandleDeleteSuccessMessage:
         """handle_delete が成功メッセージに path を含む。"""
         with patch_adapter("gfo.commands.file") as adapter:
             adapter.get_file_content.return_value = ("content", "deadbeef")
-            args = make_args(path="old.txt", message="Remove file", branch=None)
+            args = make_args(path="old.txt", message="Remove file", branch=None, yes=True)
             file_cmd.handle_delete(args, fmt="table")
         out = capsys.readouterr().out
         assert "old.txt" in out
@@ -223,7 +223,7 @@ class TestHandleDeleteSuccessMessage:
         """fmt="json" で構造化 JSON（result / path / message）が出力される。"""
         with patch_adapter("gfo.commands.file") as adapter:
             adapter.get_file_content.return_value = ("content", "deadbeef")
-            args = make_args(path="old.txt", message="Remove file", branch=None)
+            args = make_args(path="old.txt", message="Remove file", branch=None, yes=True)
             file_cmd.handle_delete(args, fmt="json")
         out = capsys.readouterr().out
         data = json.loads(out)

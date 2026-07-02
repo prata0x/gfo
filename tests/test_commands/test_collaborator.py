@@ -108,7 +108,7 @@ class TestHandleAdd:
 class TestHandleRemove:
     def test_calls_remove_collaborator(self):
         with patch_adapter("gfo.commands.collaborator") as adapter:
-            args = make_args(username="charlie")
+            args = make_args(username="charlie", yes=True)
             collab_cmd.handle_remove(args, fmt="table")
         adapter.remove_collaborator.assert_called_once_with(username="charlie")
 
@@ -116,7 +116,7 @@ class TestHandleRemove:
         """HttpError(404) がそのまま伝搬する。"""
         with patch_adapter("gfo.commands.collaborator") as adapter:
             adapter.remove_collaborator.side_effect = HttpError(404, "Not Found")
-            args = make_args(username="nonexistent")
+            args = make_args(username="nonexistent", yes=True)
             with pytest.raises(HttpError) as exc_info:
                 collab_cmd.handle_remove(args, fmt="table")
             assert exc_info.value.status_code == 404
@@ -136,7 +136,7 @@ class TestHandleRemoveSuccessMessage:
     def test_remove_prints_success_message(self, capsys):
         """handle_remove が成功メッセージに username を含む。"""
         with patch_adapter("gfo.commands.collaborator"):
-            args = make_args(username="charlie")
+            args = make_args(username="charlie", yes=True)
             collab_cmd.handle_remove(args, fmt="table")
         out = capsys.readouterr().out
         assert "charlie" in out

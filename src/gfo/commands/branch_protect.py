@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from gfo.commands import get_adapter
+from gfo.commands import confirm_action, get_adapter
 from gfo.i18n import _
 from gfo.output import output, output_result
 
@@ -45,6 +45,15 @@ def handle_set(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
 def handle_remove(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo branch-protect remove <branch> のハンドラ。"""
     adapter = get_adapter()
+    if not confirm_action(
+        args,
+        _("Are you sure you want to remove branch protection for '{branch}'? [y/N]: ").format(
+            branch=args.branch
+        ),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter.remove_branch_protection(args.branch)
     output_result(
         _("Removed branch protection for '{branch}'.").format(branch=args.branch),

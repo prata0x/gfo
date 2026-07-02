@@ -101,14 +101,14 @@ class TestHandleGet:
 class TestHandleDelete:
     def test_calls_delete(self):
         with patch_adapter("gfo.commands.variable") as adapter:
-            args = make_args(name="MY_VAR")
+            args = make_args(name="MY_VAR", yes=True)
             variable_cmd.handle_delete(args, fmt="table")
         adapter.delete_variable.assert_called_once_with("MY_VAR", scope=None)
 
     def test_json_format(self, capsys):
         """fmt="json" のとき構造化 JSON が出力される。"""
         with patch_adapter("gfo.commands.variable"):
-            args = make_args(name="MY_VAR")
+            args = make_args(name="MY_VAR", yes=True)
             variable_cmd.handle_delete(args, fmt="json")
         out = capsys.readouterr().out
         data = json.loads(out)
@@ -119,7 +119,7 @@ class TestHandleDelete:
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.variable") as adapter:
             adapter.delete_variable.side_effect = GfoError("not found")
-            args = make_args(name="MY_VAR")
+            args = make_args(name="MY_VAR", yes=True)
             with pytest.raises(GfoError, match="not found"):
                 variable_cmd.handle_delete(args, fmt="table")
 
@@ -141,7 +141,7 @@ class TestOrgScope:
 
     def test_delete_org_variable(self):
         with patch_adapter("gfo.commands.variable") as adapter:
-            args = make_args(name="ORG_VAR", org="my-org")
+            args = make_args(name="ORG_VAR", org="my-org", yes=True)
             variable_cmd.handle_delete(args, fmt="table")
         adapter.delete_variable.assert_called_once_with("ORG_VAR", scope="my-org")
 

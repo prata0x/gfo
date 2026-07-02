@@ -81,7 +81,7 @@ class TestHandleDelete:
             package_cmd.handle_delete(args, fmt="table")
         adapter.delete_package.assert_called_once_with("npm", "test-pkg", "1.0.0")
 
-    def test_delete_confirm_yes(self, capsys):
+    def test_delete_confirm_yes(self, capsys, interactive_stdin):
         """builtins.input を "y" にパッチ → delete_package() が呼び出される。"""
         from unittest.mock import patch
 
@@ -93,7 +93,7 @@ class TestHandleDelete:
         out = capsys.readouterr().out
         assert "Deleted" in out
 
-    def test_delete_confirm_no(self, capsys):
+    def test_delete_confirm_no(self, capsys, interactive_stdin):
         """builtins.input を "n" にパッチ → "Aborted." 出力、delete_package 未呼び出し。"""
         from unittest.mock import patch
 
@@ -105,7 +105,7 @@ class TestHandleDelete:
         out = capsys.readouterr().out
         assert "Aborted" in out
 
-    def test_delete_confirm_empty(self, capsys):
+    def test_delete_confirm_empty(self, capsys, interactive_stdin):
         """builtins.input を "" にパッチ → Aborted (y/yes 以外は拒否)。"""
         from unittest.mock import patch
 

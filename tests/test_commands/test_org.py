@@ -246,14 +246,14 @@ class TestHandleDelete:
         out = capsys.readouterr().out
         assert "my-org" in out
 
-    def test_confirmation_prompt_accepted(self, capsys):
+    def test_confirmation_prompt_accepted(self, capsys, interactive_stdin):
         with patch_adapter("gfo.commands.org") as adapter:
             args = make_args(name="my-org", yes=False)
             with patch("builtins.input", return_value="y"):
                 org_cmd.handle_delete(args, fmt="table")
         adapter.delete_organization.assert_called_once_with("my-org")
 
-    def test_confirmation_prompt_rejected(self, capsys):
+    def test_confirmation_prompt_rejected(self, capsys, interactive_stdin):
         with patch_adapter("gfo.commands.org") as adapter:
             args = make_args(name="my-org", yes=False)
             with patch("builtins.input", return_value="n"):

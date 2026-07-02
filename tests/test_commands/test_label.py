@@ -227,14 +227,14 @@ class TestHandleDelete:
         self.adapter = _make_adapter(self.label)
 
     def test_delete_calls_adapter(self, sample_config):
-        args = make_args(name="bug")
+        args = make_args(name="bug", yes=True)
         with _patch_all(sample_config, self.adapter):
             label_cmd.handle_delete(args, fmt="table")
 
         self.adapter.delete_label.assert_called_once_with(name="bug")
 
     def test_delete_prints_message(self, sample_config, capsys):
-        args = make_args(name="bug")
+        args = make_args(name="bug", yes=True)
         with _patch_all(sample_config, self.adapter):
             label_cmd.handle_delete(args, fmt="table")
 
@@ -243,7 +243,7 @@ class TestHandleDelete:
         assert "Deleted" in out
 
     def test_delete_json_format(self, sample_config, capsys):
-        args = make_args(name="bug")
+        args = make_args(name="bug", yes=True)
         with _patch_all(sample_config, self.adapter):
             label_cmd.handle_delete(args, fmt="json")
 
@@ -259,7 +259,7 @@ class TestHandleDelete:
                 label_cmd.handle_delete(args, fmt="table")
 
     def test_name_stripped_before_call(self, sample_config):
-        args = make_args(name="  bug  ")
+        args = make_args(name="  bug  ", yes=True)
         with _patch_all(sample_config, self.adapter):
             label_cmd.handle_delete(args, fmt="table")
 

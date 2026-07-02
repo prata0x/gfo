@@ -13,6 +13,10 @@ Available for all commands.
 | `--account ACCOUNT` | Account name for multi-account token resolution (see `gfo auth login --account`) | — |
 | `--version` | Show version and exit | — |
 
+### Destructive operations and `--yes`
+
+All destructive subcommands (`delete` / `remove` family, plus `repo archive` and `repo transfer`) show a confirmation prompt by default. Pass `--yes` / `-y` to skip it. In non-interactive contexts (stdin is not a TTY — pipes, CI, AI agents), no prompt is shown: the command fails with an error unless `--yes` is given.
+
 ---
 
 ## gfo init
@@ -552,7 +556,7 @@ Manage PR comments.
 gfo pr comment list NUMBER [--limit N]
 gfo pr comment create NUMBER --body BODY
 gfo pr comment edit COMMENT_ID --body BODY
-gfo pr comment delete COMMENT_ID
+gfo pr comment delete COMMENT_ID [--yes]
 ```
 
 ```bash
@@ -657,7 +661,7 @@ gfo issue reopen 10
 > GitHub / Gogs not supported
 
 ```
-gfo issue delete NUMBER
+gfo issue delete NUMBER [--yes]
 ```
 
 ```bash
@@ -791,7 +795,7 @@ Manage issue comments.
 gfo issue comment list NUMBER [--limit N]
 gfo issue comment create NUMBER --body BODY
 gfo issue comment edit COMMENT_ID --body BODY
-gfo issue comment delete COMMENT_ID
+gfo issue comment delete COMMENT_ID [--yes]
 ```
 
 ```bash
@@ -887,7 +891,7 @@ Manage issue time tracking (work time entries).
 ```
 gfo issue time list NUMBER
 gfo issue time add NUMBER DURATION
-gfo issue time delete NUMBER ENTRY_ID
+gfo issue time delete NUMBER ENTRY_ID [--yes]
 ```
 
 | Argument | Description |
@@ -1184,7 +1188,7 @@ Manage push mirrors.
 ```
 gfo repo mirror list
 gfo repo mirror add REMOTE_ADDRESS [--interval INTERVAL]
-gfo repo mirror remove MIRROR_NAME
+gfo repo mirror remove MIRROR_NAME [--yes]
 gfo repo mirror sync
 ```
 
@@ -1310,7 +1314,7 @@ gfo release create v1.0.0 --generate-notes
 ### gfo release delete
 
 ```
-gfo release delete TAG
+gfo release delete TAG [--yes]
 ```
 
 ```bash
@@ -1372,7 +1376,7 @@ gfo release asset list --tag TAG
 gfo release asset upload --tag TAG <file> [--name NAME]
 gfo release asset download --tag TAG [--asset-id ID | --pattern GLOB] [--dir DIR]
 gfo release asset edit --tag TAG <asset_id> [--name NAME]
-gfo release asset delete --tag TAG <asset_id>
+gfo release asset delete --tag TAG <asset_id> [--yes]
 ```
 
 ---
@@ -1405,7 +1409,7 @@ gfo label create enhancement --color 0075ca
 ### gfo label delete
 
 ```
-gfo label delete NAME
+gfo label delete NAME [--yes]
 ```
 
 ```bash
@@ -1479,7 +1483,7 @@ gfo milestone create "v1.0 Release" --due 2024-12-31
 ### gfo milestone delete
 
 ```
-gfo milestone delete NUMBER
+gfo milestone delete NUMBER [--yes]
 ```
 
 ```bash
@@ -1583,7 +1587,7 @@ gfo branch view feature/new-ui
 ### gfo branch delete
 
 ```
-gfo branch delete NAME
+gfo branch delete NAME [--yes]
 ```
 
 ```bash
@@ -1632,7 +1636,7 @@ gfo tag create v1.0.0 --ref main --message "Release v1.0.0"
 ### gfo tag delete
 
 ```
-gfo tag delete NAME
+gfo tag delete NAME [--yes]
 ```
 
 ```bash
@@ -1706,7 +1710,7 @@ cat myfile.py | gfo file put src/myfile.py --message "Update myfile" --branch fe
 ### gfo file delete
 
 ```
-gfo file delete PATH --message MSG [--branch BRANCH]
+gfo file delete PATH --message MSG [--branch BRANCH] [--yes]
 ```
 
 ```bash
@@ -1743,7 +1747,7 @@ gfo webhook create --url https://example.com/hook --event push --secret mysecret
 ### gfo webhook delete
 
 ```
-gfo webhook delete ID
+gfo webhook delete ID [--yes]
 ```
 
 ```bash
@@ -1824,7 +1828,7 @@ gfo deploy-key create --title "Deploy Bot" --key "ssh-ed25519 AAAA..." --read-wr
 ### gfo deploy-key delete
 
 ```
-gfo deploy-key delete ID
+gfo deploy-key delete ID [--yes]
 ```
 
 ```bash
@@ -1863,7 +1867,7 @@ gfo collaborator add bob --permission admin
 ### gfo collaborator remove
 
 ```
-gfo collaborator remove USERNAME
+gfo collaborator remove USERNAME [--yes]
 ```
 
 ```bash
@@ -1914,7 +1918,7 @@ gfo ci cancel 12345678
 Delete a pipeline run.
 
 ```
-gfo ci delete ID
+gfo ci delete ID [--yes]
 ```
 
 ```bash
@@ -2130,7 +2134,7 @@ gfo wiki edit 1 --title "New Title"
 ### gfo wiki delete
 
 ```
-gfo wiki delete ID
+gfo wiki delete ID [--yes]
 ```
 
 ```bash
@@ -2225,7 +2229,7 @@ gfo branch-protect set main --require-reviews 2 --no-allow-force-push
 ### gfo branch-protect remove
 
 ```
-gfo branch-protect remove BRANCH
+gfo branch-protect remove BRANCH [--yes]
 ```
 
 ```bash
@@ -2372,7 +2376,7 @@ gfo ssh-key create --title "My Laptop" --key "ssh-ed25519 AAAA..."
 ### gfo ssh-key delete
 
 ```
-gfo ssh-key delete ID
+gfo ssh-key delete ID [--yes]
 ```
 
 ```bash
@@ -2422,7 +2426,7 @@ gfo secret set ORG_TOKEN --value "token" --org my-org
 ### gfo secret delete
 
 ```
-gfo secret delete NAME [--org ORG]
+gfo secret delete NAME [--org ORG] [--yes]
 ```
 
 | Option | Description |
@@ -2478,7 +2482,7 @@ gfo variable get NODE_ENV
 ### gfo variable delete
 
 ```
-gfo variable delete NAME [--org ORG]
+gfo variable delete NAME [--org ORG] [--yes]
 ```
 
 | Option | Description |
@@ -2617,7 +2621,7 @@ gfo gpg-key create --key "-----BEGIN PGP PUBLIC KEY BLOCK-----..."
 ### gfo gpg-key delete
 
 ```
-gfo gpg-key delete ID
+gfo gpg-key delete ID [--yes]
 ```
 
 ```bash
@@ -2736,7 +2740,7 @@ gfo tag-protect create "release-*" --access-level maintainer
 ### gfo tag-protect delete
 
 ```
-gfo tag-protect delete ID
+gfo tag-protect delete ID [--yes]
 ```
 
 ```bash

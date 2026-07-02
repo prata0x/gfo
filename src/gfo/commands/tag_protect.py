@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from gfo.commands import get_adapter
+from gfo.commands import confirm_action, get_adapter
 from gfo.i18n import _
 from gfo.output import output, output_result
 
@@ -39,6 +39,13 @@ def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo tag-protect delete <id> のハンドラ。"""
     adapter = get_adapter()
+    if not confirm_action(
+        args,
+        _("Are you sure you want to delete tag protection '{id}'? [y/N]: ").format(id=args.id),
+        fmt=fmt,
+        jq=jq,
+    ):
+        return
     adapter.delete_tag_protection(args.id)
     output_result(
         _("Deleted tag protection '{id}'.").format(id=args.id),
