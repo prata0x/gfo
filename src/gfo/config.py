@@ -75,10 +75,11 @@ def get_config_dir() -> Path:
         if appdata:
             return Path(appdata) / "gfo"
         return Path.home() / "AppData" / "Roaming" / "gfo"
-    xdg_config_home = os.environ.get("XDG_CONFIG_HOME", "").strip()
-    if xdg_config_home:
-        return Path(xdg_config_home) / "gfo"
-    return Path.home() / ".config" / "gfo"
+    else:  # mypy (win32) の platform 分岐枝刈りに載せるため明示的な else が必要
+        xdg_config_home = os.environ.get("XDG_CONFIG_HOME", "").strip()
+        if xdg_config_home:
+            return Path(xdg_config_home) / "gfo"
+        return Path.home() / ".config" / "gfo"
 
 
 def get_config_path() -> Path:

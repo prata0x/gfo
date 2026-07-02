@@ -143,6 +143,11 @@ jobs:
       - name: Type check (mypy)
         run: uv run mypy src/gfo
 
+      # Windows ローカル開発 (README/CLAUDE の手順) でも green を保つため、
+      # sys.platform 分岐の unreachable を win32 視点でも検証する (issue #62)。
+      - name: Type check (mypy, --platform win32)
+        run: uv run mypy --platform win32 src/gfo
+
       # runner は 4 vCPU 固定なので xdist は -n 4 を明示 (auto でも同等だが意図を固定)。
       # カバレッジは max leg のみ取得する (matrix.cov)。min leg は cov 無し = 高速。
       # 3.13 (max) は coverage の sysmon コアを使い計測オーバーヘッドを抑える (3.11 は非対応)。
