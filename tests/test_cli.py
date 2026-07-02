@@ -1714,3 +1714,84 @@ def test_hoist_main_format_after_subcommand():
     handler.assert_called_once()
     _, kwargs = handler.call_args
     assert kwargs["fmt"] == "json"
+
+
+# ── 短縮フラグの一意性ガードテスト（#70） ──
+
+# pr merge の --merge/-m --squash/-s --rebase/-r は mutually exclusive group
+# （gh CLI 互換）のため、この 1 コマンドに限りグローバルな「1 短縮フラグ = 1 意味」の
+# 対象から除外する。
+_SHORT_FLAG_PATH_EXCEPTIONS = {
+    ("pr", "merge"): {"-m", "-s", "-r"},
+}
+
+# "ファイルから読む" という一貫した意味を持つとみなし、対象から除外する短縮フラグ。
+_SHORT_FLAG_GLOBAL_EXCEPTIONS = {"-F"}
+
+
+def _walk_short_flags(parser, path):
+    """パーサーを再帰的に走査し、(コマンドパス, 短縮フラグ集合, 意味) の一覧を返す。
+
+    NOTE: argparse の非公開 API を使用: parser._actions, _SubParsersAction。
+    """
+    entries = []
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            for name, sub_parser in action.choices.items():
+                entries.extend(_walk_short_flags(sub_parser, path + (name,)))
+            continue
+        short_flags = tuple(
+            o for o in action.option_strings if len(o) == 2 and o[0] == "-" and o[1] != "-"
+        )
+        if not short_flags:
+            continue
+        long_opts = tuple(o for o in action.option_strings if o.startswith("--"))
+        meaning = long_opts[0] if long_opts else action.dest
+        entries.append((path, short_flags, meaning))
+    return entries
+
+
+def test_short_flags_have_unique_meaning():
+    """短縮フラグは全体で1つの意味（long option）にのみ対応する（#70）。
+
+    衝突していた短縮フラグ（-t/-n/-d/-b/-m/-w/-H/-i/-r）を長い形のみに整理した。
+    再発防止のため、パーサー全体を走査して意味の対応が一意であることを検証する。
+    """
+    import collections
+
+    main_parser, _ = create_parser()
+    entries = _walk_short_flags(main_parser, ())
+
+    meanings = collections.defaultdict(set)
+    for path, short_flags, meaning in entries:
+        allowed_here = _SHORT_FLAG_PATH_EXCEPTIONS.get(path, set())
+        for flag in short_flags:
+            if flag == "-h" or flag in _SHORT_FLAG_GLOBAL_EXCEPTIONS or flag in allowed_here:
+                continue
+            meanings[flag].add(meaning)
+
+    conflicts = {flag: sorted(m) for flag, m in meanings.items() if len(m) > 1}
+    assert conflicts == {}, f"短縮フラグが複数の意味を持つ: {conflicts}"
+
+
+def test_pr_merge_method_flags_are_the_documented_exception():
+    """pr merge の --merge/-m --squash/-s --rebase/-r は例外として維持されている。"""
+    _, subparser_map = create_parser()
+    pr_parser = subparser_map["pr"]
+    merge_parser = None
+    for action in pr_parser._actions:
+        if isinstance(action, argparse._SubParsersAction) and "merge" in action.choices:
+            merge_parser = action.choices["merge"]
+            break
+    assert merge_parser is not None
+
+    short_to_long = {}
+    for action in merge_parser._actions:
+        short = [o for o in action.option_strings if len(o) == 2 and o[0] == "-" and o[1] != "-"]
+        long_opts = [o for o in action.option_strings if o.startswith("--")]
+        for s in short:
+            short_to_long[s] = long_opts[0]
+
+    assert short_to_long["-m"] == "--merge"
+    assert short_to_long["-s"] == "--squash"
+    assert short_to_long["-r"] == "--rebase"

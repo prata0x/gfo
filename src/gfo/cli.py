@@ -328,7 +328,6 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     _pr_list_draft = pr_list.add_mutually_exclusive_group()
     _pr_list_draft.add_argument(
         "--draft",
-        "-d",
         dest="draft",
         action="store_true",
         default=None,
@@ -345,10 +344,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_create.add_argument("--body-file", "-F", help=_("Read body from file"))
     pr_create.add_argument("--base", "-B", help=_("Base branch"))
     pr_create.add_argument("--head", "-H", help=_("Head branch"))
-    pr_create.add_argument("--draft", "-d", action="store_true", help=_("Create as draft"))
-    pr_create.add_argument(
-        "--reviewer", "-r", action="append", help=_("Reviewer username (repeatable)")
-    )
+    pr_create.add_argument("--draft", action="store_true", help=_("Create as draft"))
+    pr_create.add_argument("--reviewer", action="append", help=_("Reviewer username (repeatable)"))
     pr_create.add_argument(
         "--assignee", "-a", action="append", help=_("Assignee username (repeatable)")
     )
@@ -374,12 +371,11 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     _merge_method.add_argument("--rebase", "-r", action="store_true", help=_("Rebase and merge"))
     pr_merge.add_argument(
         "--delete-branch",
-        "-d",
         dest="delete_branch",
         action="store_true",
         help=_("Delete branch after merge"),
     )
-    pr_merge.add_argument("--subject", "-t", help=_("Merge commit title"))
+    pr_merge.add_argument("--subject", help=_("Merge commit title"))
     pr_merge.add_argument("--body", "-b", help=_("Merge commit body"))
     pr_merge.add_argument("--auto", action="store_true", help=_("Enable auto-merge"))
     pr_merge.add_argument(
@@ -727,7 +723,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     # gfo repo migrate
     repo_migrate = repo_sub.add_parser("migrate", help=_("Migrate repository from URL"))
     repo_migrate.add_argument("clone_url", help=_("Clone URL of source repository"))
-    repo_migrate.add_argument("--name", "-n", required=True, help=_("Repository name or org/name"))
+    repo_migrate.add_argument("--name", required=True, help=_("Repository name or org/name"))
     _repo_migrate_visibility = repo_migrate.add_mutually_exclusive_group()
     _repo_migrate_visibility.add_argument(
         "--private", dest="visibility", action="store_const", const="private"
@@ -777,7 +773,6 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     _release_list_draft = release_list.add_mutually_exclusive_group()
     _release_list_draft.add_argument(
         "--draft",
-        "-d",
         dest="draft",
         action="store_true",
         default=None,
@@ -812,7 +807,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         dest="notes_file",
         help=_("Read release notes from file"),
     )
-    release_create.add_argument("--draft", "-d", action="store_true", help=_("Create as draft"))
+    release_create.add_argument("--draft", action="store_true", help=_("Create as draft"))
     release_create.add_argument(
         "--prerelease", "-p", action="store_true", help=_("Mark as prerelease")
     )
@@ -844,9 +839,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         dest="notes_file",
         help=_("Read release notes from file"),
     )
-    release_edit.add_argument(
-        "--draft", "-d", action="store_true", default=None, help=_("Mark as draft")
-    )
+    release_edit.add_argument("--draft", action="store_true", default=None, help=_("Mark as draft"))
     release_edit.add_argument(
         "--no-draft", dest="draft", action="store_false", help=_("Unmark as draft")
     )
@@ -899,7 +892,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     label_delete.add_argument("name", help=_("Label name"))
     label_edit = label_sub.add_parser("edit", help=_("Edit label"))
     label_edit.add_argument("current_name", metavar="NAME", help=_("Label name"))
-    label_edit.add_argument("--name", "-n", help=_("New name"))
+    label_edit.add_argument("--name", help=_("New name"))
     label_edit.add_argument("--color", "-c", help=_("Color (hex)"))
     label_edit.add_argument("--description", "-d", help=_("Description"))
 
@@ -946,7 +939,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_edit.add_argument("--milestone", "-m", help=_("Milestone"))
     _pr_edit_draft = pr_edit.add_mutually_exclusive_group()
     _pr_edit_draft.add_argument(
-        "--draft", "-d", dest="draft", action="store_true", default=None, help=_("Convert to draft")
+        "--draft", dest="draft", action="store_true", default=None, help=_("Convert to draft")
     )
     _pr_edit_draft.add_argument(
         "--ready", dest="draft", action="store_false", help=_("Mark as ready for review")
@@ -996,7 +989,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
 
     # gfo repo sync（fork を上流と同期）
     repo_sync = repo_sub.add_parser("sync", help=_("Sync fork with upstream"))
-    repo_sync.add_argument("--branch", "-b", help=_("Branch to sync"))
+    repo_sync.add_argument("--branch", help=_("Branch to sync"))
 
     # gfo branch → サブサブコマンド
     branch_parser = subparser_map["branch"] = subparsers.add_parser(
@@ -1038,7 +1031,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     tag_create = tag_sub.add_parser("create", help=_("Create tag"))
     tag_create.add_argument("name", help=_("Tag name"))
     tag_create.add_argument("--ref", required=True, help=_("Source ref"))
-    tag_create.add_argument("--message", "-m", default="", help=_("Tag message"))
+    tag_create.add_argument("--message", default="", help=_("Tag message"))
     tag_delete = tag_sub.add_parser("delete", help=_("Delete tag"))
     tag_delete.add_argument("--yes", "-y", action="store_true", help=_("Skip confirmation prompt"))
     tag_delete.add_argument("name", help=_("Tag name"))
@@ -1199,7 +1192,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     ci_delete.add_argument("id", help=_("Pipeline ID"))
     ci_trigger = ci_sub.add_parser("trigger", help=_("Trigger pipeline"))
     ci_trigger.add_argument("--ref", required=True, help=_("Git ref"))
-    ci_trigger.add_argument("--workflow", "-w", help=_("Workflow name or file"))
+    ci_trigger.add_argument("--workflow", help=_("Workflow name or file"))
     ci_trigger.add_argument("--input", "-i", action="append", help=_("Input parameter (key=value)"))
     ci_retry = ci_sub.add_parser("retry", help=_("Retry pipeline"))
     ci_retry.add_argument("id", help=_("Pipeline ID"))
@@ -1209,10 +1202,10 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     ci_watch = ci_sub.add_parser("watch", help=_("Watch pipeline status"))
     ci_watch.add_argument("id", help=_("Pipeline ID"))
     ci_watch.add_argument(
-        "--interval", "-i", type=_positive_int, default=5, help=_("Poll interval in seconds")
+        "--interval", type=_positive_int, default=5, help=_("Poll interval in seconds")
     )
     ci_watch.add_argument(
-        "--timeout", "-t", type=int, default=1800, help=_("Timeout in seconds (0 for unlimited)")
+        "--timeout", type=int, default=1800, help=_("Timeout in seconds (0 for unlimited)")
     )
     ci_download = ci_sub.add_parser("download", help=_("Download pipeline logs to file"))
     ci_download.add_argument("id", help=_("Pipeline ID"))
@@ -1752,8 +1745,8 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         help=_("HTTP method"),
     )
     api_parser.add_argument("path", help=_("API path"))
-    api_parser.add_argument("--data", "-d", help=_("Request body (JSON)"))
-    api_parser.add_argument("--header", "-H", action="append", help=_("Request header"))
+    api_parser.add_argument("--data", help=_("Request body (JSON)"))
+    api_parser.add_argument("--header", action="append", help=_("Request header"))
 
     # gfo batch → サブコマンド
     batch_parser = subparser_map["batch"] = subparsers.add_parser(
@@ -1774,7 +1767,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     batch_pr_create.add_argument("--body", "-b", default="", help=_("Body"))
     batch_pr_create.add_argument("--head", "-H", required=True, help=_("Head branch"))
     batch_pr_create.add_argument("--base", "-B", default="main", help=_("Base branch"))
-    batch_pr_create.add_argument("--draft", "-d", action="store_true", help=_("Create as draft"))
+    batch_pr_create.add_argument("--draft", action="store_true", help=_("Create as draft"))
     batch_pr_create.add_argument(
         "--dry-run", dest="dry_run", action="store_true", help=_("Dry run")
     )
