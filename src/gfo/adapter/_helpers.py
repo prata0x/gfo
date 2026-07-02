@@ -11,6 +11,7 @@ from collections.abc import Callable
 from typing import TypeVar
 
 from gfo.exceptions import GfoError
+from gfo.i18n import _
 
 _F = TypeVar("_F", bound=Callable[..., object])
 
@@ -29,7 +30,9 @@ def _wrap_conversion_error(func: _F) -> _F:
         try:
             return func(*args, **kwargs)
         except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+            raise GfoError(
+                _("Unexpected API response: missing field {error}").format(error=e)
+            ) from e
 
     return wrapper  # type: ignore[return-value]
 

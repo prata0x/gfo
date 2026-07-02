@@ -11,6 +11,7 @@ import requests
 
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 from gfo.http import paginate_page_param
+from gfo.i18n import _
 
 if TYPE_CHECKING:
     from gfo.http import HttpClient
@@ -246,7 +247,7 @@ class GitLabAdapter(GitServiceAdapter):
         resp = self._client.get(f"{self._project_path()}/milestones", params={"title": title})
         milestones = resp.json()
         if not milestones:
-            raise GfoError(f"Milestone not found: {title}")
+            raise GfoError(_("Milestone not found: {title}").format(title=title))
         return int(milestones[0]["id"])
 
     def get_pull_request(self, number: int) -> PullRequest:
@@ -263,7 +264,11 @@ class GitLabAdapter(GitServiceAdapter):
     ) -> None:
         allowed_methods = {"merge", "squash", "rebase"}
         if method not in allowed_methods:
-            raise GfoError(f"method must be one of {sorted(allowed_methods)}, got {method!r}")
+            raise GfoError(
+                _("method must be one of {allowed}, got {method!r}").format(
+                    allowed=sorted(allowed_methods), method=method
+                )
+            )
         if method == "rebase":
             # GitLab rebase は /merge ではなく専用の /rebase エンドポイントを使用
             self._client.put(
@@ -772,7 +777,7 @@ class GitLabAdapter(GitServiceAdapter):
         asset_name = os.path.basename(data.get("name") or f"asset-{asset_id}")
         output_path = os.path.join(output_dir, asset_name)
         if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
-            raise GfoError(f"Invalid asset name: {asset_name}")
+            raise GfoError(_("Invalid asset name: {name}").format(name=asset_name))
         self._client.download_file(url, output_path)
         return output_path
 
@@ -1249,7 +1254,9 @@ class GitLabAdapter(GitServiceAdapter):
             else:
                 unresolved.append(name)
         if unresolved:
-            raise GfoError(f"GitLab user(s) not found: {', '.join(unresolved)}")
+            raise GfoError(
+                _("GitLab user(s) not found: {users}").format(users=", ".join(unresolved))
+            )
         return ids
 
     def request_reviewers(self, number: int, reviewers: list[str]) -> None:
@@ -1498,7 +1505,7 @@ class GitLabAdapter(GitServiceAdapter):
             content = base64.b64decode(data["content"]).decode("utf-8")
             sha = data.get("blob_id") or data.get("commit_id") or ""
         except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+            raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
         return content, sha
 
     def create_or_update_file(
@@ -1657,14 +1664,14 @@ class GitLabAdapter(GitServiceAdapter):
         try:
             return [r["username"] for r in results]
         except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+            raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
 
     def add_collaborator(self, *, username: str, permission: str = "write") -> None:
         # GitLab ではまずユーザー ID を取得する
         resp = self._client.get("/users", params={"username": username})
         users = resp.json()
         if not users:
-            raise GfoError(f"User '{username}' not found")
+            raise GfoError(_("User '{username}' not found").format(username=username))
         user_id = users[0]["id"]
         access_level_map = {"read": 20, "write": 30, "admin": 40}
         access_level = access_level_map.get(permission, 30)
@@ -1677,7 +1684,7 @@ class GitLabAdapter(GitServiceAdapter):
         resp = self._client.get("/users", params={"username": username})
         users = resp.json()
         if not users:
-            raise GfoError(f"User '{username}' not found")
+            raise GfoError(_("User '{username}' not found").format(username=username))
         user_id = users[0]["id"]
         self._client.delete(f"{self._project_path()}/members/{user_id}")
 
@@ -1903,7 +1910,7 @@ class GitLabAdapter(GitServiceAdapter):
         try:
             return [r["username"] for r in results]
         except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+            raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
 
     def list_org_repos(self, name: str, *, limit: int = 30) -> list[Repository]:
         results = paginate_page_param(

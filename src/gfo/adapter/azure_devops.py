@@ -12,6 +12,7 @@ import requests
 
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 from gfo.http import paginate_top_skip
+from gfo.i18n import _
 
 if TYPE_CHECKING:
     from gfo.http import HttpClient
@@ -249,18 +250,26 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         }
         if method not in strategy_map:
             raise GfoError(
-                f"Unsupported merge method '{method}'. Use one of: {', '.join(strategy_map)}."
+                _("Unsupported merge method '{method}'. Use one of: {allowed}.").format(
+                    method=method, allowed=", ".join(strategy_map)
+                )
             )
         strategy = strategy_map[method]
         pr_resp = self._client.get(f"{self._git_path()}/pullrequests/{number}")
         pr_data = pr_resp.json()
         if not isinstance(pr_data, dict):
-            raise GfoError(f"Unexpected API response from pullrequests endpoint: {type(pr_data)}")
+            raise GfoError(
+                _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                    endpoint="pullrequests", error=type(pr_data)
+                )
+            )
         last_merge_commit = pr_data.get("lastMergeSourceCommit")
         if not last_merge_commit:
             raise GfoError(
-                f"Cannot merge pull request #{number}: lastMergeSourceCommit not found. "
-                "The pull request may have no commits or may be in an invalid state."
+                _(
+                    "Cannot merge pull request #{number}: lastMergeSourceCommit not found. "
+                    "The pull request may have no commits or may be in an invalid state."
+                ).format(number=number)
             )
         completion_options: dict[str, Any] = {"mergeStrategy": strategy}
         if title is not None or message is not None:
@@ -335,7 +344,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         ).json()
         if not isinstance(iters, dict):
             raise GfoError(
-                f"Unexpected Azure DevOps PR iterations response type: {type(iters).__name__}"
+                _("Unexpected Azure DevOps PR iterations response type: {type}").format(
+                    type=type(iters).__name__
+                )
             )
         iterations = iters.get("value", [])
         if not iterations:
@@ -346,7 +357,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         ).json()
         if not isinstance(resp, dict):
             raise GfoError(
-                f"Unexpected Azure DevOps PR changes response type: {type(resp).__name__}"
+                _("Unexpected Azure DevOps PR changes response type: {type}").format(
+                    type=type(resp).__name__
+                )
             )
         out: list[PullRequestFile] = []
         for entry in resp.get("changeEntries", []):
@@ -386,7 +399,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         ).json()
         if not isinstance(resp, dict):
             raise GfoError(
-                f"Unexpected Azure DevOps reviewers response type: {type(resp).__name__}"
+                _("Unexpected Azure DevOps reviewers response type: {type}").format(
+                    type=type(resp).__name__
+                )
             )
         return [r.get("displayName", "") for r in resp.get("value", [])]
 
@@ -475,11 +490,19 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         )
         wiql_body = wiql_resp.json()
         if not isinstance(wiql_body, dict):
-            raise GfoError(f"Unexpected API response from WIQL endpoint: {type(wiql_body)}")
+            raise GfoError(
+                _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                    endpoint="WIQL", error=type(wiql_body)
+                )
+            )
         try:
             ids = [wi["id"] for wi in wiql_body.get("workItems", [])]
         except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response from WIQL endpoint: {e}") from e
+            raise GfoError(
+                _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                    endpoint="WIQL", error=e
+                )
+            ) from e
         if not ids:
             return []
 
@@ -497,7 +520,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             batch_body = resp.json()
             if not isinstance(batch_body, dict):
                 raise GfoError(
-                    f"Unexpected API response from workitems endpoint: {type(batch_body)}"
+                    _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                        endpoint="workitems", error=type(batch_body)
+                    )
                 )
             for item in batch_body.get("value", []):
                 results.append(self._to_issue(item))
@@ -636,7 +661,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         try:
             repo_id = resp.json()["id"]
         except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+            raise GfoError(
+                _("Unexpected API response: missing field {error}").format(error=e)
+            ) from e
         self._client.delete(f"/git/repositories/{repo_id}")
 
     def update_repository(
@@ -1108,7 +1135,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         )
         items = resp.json().get("value", [])
         if not items:
-            raise GfoError(f"Branch '{name}' not found after creation")
+            raise GfoError(_("Branch '{name}' not found after creation").format(name=name))
         return self._to_branch(items[0])
 
     def delete_branch(self, *, name: str) -> None:
@@ -1220,7 +1247,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             # objectId は blob SHA
             sha = data.get("objectId") or ""
         except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+            raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
         return content, sha
 
     def create_or_update_file(
@@ -1580,11 +1607,11 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         )
         wiql_body = wiql_resp.json()
         if not isinstance(wiql_body, dict):
-            raise GfoError(f"Unexpected API response: {type(wiql_body)}")
+            raise GfoError(_("Unexpected API response: {error}").format(error=type(wiql_body)))
         try:
             ids = [wi["id"] for wi in wiql_body.get("workItems", [])]
         except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+            raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
         if not ids:
             return []
         ids_str = ",".join(str(x) for x in ids[: limit if limit > 0 else None])
@@ -1594,7 +1621,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         )
         batch_body = resp.json()
         if not isinstance(batch_body, dict):
-            raise GfoError(f"Unexpected API response: {type(batch_body)}")
+            raise GfoError(_("Unexpected API response: {error}").format(error=type(batch_body)))
         return [self._to_issue(item) for item in batch_body.get("value", [])]
 
     def _search_api_url(self) -> str:

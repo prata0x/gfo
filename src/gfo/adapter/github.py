@@ -11,6 +11,7 @@ import requests
 
 from gfo.exceptions import GfoError, HttpError, NotFoundError
 from gfo.http import paginate_link_header
+from gfo.i18n import _
 
 from .base import GitServiceAdapter, _mask_token_in_exception, _wrap_conversion_error
 from .github_like import GitHubLikeAdapter
@@ -634,7 +635,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         asset_name = os.path.basename(meta_resp.json().get("name", f"asset-{asset_id}"))
         output_path = os.path.join(output_dir, asset_name)
         if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
-            raise GfoError(f"Invalid asset name: {asset_name}")
+            raise GfoError(_("Invalid asset name: {name}").format(name=asset_name))
         url = f"{self._client.base_url}{self._repos_path()}/releases/assets/{asset_id}"
         self._client.download_file(url, output_path, headers={"Accept": "application/octet-stream"})
         return output_path
@@ -1086,7 +1087,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             if t.get("name") == name:
                 return self._to_tag(t)
 
-        raise GfoError(f"Tag '{name}' not found after creation")
+        raise GfoError(_("Tag '{name}' not found after creation").format(name=name))
 
     def delete_tag(self, *, name: str) -> None:
         self._client.delete(f"{self._repos_path()}/git/refs/tags/{quote(name, safe='')}")
@@ -1138,7 +1139,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             content = base64.b64decode(data["content"]).decode("utf-8")
             sha = data["sha"]
         except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+            raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
         return content, sha
 
     def create_or_update_file(
@@ -1277,7 +1278,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         try:
             return [r["login"] for r in results]
         except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+            raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
 
     def add_collaborator(self, *, username: str, permission: str = "write") -> None:
         self._client.put(
@@ -1334,7 +1335,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     ) -> Pipeline:
 
         if not workflow:
-            raise GfoError("GitHub requires --workflow to trigger a pipeline.")
+            raise GfoError(
+                _("{service} requires --workflow to trigger a pipeline.").format(service="GitHub")
+            )
         payload: dict[str, Any] = {"ref": ref}
         if inputs:
             payload["inputs"] = inputs
@@ -1447,7 +1450,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         name = os.path.basename(data.get("name", f"artifact-{artifact_id}"))
         output_path = os.path.join(output_dir, f"{name}.zip")
         if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
-            raise GfoError(f"Invalid artifact name: {name}")
+            raise GfoError(_("Invalid artifact name: {name}").format(name=name))
         url = f"{self._client.base_url}{self._repos_path()}/actions/artifacts/{artifact_id}/zip"
         self._client.download_file(url, output_path)
         return output_path
@@ -1464,7 +1467,11 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             safe_job = os.path.basename(str(job_id))
             output_path = os.path.join(output_dir, f"logs-{safe_run}-job-{safe_job}.txt")
             if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
-                raise GfoError(f"Invalid run_id/job_id: {run_id}/{job_id}")
+                raise GfoError(
+                    _("Invalid run_id/job_id: {run_id}/{job_id}").format(
+                        run_id=run_id, job_id=job_id
+                    )
+                )
             resp = self._client.get(
                 f"{self._repos_path()}/actions/jobs/{job_id}/logs",
                 headers={"Accept": "application/vnd.github.v3+json"},
@@ -1475,7 +1482,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             safe_run = os.path.basename(str(run_id))
             output_path = os.path.join(output_dir, f"logs-{safe_run}.zip")
             if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
-                raise GfoError(f"Invalid run_id: {run_id}")
+                raise GfoError(_("Invalid run_id: {run_id}").format(run_id=run_id))
             url = f"{self._client.base_url}{self._repos_path()}/actions/runs/{run_id}/logs"
             self._client.download_file(url, output_path)
         return output_path
@@ -1597,7 +1604,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             from nacl import encoding, public
         except ImportError as e:
             raise GfoError(
-                "PyNaCl is required for GitHub Secret encryption: pip install PyNaCl"
+                _("PyNaCl is required for GitHub Secret encryption: pip install PyNaCl")
             ) from e
         key = public.PublicKey(public_key.encode(), encoding.Base64Encoder)
         sealed_box = public.SealedBox(key)
@@ -1828,7 +1835,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         try:
             return [r["login"] for r in results]
         except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+            raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
 
     def list_org_repos(self, name: str, *, limit: int = 30) -> list[Repository]:
         results = paginate_link_header(

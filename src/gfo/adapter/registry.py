@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from gfo.adapter.base import GitServiceAdapter
 from gfo.config import ProjectConfig
 from gfo.exceptions import ConfigError, UnsupportedServiceError
+from gfo.i18n import _
 
 if TYPE_CHECKING:
     from gfo.http import HttpClient
@@ -41,8 +42,10 @@ def create_http_client(service_type: str, api_url: str, token: str) -> HttpClien
     elif service_type == "bitbucket":
         if ":" not in token:
             raise ConfigError(
-                "Bitbucket token must be in 'email:api-token' format. "
-                "Run 'gfo auth login --host bitbucket.org' to reconfigure."
+                _(
+                    "Bitbucket token must be in 'email:api-token' format. "
+                    "Run 'gfo auth login --host bitbucket.org' to reconfigure."
+                )
             )
         user, pw = token.split(":", 1)
         return HttpClient(api_url, basic_auth=(user, pw))
@@ -85,7 +88,7 @@ def create_adapter(config: ProjectConfig) -> GitServiceAdapter:
         # build_default_api_url 経由ではない api_url 設定パスを通っても None 漏れを防ぐ。
         if not config.organization or not config.project_key:
             raise ConfigError(
-                "Azure DevOps requires both organization and project. Run 'gfo init'."
+                _("Azure DevOps requires both organization and project. Run 'gfo init'.")
             )
         kwargs["organization"] = config.organization
         kwargs["project_key"] = config.project_key

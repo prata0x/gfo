@@ -6,6 +6,7 @@ import urllib.parse
 from typing import TYPE_CHECKING, Any
 
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
+from gfo.i18n import _
 
 if TYPE_CHECKING:
     from gfo.http import HttpClient
@@ -57,7 +58,11 @@ class BacklogAdapter(GitServiceAdapter):
             try:
                 self._project_id = resp.json()["id"]
             except (KeyError, TypeError) as e:
-                raise GfoError(f"Unexpected API response from project endpoint: {e}") from e
+                raise GfoError(
+                    _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                        endpoint="project", error=e
+                    )
+                ) from e
         return self._project_id
 
     def _resolve_merged_status_id(self) -> int | None:
@@ -67,7 +72,11 @@ class BacklogAdapter(GitServiceAdapter):
         resp = self._client.get(f"/projects/{self._project_key}/statuses")
         statuses = resp.json()
         if not isinstance(statuses, list):
-            raise GfoError(f"Unexpected API response from statuses endpoint: {type(statuses)}")
+            raise GfoError(
+                _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                    endpoint="statuses", error=type(statuses)
+                )
+            )
         for status in statuses:
             try:
                 if "merged" in status["name"].lower():
@@ -136,7 +145,9 @@ class BacklogAdapter(GitServiceAdapter):
                 updated_at=data.get("updated"),
             )
         except (KeyError, TypeError, ValueError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+            raise GfoError(
+                _("Unexpected API response: missing field {error}").format(error=e)
+            ) from e
 
     @staticmethod
     @_wrap_conversion_error
@@ -309,18 +320,28 @@ class BacklogAdapter(GitServiceAdapter):
             resp = self._client.get(f"/projects/{self._project_key}/issueTypes")
             types = resp.json()
             if not isinstance(types, list):
-                raise GfoError(f"Unexpected API response from issueTypes endpoint: {type(types)}")
+                raise GfoError(
+                    _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                        endpoint="issueTypes", error=type(types)
+                    )
+                )
             try:
                 issue_type = types[0]["id"] if types else None
             except (KeyError, TypeError) as e:
-                raise GfoError(f"Unexpected API response from issueTypes endpoint: {e}") from e
+                raise GfoError(
+                    _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                        endpoint="issueTypes", error=e
+                    )
+                ) from e
 
         if priority is None:
             resp = self._client.get("/priorities")
             priorities = resp.json()
             if not isinstance(priorities, list):
                 raise GfoError(
-                    f"Unexpected API response from priorities endpoint: {type(priorities)}"
+                    _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                        endpoint="priorities", error=type(priorities)
+                    )
                 )
             try:
                 # "中" (Normal) を優先、なければ先頭
@@ -333,16 +354,22 @@ class BacklogAdapter(GitServiceAdapter):
                     priorities[0]["id"] if priorities else None,
                 )
             except (KeyError, TypeError) as e:
-                raise GfoError(f"Unexpected API response from priorities endpoint: {e}") from e
+                raise GfoError(
+                    _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                        endpoint="priorities", error=e
+                    )
+                ) from e
 
         if issue_type is None:
             raise GfoError(
-                "Cannot create issue: no issue types found for project "
-                f"'{self._project_key}'. Configure issue types in Backlog."
+                _(
+                    "Cannot create issue: no issue types found for project "
+                    "'{project}'. Configure issue types in Backlog."
+                ).format(project=self._project_key)
             )
         if priority is None:
             raise GfoError(
-                "Cannot create issue: no priorities found. Configure priorities in Backlog."
+                _("Cannot create issue: no priorities found. Configure priorities in Backlog.")
             )
 
         payload: dict[str, Any] = {
@@ -781,7 +808,7 @@ class BacklogAdapter(GitServiceAdapter):
                     u["userId"] for u in users[: limit if limit > 0 else None] if u.get("userId")
                 ]
             except (KeyError, TypeError) as e:
-                raise GfoError(f"Unexpected API response: {e}") from e
+                raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
         return []
 
     def add_collaborator(self, *, username: str, permission: str = "write") -> None:

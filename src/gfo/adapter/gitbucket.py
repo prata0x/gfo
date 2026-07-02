@@ -14,6 +14,7 @@ from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
+from gfo.i18n import _
 
 if TYPE_CHECKING:
     import requests
@@ -58,9 +59,11 @@ class GitBucketAdapter(GitHubAdapter):
             try:
                 data = json.loads(data)
             except (json.JSONDecodeError, ValueError) as e:
-                raise GfoError(f"GitBucket: failed to parse response JSON: {e}") from e
+                raise GfoError(
+                    _("GitBucket: failed to parse response JSON: {error}").format(error=e)
+                ) from e
         if not isinstance(data, dict):
-            raise GfoError(f"GitBucket: unexpected response type: {type(data)}")
+            raise GfoError(_("GitBucket: unexpected response type: {type}").format(type=type(data)))
         return data
 
     def _web_base_url(self) -> str:
@@ -174,7 +177,9 @@ class GitBucketAdapter(GitHubAdapter):
                 created_at=data.get("created_at") or "",
             )
         except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+            raise GfoError(
+                _("Unexpected API response: missing field {error}").format(error=e)
+            ) from e
 
     def delete_repository(self) -> None:
         """GitBucket は DELETE /repos API 未実装のため非対応。"""

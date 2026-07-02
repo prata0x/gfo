@@ -10,6 +10,7 @@ import requests
 
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 from gfo.http import paginate_response_body
+from gfo.i18n import _
 
 from .base import GitServiceAdapter, _wrap_conversion_error
 from .models import (
@@ -578,7 +579,9 @@ class BitbucketAdapter(GitServiceAdapter):
                 created_at=data.get("created_on") or "",
             )
         except (KeyError, TypeError, AttributeError, IndexError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+            raise GfoError(
+                _("Unexpected API response: missing field {error}").format(error=e)
+            ) from e
 
     # --- Comment ---
 
@@ -698,7 +701,9 @@ class BitbucketAdapter(GitServiceAdapter):
         try:
             commit_hash = data["source"]["commit"]["hash"]
         except (KeyError, TypeError) as e:
-            raise GfoError(f"Unexpected API response: missing field {e}") from e
+            raise GfoError(
+                _("Unexpected API response: missing field {error}").format(error=e)
+            ) from e
 
         statuses = paginate_response_body(
             self._client,
@@ -724,7 +729,9 @@ class BitbucketAdapter(GitServiceAdapter):
                     )
                 )
             except (KeyError, TypeError, AttributeError) as e:
-                raise GfoError(f"Unexpected API response: missing field {e}") from e
+                raise GfoError(
+                    _("Unexpected API response: missing field {error}").format(error=e)
+                ) from e
         return results
 
     def list_pull_request_files(self, number: int) -> list[PullRequestFile]:
@@ -757,7 +764,9 @@ class BitbucketAdapter(GitServiceAdapter):
                     )
                 )
             except (KeyError, TypeError, AttributeError) as e:
-                raise GfoError(f"Unexpected API response: missing field {e}") from e
+                raise GfoError(
+                    _("Unexpected API response: missing field {error}").format(error=e)
+                ) from e
         return files
 
     def list_pull_request_commits(self, number: int) -> list[PullRequestCommit]:
@@ -783,7 +792,9 @@ class BitbucketAdapter(GitServiceAdapter):
                     )
                 )
             except (KeyError, TypeError, AttributeError) as e:
-                raise GfoError(f"Unexpected API response: missing field {e}") from e
+                raise GfoError(
+                    _("Unexpected API response: missing field {error}").format(error=e)
+                ) from e
         return commits
 
     def list_requested_reviewers(self, number: int) -> list[str]:
@@ -1064,7 +1075,7 @@ class BitbucketAdapter(GitServiceAdapter):
                 if (r.get("user") or {}).get("nickname")
             ]
         except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+            raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
 
     def add_collaborator(self, *, username: str, permission: str = "write") -> None:
         raise NotSupportedError(self.service_name, "collaborator add (use Bitbucket web interface)")
@@ -1379,7 +1390,7 @@ class BitbucketAdapter(GitServiceAdapter):
                 if (r.get("user") or {}).get("nickname")
             ]
         except (KeyError, TypeError, AttributeError) as e:
-            raise GfoError(f"Unexpected API response: {e}") from e
+            raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
 
     def list_org_repos(self, name: str, *, limit: int = 30) -> list[Repository]:
         results = paginate_response_body(
