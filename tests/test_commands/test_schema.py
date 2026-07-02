@@ -518,3 +518,169 @@ class TestGrandchildSchema:
         assert missing == set(), f"_GRANDCHILD_OUTPUT_MAP に不足: {missing}"
         extra = set(_GRANDCHILD_OUTPUT_MAP.keys()) - triples
         assert extra == set(), f"_GRANDCHILD_OUTPUT_MAP に存在しない孫コマンド: {extra}"
+
+
+# ---- 安全性メタデータ（#57） ----
+
+
+def _has_yes_flag(parser):
+    for action in parser._actions:
+        if "--yes" in action.option_strings:
+            return True
+    return False
+
+
+class TestSafetyMetadata:
+    """schema の safety フィールド（#57）。"""
+
+    def test_safety_present_in_single_command_schema(self, capsys):
+        args = make_args(
+            command="schema", subcommand=None, list_commands=False, target=["pr", "list"]
+        )
+        handle_schema(args, fmt="json")
+        out = json.loads(capsys.readouterr().out)
+        assert out["safety"] == {
+            "destructive": False,
+            "requires_confirmation": False,
+            "prints_secret": False,
+            "network_write": False,
+            "local_git_write": False,
+        }
+
+    def test_safety_destructive_delete_command(self, capsys):
+        args = make_args(
+            command="schema", subcommand=None, list_commands=False, target=["issue", "delete"]
+        )
+        handle_schema(args, fmt="json")
+        out = json.loads(capsys.readouterr().out)
+        assert out["safety"]["destructive"] is True
+        assert out["safety"]["requires_confirmation"] is True
+
+    def test_safety_grandchild_destructive(self, capsys):
+        args = make_args(
+            command="schema",
+            subcommand=None,
+            list_commands=False,
+            target=["release", "asset", "delete"],
+        )
+        handle_schema(args, fmt="json")
+        out = json.loads(capsys.readouterr().out)
+        assert out["safety"]["destructive"] is True
+        assert out["safety"]["requires_confirmation"] is True
+
+    def test_safety_grandchild_non_destructive(self, capsys):
+        args = make_args(
+            command="schema",
+            subcommand=None,
+            list_commands=False,
+            target=["release", "asset", "list"],
+        )
+        handle_schema(args, fmt="json")
+        out = json.loads(capsys.readouterr().out)
+        assert out["safety"]["destructive"] is False
+
+    def test_safety_prints_secret_auth_token(self, capsys):
+        args = make_args(
+            command="schema", subcommand=None, list_commands=False, target=["auth", "token"]
+        )
+        handle_schema(args, fmt="json")
+        out = json.loads(capsys.readouterr().out)
+        assert out["safety"]["prints_secret"] is True
+
+    def test_safety_api_worst_case(self, capsys):
+        """gfo api は method 次第で危険度が変わるため worst-case 固定値。"""
+        args = make_args(command="schema", subcommand=None, list_commands=False, target=["api"])
+        handle_schema(args, fmt="json")
+        out = json.loads(capsys.readouterr().out)
+        assert out["safety"]["destructive"] is True
+        assert out["safety"]["network_write"] is True
+        assert out["safety"]["requires_confirmation"] is False
+
+    def test_safety_local_git_write_repo_clone(self, capsys):
+        args = make_args(
+            command="schema", subcommand=None, list_commands=False, target=["repo", "clone"]
+        )
+        handle_schema(args, fmt="json")
+        out = json.loads(capsys.readouterr().out)
+        assert out["safety"]["local_git_write"] is True
+        assert out["safety"]["network_write"] is False
+
+    def test_safety_map_covers_dispatch(self):
+        """_SAFETY_MAP が _DISPATCH の全キーをカバーしている。"""
+        from gfo.cli import _DISPATCH
+        from gfo.commands.schema import _SAFETY_MAP
+
+        missing = set(_DISPATCH.keys()) - set(_SAFETY_MAP.keys()) - {("schema", None)}
+        assert missing == set(), f"_SAFETY_MAP に不足: {missing}"
+
+    def test_grandchild_safety_map_covers_all_actions(self):
+        """_GRANDCHILD_SAFETY_MAP が実際の argparse 構造の全 (command, subcommand, action) をカバーしている。"""
+        from gfo.commands.schema import _GRANDCHILD_SAFETY_MAP
+
+        triples = set(_discover_grandchild_triples())
+        missing = triples - set(_GRANDCHILD_SAFETY_MAP.keys())
+        assert missing == set(), f"_GRANDCHILD_SAFETY_MAP に不足: {missing}"
+        extra = set(_GRANDCHILD_SAFETY_MAP.keys()) - triples
+        assert extra == set(), f"_GRANDCHILD_SAFETY_MAP に存在しない孫コマンド: {extra}"
+
+    def test_yes_flag_matches_requires_confirmation_top_level(self):
+        """パーサーに --yes があるコマンドは requires_confirmation: True、無いコマンドは False。
+
+        孫グループを持つキー（例: release asset）自体には --yes は付かないため対象外。
+        """
+        from gfo.cli import _DISPATCH, create_parser
+        from gfo.commands.schema import (
+            _SAFETY_MAP,
+            _get_nested_subparsers_action,
+            _get_subcommand_parser,
+        )
+
+        _, subparser_map = create_parser()
+        mismatches = []
+        for key in _DISPATCH:
+            if key == ("schema", None):
+                continue
+            command, subcommand = key
+            if subcommand is None:
+                parser = subparser_map[command]
+            else:
+                parser = _get_subcommand_parser(subparser_map, command, subcommand)
+                if _get_nested_subparsers_action(parser) is not None:
+                    continue
+            has_yes = _has_yes_flag(parser)
+            requires_confirmation = _SAFETY_MAP[key][1]
+            if has_yes != requires_confirmation:
+                mismatches.append((key, has_yes, requires_confirmation))
+        assert mismatches == [], f"--yes フラグと requires_confirmation の不一致: {mismatches}"
+
+    def test_yes_flag_matches_requires_confirmation_grandchild(self):
+        """孫サブコマンドについても --yes ⇔ requires_confirmation が一致している。"""
+        from gfo.cli import create_parser
+        from gfo.commands.schema import (
+            _GRANDCHILD_SAFETY_MAP,
+            _get_grandchild_parser,
+        )
+
+        _, subparser_map = create_parser()
+        mismatches = []
+        for command, subcommand, action in _discover_grandchild_triples():
+            parser = _get_grandchild_parser(subparser_map, command, subcommand, action)
+            has_yes = _has_yes_flag(parser)
+            requires_confirmation = _GRANDCHILD_SAFETY_MAP[(command, subcommand, action)][1]
+            if has_yes != requires_confirmation:
+                mismatches.append(((command, subcommand, action), has_yes, requires_confirmation))
+        assert mismatches == [], f"--yes フラグと requires_confirmation の不一致: {mismatches}"
+
+    def test_destructive_equals_requires_confirmation_except_api(self):
+        """現状は api を除き destructive == requires_confirmation（issue #57 の判定方針）。"""
+        from gfo.commands.schema import _GRANDCHILD_SAFETY_MAP, _SAFETY_MAP
+
+        mismatches = [
+            key
+            for key, values in _SAFETY_MAP.items()
+            if key != ("api", None) and values[0] != values[1]
+        ]
+        mismatches += [
+            key for key, values in _GRANDCHILD_SAFETY_MAP.items() if values[0] != values[1]
+        ]
+        assert mismatches == [], f"destructive と requires_confirmation の不一致: {mismatches}"

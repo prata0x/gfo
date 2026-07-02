@@ -2519,14 +2519,15 @@ gfo variable delete NAME [--org ORG] [--yes]
 > **対応サービス**: N/A（メタデータコマンド、API 呼び出しなし）
 
 ```
-gfo schema [--list] [COMMAND [SUBCOMMAND]]
+gfo schema [--list] [COMMAND [SUBCOMMAND [ACTION]]]
 ```
 
 | オプション / 引数 | 説明 |
 |---|---|
-| `--list` | 全コマンド一覧を説明付きで表示 |
+| `--list` | 全コマンド一覧を説明付きで表示（`release asset delete` のような孫サブコマンドも含む） |
 | `COMMAND` | 指定コマンド配下の全サブコマンドのスキーマを表示 |
-| `COMMAND SUBCOMMAND` | 特定コマンドの入力・出力スキーマを表示 |
+| `COMMAND SUBCOMMAND` | 特定コマンドの入力・出力スキーマを表示。`SUBCOMMAND` 自体が孫サブコマンドを持つ場合（例: `release asset`）は action 別スキーマの配列を返す |
+| `COMMAND SUBCOMMAND ACTION` | 孫サブコマンド（例: `release asset delete`、`issue time add`）の入力・出力スキーマを表示 |
 | （なし） | `--list` と同じ |
 
 `--format` の指定に関わらず、出力は常に JSON です。
@@ -2542,6 +2543,12 @@ gfo schema pr list
 
 # pr 配下の全サブコマンドのスキーマ
 gfo schema pr
+
+# 孫サブコマンドのスキーマ
+gfo schema release asset delete
+
+# 孫グループの全 action のスキーマ
+gfo schema release asset
 
 # jq フィルタを適用
 gfo schema pr list --jq '.output'
@@ -2570,9 +2577,28 @@ gfo schema pr list --jq '.output'
       },
       "required": ["number", "title", ...]
     }
+  },
+  "safety": {
+    "destructive": false,
+    "requires_confirmation": false,
+    "prints_secret": false,
+    "network_write": false,
+    "local_git_write": false
   }
 }
 ```
+
+**`safety` の各フィールド:**
+
+| フィールド | 意味 |
+|---|---|
+| `destructive` | 不可逆または取り消しにくい操作（削除・アーカイブ等） |
+| `requires_confirmation` | 確認プロンプトが出る（非対話環境では `--yes` が必須） |
+| `prints_secret` | 秘密情報を標準出力に表示する（例: `auth token`） |
+| `network_write` | リモートサービス側の状態を変更する |
+| `local_git_write` | ローカルで git 操作（clone・fetch・checkout）を行う |
+
+`gfo api` は実行時に渡す HTTP メソッド次第で実際の危険度が変わるため、常に worst-case（`destructive: true, network_write: true`）を返します。
 
 ---
 
