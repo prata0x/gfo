@@ -12,6 +12,7 @@ from gfo.cli import (
     _DISPATCH,
     _ensure_utf8_stdio,
     _hoist_global_flags,
+    _non_negative_int,
     _positive_int,
     _pre_parse_format,
     _resolve_format,
@@ -57,6 +58,33 @@ def test_positive_int_float_string_raises():
         _positive_int("1.5")
 
 
+# ── _non_negative_int のテスト ──
+
+
+def test_non_negative_int_valid():
+    assert _non_negative_int("1") == 1
+    assert _non_negative_int("100") == 100
+
+
+def test_non_negative_int_zero_allowed():
+    assert _non_negative_int("0") == 0
+
+
+def test_non_negative_int_negative_raises():
+    with pytest.raises(argparse.ArgumentTypeError, match="-5 is not a non-negative integer"):
+        _non_negative_int("-5")
+
+
+def test_non_negative_int_non_integer_raises():
+    with pytest.raises(argparse.ArgumentTypeError, match="abc is not a non-negative integer"):
+        _non_negative_int("abc")
+
+
+def test_non_negative_int_float_string_raises():
+    with pytest.raises(argparse.ArgumentTypeError, match="1.5 is not a non-negative integer"):
+        _non_negative_int("1.5")
+
+
 # ── create_parser のテスト ──
 
 
@@ -67,6 +95,18 @@ def test_parser_version(capsys):
     assert exc.value.code == 0
     captured = capsys.readouterr()
     assert f"gfo {__version__}" in captured.out
+
+
+def test_parser_limit_zero_means_unlimited():
+    parser, _ = create_parser()
+    args = parser.parse_args(["issue", "list", "--limit", "0"])
+    assert args.limit == 0
+
+
+def test_parser_limit_negative_rejected():
+    parser, _ = create_parser()
+    with pytest.raises(ConfigError):
+        parser.parse_args(["issue", "list", "--limit", "-1"])
 
 
 def test_parser_init_defaults():

@@ -2279,7 +2279,7 @@ class GitLabAdapter(GitServiceAdapter):
                 )
             )
         events.sort(key=lambda ev: ev.created_at)
-        return events[:limit]
+        return events[:limit] if limit > 0 else events
 
     # --- Issue Lock ---
 

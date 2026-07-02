@@ -104,6 +104,9 @@ msgstr "エラー: --jq の式は空にできません。"
 msgid "{value} is not a positive integer"
 msgstr "{value} は正の整数ではありません"
 
+msgid "{value} is not a non-negative integer"
+msgstr "{value} は 0 以上の整数ではありません"
+
 msgid "Unexpected error: {err}"
 msgstr "予期しないエラー: {err}"
 
@@ -1120,8 +1123,8 @@ msgstr "プレリリースとしてマークする"
 msgid "Mask variable in logs"
 msgstr "ログ内で変数をマスクする"
 
-msgid "Maximum number of results"
-msgstr "最大取得件数"
+msgid "Maximum number of results (0 for unlimited)"
+msgstr "最大取得件数（0 で無制限）"
 
 msgid "Merge method"
 msgstr "マージ方法"

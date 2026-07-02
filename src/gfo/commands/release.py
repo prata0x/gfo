@@ -19,7 +19,7 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     draft = getattr(args, "draft", None)
     prerelease = getattr(args, "prerelease", None)
     has_filter = draft is not None or prerelease is not None
-    limit: int = 0 if has_filter else (args.limit or 30)
+    limit: int = 0 if has_filter else args.limit
     releases = adapter.list_releases(limit=limit)
     if draft is not None:
         releases = [r for r in releases if r.draft == draft]

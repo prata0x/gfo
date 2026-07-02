@@ -198,7 +198,7 @@ gfo pr list [--state {open,closed,merged,all}] [--limit N] [--author USER] [--la
 | オプション | デフォルト | 説明 |
 |---|---|---|
 | `--state` / `-s` | `open` | 表示する PR の状態 |
-| `--limit` / `-L` | `30` | 取得件数の上限 |
+| `--limit` / `-L` | `30` | 取得件数の上限（`0` で全件取得） |
 | `--author` / `-A` | — | 作成者でフィルタ |
 | `--label` / `-l` | — | ラベルでフィルタ |
 | `--assignee` / `-a` | — | 担当者でフィルタ |
@@ -584,7 +584,7 @@ gfo issue list [--state {open,closed,all}] [--assignee USER] [--label LABEL] [--
 | `--author` / `-A` | — | 作成者でフィルタ |
 | `--milestone` / `-m` | — | マイルストーンでフィルタ |
 | `--search` / `-S` | — | タイトル/説明でフィルタ |
-| `--limit` / `-L` | `30` | 取得件数の上限 |
+| `--limit` / `-L` | `30` | 取得件数の上限（`0` で全件取得） |
 
 ```bash
 gfo issue list
@@ -1989,7 +1989,7 @@ gfo ci artifact download RUN_ID ARTIFACT_ID [--dir DIR]
 
 | オプション | デフォルト | 説明 |
 |---|---|---|
-| `--limit` / `-L` | `30` | 取得件数の上限 |
+| `--limit` / `-L` | `30` | 取得件数の上限（`0` で全件取得） |
 | `--dir` | `.` | 出力ディレクトリ |
 
 ```bash
@@ -2249,7 +2249,7 @@ gfo notification list [--unread-only] [--limit N]
 | オプション | デフォルト | 説明 |
 |---|---|---|
 | `--unread-only` | false | 未読のみ表示 |
-| `--limit N` | 30 | 取得件数の上限 |
+| `--limit N` | 30 | 取得件数の上限（`0` で全件取得） |
 
 ```bash
 gfo notification list --unread-only
@@ -2760,7 +2760,7 @@ gfo package list [--type TYPE] [--limit N]
 | オプション | 説明 |
 |---|---|
 | `--type` | パッケージタイプでフィルタ（例: `npm`, `maven`, `docker`, `pypi`, `nuget`, `rubygems`） |
-| `--limit` / `-L` | 取得件数の上限 |
+| `--limit` / `-L` | 取得件数の上限（`0` で全件取得） |
 
 ```bash
 gfo package list

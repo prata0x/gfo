@@ -3868,6 +3868,54 @@ class TestIssueSubscribe:
             gitlab_adapter.subscribe_issue(999)
 
 
+class TestGetIssueTimeline:
+    def _add_event_mocks(self, mock_responses):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/issues/1/resource_state_events",
+            json=[
+                {
+                    "id": 1,
+                    "state": "closed",
+                    "user": {"username": "alice"},
+                    "created_at": "2024-01-01T00:00:00Z",
+                },
+                {
+                    "id": 2,
+                    "state": "reopened",
+                    "user": {"username": "bob"},
+                    "created_at": "2024-01-02T00:00:00Z",
+                },
+            ],
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/issues/1/resource_label_events",
+            json=[
+                {
+                    "id": 3,
+                    "action": "add",
+                    "label": {"name": "bug"},
+                    "user": {"username": "alice"},
+                    "created_at": "2024-01-03T00:00:00Z",
+                },
+            ],
+            status=200,
+        )
+
+    def test_limit_truncates(self, mock_responses, gitlab_adapter):
+        self._add_event_mocks(mock_responses)
+        events = gitlab_adapter.get_issue_timeline(1, limit=2)
+        assert len(events) == 2
+
+    def test_limit_zero_returns_all(self, mock_responses, gitlab_adapter):
+        self._add_event_mocks(mock_responses)
+        events = gitlab_adapter.get_issue_timeline(1, limit=0)
+        assert len(events) == 3
+        assert [e.id for e in events] == [1, 2, 3]
+
+
 class TestOrgSecrets:
     def test_list_org_secrets(self, mock_responses, gitlab_adapter):
         mock_responses.add(
