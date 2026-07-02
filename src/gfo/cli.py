@@ -1921,6 +1921,19 @@ def _pre_parse_format(argv: list[str] | None) -> str | None:
     return None
 
 
+def _pre_parse_resolve_format(argv: list[str] | None) -> str:
+    """parse 段階のエラー用に出力フォーマットを解決する。
+
+    _resolve_format と同じ優先順位（--jq > --format > config > TTY 検出）を適用し、
+    非 TTY の auto-JSON を parse 段階のエラーにも効かせる。config.toml が読めない
+    場合でもエラー報告自体は継続する必要があるため table にフォールバックする。
+    """
+    try:
+        return _resolve_format(_pre_parse_format(argv), None)
+    except GfoError:
+        return "table"
+
+
 _GLOBAL_FLAGS = {"--format", "--jq", "--remote", "--repo", "-R", "--account"}
 
 # auth/init は独自の --account を持つためホイスト対象から除外
@@ -1977,24 +1990,27 @@ def main(argv: list[str] | None = None) -> int:
             argv = _hoist_global_flags(sys.argv[1:])
         args = parser.parse_args(argv)
     except ConfigError as err:
-        pre_fmt = _pre_parse_format(argv)
-        if pre_fmt == "json":
+        if _pre_parse_resolve_format(argv) == "json":
             print(format_error_json(err), file=sys.stderr)
         else:
             print(str(err), file=sys.stderr)
         return err.exit_code
 
     if args.command is None:
-        parser.print_help()
+        if _pre_parse_resolve_format(argv) == "json":
+            no_cmd_err = GfoError(_("No command specified."))
+            no_cmd_err.hint = _("Run 'gfo --help' to see available commands.")
+            print(format_error_json(no_cmd_err), file=sys.stderr)
+        else:
+            parser.print_help()
         return 1
 
     # --repo と --remote の排他検証
     repo_value = getattr(args, "global_repo", None)
     remote_value = getattr(args, "global_remote", None)
     if repo_value and remote_value:
-        pre_fmt = _pre_parse_format(argv)
         excl_err = ConfigError(_("--repo and --remote are mutually exclusive."))
-        if pre_fmt == "json":
+        if _pre_parse_resolve_format(argv) == "json":
             print(format_error_json(excl_err), file=sys.stderr)
         else:
             print(str(excl_err), file=sys.stderr)
@@ -2018,8 +2034,17 @@ def main(argv: list[str] | None = None) -> int:
         key = (args.command, getattr(args, "subcommand", None))
 
         if key not in _DISPATCH:
-            # サブコマンド未指定の場合、該当コマンドの help を表示
-            subparser_map[args.command].print_help()
+            # サブコマンド未指定の場合、該当コマンドの help を表示（JSON モードでは構造化エラー）
+            if resolved_fmt == "json":
+                no_sub_err = GfoError(
+                    _("No subcommand specified for '{command}'.").format(command=args.command)
+                )
+                no_sub_err.hint = _(
+                    "Run 'gfo {command} --help' to see available subcommands."
+                ).format(command=args.command)
+                print(format_error_json(no_sub_err), file=sys.stderr)
+            else:
+                subparser_map[args.command].print_help()
             return 1
 
         handler = _DISPATCH[key]
