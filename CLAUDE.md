@@ -149,7 +149,8 @@ docs/
 ├── authentication.md / authentication.ja.md # サービス別認証設定（英日併記）
 ├── cli-comparison.md                        # 他 CLI（gh/glab 等）との対比
 ├── integration-testing.md / integration-testing.ja.md
-└── unsupported.md                           # 意図的に非対応とした機能とその理由
+├── unsupported.md                           # 意図的に非対応とした機能とその理由
+└── feature-support-matrix.json              # README Feature Support Matrix の機械可読ミラー（手動更新）
 ```
 
 コマンド追加・変更時は `docs/commands.md`（英語）と `docs/commands.ja.md`（日本語）も同じ PR で更新する。
