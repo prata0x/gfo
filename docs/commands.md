@@ -611,7 +611,7 @@ gfo issue create --title TITLE [--body BODY] [--body-file FILE] [--assignee USER
 | `--assignee` / `-a` | — | Assignee |
 | `--label` / `-l` | — | Label |
 | `--milestone` / `-m` | — | Milestone name |
-| `--type` | — | Issue type (Azure DevOps: `Task`, `Bug`, etc.) |
+| `--type` | — | Issue type (Azure DevOps: `Task`, `Bug`, etc.; defaults to `Task` on Azure DevOps when omitted) |
 | `--priority` | — | Priority (for services that use numeric priority, e.g., Backlog) |
 | `--due-date` | — | Due date (YYYY-MM-DD format, for services that support it) |
 | `--template` | — | Issue template name |
