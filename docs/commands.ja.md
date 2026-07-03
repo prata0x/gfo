@@ -625,7 +625,7 @@ gfo issue create --title TITLE [--body BODY] [--body-file FILE] [--assignee USER
 | `--assignee` / `-a` | — | 担当者 |
 | `--label` / `-l` | — | ラベル |
 | `--milestone` / `-m` | — | マイルストーン名 |
-| `--type` | — | Issue タイプ（Azure DevOps: `Task`, `Bug` など） |
+| `--type` | — | Issue タイプ（Azure DevOps: `Task`, `Bug` など。省略時 Azure DevOps では `Task` になる） |
 | `--priority` | — | 優先度（Backlog など数値で指定するサービス向け） |
 | `--due-date` | — | 期限（YYYY-MM-DD 形式、対応サービスのみ） |
 | `--template` | — | Issue テンプレート名 |
