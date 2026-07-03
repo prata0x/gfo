@@ -6,6 +6,23 @@ paths:
 
 # アダプター共通規約
 
+## 新規アダプター追加チェックリスト
+
+新規サービスをゼロから追加する際は、以下の箇所を俯瞰した上で着手すること
+（個々の詳細は本ファイルの各節・`.claude/rules/03-github.md`〜`08-gitea-family.md` の
+サービス別ファイルを参照）。
+
+1. **`src/gfo/adapter/{service}.py`**: `GitServiceAdapter`（または `GitHubLikeAdapter` Mixin）を継承し `@register("{service}")` で登録
+2. **`src/gfo/adapter/registry.py`**
+   - `create_http_client()`（L36〜）: 認証方式の分岐を追加（`auth_header` / `auth_params` / `basic_auth` のいずれか）
+   - `create_adapter()`（L68〜）: コンストラクタに追加引数（`project_key` 等）が必要な場合のみ `kwargs` 分岐を追加
+3. **`tests/test_adapters/conftest.py`**: 当該サービスの `{service}_client` + `{service}_adapter` フィクスチャを追加
+4. **`tests/test_adapters/test_{service}.py`**: 404/403 エラーテスト・空リスト `[]` テストを含む単体テストを新設（`.claude/rules/10-testing.md` 参照）
+5. **`CLAUDE.md`**: 「対応サービス」表に識別子・認証環境変数を追記
+6. **`.claude/rules/0X-{service}.md`**: サービス固有の癖（ページネーション方式、非対応 API、レスポンス形式の違い等）を新規ルールファイルとして追加
+7. **i18n**: ユーザー向け文言を追加した場合 `src/gfo/locale/ja/LC_MESSAGES/gfo.po` に翻訳を追加（`.mo` はビルド時生成のため commit 不要）
+8. **`docs/commands.md` / `docs/commands.ja.md`**: 新サービスでのみ有効なオプションや挙動差があれば追記
+
 ## 継承ツリーと登録
 
 ```
