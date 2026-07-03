@@ -53,7 +53,8 @@ mise install
 uv sync            # dependency-groups の dev も既定でインストールされる
 
 # 以降は uv run 経由でツールを実行する（`python -m ...` は使わない）
-uv run pytest                       # 単体テスト（カバレッジ付き・統合テストは自動除外）
+uv run pytest                       # 単体テスト（カバレッジ無し・統合テストは自動除外）
+uv run pytest --cov=gfo --cov-report=term-missing -n auto   # カバレッジ計測が必要な場合は明示的に付与
 uv run pytest tests/test_commands/test_pr.py -v   # 特定テスト
 uv run ruff check .                 # lint
 uv run ruff format .                # format
