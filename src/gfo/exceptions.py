@@ -206,8 +206,11 @@ class NotSupportedError(GfoError):
                 service=service, operation=operation
             )
         )
-        if web_url:
-            self.hint = web_url
+        # web_url が渡されなかった場合でも、対象リポジトリの Web UI への
+        # 汎用的な導線だけは提示する（個別の URL までは特定できないため）。
+        self.hint = web_url or _(
+            "Run 'gfo repo view --web' to open the repository in your browser."
+        )
 
 
 class PartialFailureError(GfoError):
