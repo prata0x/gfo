@@ -280,9 +280,9 @@ class TestHint:
         err = NotSupportedError("Gitea", "op", web_url="https://example.com")
         assert err.hint == "https://example.com"
 
-    def test_not_supported_error_hint_none_without_web_url(self):
+    def test_not_supported_error_hint_defaults_to_generic_guidance(self):
         err = NotSupportedError("Gitea", "op")
-        assert err.hint is None
+        assert err.hint == "Run 'gfo repo view --web' to open the repository in your browser."
 
     def test_rate_limit_error_hint_with_retry_after(self):
         err = RateLimitError(retry_after=60)

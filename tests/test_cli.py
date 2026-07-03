@@ -1213,6 +1213,23 @@ def test_main_not_supported_error_text_format_still_prints_web_url(capsys):
     assert "github" in captured.err
 
 
+def test_main_not_supported_error_text_format_prints_default_hint_without_web_url(capsys):
+    """--format table で web_url 未指定でも、汎用的なヒントが stdout に出力される。"""
+
+    def raise_nse(args, *, fmt, jq=None):
+        raise NotSupportedError("gitlab", "milestones")
+
+    with (
+        patch.dict(_DISPATCH, {("pr", "list"): raise_nse}),
+        patch("gfo.cli.get_configured_output_format", return_value="table"),
+    ):
+        result = main(["pr", "list"])
+    assert result == 5
+    captured = capsys.readouterr()
+    assert "gfo repo view --web" in captured.out
+    assert "gitlab" in captured.err
+
+
 # ── _ensure_utf8_stdio のテスト ──
 
 

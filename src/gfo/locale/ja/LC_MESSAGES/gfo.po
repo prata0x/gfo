@@ -154,6 +154,9 @@ msgstr "サーバーエラーです。しばらくしてから再試行してく
 msgid "{service} does not support {operation}. Use the web interface instead."
 msgstr "{service} は {operation} に対応していません。Web インターフェースを使用してください。"
 
+msgid "Run 'gfo repo view --web' to open the repository in your browser."
+msgstr "'gfo repo view --web' を実行してリポジトリをブラウザで開いてください。"
+
 msgid "{failed} of {total} operations failed."
 msgstr "{total} 件中 {failed} 件の操作が失敗しました。"
 

@@ -2141,8 +2141,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(format_error_json(err), file=sys.stderr)
             else:
                 print(str(err), file=sys.stderr)
-                if isinstance(err, NotSupportedError) and err.web_url:
-                    print(err.web_url)
+                if isinstance(err, NotSupportedError) and err.hint:
+                    print(err.hint)
             return err.exit_code
         except KeyboardInterrupt:
             # Ctrl+C による中断: トレースバックを抑制して標準的な終了コード 130 を返す
