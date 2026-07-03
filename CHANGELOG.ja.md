@@ -1,5 +1,34 @@
 # 変更履歴
 
+## [0.11.0] - 2026-07-03
+
+### 追加
+- `schema`: 全コマンドに `safety` メタデータ（`destructive` / `requires_confirmation` / `prints_secret` / `network_write` / `local_git_write`）を追加し、AI agent が実行前に危険度を判断できるようにした
+- `schema`: 孫サブコマンド（例: `release asset delete`）が単体のスキーマを返すようになった（従来は空の `properties: {}`）。`--list` にも孫サブコマンドを列挙する
+- 破壊的な `delete`/`remove` 系サブコマンド（23 コマンド）に確認プロンプトと統一された `--yes`/`-y` フラグを追加。既存の `repo delete`/`repo archive`/`repo transfer`/`org delete`/`package delete` と挙動を統一
+- `repo migrate` / `repo mirror add`: `--auth-token-stdin` / `--auth-token-file` を追加し、argv 経由でのトークン受け渡しを回避可能に
+- i18n: `auth`/`config`/`detect`/`http` および `adapter`/`commands` 全モジュールで未訳だったエラーメッセージに日本語訳を追加
+- mutation 系コマンド: `--format json` が平文の代わりに構造化された `{"result": ..., "message": ...}` を返すようになった（26 モジュール・82 箇所）
+- HTTP: 汎用 4xx エラーの body（GitHub の 422 等）を人間可読なメッセージにパースし、`--format json` のエラー出力に `details`/`status_code` を追加
+
+### 修正
+- `auth status`: 共通の `output()` 経路に統一し、`--jq` が使えるようになり `--format plain` も機能するようになった
+- `batch pr` / `batch issue migrate`: 1 件でも失敗があれば非 0 の exit code（`PARTIAL_FAILURE`）で終了するようになった（従来は常に exit 0）
+- `list` 系 `--limit 0`: 「全件取得」として機能するようになった（`release list` と GitLab issue timeline は従来 `0` を無視していた）
+- parse 段階のエラー（不正な引数、サブコマンド未指定、`--repo`/`--remote` 排他エラー）にも、実行時エラーと同じ `--jq`/`--format`/config/TTY 検出による auto-JSON が適用されるようになった
+- `pr checkout` / `pr create`: `--remote` がローカルの `git fetch` と `--base` 自動推定にも反映されるようになった（従来はアダプター/サービス検出にのみ反映）
+- GitLab `repo mirror add`: `--auth-token` がミラー URL に実際に配線されるようになった（従来は黙って無視され、初回同期が認証エラーで失敗していた）
+- `AuthenticationError`: 401 と 403 で異なるメッセージ・ヒントを出すようになった（403 では OAuth スコープ不足の可能性と docs/authentication.md を案内）
+- `NotSupportedError`: `web_url` 未指定の呼び出しでもヒントが表示されるよう、汎用的な既定ヒント（「`gfo repo view --web` でブラウザを開く」）を追加
+
+### セキュリティ
+- `repo migrate` / `repo mirror add` の `--auth-token`: argv 経由指定時に警告を表示（プロセスリスト・shell history に露出するため）。`--auth-token-stdin` / `--auth-token-file` を推奨
+- GitLab `repo mirror add`: 例外メッセージ中の `auth_token` をマスク（既存の Gitea 実装と同様）
+
+### 破壊的変更
+- 短縮フラグの意味をグローバルに一意になるよう整理し、以下を削除（長い形は引き続き利用可能）: `-t`（`pr merge --subject`, `ci watch --timeout`）、`-n`（`repo migrate --name`, `label edit --name`）、`-d`（`pr list`/`create`/`edit --draft`, `release list`/`create`/`edit --draft`, `batch pr create --draft`, `api --data`, `pr merge --delete-branch`）、`-b`（`repo sync --branch`）、`-m`（`tag create --message`）、`-w`（`ci trigger --workflow`）、`-H`（`api --header`）、`-i`（`ci watch --interval`）、`-r`（`pr create --reviewer`）。`pr merge --merge/-m --squash/-s --rebase/-r` は `gh` CLI 互換のため例外として維持
+- 破壊的な `delete`/`remove` 系サブコマンド（新たに対象となった 23 コマンド）: 非対話環境では確認プロンプトの代わりに `--yes`/`-y` が必須になった（従来は確認なしで即実行していた）
+
 ## [0.10.1] - 2026-06-21
 
 ### 修正

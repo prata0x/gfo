@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.11.0] - 2026-07-03
+
+### Added
+- `schema`: added `safety` metadata (`destructive` / `requires_confirmation` / `prints_secret` / `network_write` / `local_git_write`) to every command, so AI agents can judge risk before executing
+- `schema`: grandchild subcommands (e.g. `release asset delete`) now return their own schema (previously an empty `properties: {}`); `--list` also enumerates them
+- Destructive `delete`/`remove` subcommands (23 commands): added a confirmation prompt and unified `--yes`/`-y` flag, matching the existing `repo delete`/`repo archive`/`repo transfer`/`org delete`/`package delete` behavior
+- `repo migrate` / `repo mirror add`: added `--auth-token-stdin` / `--auth-token-file` to avoid passing tokens via argv
+- i18n: added Japanese translations for previously untranslated error messages across `auth`/`config`/`detect`/`http` and all `adapter`/`commands` modules
+- Mutation commands: `--format json` now returns a structured `{"result": ..., "message": ...}` object instead of plain text (26 modules / 82 call sites)
+- HTTP: generic 4xx error bodies (e.g. GitHub 422) are now parsed into a human-readable message, with `details`/`status_code` exposed in `--format json` error output
+
+### Fixed
+- `auth status`: now goes through the common `output()` path, enabling `--jq` and a functional `--format plain`
+- `batch pr` / `batch issue migrate`: exit with a non-zero exit code (`PARTIAL_FAILURE`) when any item fails, instead of always exiting 0
+- `list`-family `--limit 0`: now actually means "fetch all" (`release list` and GitLab issue timeline previously ignored `0`)
+- Parse-stage errors (bad arguments, missing subcommand, `--repo`/`--remote` conflicts): now respect `--jq`/`--format`/config/TTY auto-JSON detection like runtime errors
+- `pr checkout` / `pr create`: `--remote` is now honored by the local `git fetch` and by `--base` auto-detection (previously only affected adapter/service detection)
+- GitLab `repo mirror add`: `--auth-token` is now actually wired into the mirror URL (previously silently ignored, causing first-sync auth failures)
+- `AuthenticationError`: 401 and 403 now produce different messages/hints (403 now points at possibly-missing OAuth scopes, per docs/authentication.md)
+- `NotSupportedError`: added a generic fallback hint ("open the repo with `gfo repo view --web`") for the many call sites that previously passed no `web_url` and so showed no hint at all
+
+### Security
+- `repo migrate` / `repo mirror add` `--auth-token`: warn when passed via argv (visible in process list / shell history); prefer `--auth-token-stdin` / `--auth-token-file`
+- GitLab `repo mirror add`: mask `auth_token` in exception messages, matching existing Gitea behavior
+
+### Breaking Changes
+- Short flags rebalanced so each short flag maps to exactly one meaning; removed `-t` (`pr merge --subject`, `ci watch --timeout`), `-n` (`repo migrate --name`, `label edit --name`), `-d` (`pr list`/`create`/`edit --draft`, `release list`/`create`/`edit --draft`, `batch pr create --draft`, `api --data`, `pr merge --delete-branch`), `-b` (`repo sync --branch`), `-m` (`tag create --message`), `-w` (`ci trigger --workflow`), `-H` (`api --header`), `-i` (`ci watch --interval`), `-r` (`pr create --reviewer`). Long forms are unaffected. (`pr merge --merge/-m --squash/-s --rebase/-r` is kept as-is for `gh` CLI compatibility.)
+- Destructive `delete`/`remove` subcommands (23 commands newly covered): now require an interactive confirmation or `--yes`/`-y` in non-interactive environments (previously executed immediately without confirmation)
+
 ## [0.10.1] - 2026-06-21
 
 ### Fixed
