@@ -7,8 +7,8 @@ allowed-tools: Bash, Read, Glob, Grep
 ## Context
 
 - Python パス: !`which python`
-- pytest バージョン: !`python -m pytest --version 2>&1 | head -1`
-- テスト総数: !`python -m pytest --collect-only -q 2>/dev/null | tail -1`
+- pytest バージョン: !`uv run pytest --version 2>&1 | head -1`
+- テスト総数: !`uv run pytest --collect-only -q 2>/dev/null | tail -1`
 - ワーキングツリー状態: !`git status --short`
 
 ## Arguments
@@ -29,12 +29,12 @@ allowed-tools: Bash, Read, Glob, Grep
 ### 実行手順
 
 1. **引数の解析**: `$ARGUMENTS` を確認する
-   - 引数なし → `python -m pytest --ignore=tests/integration --cov=gfo --cov-report=term-missing -n auto`
+   - 引数なし → `uv run pytest --ignore=tests/integration --cov=gfo --cov-report=term-missing -n auto`
    - ファイルやキーワード指定あり → そのまま pytest に渡す（`--cov=gfo --cov-report=term-missing -n auto` は維持）
 
 2. **テスト実行**: 以下のコマンドで実行する
    ```
-   python -m pytest {target} --cov=gfo --cov-report=term-missing -n auto
+   uv run pytest {target} --cov=gfo --cov-report=term-missing -n auto
    ```
    - `{target}` は引数から構築する
    - `tests/integration/` は常に除外する（引数で明示的に指定された場合を除く）
