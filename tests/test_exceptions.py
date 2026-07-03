@@ -95,6 +95,9 @@ class TestAuthenticationError:
         assert err.status_code == 403
         assert isinstance(err, HttpError)
         assert isinstance(err, GfoError)
+        assert "Permission denied" in str(err)
+        assert "scope" in str(err)
+        assert err.hint == str(err).removeprefix("HTTP 403: ")
 
 
 class TestNotFoundError:
