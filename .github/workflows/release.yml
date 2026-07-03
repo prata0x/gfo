@@ -21,7 +21,7 @@
 #   GitHub-hosted ubuntu-latest / action は 40桁 commit SHA で pin / persist-credentials: false /
 #   permissions は job ごとに最小付与。SHA pin の自己検証は ci.yml の quality job が全 workflow
 #   ファイルを対象に行うため (PR 時に強制)、ここでは重複させない。
-name: release
+name: Release
 
 on:
   push:
@@ -46,7 +46,7 @@ jobs:
   # ソースをチェックアウトして sdist / wheel をビルドし、artifact として publish job へ渡す。
   # OIDC 権限は持たない (contents: read のみ)。
   build:
-    name: build
+    name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -90,7 +90,7 @@ jobs:
   # build 成果物を PyPI へ公開する。OIDC トークン発行のため id-token: write を付与し、
   # checkout は行わない (ソース取得経路と分離)。
   publish:
-    name: publish
+    name: Publish
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
