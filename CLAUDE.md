@@ -150,3 +150,4 @@ tests/
 - `03-github.md` 〜 `08-gitea-family.md` — サービス別固有ルール
 - `09-config-auth.md` — 設定・認証
 - `10-testing.md` — テスト規約
+- `11-new-command-checklist.md` — 新規サブコマンド追加チェックリスト
