@@ -21,7 +21,7 @@
 #   GitHub-hosted ubuntu-latest / action は 40桁 commit SHA で pin / persist-credentials: false /
 #   permissions は job ごとに最小付与。SHA pin の自己検証は ci.yml の quality job が全 workflow
 #   ファイルを対象に行うため (PR 時に強制)、ここでは重複させない。
-name: release
+name: Release
 
 on:
   push:
