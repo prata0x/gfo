@@ -980,7 +980,7 @@ gfo repo list [--owner OWNER] [--archived] [--visibility public|private|internal
 | `--owner OWNER` | リポジトリオーナーでフィルタ |
 | `--archived` | アーカイブ済みリポジトリのみ表示 |
 | `--visibility` / `-V` | 可視性でフィルタ（`public`, `private`, `internal`） |
-| `--limit N` | 最大取得件数（デフォルト: 30） |
+| `--limit N` | 最大取得件数（デフォルト: 30、`0` で全件取得） |
 
 ```bash
 gfo repo list
@@ -1298,7 +1298,7 @@ gfo release list [--limit N] [--draft | --no-draft] [--prerelease | --no-prerele
 
 | オプション | 説明 |
 |---|---|
-| `--limit N` | 最大取得件数（デフォルト: 30） |
+| `--limit N` | 最大取得件数（デフォルト: 30、`0` で全件取得） |
 | `--draft` / `--no-draft` | ドラフトのみ / ドラフト除外 |
 | `--prerelease` / `-p` / `--no-prerelease` | プレリリースのみ / プレリリース除外 |
 
