@@ -41,6 +41,18 @@ API 対応サービス数が 1〜2、またはデータモデルの統一が困�
 
 ---
 
+## 現行シグネチャ制約による非対応
+
+API 自体は対応しているが、gfo の現行コマンド/アダプター・シグネチャでは
+実装できないもの。「意図的に対応しない」のではなく、対応するには設計変更
+（シグネチャへの引数追加）が必要という点で上記の非対応表とは性質が異なる。
+
+| 機能 | 非対応サービス | 理由 |
+|---|---|---|
+| `comment update` / `comment delete` | GitLab, Bitbucket, Azure DevOps | `update_comment(resource, comment_id, *, body)` / `delete_comment(resource, comment_id)` は issue/PR 番号を受け取らない。これら3サービスの実 API はコメント更新・削除に issue/PR 番号（または thread ID）が URL 上で必須なため、`comment_id` 単体では対象を特定できず `NotSupportedError` になる。GitHub/Gitea 系・Backlog は `comment_id` のみで API を叩けるため対応済み |
+
+---
+
 ## 非対応オプション
 
 API 対応サービス数が 1 のもの。
