@@ -137,7 +137,9 @@ jobs:
       # dev は dependency-groups で定義されており uv sync が既定でインストールする。
       # --python で matrix のバージョンに .venv を作る (mise の既定 python を上書き)。
       - name: Install dependencies (frozen, python ${{ matrix.python-version }})
-        run: uv sync --locked --python ${{ matrix.python-version }}
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: uv sync --locked --python "$PYTHON_VERSION"
 
       # mypy は version_info 分岐等で版差が出うるため min/max 両 leg で実行する。
       - name: Type check (mypy)
@@ -154,7 +156,8 @@ jobs:
       - name: Unit tests (pytest)
         env:
           COVERAGE_CORE: ${{ matrix.label == 'max' && 'sysmon' || '' }}
-        run: uv run pytest -n 4 ${{ matrix.cov }} -q
+          PYTEST_COV_ARGS: ${{ matrix.cov }}
+        run: uv run pytest -n 4 $PYTEST_COV_ARGS -q
 
   # matrix を束ねる安定名の必須チェック。Ruleset は "ci" だけを Require すればよく、
   # テスト対象バージョンを増減しても再設定不要。
@@ -168,12 +171,15 @@ jobs:
       contents: read
     steps:
       - name: Gate on quality and test results
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          TEST_RESULT: ${{ needs.test.result }}
         run: |
-          if [ "${{ needs.quality.result }}" != "success" ]; then
-            echo "::error::quality job did not succeed (result=${{ needs.quality.result }})"
+          if [ "$QUALITY_RESULT" != "success" ]; then
+            echo "::error::quality job did not succeed (result=$QUALITY_RESULT)"
             exit 1
           fi
-          if [ "${{ needs.test.result }}" != "success" ]; then
-            echo "::error::test matrix did not succeed (result=${{ needs.test.result }})"
+          if [ "$TEST_RESULT" != "success" ]; then
+            echo "::error::test matrix did not succeed (result=$TEST_RESULT)"
             exit 1
           fi
