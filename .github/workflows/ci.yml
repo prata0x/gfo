@@ -7,13 +7,10 @@
 # test leg と並列に走り (~10s < test ~25s) クリティカルパスには乗らない。
 # mypy は version_info 分岐等で版差が出うるため test 両 leg に残す。
 #
-# Runner: gfo は public リポジトリで GitHub Actions が無料のため、全ジョブを GitHub-hosted の
-# ubuntu-latest で回す (self-hosted は使わない)。
-#
 # Python バージョン: 対応下限 (min) と最新 (max) の 2 つを matrix で並列検証する。
 # job 名にバージョン番号を入れず min/max ラベルにするのは、版を上げても check 名 (= Ruleset の
-# 必須ステータスチェック名) が変わらないようにするため。さらに matrix を束ねる安定名 "ci" の
-# aggregate gate job を置き、Ruleset の必須チェックは "ci" 一本で固定する (版更新で再設定不要)。
+# 必須ステータスチェック名) が変わらないようにするため。さらに matrix を束ねる安定名 "verify" の
+# aggregate gate job を置き、Ruleset の必須チェックは "verify" 一本で固定する (版更新で再設定不要)。
 #
 # 統合テストは実サービス (GitHub/GitLab 等) へアクセスするため CI では実行しない。
 # pytest 設定 (pyproject.toml の addopts) で tests/integration を除外済み。
@@ -43,7 +40,7 @@ jobs:
   # version 非依存の品質チェックを 1 回だけ実行する (mise 既定の python = 3.13)。
   # test matrix と並列に走るためクリティカルパスには乗らない。
   quality:
-    name: quality
+    name: Quality
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -91,7 +88,7 @@ jobs:
         run: uv run bandit -r src/gfo -c pyproject.toml -q
 
   test:
-    name: test (${{ matrix.label }})
+    name: Test (${{ matrix.label }})
     runs-on: ubuntu-latest
     # ハング時の保険。通常 1 分前後で終わる。
     timeout-minutes: 15
@@ -159,10 +156,10 @@ jobs:
           PYTEST_COV_ARGS: ${{ matrix.cov }}
         run: uv run pytest -n 4 $PYTEST_COV_ARGS -q
 
-  # matrix を束ねる安定名の必須チェック。Ruleset は "ci" だけを Require すればよく、
+  # matrix を束ねる安定名の必須チェック。Ruleset は "verify" だけを Require すればよく、
   # テスト対象バージョンを増減しても再設定不要。
-  ci:
-    name: ci
+  verify:
+    name: Verify
     needs: [quality, test]
     if: ${{ always() }}
     runs-on: ubuntu-latest

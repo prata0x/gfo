@@ -1,5 +1,5 @@
 # PR が追加/更新する依存に既知の脆弱性 (GitHub Advisory DB) があればマージ前にブロックする。
-# Dependabot (事後通知) に対し、これは PR 時点の事前ゲート。public リポジトリで無償、
+# Dependabot (事後通知) に対し、これは PR 時点の事前ゲート。
 # Dependency graph (uv.lock を含む) の差分を見るため pull_request でのみ意味を持つ。
 #
 # 権限は contents: read のみ (依存グラフ参照に必要)。PR への自動コメントは行わない
@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   dependency-review:
-    name: dependency-review
+    name: Dependency review
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
