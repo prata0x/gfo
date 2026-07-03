@@ -139,6 +139,9 @@ msgstr "HTTP {status_code}: {message}"
 msgid "Authentication failed. Check your token with 'gfo auth status'."
 msgstr "認証に失敗しました。'gfo auth status' でトークンを確認してください。"
 
+msgid "Permission denied. Your token may be valid but lack the required scope for this operation. See 'Token Creation Instructions by Service' in docs/authentication.md."
+msgstr "権限がありません。トークン自体は有効でも、この操作に必要なスコープが不足している可能性があります。docs/authentication.md の「Token Creation Instructions by Service」を確認してください。"
+
 msgid "Resource not found."
 msgstr "リソースが見つかりません。"
 

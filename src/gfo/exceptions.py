@@ -102,18 +102,28 @@ class HttpError(GfoError):
 
 
 class AuthenticationError(HttpError):
-    """401/403 認証エラー。"""
+    """401/403 認証エラー。
+
+    401（トークン自体が無効）と 403（トークンは有効だがスコープ/権限不足）は
+    原因が異なるため、status_code に応じてメッセージを分岐する。
+    """
 
     error_code = "auth_failed"
     exit_code = ExitCode.AUTH
 
     def __init__(self, status_code: int, url: str = ""):
-        super().__init__(
-            status_code,
-            _("Authentication failed. Check your token with 'gfo auth status'."),
-            url,
-        )
-        self.hint = _("Check your token with 'gfo auth status'.")
+        if status_code == 403:
+            message = _(
+                "Permission denied. Your token may be valid but lack the required "
+                "scope for this operation. See 'Token Creation Instructions by "
+                "Service' in docs/authentication.md."
+            )
+            hint = message
+        else:
+            message = _("Authentication failed. Check your token with 'gfo auth status'.")
+            hint = _("Check your token with 'gfo auth status'.")
+        super().__init__(status_code, message, url)
+        self.hint = hint
 
 
 class NotFoundError(HttpError):
