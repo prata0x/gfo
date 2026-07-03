@@ -18,6 +18,11 @@ on:
 permissions:
   contents: read
 
+# 同一 ref への連続 push では古い run をキャンセルし、無駄な実行を避ける。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   analyze:
     name: Analyze (python)
