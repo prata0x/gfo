@@ -153,6 +153,8 @@ export GFO_MAX_DOWNLOAD_BYTES=21474836480
 gfo release asset download --tag v1.0.0 --pattern large-asset.bin
 ```
 
+**Retry count and timeouts are not configurable.** The HTTP client retries rate-limited (429) requests once and applies a 30-second request timeout (300 seconds for streaming downloads); both are hardcoded with no environment variable to adjust them. When combining `--limit 0` (unlimited results) with a large paginated resource, requests are more likely to hit these fixed limits — expect a failure rather than a longer wait if a host is slow or throttling heavily.
+
 ---
 
 ## Token Creation Instructions by Service

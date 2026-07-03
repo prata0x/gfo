@@ -202,7 +202,7 @@ gfo pr list [--state {open,closed,merged,all}] [--limit N] [--author USER] [--la
 | Option | Default | Description |
 |---|---|---|
 | `--state` / `-s` | `open` | PR state to display |
-| `--limit` / `-L` | `30` | Maximum number of results |
+| `--limit` / `-L` | `30` | Maximum number of results (`0` for unlimited) |
 | `--author` / `-A` | — | Filter by author |
 | `--label` / `-l` | — | Filter by label |
 | `--assignee` / `-a` | — | Filter by assignee |
@@ -588,7 +588,7 @@ gfo issue list [--state {open,closed,all}] [--assignee USER] [--label LABEL] [--
 | `--author` / `-A` | — | Filter by author |
 | `--milestone` / `-m` | — | Filter by milestone |
 | `--search` / `-S` | — | Filter by title/description |
-| `--limit` / `-L` | `30` | Maximum number of results |
+| `--limit` / `-L` | `30` | Maximum number of results (`0` for unlimited) |
 
 ```bash
 gfo issue list
@@ -966,7 +966,7 @@ gfo repo list [--owner OWNER] [--archived] [--visibility public|private|internal
 | `--owner OWNER` | Filter by repository owner |
 | `--archived` | Show only archived repositories |
 | `--visibility` / `-V` | Filter by visibility (`public`, `private`, `internal`) |
-| `--limit N` | Maximum number of results (default: 30) |
+| `--limit N` | Maximum number of results (default: 30, `0` for unlimited) |
 
 ```bash
 gfo repo list
@@ -1284,7 +1284,7 @@ gfo release list [--limit N] [--draft | --no-draft] [--prerelease | --no-prerele
 
 | Option | Description |
 |---|---|
-| `--limit N` | Maximum number of results (default: 30) |
+| `--limit N` | Maximum number of results (default: 30, `0` for unlimited) |
 | `--draft` / `--no-draft` | Filter draft only / exclude drafts |
 | `--prerelease` / `-p` / `--no-prerelease` | Filter prerelease only / exclude prereleases |
 
@@ -2000,7 +2000,7 @@ gfo ci artifact download RUN_ID ARTIFACT_ID [--dir DIR]
 
 | Option | Default | Description |
 |---|---|---|
-| `--limit` / `-L` | `30` | Maximum number of results |
+| `--limit` / `-L` | `30` | Maximum number of results (`0` for unlimited) |
 | `--dir` | `.` | Output directory |
 
 ```bash
@@ -2260,7 +2260,7 @@ gfo notification list [--unread-only] [--limit N]
 | Option | Default | Description |
 |---|---|---|
 | `--unread-only` | false | Show unread only |
-| `--limit N` | 30 | Maximum number of results |
+| `--limit N` | 30 | Maximum number of results (`0` for unlimited) |
 
 ```bash
 gfo notification list --unread-only
@@ -2797,7 +2797,7 @@ gfo package list [--type TYPE] [--limit N]
 | Option | Description |
 |---|---|
 | `--type` | Filter by package type (e.g., `npm`, `maven`, `docker`, `pypi`, `nuget`, `rubygems`) |
-| `--limit` / `-L` | Maximum number of results |
+| `--limit` / `-L` | Maximum number of results (`0` for unlimited) |
 
 ```bash
 gfo package list
