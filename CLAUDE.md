@@ -142,7 +142,16 @@ tests/
 ├── test_adapters/       # アダプターごとのテスト
 ├── test_commands/       # コマンドごとのテスト（make_args() ヘルパー）
 └── integration/         # 実サービスへアクセスする統合テスト（CI 非対象）
+
+docs/
+├── commands.md / commands.ja.md             # 全サブコマンドのオプション一覧（英日併記）
+├── authentication.md / authentication.ja.md # サービス別認証設定（英日併記）
+├── cli-comparison.md                        # 他 CLI（gh/glab 等）との対比
+├── integration-testing.md / integration-testing.ja.md
+└── unsupported.md                           # 意図的に非対応とした機能とその理由
 ```
+
+コマンド追加・変更時は `docs/commands.md`（英語）と `docs/commands.ja.md`（日本語）も同じ PR で更新する。
 
 詳細なルール・規約は `.claude/rules/` を参照:
 - `01-exceptions.md` — 例外体系と使い分け
