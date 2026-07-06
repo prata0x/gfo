@@ -105,7 +105,7 @@ GitHub Rules（`main` ブランチ保護・リリースタグ保護）は free �
 
 ## 確認が必要な操作
 
-新規依存の追加、認証方式の変更、破壊的な操作（リモートのリリース/タグ削除等）。**`main` への直接 push / force-push は禁止**（feature branch + PR で代替）。
+新規依存の追加、破壊的な操作（リモートのリリース/タグ削除等）。**`main` への直接 push / force-push は禁止**（feature branch + PR で代替）。
 
 ---
 
