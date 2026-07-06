@@ -1,5 +1,8 @@
 # gfo – Git Forge Operator
 
+@.claude/vendor/universal.md
+@.claude/vendor/product-repo.md
+
 複数の Git ホスティングサービスを**統一コマンド**で操作する Python CLI ツール。
 
 ## プロジェクト概要
@@ -29,7 +32,6 @@
 
 ## 言語方針
 
-- 応答・コミットメッセージ・docs・issue/PR 本文は**日本語**。
 - コード識別子・shell・YAML キー・型・コメント中の技術語は英語。
 
 ---
@@ -103,13 +105,13 @@ GitHub Rules（`main` ブランチ保護・リリースタグ保護）は free �
 
 ## 確認が必要な操作
 
-新規依存の追加、認証方式の変更、破壊的な操作（リモートのリリース/タグ削除等）、外部サービス連携。**`main` への直接 push / force-push は禁止**（feature branch + PR で代替）。
+新規依存の追加、破壊的な操作（リモートのリリース/タグ削除等）。**`main` への直接 push / force-push は禁止**（feature branch + PR で代替）。
 
 ---
 
 ## コミット規約
 
-Conventional Commits（日本語 subject、header ≤72 目安）。scope 例: `cli, adapter, github, gitlab, pr, issue, release, http, config, auth, ci, deps, docs`。
+Header ≤72 目安。scope 例: `cli, adapter, github, gitlab, pr, issue, release, http, config, auth, ci, deps, docs`。
 
 ---
 
