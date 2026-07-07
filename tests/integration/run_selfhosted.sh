@@ -46,7 +46,7 @@ done
 
 echo ""
 echo "=== 初期セットアップ ==="
-python "$SCRIPT_DIR/setup_services.py"
+uv run python "$SCRIPT_DIR/setup_services.py"
 
 echo ""
 echo "=== 統合テスト実行 ==="
@@ -62,7 +62,7 @@ elif [ "${1:-}" = "--adapter-only" ]; then
     echo "  (adapter テストのみ)"
 fi
 
-python -m pytest tests/integration/ -m "$MARKER" -v --tb=short --no-cov
+uv run pytest tests/integration/ -m "$MARKER" -v --tb=short --no-cov
 
 echo ""
 echo "=== テスト完了 ==="
