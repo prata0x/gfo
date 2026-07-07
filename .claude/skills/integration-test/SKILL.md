@@ -49,11 +49,11 @@ allowed-tools: Bash, Read, Glob, Grep
 
 2. **テスト実行**:
    ```
-   python -m pytest {target} -v --no-cov
+   uv run pytest {target} -v --no-cov
    ```
-   - `selfhosted`: `python -m pytest tests/integration/ -m selfhosted -v --no-cov`
-   - `saas`: `python -m pytest tests/integration/ -m saas -v --no-cov`
-   - 特定サービス: `python -m pytest tests/integration/test_{service}.py -v --no-cov`
+   - `selfhosted`: `uv run pytest tests/integration/ -m selfhosted -v --no-cov`
+   - `saas`: `uv run pytest tests/integration/ -m saas -v --no-cov`
+   - 特定サービス: `uv run pytest tests/integration/test_{service}.py -v --no-cov`
    - `--no-cov` は統合テストではカバレッジ計測が不要なため常に付与する
 
 3. **結果報告**: テスト結果をユーザーに簡潔に報告する

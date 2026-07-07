@@ -46,13 +46,13 @@ docker compose -f tests/integration/docker-compose.yml up -d
 docker compose -f tests/integration/docker-compose.yml ps
 
 # 3. 初期セットアップ（ユーザー・トークン・リポジトリ作成）
-python tests/integration/setup_services.py
+uv run python tests/integration/setup_services.py
 
 # 4. テスト実行
-pytest tests/integration/ -m selfhosted -v --no-cov
+uv run pytest tests/integration/ -m selfhosted -v --no-cov
 
 # 5. 特定サービスのみ
-pytest tests/integration/test_gitea.py -v --no-cov
+uv run pytest tests/integration/test_gitea.py -v --no-cov
 
 # 6. クリーンアップ
 docker compose -f tests/integration/docker-compose.yml down -v
@@ -117,7 +117,7 @@ cp tests/integration/.env.example tests/integration/.env
 bash tests/integration/run_saas.sh
 
 # 特定サービスのみ
-pytest tests/integration/test_github.py -v --no-cov
+uv run pytest tests/integration/test_github.py -v --no-cov
 ```
 
 ---
