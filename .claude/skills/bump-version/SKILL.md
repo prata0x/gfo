@@ -29,10 +29,14 @@ allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 #### コミット範囲
 
 `$ARGUMENTS` に `..` を含む文字列があればコミット範囲として使う。
-なければ、最新タグから HEAD までを使う:
+なければ、**最高 semver タグ**（`git tag --sort=-v:refname | head -1`）から HEAD までを使う:
 ```bash
-git log $(git describe --tags --abbrev=0)..HEAD --oneline
+git log $(git tag --sort=-v:refname | head -1)..HEAD --oneline
 ```
+
+> 比較に `git describe --tags --abbrev=0` を使ってはならない。describe は「HEAD から到達可能な最も近いタグ」を
+> 返すため、過去に履歴を再構築してタグが main の祖先から外れていると古いタグ（実際より前の版）を返し、
+> コミット範囲を誤らせる（`release` スキルが同じ理由でこの手法を禁止している）。
 
 #### バージョン番号
 
