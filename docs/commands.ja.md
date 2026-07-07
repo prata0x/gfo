@@ -2995,9 +2995,10 @@ gfo config set KEY VALUE
 gfo config set defaults.output json
 gfo config set defaults.host github.com
 
-# ドットを含むキーは引用符で囲む
-gfo config set hosts."gitlab.example.com".type gitlab
-gfo config get hosts."gitlab.example.com".type
+# ドットを含むキーは引用符で囲む。シェルが埋め込みの二重引用符を
+# 剥がしてしまわないよう、キー全体をさらに単一引用符で囲む
+gfo config set 'hosts."gitlab.example.com".type' gitlab
+gfo config get 'hosts."gitlab.example.com".type'
 ```
 
 ### gfo config list
