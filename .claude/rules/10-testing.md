@@ -15,9 +15,10 @@ def test_something(adapter):
     assert result.field == "value"
 ```
 
-- **`assert_all_requests_are_fired=True` がデフォルト**
-  - 登録したモックが呼ばれなかった場合、テストが失敗する
-  - 不要なモックは登録しないこと
+- `@responses.activate` のデフォルトは `assert_all_requests_are_fired=False`
+  - `tests/test_adapters/conftest.py` の `mock_responses` フィクスチャ（`responses.RequestsMock()`）は
+    デフォルト `True`。このフィクスチャを使うテストでは、登録したモックが呼ばれなかった場合に失敗する
+  - いずれの方式でも、不要なモックは登録しないこと
 
 ## テストファイル配置
 
