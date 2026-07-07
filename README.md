@@ -189,9 +189,10 @@ gfo config set defaults.output json      # Set a value
 gfo config unset defaults.output         # Remove a value
 gfo config path                          # Show config file path
 
-# Keys containing dots must be quoted
-gfo config set hosts."gitlab.example.com".type gitlab
-gfo config get hosts."gitlab.example.com".type
+# Keys containing dots must be quoted; wrap the whole key in single quotes
+# so the shell doesn't strip the embedded double quotes
+gfo config set 'hosts."gitlab.example.com".type' gitlab
+gfo config get 'hosts."gitlab.example.com".type'
 ```
 
 ## Feature Support Matrix

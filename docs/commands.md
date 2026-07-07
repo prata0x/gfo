@@ -2981,9 +2981,10 @@ gfo config set KEY VALUE
 gfo config set defaults.output json
 gfo config set defaults.host github.com
 
-# Keys containing dots must be quoted
-gfo config set hosts."gitlab.example.com".type gitlab
-gfo config get hosts."gitlab.example.com".type
+# Keys containing dots must be quoted; wrap the whole key in single quotes
+# so the shell doesn't strip the embedded double quotes
+gfo config set 'hosts."gitlab.example.com".type' gitlab
+gfo config get 'hosts."gitlab.example.com".type'
 ```
 
 ### gfo config list

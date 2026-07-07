@@ -43,7 +43,7 @@ elif [ "${1:-}" = "--adapter-only" ]; then
     echo "  (adapter テストのみ)"
 fi
 
-python -m pytest tests/integration/ -m "$MARKER" -v --tb=short --no-cov
+uv run pytest tests/integration/ -m "$MARKER" -v --tb=short --no-cov
 
 echo ""
 echo "=== テスト完了 ==="
