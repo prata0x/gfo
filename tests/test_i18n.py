@@ -63,8 +63,13 @@ def test_windows_locale_fallback():
 
 def test_language_empty_string_fallback():
     """LANGUAGE="" 空文字列の場合は OS ロケールにフォールバックする。"""
+    # LC_ALL/LC_MESSAGES/LANG が実環境に残っていると locale.getlocale() 経路に
+    # 到達する前にそちらへ分岐してしまうため、LANGUAGE 以外の locale 系変数も剥がす
+    _LOCALE_VARS = ("LC_ALL", "LC_MESSAGES", "LANG")
+    env = {k: v for k, v in os.environ.items() if k not in _LOCALE_VARS}
+    env["LANGUAGE"] = ""
     with (
-        mock.patch.dict(os.environ, {"LANGUAGE": ""}, clear=False),
+        mock.patch.dict(os.environ, env, clear=True),
         mock.patch("locale.getlocale", return_value=("ja_JP", "UTF-8")),
     ):
         mod = importlib.reload(gfo.i18n)
