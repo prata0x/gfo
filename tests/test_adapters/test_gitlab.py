@@ -4405,3 +4405,65 @@ class TestReleaseAssetsUploadDownloadGitLab:
         import os
 
         assert os.path.basename(result) == "external.zip"
+
+
+class TestRemoveIssueReaction:
+    def test_remove_issue_reaction_deletes_own_reaction_only(self, mock_responses, gitlab_adapter):
+        """他ユーザーが先に同種のリアクションを付けていても、自分自身のものだけを削除する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/user",
+            json={"username": "testuser", "id": 1},
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/issues/5/award_emoji",
+            json=[
+                {
+                    "id": 101,
+                    "name": "thumbsup",
+                    "user": {"username": "someone-else"},
+                    "created_at": "2024-01-01T00:00:00Z",
+                },
+                {
+                    "id": 202,
+                    "name": "thumbsup",
+                    "user": {"username": "testuser"},
+                    "created_at": "2024-01-02T00:00:00Z",
+                },
+            ],
+            status=200,
+        )
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/issues/5/award_emoji/202",
+            status=204,
+        )
+        gitlab_adapter.remove_issue_reaction(5, "+1")
+        delete_calls = [c for c in mock_responses.calls if c.request.method == "DELETE"]
+        assert len(delete_calls) == 1
+        assert delete_calls[0].request.url == f"{PROJECT}/issues/5/award_emoji/202"
+
+    def test_remove_issue_reaction_no_match_does_not_delete(self, mock_responses, gitlab_adapter):
+        """自分自身の同種リアクションが存在しない場合は何も削除しない。"""
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/user",
+            json={"username": "testuser", "id": 1},
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/issues/5/award_emoji",
+            json=[
+                {
+                    "id": 101,
+                    "name": "thumbsup",
+                    "user": {"username": "someone-else"},
+                    "created_at": "2024-01-01T00:00:00Z",
+                },
+            ],
+            status=200,
+        )
+        gitlab_adapter.remove_issue_reaction(5, "+1")
+        delete_calls = [c for c in mock_responses.calls if c.request.method == "DELETE"]
+        assert len(delete_calls) == 0
