@@ -27,7 +27,13 @@ from gfo.adapter.base import (
 )
 from gfo.adapter.bitbucket import BitbucketAdapter, _escape_bql_string
 from gfo.adapter.registry import get_adapter_class
-from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError, ServerError
+from gfo.exceptions import (
+    AuthenticationError,
+    GfoError,
+    NotFoundError,
+    NotSupportedError,
+    ServerError,
+)
 
 BASE = "https://api.bitbucket.org/2.0"
 REPOS = f"{BASE}/repositories/test-workspace/test-repo"
@@ -2385,48 +2391,37 @@ class TestSetVariableDoesNotDowngradeSecret:
 
     _VARS = f"{REPOS}/pipelines_config/variables/"
 
-    def test_set_variable_creates_new_when_only_secret_matches_name(
+    def test_set_variable_rejects_name_collision_with_existing_secret(
         self, mock_responses, bitbucket_adapter
     ):
+        """secret と同名の variable set は衝突チェックで拒否され、POST されない(#186)。"""
         mock_responses.add(
             responses.GET,
             self._VARS,
             json={"values": [{"key": "DB_PASSWORD", "uuid": "{secret-uuid}", "secured": True}]},
             status=200,
         )
-        mock_responses.add(
-            responses.POST,
-            self._VARS,
-            json={"key": "DB_PASSWORD", "value": "hunter2", "secured": False},
-            status=201,
-        )
-        result = bitbucket_adapter.set_variable("DB_PASSWORD", "hunter2")
-        assert result.name == "DB_PASSWORD"
-        # PUT (既存 secret への上書き) は呼ばれず、POST (新規作成) のみが呼ばれること
+        with pytest.raises(GfoError, match="DB_PASSWORD"):
+            bitbucket_adapter.set_variable("DB_PASSWORD", "hunter2")
         methods = [call.request.method for call in mock_responses.calls]
         assert "PUT" not in methods
-        assert methods.count("POST") == 1
+        assert "POST" not in methods
 
-    def test_set_secret_creates_new_when_only_variable_matches_name(
+    def test_set_secret_rejects_name_collision_with_existing_variable(
         self, mock_responses, bitbucket_adapter
     ):
+        """variable と同名の secret set は衝突チェックで拒否され、POST されない(#186)。"""
         mock_responses.add(
             responses.GET,
             self._VARS,
             json={"values": [{"key": "DB_PASSWORD", "uuid": "{var-uuid}", "secured": False}]},
             status=200,
         )
-        mock_responses.add(
-            responses.POST,
-            self._VARS,
-            json={"key": "DB_PASSWORD", "value": "hunter2", "secured": True},
-            status=201,
-        )
-        result = bitbucket_adapter.set_secret("DB_PASSWORD", "hunter2")
-        assert result.name == "DB_PASSWORD"
+        with pytest.raises(GfoError, match="DB_PASSWORD"):
+            bitbucket_adapter.set_secret("DB_PASSWORD", "hunter2")
         methods = [call.request.method for call in mock_responses.calls]
         assert "PUT" not in methods
-        assert methods.count("POST") == 1
+        assert "POST" not in methods
 
     def test_set_variable_updates_existing_variable(self, mock_responses, bitbucket_adapter):
         mock_responses.add(

@@ -1202,6 +1202,7 @@ class BitbucketAdapter(GitServiceAdapter):
                 json={"key": name, "value": value, "secured": True},
             )
         except NotFoundError:
+            self._reject_pipeline_variable_name_collision(name, secured=True)
             resp = self._client.post(
                 f"{self._repos_path()}/pipelines_config/variables/",
                 json={"key": name, "value": value, "secured": True},
@@ -1231,6 +1232,29 @@ class BitbucketAdapter(GitServiceAdapter):
             if d.get("key") == name and bool(d.get("secured")) == secured:
                 return str(d["uuid"])
         raise NotFoundError(detail=f"Resource '{name}' not found")
+
+    def _reject_pipeline_variable_name_collision(self, name: str, *, secured: bool) -> None:
+        """反対の secured フラグで同名レコードが既に存在する場合、作成前に明示的に失敗させる。
+
+        secret と variable は同一コレクションを共有するため、secured フラグでの
+        検索は互いを見つけられない。事前チェックなしに POST すると、同名で
+        secured の異なる2レコードが共存する、または Bitbucket 側の生エラーに
+        丸投げになる（#186）。
+        """
+        results = paginate_response_body(
+            self._client,
+            f"{self._repos_path()}/pipelines_config/variables/",
+            limit=0,
+        )
+        if any(d.get("key") == name and bool(d.get("secured")) != secured for d in results):
+            requested_kind = _("secret") if secured else _("variable")
+            existing_kind = _("variable") if secured else _("secret")
+            raise GfoError(
+                _(
+                    "A {existing_kind} named '{name}' already exists; "
+                    "cannot create it as a {requested_kind}."
+                ).format(existing_kind=existing_kind, name=name, requested_kind=requested_kind)
+            )
 
     # --- Variable (Pipelines unsecured variables) ---
 
@@ -1262,6 +1286,7 @@ class BitbucketAdapter(GitServiceAdapter):
                 json={"key": name, "value": value, "secured": False},
             )
         except NotFoundError:
+            self._reject_pipeline_variable_name_collision(name, secured=False)
             resp = self._client.post(
                 f"{self._repos_path()}/pipelines_config/variables/",
                 json={"key": name, "value": value, "secured": False},
