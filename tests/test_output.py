@@ -210,6 +210,20 @@ class TestFormatPlain:
         assert len(fields) == 2  # 区切りの \t のみ、値内の \t はエスケープ済み
         assert "\\t" in fields[1]
 
+    def test_newline_in_value_escaped(self):
+        """値に改行が含まれる場合は \\n / \\r にエスケープされ、1アイテム=1行が保たれる。"""
+        result = format_plain(
+            [
+                SampleItem(1, "line1\nline2\r\nline3", "open", "alice"),
+                SampleItem(2, "LGTM", "open", "bob"),
+            ],
+            ["number", "title"],
+        )
+        lines = result.split("\n")
+        assert len(lines) == 2  # 2アイテム = 2行
+        assert lines[0] == "1\tline1\\nline2\\r\\nline3"
+        assert lines[1] == "2\tLGTM"
+
     def test_none_field_shown_as_empty_in_plain(self):
         """None フィールドはプレーン形式で空文字列として出力される（"None" にならない）（R35-03）。"""
 

@@ -38,8 +38,8 @@ def _sanitize_for_table(val: str) -> str:
 
 
 def _sanitize_for_plain(val: str) -> str:
-    """プレーン形式用にタブをエスケープする（区切り文字との混同を避ける）。"""
-    return val.replace("\t", "\\t")
+    """プレーン形式用に改行・タブをエスケープする（1アイテム=1行を保証する）。"""
+    return val.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
 
 
 def apply_jq_filter(json_str: str, expression: str) -> str:
