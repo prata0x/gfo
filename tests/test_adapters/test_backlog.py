@@ -207,18 +207,6 @@ class TestListPullRequests:
     def test_open(self, mock_responses, backlog_adapter):
         mock_responses.add(
             responses.GET,
-            f"{BASE}/projects/TEST/statuses",
-            json=[
-                {"id": 1, "name": "未対応"},
-                {"id": 2, "name": "処理中"},
-                {"id": 3, "name": "処理済み"},
-                {"id": 4, "name": "完了"},
-                {"id": 5, "name": "Merged"},
-            ],
-            status=200,
-        )
-        mock_responses.add(
-            responses.GET,
             PR_PATH,
             json=[_pr_data()],
             status=200,
@@ -226,37 +214,19 @@ class TestListPullRequests:
         prs = backlog_adapter.list_pull_requests()
         assert len(prs) == 1
         assert prs[0].state == "open"
-        req = mock_responses.calls[1].request
+        req = mock_responses.calls[0].request
         assert "statusId" in req.url
 
-    def test_open_includes_custom_status_excludes_closed_and_merged(
-        self, mock_responses, backlog_adapter
-    ):
-        """カスタムステータス(id=6)は open 一覧の statusId[] に含まれ、closed/merged は除外される（#191）。"""
-        mock_responses.add(
-            responses.GET,
-            f"{BASE}/projects/TEST/statuses",
-            json=[
-                {"id": 1, "name": "未対応"},
-                {"id": 2, "name": "処理中"},
-                {"id": 3, "name": "処理済み"},
-                {"id": 4, "name": "完了"},
-                {"id": 5, "name": "Merged"},
-                {"id": 6, "name": "レビュー中"},
-            ],
-            status=200,
-        )
+    def test_open_does_not_call_issue_status_endpoint(self, mock_responses, backlog_adapter):
+        """PR の open フィルタは Issue 用 /statuses エンドポイントを呼ばない（#194）。"""
         mock_responses.add(
             responses.GET,
             PR_PATH,
-            json=[_pr_data(status_id=6)],
+            json=[_pr_data()],
             status=200,
         )
-        prs = backlog_adapter.list_pull_requests()
-        assert prs[0].state == "open"
-        req = mock_responses.calls[1].request
-        sent_ids = _sent_status_ids(req.url)
-        assert sent_ids == {1, 2, 3, 6}
+        backlog_adapter.list_pull_requests()
+        assert not any("/statuses" in c.request.url for c in mock_responses.calls)
 
     def test_closed(self, mock_responses, backlog_adapter):
         mock_responses.add(
@@ -340,12 +310,6 @@ class TestListPullRequests:
 
     def test_unsupported_params_warn(self, mock_responses, backlog_adapter):
         """フィルタパラメータを渡すと警告が出る。"""
-        mock_responses.add(
-            responses.GET,
-            f"{BASE}/projects/TEST/statuses",
-            json=[{"id": 5, "name": "Merged"}],
-            status=200,
-        )
         mock_responses.add(
             responses.GET,
             PR_PATH,
@@ -1325,12 +1289,6 @@ class TestErrorHandling:
             backlog_adapter.get_pull_request(999)
 
     def test_401_raises_auth_error(self, mock_responses, backlog_adapter):
-        mock_responses.add(
-            responses.GET,
-            f"{BASE}/projects/TEST/statuses",
-            json=[{"id": 5, "name": "Merged"}],
-            status=200,
-        )
         mock_responses.add(responses.GET, f"{PR_PATH}", status=401)
         with pytest.raises(AuthenticationError):
             backlog_adapter.list_pull_requests()

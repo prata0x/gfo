@@ -33,6 +33,12 @@ from .registry import register
 # Backlog PR / Issue ステータス ID 定数
 _STATUS_CLOSED_ID = 4  # closed
 _STATUS_MERGED_ID = 5  # merged（PR 固定値; カスタムの場合は動的解決で上書き）
+# PR の open 相当（1=Open/2=処理中相当/3=処理済み相当）。
+# `/projects/{projectKey}/statuses` は Issue 用ステータス一覧であり（#194 参照）、
+# プロジェクトごとのカスタムステータス（id>=5）を含みうる。PR のステータス空間が
+# Issue と同一かどうかは未確認のため、Issue 用エンドポイントの結果を PR の
+# statusId[] フィルタへ流用せず、固定値に留める。
+_PR_OPEN_STATUS_IDS = [1, 2, 3]
 
 
 @register("backlog")
@@ -227,10 +233,7 @@ class BacklogAdapter(GitServiceAdapter):
             if merged_id is not None:
                 params["statusId[]"] = [merged_id]
         elif state == "open":
-            merged_id = self._resolve_merged_status_id()
-            excluded_id = merged_id if merged_id is not None else _STATUS_MERGED_ID
-            all_ids = self._resolve_all_status_ids()
-            params["statusId[]"] = [i for i in all_ids if i not in (_STATUS_CLOSED_ID, excluded_id)]
+            params["statusId[]"] = _PR_OPEN_STATUS_IDS
         elif state == "closed":
             params["statusId[]"] = [_STATUS_CLOSED_ID]
         else:
