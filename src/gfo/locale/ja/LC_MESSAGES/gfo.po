@@ -2518,10 +2518,10 @@ msgid "Failed to write config file {path}: {error}"
 msgstr "設定ファイル {path} の書き込みに失敗しました: {error}"
 
 msgid "secret"
-msgstr "secret"
+msgstr "シークレット"
 
 msgid "variable"
-msgstr "variable"
+msgstr "変数"
 
 msgid "A {existing_kind} named '{name}' already exists; cannot create it as a {requested_kind}."
 msgstr "'{name}' という名前の {existing_kind} が既に存在するため、{requested_kind} として作成できません。"
