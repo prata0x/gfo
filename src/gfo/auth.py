@@ -330,9 +330,9 @@ def _write_credentials_toml(path: Path, tokens: dict[str, dict[str, str]]) -> No
     """credentials.toml を新形式で書き出す。"""
     lines: list[str] = []
     for host, accounts in tokens.items():
-        lines.append(f'[tokens."{host}"]')
+        lines.append(f'[tokens."{_escape_toml_value(host)}"]')
         for key, value in accounts.items():
-            lines.append(f'"{key}" = "{_escape_toml_value(value)}"')
+            lines.append(f'"{_escape_toml_value(key)}" = "{_escape_toml_value(value)}"')
         lines.append("")
     content = "\n".join(lines) + "\n"
     try:

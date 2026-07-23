@@ -913,6 +913,37 @@ def test_write_credentials_toml_quotes_account_keys(tmp_path):
     assert data["tokens"]["example.com"]["me@example.com"] == "tok123"
 
 
+def test_write_credentials_toml_escapes_account_name_with_quote(tmp_path):
+    """アカウント名に二重引用符を含んでも他ホストの内容を壊さない（#159）。"""
+    import tomllib
+
+    path = tmp_path / "credentials.toml"
+    tokens = {
+        "github.com": {'foo"bar': "tok1", "_default": 'foo"bar'},
+        "gitlab.com": {"default": "tok2"},
+    }
+    _write_credentials_toml(path, tokens)
+
+    with open(path, "rb") as f:
+        data = tomllib.load(f)
+    assert data["tokens"]["github.com"]['foo"bar'] == "tok1"
+    assert data["tokens"]["github.com"]["_default"] == 'foo"bar'
+    assert data["tokens"]["gitlab.com"]["default"] == "tok2"
+
+
+def test_write_credentials_toml_escapes_host_with_quote(tmp_path):
+    """ホスト名に二重引用符を含んでも有効な TOML として書き出される（#159）。"""
+    import tomllib
+
+    path = tmp_path / "credentials.toml"
+    tokens = {'evil"host.example.com': {"default": "tok"}}
+    _write_credentials_toml(path, tokens)
+
+    with open(path, "rb") as f:
+        data = tomllib.load(f)
+    assert data["tokens"]['evil"host.example.com']["default"] == "tok"
+
+
 # ── アトミック書き込み + OSError ラップ (#6, #13) ──
 
 
