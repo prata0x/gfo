@@ -2101,9 +2101,10 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         )
 
     def remove_issue_reaction(self, number: int, reaction: str) -> None:
+        current_username = self.get_current_username()
         reactions = self.list_issue_reactions(number)
         for r in reactions:
-            if r.content == reaction:
+            if r.content == reaction and r.user == current_username:
                 self._client.delete(f"{self._repos_path()}/issues/{number}/reactions/{r.id}")
                 return
 

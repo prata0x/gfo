@@ -3331,6 +3331,62 @@ class TestIssueReactions:
         result = github_adapter.add_issue_reaction(1, "+1")
         assert result.content == "+1"
 
+    @responses.activate
+    def test_remove_issue_reaction_deletes_own_reaction_only(self, github_adapter):
+        """他ユーザーが先に同種のリアクションを付けていても、自分自身のものだけを削除する。"""
+        responses.add(
+            responses.GET,
+            f"{BASE}/user",
+            json={"login": "testuser", "id": 1},
+        )
+        responses.add(
+            responses.GET,
+            f"{REPOS}/issues/5/reactions",
+            json=[
+                {
+                    "id": 101,
+                    "content": "+1",
+                    "user": {"login": "someone-else"},
+                    "created_at": "2024-01-01T00:00:00Z",
+                },
+                {
+                    "id": 202,
+                    "content": "+1",
+                    "user": {"login": "testuser"},
+                    "created_at": "2024-01-02T00:00:00Z",
+                },
+            ],
+        )
+        responses.add(responses.DELETE, f"{REPOS}/issues/5/reactions/202")
+        github_adapter.remove_issue_reaction(5, "+1")
+        delete_calls = [c for c in responses.calls if c.request.method == "DELETE"]
+        assert len(delete_calls) == 1
+        assert delete_calls[0].request.url == f"{REPOS}/issues/5/reactions/202"
+
+    @responses.activate
+    def test_remove_issue_reaction_no_match_does_not_delete(self, github_adapter):
+        """自分自身の同種リアクションが存在しない場合は何も削除しない。"""
+        responses.add(
+            responses.GET,
+            f"{BASE}/user",
+            json={"login": "testuser", "id": 1},
+        )
+        responses.add(
+            responses.GET,
+            f"{REPOS}/issues/5/reactions",
+            json=[
+                {
+                    "id": 101,
+                    "content": "+1",
+                    "user": {"login": "someone-else"},
+                    "created_at": "2024-01-01T00:00:00Z",
+                },
+            ],
+        )
+        github_adapter.remove_issue_reaction(5, "+1")
+        delete_calls = [c for c in responses.calls if c.request.method == "DELETE"]
+        assert len(delete_calls) == 0
+
 
 class TestSearchPullRequests:
     @responses.activate
