@@ -31,7 +31,6 @@ from .models import (
 from .registry import register
 
 # Backlog PR / Issue ステータス ID 定数
-_STATUS_OPEN_IDS = [1, 2, 3]  # open / in-progress / resolved (open 扱い)
 _STATUS_CLOSED_ID = 4  # closed
 _STATUS_MERGED_ID = 5  # merged（PR 固定値; カスタムの場合は動的解決で上書き）
 
@@ -47,6 +46,7 @@ class BacklogAdapter(GitServiceAdapter):
         self._project_key = project_key
         self._project_id: int | None = None
         self._merged_status_id: int | None = None
+        self._statuses: list[dict[str, Any]] | None = None
 
     def _pr_path(self) -> str:
         return f"/projects/{self._project_key}/git/repositories/{urllib.parse.quote(self._repo, safe='')}/pullRequests"
@@ -65,10 +65,10 @@ class BacklogAdapter(GitServiceAdapter):
                 ) from e
         return self._project_id
 
-    def _resolve_merged_status_id(self) -> int | None:
-        """PR ステータス一覧から Merged 相当の statusId を動的に判定する。"""
-        if self._merged_status_id is not None:
-            return self._merged_status_id
+    def _fetch_statuses(self) -> list[dict[str, Any]]:
+        """プロジェクトのステータス一覧（生データ）を取得してキャッシュする。"""
+        if self._statuses is not None:
+            return self._statuses
         resp = self._client.get(f"/projects/{self._project_key}/statuses")
         statuses = resp.json()
         if not isinstance(statuses, list):
@@ -77,7 +77,14 @@ class BacklogAdapter(GitServiceAdapter):
                     endpoint="statuses", error=type(statuses)
                 )
             )
-        for status in statuses:
+        self._statuses = statuses
+        return statuses
+
+    def _resolve_merged_status_id(self) -> int | None:
+        """PR ステータス一覧から Merged 相当の statusId を動的に判定する。"""
+        if self._merged_status_id is not None:
+            return self._merged_status_id
+        for status in self._fetch_statuses():
             try:
                 if "merged" in status["name"].lower():
                     self._merged_status_id = status["id"]
@@ -85,6 +92,22 @@ class BacklogAdapter(GitServiceAdapter):
             except (KeyError, TypeError, AttributeError):
                 continue
         return None
+
+    def _resolve_all_status_ids(self) -> list[int]:
+        """プロジェクトの全ステータス ID 一覧を返す。
+
+        標準4ステータスに加え、プロジェクト設定で追加されたカスタムステータス
+        （id は 5 以降の任意の値）を含む。「open」扱いの statusId[] を組み立てる際、
+        固定リストではなくこの一覧から closed/merged 相当を除いた ID を使うことで、
+        カスタムステータスの課題・PR も一覧から取りこぼさないようにする。
+        """
+        ids: list[int] = []
+        for status in self._fetch_statuses():
+            try:
+                ids.append(status["id"])
+            except (KeyError, TypeError):
+                continue
+        return ids
 
     # --- 変換ヘルパー ---
 
@@ -196,7 +219,10 @@ class BacklogAdapter(GitServiceAdapter):
             if merged_id is not None:
                 params["statusId[]"] = [merged_id]
         elif state == "open":
-            params["statusId[]"] = _STATUS_OPEN_IDS
+            merged_id = self._resolve_merged_status_id()
+            excluded_id = merged_id if merged_id is not None else _STATUS_MERGED_ID
+            all_ids = self._resolve_all_status_ids()
+            params["statusId[]"] = [i for i in all_ids if i not in (_STATUS_CLOSED_ID, excluded_id)]
         elif state == "closed":
             params["statusId[]"] = [_STATUS_CLOSED_ID]
         else:
@@ -281,7 +307,8 @@ class BacklogAdapter(GitServiceAdapter):
         project_id = self._ensure_project_id()
         params: dict[str, Any] = {"projectId[]": project_id}
         if state == "open":
-            params["statusId[]"] = _STATUS_OPEN_IDS
+            all_ids = self._resolve_all_status_ids()
+            params["statusId[]"] = [i for i in all_ids if i != _STATUS_CLOSED_ID]
         elif state == "closed":
             params["statusId[]"] = [_STATUS_CLOSED_ID]
         if assignee:
