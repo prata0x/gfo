@@ -1824,11 +1824,15 @@ class GitLabAdapter(GitServiceAdapter):
         self, name: str, value: str, *, scope: str | None = None, masked: bool = False
     ) -> Variable:
         base = self._variables_base_path(scope)
-        payload: dict[str, Any] = {"key": name, "value": value, "masked": masked}
         try:
-            self._client.get(f"{base}/{quote(name, safe='')}")
+            resp = self._client.get(f"{base}/{quote(name, safe='')}")
+            # 既存の masked=True（gfo secret set で作成済み）を、gfo variable set の
+            # 既定 masked=False で静かに格下げしないよう、既存値との論理和を取る。
+            effective_masked = masked or bool(resp.json().get("masked"))
+            payload: dict[str, Any] = {"key": name, "value": value, "masked": effective_masked}
             self._client.put(f"{base}/{quote(name, safe='')}", json=payload)
         except NotFoundError:
+            payload = {"key": name, "value": value, "masked": masked}
             self._client.post(base, json=payload)
         return Variable(name=name, value=value, created_at="", updated_at="")
 

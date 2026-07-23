@@ -4153,6 +4153,82 @@ class TestOrgVariables:
         gitlab_adapter.delete_variable("GROUP_VAR", scope="my-group")
 
 
+class TestSetVariableMaskedDowngrade:
+    """gfo variable set が既存の masked=True（secret）を格下げしないことを確認する（#184）。"""
+
+    def test_existing_masked_variable_preserved_when_masked_not_requested(
+        self, mock_responses, gitlab_adapter
+    ):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/variables/DB_PASSWORD",
+            json={"key": "DB_PASSWORD", "value": "old-secret", "masked": True},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/variables/DB_PASSWORD",
+            json={"key": "DB_PASSWORD", "value": "newvalue", "masked": True},
+            status=200,
+        )
+        gitlab_adapter.set_variable("DB_PASSWORD", "newvalue")
+        put_body = json.loads(mock_responses.calls[1].request.body)
+        assert put_body["masked"] is True
+
+    def test_existing_unmasked_variable_stays_unmasked(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/variables/PLAIN",
+            json={"key": "PLAIN", "value": "old", "masked": False},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/variables/PLAIN",
+            json={"key": "PLAIN", "value": "new", "masked": False},
+            status=200,
+        )
+        gitlab_adapter.set_variable("PLAIN", "new")
+        put_body = json.loads(mock_responses.calls[1].request.body)
+        assert put_body["masked"] is False
+
+    def test_new_variable_defaults_unmasked(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/variables/NEW_VAR",
+            status=404,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/variables",
+            json={"key": "NEW_VAR", "value": "val", "masked": False},
+            status=201,
+        )
+        gitlab_adapter.set_variable("NEW_VAR", "val")
+        post_body = json.loads(mock_responses.calls[1].request.body)
+        assert post_body["masked"] is False
+
+    def test_set_secret_forces_masked_even_over_unmasked_existing(
+        self, mock_responses, gitlab_adapter
+    ):
+        """set_secret（masked=True 明示）は既存が masked=False でも常に True へ昇格させる。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/variables/PROMOTE_ME",
+            json={"key": "PROMOTE_ME", "value": "old", "masked": False},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/variables/PROMOTE_ME",
+            json={"key": "PROMOTE_ME", "value": "new", "masked": True},
+            status=200,
+        )
+        gitlab_adapter.set_secret("PROMOTE_ME", "new")
+        put_body = json.loads(mock_responses.calls[1].request.body)
+        assert put_body["masked"] is True
+
+
 class TestWebhookActiveField:
     def test_to_webhook_always_active(self, gitlab_adapter):
         """_to_webhook は常に active=True を返す。"""
