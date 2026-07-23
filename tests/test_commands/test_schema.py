@@ -7,6 +7,7 @@ import json
 import pytest
 
 from gfo.adapter.base import Label, PullRequest, Webhook, WikiPage
+from gfo.adapter.models import CompareFile, CompareResult
 from gfo.cli import create_parser
 from gfo.commands.schema import (
     _dataclass_to_json_schema,
@@ -46,6 +47,20 @@ class TestPythonTypeToJsonSchema:
         schema = _python_type_to_json_schema(int | str)
         assert schema == {"oneOf": [{"type": "integer"}, {"type": "string"}]}
 
+    def test_type_tuple_of_dataclass(self):
+        """tuple[X, ...] の要素がデータクラスの場合、string フォールバックせず展開する（#169）。"""
+        schema = _python_type_to_json_schema(tuple[CompareFile, ...])
+        assert schema["type"] == "array"
+        assert schema["items"]["type"] == "object"
+        assert schema["items"]["properties"]["filename"] == {"type": "string"}
+        assert schema["items"]["properties"]["additions"] == {"type": "integer"}
+
+    def test_type_nested_dataclass(self):
+        """ネストしたデータクラス型自体も string フォールバックせず展開する（#169）。"""
+        schema = _python_type_to_json_schema(CompareFile)
+        assert schema["type"] == "object"
+        assert "filename" in schema["properties"]
+
 
 # ---- データクラス → スキーマ ----
 
@@ -82,6 +97,21 @@ class TestDataclassToJsonSchema:
         schema = _dataclass_to_json_schema(WikiPage)
         props = schema["properties"]
         assert props["id"] == {"oneOf": [{"type": "integer"}, {"type": "string"}]}
+
+    def test_dataclass_compare_result_nested_files(self):
+        """CompareResult.files: tuple[CompareFile, ...] が string にフォールバックしない（#169）。"""
+        schema = _dataclass_to_json_schema(CompareResult)
+        files_schema = schema["properties"]["files"]
+        assert files_schema["type"] == "array"
+        item_schema = files_schema["items"]
+        assert item_schema["type"] == "object"
+        assert item_schema["properties"] == {
+            "filename": {"type": "string"},
+            "status": {"type": "string"},
+            "additions": {"type": "integer"},
+            "deletions": {"type": "integer"},
+        }
+        assert set(item_schema["required"]) == {"filename", "status", "additions", "deletions"}
 
 
 # ---- argparse → 入力スキーマ ----

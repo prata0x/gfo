@@ -597,6 +597,10 @@ def _python_type_to_json_schema(tp: Any) -> dict[str, Any]:
     if tp is bool:
         return {"type": "boolean"}
 
+    # ネストしたデータクラス（例: CompareResult.files: tuple[CompareFile, ...]）
+    if isinstance(tp, type) and dataclasses.is_dataclass(tp):
+        return _dataclass_to_json_schema(tp)
+
     logger.warning("Unknown type %r, falling back to string schema", tp)
     return {"type": "string"}
 
