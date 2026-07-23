@@ -21,6 +21,8 @@ paths:
   - Gitea はissueレスポンスに `pull_request: null` が含まれる
 - **ページネーション**: `per_page_key="limit"`
 - **マイルストーン**: `number` フィールドなし → `id` でフォールバック（`github_like.py: _to_milestone`）
+- **issue dependency（`add_issue_dependency` / `remove_issue_dependency`）**: リクエスト body は `{"index": ..., "owner": ..., "repo": ...}`（`IssueMeta` 構造体のフィールド名）。`{"id": ...}` ではない
+  - 過去バグ: `id` フィールドを送っており Go 側の JSON バインドで全フィールドがゼロ値になっていた
 
 ## Gogs 固有
 

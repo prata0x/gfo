@@ -1011,6 +1011,28 @@ class TestLockIssue:
         gitea_adapter.unlock_issue(3)
 
 
+class TestIssueDependency:
+    def test_add_issue_dependency(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/issues/3/dependencies",
+            status=201,
+        )
+        gitea_adapter.add_issue_dependency(3, 8)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body == {"index": 8, "owner": "test-owner", "repo": "test-repo"}
+
+    def test_remove_issue_dependency(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/issues/3/dependencies",
+            status=204,
+        )
+        gitea_adapter.remove_issue_dependency(3, 8)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body == {"index": 8, "owner": "test-owner", "repo": "test-repo"}
+
+
 # --- Repository 系 ---
 
 
