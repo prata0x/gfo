@@ -13,7 +13,8 @@ paths:
 - **state マッピング**: GitLab `opened` → gfo `open` に変換
 - **リポジトリ識別**: `name` ではなく `path`（URL セーフ）を使う
 - **ラベル color**: GitLab は `#RRGGBB` 形式。追加/除去時に `#` プレフィックスの処理に注意
-- **merge_pull_request**: `method="rebase"` の場合は `/rebase` エンドポイントを使用
+- **merge_pull_request**: `method="rebase"` の場合、GitLab の `/rebase` エンドポイントは対象ブランチへの rebase のみを行いマージはしない。`/rebase` → `include_rebase_in_progress=true` での `GET` ポーリング（`rebase_in_progress` が `false` になるまで。`merge_error` があれば失敗として送出）→ `/merge` の3段階で実マージする
+  - 過去バグ: `/rebase` を呼んで即 return していたため、MR が rebase されるだけでマージされず open のまま残っていた（例外は出ないため成功したように見えた）
 - **create_or_update_file**: `None` を返す（GitLab files API は SHA を返さない）
 - **認証**: `PRIVATE-TOKEN: {token}` ヘッダ
 - **プロジェクト ID の URL エンコード**: `owner/repo` を `%2F` エンコード（`urllib.parse.quote(path, safe='')`）。サブグループ `group/sub/repo` も同様に処理される

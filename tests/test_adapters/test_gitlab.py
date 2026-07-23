@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from unittest.mock import patch
 from urllib.parse import quote
 
 import pytest
@@ -645,17 +646,100 @@ class TestMergePullRequest:
         assert req_body.get("squash") is True
         assert "merge_method" not in req_body
 
-    def test_merge_rebase_calls_rebase_endpoint(self, mock_responses, gitlab_adapter):
-        """method="rebase" は /merge ではなく /rebase エンドポイントを呼ぶ。"""
+    def test_merge_rebase_waits_then_merges(self, mock_responses, gitlab_adapter):
+        """method="rebase" は /rebase → 完了ポーリング → /merge の順で呼ぶ。"""
         mock_responses.add(
             responses.PUT,
             f"{PROJECT}/merge_requests/2/rebase",
             json={},
             status=200,
         )
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests/2",
+            json={"rebase_in_progress": False, "merge_error": None},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/2/merge",
+            json={"state": "merged"},
+            status=200,
+        )
         gitlab_adapter.merge_pull_request(2, method="rebase")
-        assert len(mock_responses.calls) == 1
+        assert len(mock_responses.calls) == 3
         assert "/rebase" in mock_responses.calls[0].request.url
+        assert "/merge_requests/2" == mock_responses.calls[1].request.url.split("?")[0].replace(
+            PROJECT, ""
+        )
+        assert "/merge" in mock_responses.calls[2].request.url
+
+    def test_merge_rebase_polls_until_done(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/2/rebase",
+            json={},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests/2",
+            json={"rebase_in_progress": True, "merge_error": None},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests/2",
+            json={"rebase_in_progress": False, "merge_error": None},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/2/merge",
+            json={"state": "merged"},
+            status=200,
+        )
+        with patch("time.sleep") as mock_sleep:
+            gitlab_adapter.merge_pull_request(2, method="rebase")
+        mock_sleep.assert_called_once()
+        assert len(mock_responses.calls) == 4
+
+    def test_merge_rebase_failure_raises(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/2/rebase",
+            json={},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests/2",
+            json={"rebase_in_progress": False, "merge_error": "Rebase failed"},
+            status=200,
+        )
+        with pytest.raises(GfoError, match="Rebase failed"):
+            gitlab_adapter.merge_pull_request(2, method="rebase")
+        assert len(mock_responses.calls) == 2
+
+    def test_merge_rebase_timeout_raises(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/2/rebase",
+            json={},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests/2",
+            json={"rebase_in_progress": True, "merge_error": None},
+            status=200,
+        )
+        with (
+            patch("time.sleep"),
+            patch("time.monotonic", side_effect=[0, 100]),
+            pytest.raises(GfoError, match="Timed out"),
+        ):
+            gitlab_adapter.merge_pull_request(2, method="rebase")
 
     def test_merge_invalid_method_raises(self, gitlab_adapter):
         from gfo.exceptions import GfoError
