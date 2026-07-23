@@ -424,15 +424,14 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             "squash": "squash",
             "rebase": "rebaseMerge",
         }
-        pr_resp = self._client.get(
-            f"{self._git_path()}/pullrequests/{number}",
-        ).json()
-        created_by_id = pr_resp.get("createdBy", {}).get("id", "")
+        # autoCompleteSetBy.id は「auto-complete を設定した(=呼び出した)ユーザー」の ID。
+        # PR の作成者とは限らないため、認証済み呼び出しユーザー自身の ID を使う。
+        caller_id = self.get_current_user().get("id", "")
         strategy = _MERGE_STRATEGY.get(merge_method or "", "noFastForward")
         self._client.patch(
             f"{self._git_path()}/pullrequests/{number}",
             json={
-                "autoCompleteSetBy": {"id": created_by_id},
+                "autoCompleteSetBy": {"id": caller_id},
                 "completionOptions": {"mergeStrategy": strategy},
             },
         )
