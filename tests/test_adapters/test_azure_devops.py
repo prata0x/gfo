@@ -1031,6 +1031,27 @@ class TestUpdateRepositoryAzureDevOps:
         assert json.loads(responses.calls[0].request.body)["isDisabled"] is True
 
 
+class TestEnableAutoMergeAzureDevOps:
+    def test_uses_authenticated_caller_id_not_pr_author(self, mock_responses, azure_devops_adapter):
+        """autoCompleteSetBy.id には PR 作成者ではなく呼び出しユーザー自身の ID を使う（#144）。"""
+        mock_responses.add(
+            responses.GET,
+            "https://dev.azure.com/test-org/_apis/connectionData",
+            json={"authenticatedUser": {"id": "caller-guid-999"}},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PATCH,
+            f"{GIT}/pullrequests/1",
+            json={},
+            status=200,
+        )
+        azure_devops_adapter.enable_auto_merge(1, merge_method="squash")
+        req_body = json.loads(mock_responses.calls[-1].request.body)
+        assert req_body["autoCompleteSetBy"]["id"] == "caller-guid-999"
+        assert req_body["completionOptions"]["mergeStrategy"] == "squash"
+
+
 class TestDisableAutoMergeAzureDevOps:
     def test_calls_patch_with_empty_autocomplete(self, mock_responses, azure_devops_adapter):
         mock_responses.add(
