@@ -324,14 +324,43 @@ def _write_toml(f: Any, data: dict[str, Any], prefix: str = "") -> None:
             _write_toml(f, value, prefix=f"{section}.")
 
 
+_TOML_SHORT_ESCAPES = {
+    "\\": "\\\\",
+    '"': '\\"',
+    "\b": "\\b",
+    "\t": "\\t",
+    "\n": "\\n",
+    "\f": "\\f",
+    "\r": "\\r",
+}
+
+
+def _escape_toml_string(value: str) -> str:
+    """TOML basic string 用にエスケープする。
+
+    リテラル改行等の制御文字（U+0000-U+001F, U+007F）は TOML basic string
+    では許容されないため、標準の短縮エスケープ（\\n 等）か \\uXXXX で
+    エスケープする。未エスケープのまま埋め込むと出力全体が不正な TOML になり、
+    tomllib でのパースに失敗する。
+    """
+    result = []
+    for ch in value:
+        if ch in _TOML_SHORT_ESCAPES:
+            result.append(_TOML_SHORT_ESCAPES[ch])
+        elif ord(ch) < 0x20 or ord(ch) == 0x7F:
+            result.append(f"\\u{ord(ch):04x}")
+        else:
+            result.append(ch)
+    return "".join(result)
+
+
 def _toml_key(key: str) -> str:
     """TOML キーをエスケープする。英数字・ハイフン・アンダースコア以外を含む場合は引用符で囲む。"""
     import re
 
     if re.fullmatch(r"[A-Za-z0-9_-]+", key):
         return key
-    escaped = key.replace("\\", "\\\\").replace('"', '\\"')
-    return f'"{escaped}"'
+    return f'"{_escape_toml_string(key)}"'
 
 
 def _toml_value(value: Any) -> str:
@@ -346,8 +375,7 @@ def _toml_value(value: Any) -> str:
         items = ", ".join(_toml_value(v) for v in value)
         return f"[{items}]"
     # 文字列
-    escaped = str(value).replace("\\", "\\\\").replace('"', '\\"')
-    return f'"{escaped}"'
+    return f'"{_escape_toml_string(str(value))}"'
 
 
 # ── 設定解決 ──

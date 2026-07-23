@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 from unittest.mock import patch
 
@@ -959,6 +960,22 @@ def test_set_config_value_overwrite(tmp_path):
         assert get_config_value("defaults.output") == "json"
 
 
+def test_set_config_value_with_newline_survives_round_trip(tmp_path):
+    """改行を含む値を設定しても config.toml が破損せず、他の既存設定も維持される。"""
+    d = tmp_path / "gfo_config"
+    d.mkdir()
+    (d / "config.toml").write_text(
+        '[defaults]\noutput = "table"\n\n[hosts."gitea.example.com"]\ntype = "gitea"\n',
+        encoding="utf-8",
+    )
+    with patch("gfo.config.get_config_dir", return_value=d):
+        set_config_value("defaults.note", "line1\nline2")
+        assert get_config_value("defaults.note") == "line1\nline2"
+        # 他の既存設定は失われない
+        assert get_config_value("defaults.output") == "table"
+        assert get_config_value('hosts."gitea.example.com".type') == "gitea"
+
+
 def test_set_config_value_empty_key():
     """空キー → ConfigError。"""
     with pytest.raises(ConfigError, match="must not be empty"):
@@ -1045,6 +1062,14 @@ def test_toml_key_with_space():
     assert _toml_key("my key") == '"my key"'
 
 
+def test_toml_key_with_newline():
+    """改行を含むキーもエスケープされ、有効な TOML としてパースできる。"""
+    key = _toml_key("a\nb")
+    assert key == '"a\\nb"'
+    parsed = tomllib.loads(f"{key} = 1\n")
+    assert parsed == {"a\nb": 1}
+
+
 # ── _toml_value ──
 
 
@@ -1054,6 +1079,33 @@ def test_toml_value_string():
 
 def test_toml_value_string_with_quotes():
     assert _toml_value('say "hi"') == '"say \\"hi\\""'
+
+
+def test_toml_value_string_with_newline():
+    """改行はエスケープされ、有効な TOML basic string になる。"""
+    result = _toml_value("line1\nline2")
+    assert result == '"line1\\nline2"'
+    assert tomllib.loads(f"x = {result}\n") == {"x": "line1\nline2"}
+
+
+def test_toml_value_string_with_tab_and_carriage_return():
+    result = _toml_value("a\tb\rc")
+    assert result == '"a\\tb\\rc"'
+    assert tomllib.loads(f"x = {result}\n") == {"x": "a\tb\rc"}
+
+
+def test_toml_value_string_with_control_char():
+    """短縮エスケープを持たない制御文字は \\uXXXX でエスケープされる。"""
+    result = _toml_value("a\x01b")
+    assert result == '"a\\u0001b"'
+    assert tomllib.loads(f"x = {result}\n") == {"x": "a\x01b"}
+
+
+def test_toml_value_string_with_backslash_and_newline():
+    """バックスラッシュと改行が混在しても二重エスケープされない。"""
+    result = _toml_value("a\\b\nc")
+    assert result == '"a\\\\b\\nc"'
+    assert tomllib.loads(f"x = {result}\n") == {"x": "a\\b\nc"}
 
 
 def test_toml_value_bool():
