@@ -38,6 +38,8 @@ paths:
 ## Issue (Work Items)
 
 - **state 判定**: open は「NOT in closed states」で判定する。state 名はプロセステンプレート（Agile/Scrum/Basic）で異なるため固定値で比較不可
+- **`close_issue`/`reopen_issue`**: 同じ理由で書き込み側も固定の state 名（"Closed"/"New"）を PATCH してはいけない。`GET /wit/workitemtypes/{type}/states` で対象 work item type の状態一覧を取得し、テンプレート共通の `category`（Proposed/InProgress/Resolved/Completed/Removed）で対象状態を解決してから PATCH すること
+  - 過去バグ: 固定値 "Closed" を書き込んでおり、Scrum プロセステンプレート（"Closed" という状態が存在しない）で失敗していた
 - **デフォルト Work Item Type**: `Task`（`Bug` ではない）
 - **`--state all`**: `searchCriteria.status` パラメータを省略する（catch-all 値は存在しない）
 

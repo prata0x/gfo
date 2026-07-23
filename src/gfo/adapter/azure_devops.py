@@ -571,8 +571,36 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         resp = self._client.get(f"{self._wit_path()}/workitems/{number}")
         return self._to_issue(resp.json())
 
+    def _resolve_state_by_category(self, number: int, categories: tuple[str, ...]) -> str:
+        """work item の種別の状態一覧から、指定カテゴリに属する状態名を解決する。
+
+        状態名自体はプロセステンプレート（Agile/Scrum/Basic/CMMI）ごとに異なるが、
+        状態カテゴリ（Proposed/InProgress/Resolved/Completed/Removed）はテンプレート
+        に関わらず共通のため、固定の状態名ではなくカテゴリで解決する。
+        """
+        item_resp = self._client.get(f"{self._wit_path()}/workitems/{number}")
+        work_item_type = item_resp.json().get("fields", {}).get("System.WorkItemType")
+        if not work_item_type:
+            raise GfoError(
+                _("Cannot determine work item type for work item #{number}").format(number=number)
+            )
+        states_resp = self._client.get(
+            f"{self._wit_path()}/workitemtypes/{quote(work_item_type, safe='')}/states"
+        )
+        states = states_resp.json().get("value", [])
+        for category in categories:
+            for s in states:
+                if s.get("category") == category and s.get("name"):
+                    return str(s["name"])
+        raise GfoError(
+            _(
+                "No state found for work item type {work_item_type!r} in categories {categories!r}"
+            ).format(work_item_type=work_item_type, categories=categories)
+        )
+
     def close_issue(self, number: int) -> None:
-        patch_ops = [{"op": "replace", "path": "/fields/System.State", "value": "Closed"}]
+        target_state = self._resolve_state_by_category(number, ("Completed", "Resolved"))
+        patch_ops = [{"op": "replace", "path": "/fields/System.State", "value": target_state}]
         self._client.patch(
             f"{self._wit_path()}/workitems/{number}",
             data=_json.dumps(patch_ops),
@@ -580,7 +608,8 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         )
 
     def reopen_issue(self, number: int) -> None:
-        patch_ops = [{"op": "replace", "path": "/fields/System.State", "value": "New"}]
+        target_state = self._resolve_state_by_category(number, ("Proposed", "InProgress"))
+        patch_ops = [{"op": "replace", "path": "/fields/System.State", "value": target_state}]
         self._client.patch(
             f"{self._wit_path()}/workitems/{number}",
             data=_json.dumps(patch_ops),

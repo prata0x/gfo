@@ -2328,6 +2328,12 @@ msgstr "ラベルが見つかりません: {name}"
 msgid "Milestone not found: {title}"
 msgstr "マイルストーンが見つかりません: {title}"
 
+msgid "Cannot determine work item type for work item #{number}"
+msgstr "work item #{number} の種別を判定できません"
+
+msgid "No state found for work item type {work_item_type!r} in categories {categories!r}"
+msgstr "work item 種別 {work_item_type!r} にカテゴリ {categories!r} に該当する状態が見つかりません"
+
 msgid "Rebase failed for merge request !{number}: {error}"
 msgstr "マージリクエスト !{number} の rebase に失敗しました: {error}"
 

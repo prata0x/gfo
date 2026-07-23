@@ -852,8 +852,33 @@ class TestGetIssue:
         assert issue.number == 5
 
 
+def _mock_states(mock_responses, work_item_type, states):
+    mock_responses.add(
+        responses.GET,
+        f"{WIT}/workitems/3",
+        json={"id": 3, "fields": {"System.WorkItemType": work_item_type}},
+        status=200,
+    )
+    mock_responses.add(
+        responses.GET,
+        f"{WIT}/workitemtypes/{work_item_type}/states",
+        json={"count": len(states), "value": states},
+        status=200,
+    )
+
+
 class TestCloseIssue:
     def test_close(self, mock_responses, azure_devops_adapter):
+        """Agile プロセステンプレート: Completed カテゴリの状態名 (Closed) を使う。"""
+        _mock_states(
+            mock_responses,
+            "Bug",
+            [
+                {"name": "New", "category": "Proposed"},
+                {"name": "Active", "category": "InProgress"},
+                {"name": "Closed", "category": "Completed"},
+            ],
+        )
         mock_responses.add(
             responses.PATCH,
             f"{WIT}/workitems/3",
@@ -861,16 +886,52 @@ class TestCloseIssue:
             status=200,
         )
         azure_devops_adapter.close_issue(3)
-        req = mock_responses.calls[0].request
-        assert req.headers["Content-Type"] == "application/json-patch+json"
-        ops = json.loads(req.body)
+        patch_call = next(c for c in mock_responses.calls if c.request.method == "PATCH")
+        assert patch_call.request.headers["Content-Type"] == "application/json-patch+json"
+        ops = json.loads(patch_call.request.body)
         assert ops[0]["op"] == "replace"
         assert ops[0]["path"] == "/fields/System.State"
         assert ops[0]["value"] == "Closed"
 
+    def test_close_scrum_process_template_uses_done_state(
+        self, mock_responses, azure_devops_adapter
+    ):
+        """Scrum プロセステンプレートには Closed が存在しないため、Completed カテゴリの
+        実際の状態名 (Done) を使う（#176）。"""
+        _mock_states(
+            mock_responses,
+            "Bug",
+            [
+                {"name": "New", "category": "Proposed"},
+                {"name": "Approved", "category": "Proposed"},
+                {"name": "Committed", "category": "InProgress"},
+                {"name": "Done", "category": "Completed"},
+            ],
+        )
+        mock_responses.add(
+            responses.PATCH,
+            f"{WIT}/workitems/3",
+            json=_issue_data(id=3, state="Done"),
+            status=200,
+        )
+        azure_devops_adapter.close_issue(3)
+        patch_call = next(c for c in mock_responses.calls if c.request.method == "PATCH")
+        ops = json.loads(patch_call.request.body)
+        assert ops[0]["value"] == "Done"
+
 
 class TestReopenIssue:
     def test_reopen(self, mock_responses, azure_devops_adapter):
+        """Agile プロセステンプレート: Proposed カテゴリの状態名 (New) を使う。"""
+        _mock_states(
+            mock_responses,
+            "Bug",
+            [
+                {"name": "New", "category": "Proposed"},
+                {"name": "Active", "category": "InProgress"},
+                {"name": "Closed", "category": "Completed"},
+            ],
+        )
         mock_responses.add(
             responses.PATCH,
             f"{WIT}/workitems/3",
@@ -878,11 +939,36 @@ class TestReopenIssue:
             status=200,
         )
         azure_devops_adapter.reopen_issue(3)
-        req = mock_responses.calls[0].request
-        assert req.headers["Content-Type"] == "application/json-patch+json"
-        ops = json.loads(req.body)
+        patch_call = next(c for c in mock_responses.calls if c.request.method == "PATCH")
+        assert patch_call.request.headers["Content-Type"] == "application/json-patch+json"
+        ops = json.loads(patch_call.request.body)
         assert ops[0]["op"] == "replace"
         assert ops[0]["path"] == "/fields/System.State"
+        assert ops[0]["value"] == "New"
+
+    def test_reopen_scrum_process_template_uses_new_state(
+        self, mock_responses, azure_devops_adapter
+    ):
+        """Scrum プロセステンプレートでも Proposed カテゴリの状態名 (New) を使う（#176）。"""
+        _mock_states(
+            mock_responses,
+            "Bug",
+            [
+                {"name": "New", "category": "Proposed"},
+                {"name": "Approved", "category": "Proposed"},
+                {"name": "Committed", "category": "InProgress"},
+                {"name": "Done", "category": "Completed"},
+            ],
+        )
+        mock_responses.add(
+            responses.PATCH,
+            f"{WIT}/workitems/3",
+            json=_issue_data(id=3, state="New"),
+            status=200,
+        )
+        azure_devops_adapter.reopen_issue(3)
+        patch_call = next(c for c in mock_responses.calls if c.request.method == "PATCH")
+        ops = json.loads(patch_call.request.body)
         assert ops[0]["value"] == "New"
 
 
