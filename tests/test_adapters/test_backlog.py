@@ -1882,6 +1882,24 @@ class TestUpdateWebhook:
         assert "secret" not in req_body
         assert "active" not in req_body
 
+    def test_update_inactive_warns_despite_falsy_value(self, mock_responses, backlog_adapter):
+        """`--inactive`（active=False）も、truthy チェックをすり抜けず警告される（pre-commit レビュー指摘）。"""
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/projects/TEST/webhooks/100",
+            json=_webhook_data_bl(),
+            status=200,
+        )
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            backlog_adapter.update_webhook(100, active=False)
+        messages = [str(x.message) for x in w]
+        assert any("active" in m for m in messages)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "active" not in req_body
+
 
 # --- Collaborator 系 ---
 

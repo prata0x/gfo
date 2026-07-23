@@ -868,7 +868,14 @@ class BacklogAdapter(GitServiceAdapter):
         secret: str | None = None,
         active: bool | None = None,
     ) -> Webhook:
-        self._warn_unsupported_params("webhook edit", secret=secret, active=active)
+        self._warn_unsupported_params("webhook edit", secret=secret)
+        if active is not None:
+            # active=False（--inactive）は _warn_unsupported_params の truthy
+            # チェックでは検知できないため、None チェックで個別に警告する。
+            warnings.warn(
+                f"{self.service_name} does not support active on webhook edit",
+                stacklevel=2,
+            )
         payload: dict[str, Any] = {}
         if url is not None:
             payload["hookUrl"] = url
