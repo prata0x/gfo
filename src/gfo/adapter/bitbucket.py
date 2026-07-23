@@ -1185,7 +1185,7 @@ class BitbucketAdapter(GitServiceAdapter):
     def set_secret(self, name: str, value: str, *, scope: str | None = None) -> Secret:
         self._warn_unsupported_params("secret set", scope=scope)
         try:
-            uuid = self._find_pipeline_variable_uuid(name)
+            uuid = self._find_pipeline_variable_uuid(name, secured=True)
             resp = self._client.put(
                 f"{self._repos_path()}/pipelines_config/variables/{uuid}",
                 json={"key": name, "value": value, "secured": True},
@@ -1200,18 +1200,24 @@ class BitbucketAdapter(GitServiceAdapter):
 
     def delete_secret(self, name: str, *, scope: str | None = None) -> None:
         self._warn_unsupported_params("secret delete", scope=scope)
-        uuid = self._find_pipeline_variable_uuid(name)
+        uuid = self._find_pipeline_variable_uuid(name, secured=True)
         self._client.delete(f"{self._repos_path()}/pipelines_config/variables/{uuid}")
 
-    def _find_pipeline_variable_uuid(self, name: str) -> str:
-        """パイプライン変数の名前から UUID を検索する。"""
+    def _find_pipeline_variable_uuid(self, name: str, *, secured: bool) -> str:
+        """パイプライン変数の名前から UUID を検索する。
+
+        secret（secured）と variable（not secured）は同一コレクションを共有する
+        ため、名前だけでなく secured フラグも一致するレコードに限定する。
+        （secret と同名の variable を set した際に secret 側を上書きしてしまう
+        事故を防ぐ）
+        """
         results = paginate_response_body(
             self._client,
             f"{self._repos_path()}/pipelines_config/variables/",
             limit=0,
         )
         for d in results:
-            if d.get("key") == name:
+            if d.get("key") == name and bool(d.get("secured")) == secured:
                 return str(d["uuid"])
         raise NotFoundError(detail=f"Resource '{name}' not found")
 
@@ -1239,7 +1245,7 @@ class BitbucketAdapter(GitServiceAdapter):
     ) -> Variable:
         self._warn_unsupported_params("variable set", scope=scope)
         try:
-            uuid = self._find_pipeline_variable_uuid(name)
+            uuid = self._find_pipeline_variable_uuid(name, secured=False)
             resp = self._client.put(
                 f"{self._repos_path()}/pipelines_config/variables/{uuid}",
                 json={"key": name, "value": value, "secured": False},
@@ -1256,7 +1262,7 @@ class BitbucketAdapter(GitServiceAdapter):
 
     def get_variable(self, name: str, *, scope: str | None = None) -> Variable:
         self._warn_unsupported_params("variable get", scope=scope)
-        uuid = self._find_pipeline_variable_uuid(name)
+        uuid = self._find_pipeline_variable_uuid(name, secured=False)
         resp = self._client.get(f"{self._repos_path()}/pipelines_config/variables/{uuid}")
         data = resp.json()
         return Variable(
@@ -1265,7 +1271,7 @@ class BitbucketAdapter(GitServiceAdapter):
 
     def delete_variable(self, name: str, *, scope: str | None = None) -> None:
         self._warn_unsupported_params("variable delete", scope=scope)
-        uuid = self._find_pipeline_variable_uuid(name)
+        uuid = self._find_pipeline_variable_uuid(name, secured=False)
         self._client.delete(f"{self._repos_path()}/pipelines_config/variables/{uuid}")
 
     # --- BranchProtection (branch-restrictions) ---

@@ -29,6 +29,8 @@ paths:
   - 過去バグ: kind フィルタで取得漏れが発生
 - **`_find_pipeline_variable_uuid`**: `limit=0`（全件取得）を使うこと
   - 過去バグ: 100件上限だと変数が見つからない
+- **`_find_pipeline_variable_uuid`**: secret（`secured: True`）と variable（`secured: False`）は同一コレクションを共有するため、名前だけでなく `secured` フラグも引数で指定して絞り込むこと
+  - 過去バグ: `secured` フラグで絞り込んでいなかったため、既存 secret と同名で `variable set` すると secret 側が `secured: False` で上書きされ平文化していた
 - **`set_variable` / `set_secret`**: upsert パターン必須（GET で存在チェック → PUT/POST 使い分け）
   - 過去バグ: POST のみだと既存変数で API エラー
 

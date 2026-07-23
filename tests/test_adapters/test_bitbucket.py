@@ -2213,3 +2213,104 @@ class TestPipelineVariablesFilterOrder:
         )
         variables = bitbucket_adapter.list_variables(limit=1)
         assert [v.name for v in variables] == ["PLAIN"]
+
+
+class TestSetVariableDoesNotDowngradeSecret:
+    """secret と同名で variable set しても secret 側を上書きしないことを確認する（#138）。"""
+
+    _VARS = f"{REPOS}/pipelines_config/variables/"
+
+    def test_set_variable_creates_new_when_only_secret_matches_name(
+        self, mock_responses, bitbucket_adapter
+    ):
+        mock_responses.add(
+            responses.GET,
+            self._VARS,
+            json={"values": [{"key": "DB_PASSWORD", "uuid": "{secret-uuid}", "secured": True}]},
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            self._VARS,
+            json={"key": "DB_PASSWORD", "value": "hunter2", "secured": False},
+            status=201,
+        )
+        result = bitbucket_adapter.set_variable("DB_PASSWORD", "hunter2")
+        assert result.name == "DB_PASSWORD"
+        # PUT (既存 secret への上書き) は呼ばれず、POST (新規作成) のみが呼ばれること
+        methods = [call.request.method for call in mock_responses.calls]
+        assert "PUT" not in methods
+        assert methods.count("POST") == 1
+
+    def test_set_secret_creates_new_when_only_variable_matches_name(
+        self, mock_responses, bitbucket_adapter
+    ):
+        mock_responses.add(
+            responses.GET,
+            self._VARS,
+            json={"values": [{"key": "DB_PASSWORD", "uuid": "{var-uuid}", "secured": False}]},
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            self._VARS,
+            json={"key": "DB_PASSWORD", "value": "hunter2", "secured": True},
+            status=201,
+        )
+        result = bitbucket_adapter.set_secret("DB_PASSWORD", "hunter2")
+        assert result.name == "DB_PASSWORD"
+        methods = [call.request.method for call in mock_responses.calls]
+        assert "PUT" not in methods
+        assert methods.count("POST") == 1
+
+    def test_set_variable_updates_existing_variable(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            self._VARS,
+            json={"values": [{"key": "PLAIN", "uuid": "{var-uuid}", "secured": False}]},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{self._VARS}%7Bvar-uuid%7D",
+            json={"key": "PLAIN", "value": "new-value", "secured": False},
+            status=200,
+        )
+        result = bitbucket_adapter.set_variable("PLAIN", "new-value")
+        assert result.value == "new-value"
+
+    def test_get_variable_not_found_when_only_secret_matches_name(
+        self, mock_responses, bitbucket_adapter
+    ):
+        mock_responses.add(
+            responses.GET,
+            self._VARS,
+            json={"values": [{"key": "DB_PASSWORD", "uuid": "{secret-uuid}", "secured": True}]},
+            status=200,
+        )
+        with pytest.raises(NotFoundError):
+            bitbucket_adapter.get_variable("DB_PASSWORD")
+
+    def test_delete_variable_not_found_when_only_secret_matches_name(
+        self, mock_responses, bitbucket_adapter
+    ):
+        mock_responses.add(
+            responses.GET,
+            self._VARS,
+            json={"values": [{"key": "DB_PASSWORD", "uuid": "{secret-uuid}", "secured": True}]},
+            status=200,
+        )
+        with pytest.raises(NotFoundError):
+            bitbucket_adapter.delete_variable("DB_PASSWORD")
+
+    def test_delete_secret_not_found_when_only_variable_matches_name(
+        self, mock_responses, bitbucket_adapter
+    ):
+        mock_responses.add(
+            responses.GET,
+            self._VARS,
+            json={"values": [{"key": "PLAIN", "uuid": "{var-uuid}", "secured": False}]},
+            status=200,
+        )
+        with pytest.raises(NotFoundError):
+            bitbucket_adapter.delete_secret("PLAIN")
