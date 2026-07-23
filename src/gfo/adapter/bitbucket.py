@@ -44,6 +44,17 @@ from .models import (
 from .registry import register
 
 
+def _escape_bql_string(value: str) -> str:
+    """BQL（Bitbucket Query Language）文字列リテラル用にエスケープする。
+
+    バックスラッシュを先にエスケープしてから引用符をエスケープする必要がある。
+    引用符だけをエスケープすると、値の末尾がバックスラッシュで終わる場合や
+    `\"` を含む場合に、生成される `\\"` がエスケープ済みバックスラッシュ +
+    リテラル終端の引用符と解釈され、リテラルが早期終端してしまう。
+    """
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
 @register("bitbucket")
 class BitbucketAdapter(GitServiceAdapter):
     service_name = "Bitbucket Cloud"
@@ -159,7 +170,7 @@ class BitbucketAdapter(GitServiceAdapter):
         if head:
             q_parts.append(f'source.branch.name="{head}"')
         if search:
-            q_parts.append(f'title~"{search.replace(chr(34), chr(92) + chr(34))}"')
+            q_parts.append(f'title~"{_escape_bql_string(search)}"')
         if q_parts:
             params["q"] = " AND ".join(q_parts)
         results = paginate_response_body(
@@ -264,13 +275,13 @@ class BitbucketAdapter(GitServiceAdapter):
         elif state != "all":
             conditions.append(f'state="{state}"')
         if assignee is not None:
-            escaped = assignee.replace('"', '\\"')
+            escaped = _escape_bql_string(assignee)
             conditions.append(f'assignee.nickname="{escaped}"')
         if label is not None:
-            escaped_label = label.replace('"', '\\"')
+            escaped_label = _escape_bql_string(label)
             conditions.append(f'component.name="{escaped_label}"')
         if search is not None:
-            escaped_search = search.replace('"', '\\"')
+            escaped_search = _escape_bql_string(search)
             conditions.append(f'title ~ "{escaped_search}"')
         params: dict[str, Any] = {}
         if conditions:
@@ -1505,7 +1516,7 @@ class BitbucketAdapter(GitServiceAdapter):
     # --- Search ---
 
     def search_repositories(self, query: str, *, limit: int = 30) -> list[Repository]:
-        escaped_query = query.replace('"', '\\"')
+        escaped_query = _escape_bql_string(query)
         results = paginate_response_body(
             self._client,
             f"/repositories/{quote(self._owner, safe='')}",
@@ -1515,7 +1526,7 @@ class BitbucketAdapter(GitServiceAdapter):
         return [self._to_repository(r) for r in results]
 
     def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
-        escaped_query = query.replace('"', '\\"')
+        escaped_query = _escape_bql_string(query)
         results = paginate_response_body(
             self._client,
             f"{self._repos_path()}/issues",
@@ -1559,7 +1570,7 @@ class BitbucketAdapter(GitServiceAdapter):
     ) -> list[PullRequest]:
         params = {}
         if query:
-            escaped_query = query.replace('"', '\\"')
+            escaped_query = _escape_bql_string(query)
             params["q"] = f'title ~ "{escaped_query}"'
         if state and state != "all":
             state_map = {"open": "OPEN", "closed": "DECLINED", "merged": "MERGED"}
