@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
@@ -25,6 +26,12 @@ BASE = "https://example.backlog.com/api/v2"
 PR_PATH = f"{BASE}/projects/TEST/git/repositories/test-repo/pullRequests"
 ISSUES_PATH = f"{BASE}/issues"
 REPO_PATH = f"{BASE}/projects/TEST/git/repositories/test-repo"
+
+
+def _sent_status_ids(url: str) -> set[int]:
+    """リクエスト URL の statusId[] クエリパラメータを int の集合として取得する。"""
+    qs = parse_qs(urlparse(url).query)
+    return {int(v) for v in qs.get("statusId[]", [])}
 
 
 # --- サンプルデータ ---
@@ -200,6 +207,18 @@ class TestListPullRequests:
     def test_open(self, mock_responses, backlog_adapter):
         mock_responses.add(
             responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[
+                {"id": 1, "name": "未対応"},
+                {"id": 2, "name": "処理中"},
+                {"id": 3, "name": "処理済み"},
+                {"id": 4, "name": "完了"},
+                {"id": 5, "name": "Merged"},
+            ],
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
             PR_PATH,
             json=[_pr_data()],
             status=200,
@@ -207,8 +226,37 @@ class TestListPullRequests:
         prs = backlog_adapter.list_pull_requests()
         assert len(prs) == 1
         assert prs[0].state == "open"
-        req = mock_responses.calls[0].request
+        req = mock_responses.calls[1].request
         assert "statusId" in req.url
+
+    def test_open_includes_custom_status_excludes_closed_and_merged(
+        self, mock_responses, backlog_adapter
+    ):
+        """カスタムステータス(id=6)は open 一覧の statusId[] に含まれ、closed/merged は除外される（#191）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[
+                {"id": 1, "name": "未対応"},
+                {"id": 2, "name": "処理中"},
+                {"id": 3, "name": "処理済み"},
+                {"id": 4, "name": "完了"},
+                {"id": 5, "name": "Merged"},
+                {"id": 6, "name": "レビュー中"},
+            ],
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            PR_PATH,
+            json=[_pr_data(status_id=6)],
+            status=200,
+        )
+        prs = backlog_adapter.list_pull_requests()
+        assert prs[0].state == "open"
+        req = mock_responses.calls[1].request
+        sent_ids = _sent_status_ids(req.url)
+        assert sent_ids == {1, 2, 3, 6}
 
     def test_closed(self, mock_responses, backlog_adapter):
         mock_responses.add(
@@ -292,6 +340,12 @@ class TestListPullRequests:
 
     def test_unsupported_params_warn(self, mock_responses, backlog_adapter):
         """フィルタパラメータを渡すと警告が出る。"""
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 5, "name": "Merged"}],
+            status=200,
+        )
         mock_responses.add(
             responses.GET,
             PR_PATH,
@@ -481,6 +535,17 @@ class TestListIssues:
         )
         mock_responses.add(
             responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[
+                {"id": 1, "name": "未対応"},
+                {"id": 2, "name": "処理中"},
+                {"id": 3, "name": "処理済み"},
+                {"id": 4, "name": "完了"},
+            ],
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
             ISSUES_PATH,
             json=[_issue_data()],
             status=200,
@@ -488,6 +553,37 @@ class TestListIssues:
         issues = backlog_adapter.list_issues()
         assert len(issues) == 1
         assert issues[0].state == "open"
+
+    def test_open_includes_custom_status(self, mock_responses, backlog_adapter):
+        """カスタムステータス(id=6)の課題も open 一覧の statusId[] に含まれる（#191）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST",
+            json={"id": 100, "projectKey": "TEST"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[
+                {"id": 1, "name": "未対応"},
+                {"id": 2, "name": "処理中"},
+                {"id": 3, "name": "処理済み"},
+                {"id": 4, "name": "完了"},
+                {"id": 6, "name": "レビュー中"},
+            ],
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            ISSUES_PATH,
+            json=[_issue_data(status_id=6)],
+            status=200,
+        )
+        issues = backlog_adapter.list_issues()
+        assert issues[0].state == "open"
+        req = mock_responses.calls[2].request
+        assert _sent_status_ids(req.url) == {1, 2, 3, 6}
 
     def test_closed(self, mock_responses, backlog_adapter):
         mock_responses.add(
@@ -532,12 +628,18 @@ class TestListIssues:
         )
         mock_responses.add(
             responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 1, "name": "未対応"}, {"id": 4, "name": "完了"}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
             ISSUES_PATH,
             json=[_issue_data()],
             status=200,
         )
         backlog_adapter.list_issues(assignee="12345")
-        req = mock_responses.calls[1].request
+        req = mock_responses.calls[2].request
         assert "assigneeUserId" in req.url
         assert "12345" in req.url
 
@@ -551,12 +653,18 @@ class TestListIssues:
         )
         mock_responses.add(
             responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 1, "name": "未対応"}, {"id": 4, "name": "完了"}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
             ISSUES_PATH,
             json=[_issue_data()],
             status=200,
         )
         backlog_adapter.list_issues(label="bug")
-        req = mock_responses.calls[1].request
+        req = mock_responses.calls[2].request
         assert "keyword" in req.url
         assert "bug" in req.url
 
@@ -581,6 +689,12 @@ class TestListIssues:
             responses.GET,
             f"{BASE}/projects/TEST",
             json={"id": 100, "projectKey": "TEST"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 1, "name": "未対応"}, {"id": 4, "name": "完了"}],
             status=200,
         )
         mock_responses.add(
@@ -1149,6 +1263,39 @@ class TestResolveMergedStatusId:
         assert result == 5
 
 
+# --- _resolve_all_status_ids ---
+
+
+class TestResolveAllStatusIds:
+    def test_shares_cache_with_resolve_merged_status_id(self, mock_responses, backlog_adapter):
+        """_fetch_statuses のキャッシュを共有し、statuses エンドポイントは1回だけ呼ばれる。"""
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 1, "name": "未対応"}, {"id": 5, "name": "Merged"}],
+            status=200,
+        )
+        merged_id = backlog_adapter._resolve_merged_status_id()
+        all_ids = backlog_adapter._resolve_all_status_ids()
+        assert merged_id == 5
+        assert all_ids == [1, 5]
+        assert len(mock_responses.calls) == 1
+
+    def test_all_ids_malformed_raises_gfo_error(self, mock_responses, backlog_adapter):
+        """全アイテムが id を持たない場合、statusId[] が空になり絞り込みが静かに外れる
+        のを防ぐため GfoError を送出する（#191 レビュー指摘）。"""
+        from gfo.exceptions import GfoError
+
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[{"name": "未対応"}, {"name": "完了"}],
+            status=200,
+        )
+        with pytest.raises(GfoError):
+            backlog_adapter._resolve_all_status_ids()
+
+
 # --- Registry ---
 
 
@@ -1178,6 +1325,12 @@ class TestErrorHandling:
             backlog_adapter.get_pull_request(999)
 
     def test_401_raises_auth_error(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 5, "name": "Merged"}],
+            status=200,
+        )
         mock_responses.add(responses.GET, f"{PR_PATH}", status=401)
         with pytest.raises(AuthenticationError):
             backlog_adapter.list_pull_requests()
@@ -1214,6 +1367,12 @@ class TestErrorHandling:
             responses.GET,
             f"{BASE}/projects/TEST",
             json={"id": 100, "projectKey": "TEST"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 1, "name": "未対応"}, {"id": 4, "name": "完了"}],
             status=200,
         )
         mock_responses.add(
