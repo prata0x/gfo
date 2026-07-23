@@ -5,7 +5,9 @@ from __future__ import annotations
 import email.utils
 import os
 import re
+import stat
 import sys
+import tempfile
 import time
 from collections.abc import Callable, Iterator
 from datetime import UTC, datetime
@@ -408,29 +410,46 @@ class HttpClient:
 
         URL が base_url と別オリジンの場合は認証ヘッダ / Cookie / auth_params を
         一切送信しない（`request_stream` のクロスオリジン判定に委譲）。
+
+        `output_path` と同じディレクトリの一時ファイルへ書き込み、全チャンク受信が
+        成功した後に `os.replace()` で原子的にリネームする。途中で失敗した場合は
+        一時ファイルのみを削除し、`output_path` の既存内容には触れない。
         """
         # 累積バイト数が GFO_MAX_DOWNLOAD_BYTES（既定 5 GiB）を超えたら中断する。
         # 悪意のサーバや侵害された CDN が無限ストリームを返した際の DoS 防止。
         max_bytes = _max_download_bytes()
         total = 0
-        with open(output_path, "wb") as f:
-            for chunk in self.request_stream(
-                "GET", url, headers=headers, timeout=timeout, chunk_size=65536
-            ):
-                total += len(chunk)
-                if max_bytes > 0 and total > max_bytes:
-                    # 部分書き込みファイルは残さない
-                    try:
-                        f.close()
-                        os.unlink(output_path)
-                    except OSError:
-                        pass
-                    raise gfo.exceptions.GfoError(
-                        _(
-                            "Download exceeded GFO_MAX_DOWNLOAD_BYTES ({max_bytes} bytes); aborted."
-                        ).format(max_bytes=max_bytes)
-                    )
-                f.write(chunk)
+        output_dir = os.path.dirname(os.path.abspath(output_path)) or "."
+        fd, tmp_path = tempfile.mkstemp(dir=output_dir, prefix=".gfo-download-")
+        try:
+            with os.fdopen(fd, "wb") as f:
+                for chunk in self.request_stream(
+                    "GET", url, headers=headers, timeout=timeout, chunk_size=65536
+                ):
+                    total += len(chunk)
+                    if max_bytes > 0 and total > max_bytes:
+                        raise gfo.exceptions.GfoError(
+                            _(
+                                "Download exceeded GFO_MAX_DOWNLOAD_BYTES ({max_bytes} bytes); aborted."
+                            ).format(max_bytes=max_bytes)
+                        )
+                    f.write(chunk)
+            # mkstemp は 0600 で作成するため、既存ファイルの上書きならその権限を引き継ぎ、
+            # 新規作成なら open() 相当 (umask 適用後の 0666) に戻す
+            try:
+                target_mode = stat.S_IMODE(os.stat(output_path).st_mode)
+            except OSError:
+                current_umask = os.umask(0)
+                os.umask(current_umask)
+                target_mode = 0o666 & ~current_umask
+            os.chmod(tmp_path, target_mode)
+            os.replace(tmp_path, output_path)
+        except BaseException:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
 
     def upload_file(
         self,

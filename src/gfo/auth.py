@@ -283,9 +283,11 @@ def _escape_toml_value(value: str) -> str:
         .replace("\r", "\\r")
         .replace("\t", "\\t")
     )
-    # \x00-\x1f のうち上記以外の制御文字をユニコードエスケープに変換
+    # \x00-\x1f のうち上記以外の制御文字、および DEL (\x7f) をユニコードエスケープに変換。
+    # TOML basic string はこれらのリテラル埋め込みを許容しないため、無変換のままだと
+    # 不正な TOML になり credentials.toml 全体のパースに失敗する。
     escaped = re.sub(
-        r"[\x00-\x08\x0b\x0c\x0e-\x1f]",
+        r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]",
         lambda m: f"\\u{ord(m.group()):04x}",
         escaped,
     )
