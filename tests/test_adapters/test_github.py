@@ -3999,6 +3999,92 @@ class TestDownloadRunLogs:
         with open(result) as f:
             assert "log line 1" in f.read()
 
+    @responses.activate
+    def test_download_job_logs_preserves_existing_file_on_write_interruption(
+        self, github_adapter, tmp_path, monkeypatch
+    ):
+        """書き込み中断（os.replace 失敗相当）でも output_path の既存内容が失われない（#153）。
+
+        pre-fix の実装（open(output_path, "w").write(...)）は os.replace を一切
+        呼ばないため、この monkeypatch では失敗せず既存ファイルを直接上書きしてしまう
+        （pytest.raises が満たされず fail する）。fix 後は一時ファイル経由のため
+        output_path 自体はまだ書き換えられておらず、os.replace 失敗時も既存内容が
+        保持される。
+        """
+        import os
+
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/jobs/42/logs",
+            body="new log content",
+            status=200,
+        )
+        out = tmp_path / "logs-300-job-42.txt"
+        out.write_text("old log content")
+
+        def _boom(*args, **kwargs):
+            raise OSError("simulated write interruption")
+
+        monkeypatch.setattr(os, "replace", _boom)
+        with pytest.raises(OSError):
+            github_adapter.download_run_logs(300, job_id=42, output_dir=str(tmp_path))
+        assert out.read_text() == "old log content"
+        assert list(tmp_path.iterdir()) == [out]
+
+    @responses.activate
+    def test_download_job_logs_no_leftover_tmp_file_on_success(self, github_adapter, tmp_path):
+        """成功時は一時ファイルが output_path へ原子的にリネームされ、残らない（#153）。"""
+        import os
+        from pathlib import Path
+
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/jobs/42/logs",
+            body="new log content",
+            status=200,
+        )
+        out = tmp_path / "logs-300-job-42.txt"
+        out.write_text("old log content")
+        result = github_adapter.download_run_logs(300, job_id=42, output_dir=str(tmp_path))
+        assert Path(result).read_text() == "new log content"
+        assert list(tmp_path.iterdir()) == [Path(result)]
+        assert os.path.abspath(result) == str(out)
+
+    @responses.activate
+    def test_download_job_logs_overwrite_preserves_permissions(self, github_adapter, tmp_path):
+        """既存ファイルへの再ダウンロードでは、ユーザーが設定したパーミッションを維持する（#153）。"""
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/jobs/42/logs",
+            body="new log content",
+            status=200,
+        )
+        out = tmp_path / "logs-300-job-42.txt"
+        out.write_text("old log content")
+        out.chmod(0o600)
+        github_adapter.download_run_logs(300, job_id=42, output_dir=str(tmp_path))
+        assert (out.stat().st_mode & 0o777) == 0o600
+
+    @responses.activate
+    def test_download_job_logs_new_file_gets_umask_default_permissions(
+        self, github_adapter, tmp_path
+    ):
+        """新規ファイルは mkstemp 既定の 0600 ではなく通常の umask 準拠パーミッションになる（#153）。"""
+        import os
+
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/jobs/42/logs",
+            body="log content",
+            status=200,
+        )
+        out = tmp_path / "logs-300-job-42.txt"
+        github_adapter.download_run_logs(300, job_id=42, output_dir=str(tmp_path))
+        current_umask = os.umask(0)
+        os.umask(current_umask)
+        expected_mode = 0o666 & ~current_umask
+        assert (out.stat().st_mode & 0o777) == expected_mode
+
 
 class TestIssueSubscribe:
     @responses.activate

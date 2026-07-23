@@ -1476,8 +1476,30 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 f"{self._repos_path()}/actions/jobs/{job_id}/logs",
                 headers={"Accept": "application/vnd.github.v3+json"},
             )
-            with open(output_path, "w", encoding="utf-8") as f:
-                f.write(resp.text)
+            import stat
+            import tempfile
+
+            output_dir_abs = os.path.dirname(os.path.abspath(output_path)) or "."
+            fd, tmp_path = tempfile.mkstemp(dir=output_dir_abs, prefix=".gfo-download-")
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    f.write(resp.text)
+                # mkstemp は 0600 で作成するため、既存ファイルの上書きならその権限を引き継ぎ、
+                # 新規作成なら open() 相当 (umask 適用後の 0666) に戻す
+                try:
+                    target_mode = stat.S_IMODE(os.stat(output_path).st_mode)
+                except OSError:
+                    current_umask = os.umask(0)
+                    os.umask(current_umask)
+                    target_mode = 0o666 & ~current_umask
+                os.chmod(tmp_path, target_mode)
+                os.replace(tmp_path, output_path)
+            except BaseException:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+                raise
         else:
             safe_run = os.path.basename(str(run_id))
             output_path = os.path.join(output_dir, f"logs-{safe_run}.zip")
