@@ -2236,9 +2236,12 @@ class GitLabAdapter(GitServiceAdapter):
         )
 
     def remove_issue_reaction(self, number: int, reaction: str) -> None:
+        current_username = self.get_current_username()
         reactions = self.list_issue_reactions(number)
         emoji_name = self._REACTION_TO_EMOJI.get(reaction, reaction)
         for r in reactions:
+            if r.user != current_username:
+                continue
             if (
                 r.content == reaction
                 or self._REACTION_TO_EMOJI.get(r.content, r.content) == emoji_name
