@@ -185,6 +185,27 @@ class TestDownloadFileSizeLimit:
         assert not out.exists()
 
     @responses.activate
+    def test_exceeds_limit_preserves_existing_file(self, tmp_path, monkeypatch):
+        """既存ファイルへの上書きダウンロードが上限超過で中断しても、既存内容は保持される。"""
+        from gfo.exceptions import GfoError
+
+        monkeypatch.setenv("GFO_MAX_DOWNLOAD_BYTES", "100")
+        responses.add(
+            responses.GET,
+            f"{BASE}/big.bin",
+            body=b"X" * 1024,
+            status=200,
+        )
+        c = HttpClient(BASE)
+        out = tmp_path / "big.bin"
+        out.write_bytes(b"existing content")
+        with pytest.raises(GfoError, match="exceeded GFO_MAX_DOWNLOAD_BYTES"):
+            c.download_file(f"{BASE}/big.bin", str(out))
+        assert out.read_bytes() == b"existing content"
+        # 同ディレクトリに一時ファイルを残さない
+        assert list(tmp_path.iterdir()) == [out]
+
+    @responses.activate
     def test_zero_disables_limit(self, tmp_path, monkeypatch):
         """GFO_MAX_DOWNLOAD_BYTES=0 のとき、大きなレスポンスでも中断しない (無制限)。"""
         monkeypatch.setenv("GFO_MAX_DOWNLOAD_BYTES", "0")
@@ -245,6 +266,79 @@ class TestDownloadFileSizeLimit:
         out_ng = tmp_path / "over.bin"
         with pytest.raises(GfoError, match="exceeded GFO_MAX_DOWNLOAD_BYTES"):
             c.download_file(f"{BASE}/over.bin", str(out_ng))
+
+
+class TestDownloadFilePreservesExistingOnFailure:
+    """download_file が失敗しても output_path の既存内容を破壊しないこと。"""
+
+    @responses.activate
+    def test_http_error_preserves_existing_file(self, tmp_path):
+        """404 で失敗しても既存ファイルの内容は保持され、一時ファイルも残らない。"""
+        responses.add(
+            responses.GET,
+            f"{BASE}/missing.bin",
+            status=404,
+        )
+        c = HttpClient(BASE)
+        out = tmp_path / "missing.bin"
+        out.write_bytes(b"existing content")
+        with pytest.raises(NotFoundError):
+            c.download_file(f"{BASE}/missing.bin", str(out))
+        assert out.read_bytes() == b"existing content"
+        assert list(tmp_path.iterdir()) == [out]
+
+    @responses.activate
+    def test_network_error_preserves_existing_file(self, tmp_path):
+        """接続エラーで失敗しても既存ファイルの内容は保持される。"""
+        import requests as req
+
+        responses.add(
+            responses.GET,
+            f"{BASE}/flaky.bin",
+            body=req.ConnectionError("boom"),
+        )
+        c = HttpClient(BASE)
+        out = tmp_path / "flaky.bin"
+        out.write_bytes(b"existing content")
+        with pytest.raises(NetworkError):
+            c.download_file(f"{BASE}/flaky.bin", str(out))
+        assert out.read_bytes() == b"existing content"
+        assert list(tmp_path.iterdir()) == [out]
+
+    @responses.activate
+    def test_success_replaces_existing_file(self, tmp_path):
+        """成功時は一時ファイルが output_path へ原子的にリネームされる。"""
+        responses.add(
+            responses.GET,
+            f"{BASE}/ok.bin",
+            body=b"new content",
+            status=200,
+        )
+        c = HttpClient(BASE)
+        out = tmp_path / "ok.bin"
+        out.write_bytes(b"old content")
+        c.download_file(f"{BASE}/ok.bin", str(out))
+        assert out.read_bytes() == b"new content"
+        assert list(tmp_path.iterdir()) == [out]
+
+    @responses.activate
+    def test_new_file_gets_umask_default_permissions(self, tmp_path):
+        """一時ファイル経由でも、生成ファイルは mkstemp 既定の 0600 ではなく通常の umask 準拠パーミッションになる。"""
+        import os as os_module
+
+        responses.add(
+            responses.GET,
+            f"{BASE}/perm.bin",
+            body=b"data",
+            status=200,
+        )
+        c = HttpClient(BASE)
+        out = tmp_path / "perm.bin"
+        c.download_file(f"{BASE}/perm.bin", str(out))
+        current_umask = os_module.umask(0)
+        os_module.umask(current_umask)
+        expected_mode = 0o666 & ~current_umask
+        assert (out.stat().st_mode & 0o777) == expected_mode
 
 
 class TestMaxDownloadBytesBoundary:
