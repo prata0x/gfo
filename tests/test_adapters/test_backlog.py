@@ -1411,7 +1411,7 @@ def _webhook_data_bl(*, hook_id=100):
     return {
         "id": hook_id,
         "hookUrl": "https://example.com/hook",
-        "events": [{"type": "push_git"}],
+        "activityTypeIds": [12],  # Git Pushed
         "allEvent": False,
     }
 
@@ -1747,12 +1747,75 @@ class TestCreateWebhook:
             json=_webhook_data_bl(),
             status=201,
         )
-        webhook = backlog_adapter.create_webhook(
-            url="https://example.com/hook", events=["push_git"]
-        )
+        webhook = backlog_adapter.create_webhook(url="https://example.com/hook", events=["push"])
         assert isinstance(webhook, Webhook)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["hookUrl"] == "https://example.com/hook"
+
+    def test_create_sends_activity_type_ids_not_events(self, mock_responses, backlog_adapter):
+        """events は activityTypeIds（数値配列）として送信される（#198）。"""
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/projects/TEST/webhooks",
+            json=_webhook_data_bl(),
+            status=201,
+        )
+        backlog_adapter.create_webhook(url="https://example.com/hook", events=["issues", "push"])
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "events" not in req_body
+        assert sorted(req_body["activityTypeIds"]) == [1, 2, 4, 12, 14]
+        assert req_body["allEvent"] is False
+
+    def test_create_no_events_sets_all_event_true(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/projects/TEST/webhooks",
+            json=_webhook_data_bl(),
+            status=201,
+        )
+        backlog_adapter.create_webhook(url="https://example.com/hook", events=[])
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["allEvent"] is True
+        assert "activityTypeIds" not in req_body
+
+    def test_create_secret_warns_and_is_not_sent(self, mock_responses, backlog_adapter):
+        """Backlog は secret に対応しないため警告し、payload にも含めない（#198）。"""
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/projects/TEST/webhooks",
+            json=_webhook_data_bl(),
+            status=201,
+        )
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            backlog_adapter.create_webhook(
+                url="https://example.com/hook", events=["push"], secret="signing-secret"
+            )
+        messages = [str(x.message) for x in w]
+        assert any("secret" in m for m in messages)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "secret" not in req_body
+
+    def test_create_unmapped_event_warns_and_is_ignored(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{BASE}/projects/TEST/webhooks",
+            json=_webhook_data_bl(),
+            status=201,
+        )
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            backlog_adapter.create_webhook(
+                url="https://example.com/hook", events=["push", "no_such_event"]
+            )
+        messages = [str(x.message) for x in w]
+        assert any("no_such_event" in m for m in messages)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["activityTypeIds"] == [12]
 
 
 class TestDeleteWebhook:
@@ -1775,7 +1838,7 @@ class TestUpdateWebhook:
             json={
                 "id": 100,
                 "hookUrl": "https://new.example.com/hook",
-                "events": [],
+                "activityTypeIds": [],
             },
             status=200,
         )
@@ -1783,6 +1846,41 @@ class TestUpdateWebhook:
         assert webhook.url == "https://new.example.com/hook"
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["hookUrl"] == "https://new.example.com/hook"
+        assert "activityTypeIds" not in req_body
+
+    def test_update_events_sends_activity_type_ids(self, mock_responses, backlog_adapter):
+        """events を更新すると activityTypeIds と allEvent が再計算される（#198）。"""
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/projects/TEST/webhooks/100",
+            json=_webhook_data_bl(),
+            status=200,
+        )
+        backlog_adapter.update_webhook(100, events=["push"])
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["activityTypeIds"] == [12]
+        assert req_body["allEvent"] is False
+        assert "events" not in req_body
+
+    def test_update_secret_and_active_warn_and_are_not_sent(self, mock_responses, backlog_adapter):
+        """Backlog は secret/active に対応しないため警告し、payload にも含めない（#198）。"""
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/projects/TEST/webhooks/100",
+            json=_webhook_data_bl(),
+            status=200,
+        )
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            backlog_adapter.update_webhook(100, secret="new-secret", active=True)
+        messages = [str(x.message) for x in w]
+        assert any("secret" in m for m in messages)
+        assert any("active" in m for m in messages)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "secret" not in req_body
+        assert "active" not in req_body
 
 
 # --- Collaborator 系 ---
@@ -2009,13 +2107,19 @@ class TestToTag:
 
 class TestToWebhook:
     def test_basic(self):
-        """id, url(hookUrl), events の正常変換。"""
+        """id, url(hookUrl), events(activityTypeIds) の正常変換。"""
         data = _webhook_data_bl(hook_id=100)
         hook = BacklogAdapter._to_webhook(data)
         assert isinstance(hook, Webhook)
         assert hook.id == 100
         assert hook.url == "https://example.com/hook"
-        assert isinstance(hook.events, tuple)
+        assert hook.events == ("push",)
+
+    def test_unmapped_activity_type_id_kept_as_number(self):
+        """マッピングにない activityTypeId は数値の文字列としてそのまま残る（#198）。"""
+        data = {"id": 400, "hookUrl": "https://example.com/hook3", "activityTypeIds": [999]}
+        hook = BacklogAdapter._to_webhook(data)
+        assert hook.events == ("999",)
 
     def test_no_events(self):
         """events フィールドがない場合は空タプルになる。"""

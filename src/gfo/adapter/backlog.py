@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import urllib.parse
+import warnings
 from typing import TYPE_CHECKING, Any
 
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
@@ -39,6 +40,50 @@ _STATUS_MERGED_ID = 5  # merged（PR 固定値; カスタムの場合は動的�
 # Issue と同一かどうかは未確認のため、Issue 用エンドポイントの結果を PR の
 # statusId[] フィルタへ流用せず、固定値に留める。
 _PR_OPEN_STATUS_IDS = [1, 2, 3]
+
+# Backlog Webhook の activityTypeIds（Backlog が API 全体で使う固定の Activity
+# Type ID 番号体系。イベント種別ごとに番号が割り当てられ、サービスによる変動は
+# ない）。gfo の汎用イベント名から対応する Activity Type ID 群へのマッピング。
+_ACTIVITY_TYPE_IDS: dict[str, tuple[int, ...]] = {
+    "issues": (1, 2, 4, 14),  # Issue Created/Updated/Deleted/Multi Updated
+    "issue_comment": (3,),  # Issue Commented
+    "pull_request": (18, 19, 21),  # Pull Request Added/Updated/Deleted
+    "pull_request_review_comment": (20,),  # Comment Added on Pull Request
+    "push": (12,),  # Git Pushed
+    "wiki": (5, 6, 7),  # Wiki Created/Updated/Deleted
+}
+
+
+def _events_to_activity_type_ids(events: list[str]) -> list[int]:
+    """gfo の汎用イベント名を Backlog の activityTypeIds へ変換する。
+
+    未対応のイベント名は無視して警告する（Backlog 側に対応する Activity Type
+    が存在しないため）。
+    """
+    ids: set[int] = set()
+    for event in events:
+        mapped = _ACTIVITY_TYPE_IDS.get(event)
+        if mapped is None:
+            warnings.warn(
+                f"Backlog does not support webhook event '{event}'; ignored",
+                stacklevel=3,
+            )
+            continue
+        ids.update(mapped)
+    return sorted(ids)
+
+
+def _activity_type_ids_to_events(ids: list[int]) -> tuple[str, ...]:
+    """Backlog の activityTypeIds を gfo の汎用イベント名へ変換する（表示用）。
+
+    どの汎用イベント名にも属さない ID は、そのまま数値の文字列として残す。
+    """
+    events: list[str] = []
+    for id_ in ids:
+        name = next((n for n, mapped in _ACTIVITY_TYPE_IDS.items() if id_ in mapped), str(id_))
+        if name not in events:
+            events.append(name)
+    return tuple(events)
 
 
 @register("backlog")
@@ -327,8 +372,6 @@ class BacklogAdapter(GitServiceAdapter):
         if search:
             params["keyword"] = search
             if label:
-                import warnings
-
                 warnings.warn(
                     "Backlog does not support search and label simultaneously; label ignored",
                     stacklevel=2,
@@ -598,9 +641,8 @@ class BacklogAdapter(GitServiceAdapter):
     @staticmethod
     @_wrap_conversion_error
     def _to_webhook(data: dict[str, Any]) -> Webhook:
-
-        # Backlog webhook の allEvent または events フィールド
-        events = tuple(data.get("events") or [])
+        # Backlog webhook レスポンスの events 相当は activityTypeIds（数値配列）。
+        events = _activity_type_ids_to_events(data.get("activityTypeIds") or [])
         return Webhook(
             id=data["id"],
             url=(data.get("hookUrl") or ""),
@@ -807,11 +849,10 @@ class BacklogAdapter(GitServiceAdapter):
         return []
 
     def create_webhook(self, *, url: str, events: list[str], secret: str | None = None) -> Webhook:
-        payload: dict[str, Any] = {"hookUrl": url, "allEvent": True if not events else False}
+        self._warn_unsupported_params("webhook create", secret=secret)
+        payload: dict[str, Any] = {"hookUrl": url, "allEvent": not events}
         if events:
-            payload["events"] = [{"type": e} for e in events]
-        if secret is not None:
-            payload["secret"] = secret
+            payload["activityTypeIds"] = _events_to_activity_type_ids(events)
         resp = self._client.post(f"/projects/{self._project_key}/webhooks", json=payload)
         return self._to_webhook(resp.json())
 
@@ -827,11 +868,13 @@ class BacklogAdapter(GitServiceAdapter):
         secret: str | None = None,
         active: bool | None = None,
     ) -> Webhook:
+        self._warn_unsupported_params("webhook edit", secret=secret, active=active)
         payload: dict[str, Any] = {}
         if url is not None:
             payload["hookUrl"] = url
         if events is not None:
-            payload["events"] = [{"type": e} for e in events]
+            payload["allEvent"] = not events
+            payload["activityTypeIds"] = _events_to_activity_type_ids(events)
         resp = self._client.patch(f"/projects/{self._project_key}/webhooks/{hook_id}", json=payload)
         return self._to_webhook(resp.json())
 

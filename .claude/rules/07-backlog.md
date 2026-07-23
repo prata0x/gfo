@@ -32,3 +32,10 @@ paths:
 
 - **issueTypeId**: `/projects/{projectKey}/issueTypes` の先頭要素を使用。空なら `GfoError`
 - **priorityId**: `/priorities` から `"中"` or `"normal"` を含む要素を優先、なければ先頭要素
+
+## Webhook
+
+- **events フィールド**: Backlog の実際のパラメータ名/レスポンスフィールドは `activityTypeIds`（数値配列。固定の Activity Type ID 体系）であり、`events`/`type` という形式のフィールドは存在しない。gfo の汎用イベント名（`events: list[str]`）と `activityTypeIds` の相互変換は `_events_to_activity_type_ids()`/`_activity_type_ids_to_events()`（`_ACTIVITY_TYPE_IDS` マッピング）で行う
+  - 過去バグ（#198）: `payload["events"] = [{"type": e} for e in events]` を送信していたが、Backlog はこのフィールドを認識せず、`allEvent: false` と組み合わさって実質「イベント通知なし」の webhook が作成されていた
+- **secret 非対応**: Backlog の Webhook API に署名用シークレットのパラメータは存在しない。`create_webhook`/`update_webhook` の `secret` 引数は `_warn_unsupported_params` で警告し、payload に含めないこと
+- **update_webhook の active 非対応**: Update Webhook API に有効化/無効化パラメータが無いため、`active` 引数も同様に `_warn_unsupported_params` で警告すること
