@@ -845,6 +845,16 @@ def test_escape_toml_value():
     assert _escape_toml_value("has\nnewline") == "has\\nnewline"
 
 
+def test_escape_toml_value_del_char():
+    """DEL (\\x7f) は \\u007f にエスケープされ、有効な TOML としてパースできる。"""
+    import tomllib
+
+    result = _escape_toml_value("token\x7fwith-del")
+    assert result == "token\\u007fwith-del"
+    parsed = tomllib.loads(f'x = "{result}"\n')
+    assert parsed["x"] == "token\x7fwith-del"
+
+
 # ── _default 予約キー拒否 (#2) ──
 
 
