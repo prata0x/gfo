@@ -25,7 +25,7 @@ from gfo.adapter.base import (
     Tag,
     Webhook,
 )
-from gfo.adapter.bitbucket import BitbucketAdapter
+from gfo.adapter.bitbucket import BitbucketAdapter, _escape_bql_string
 from gfo.adapter.registry import get_adapter_class
 from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError, ServerError
 
@@ -81,6 +81,22 @@ def _repo_data(*, slug="test-repo", full_name="test-workspace/test-repo"):
             "html": {"href": f"https://bitbucket.org/{full_name}"},
         },
     }
+
+
+class TestEscapeBqlString:
+    def test_plain_string_unchanged(self):
+        assert _escape_bql_string("simple") == "simple"
+
+    def test_quote_escaped(self):
+        assert _escape_bql_string('foo"bar') == 'foo\\"bar'
+
+    def test_trailing_backslash_escaped(self):
+        """末尾がバックスラッシュのみの場合でもリテラル終端の引用符と混同されない（#174）。"""
+        assert _escape_bql_string("foo\\") == "foo\\\\"
+
+    def test_backslash_quote_sequence_escaped(self):
+        """`\\"` はバックスラッシュを先にエスケープしてから引用符をエスケープする（#174）。"""
+        assert _escape_bql_string('foo\\"bar') == 'foo\\\\\\"bar'
 
 
 # --- 変換メソッドのテスト ---
@@ -579,6 +595,20 @@ class TestListIssues:
         req = mock_responses.calls[0].request
         decoded_url = unquote(req.url)
         assert 'component.name="bug"' in decoded_url
+
+    def test_search_filter_backslash_quote_sequence_escaped(
+        self, mock_responses, bitbucket_adapter
+    ):
+        """search が `\\"` を含んでもリテラルが早期終端しない（#174）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"values": [_issue_data()]},
+            status=200,
+        )
+        bitbucket_adapter.list_issues(state="all", search='foo\\"bar')
+        decoded_url = unquote_plus(mock_responses.calls[0].request.url)
+        assert 'title ~ "foo\\\\\\"bar"' in decoded_url
 
     def test_custom_state_filter(self, mock_responses, bitbucket_adapter):
         """state が open/closed/all 以外の場合、その値をそのままフィルタに使う。"""
@@ -1835,6 +1865,18 @@ class TestSearchRepositories:
         decoded_url = unquote_plus(mock_responses.calls[0].request.url)
         assert 'name ~ "Fix \\"foo\\" bug"' in decoded_url
 
+    def test_backslash_quote_sequence_escaped(self, mock_responses, bitbucket_adapter):
+        """`\\"` を含む検索語でもリテラルが早期終端しない（#174）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/repositories/test-workspace",
+            json={"values": [], "pagelen": 10},
+            status=200,
+        )
+        bitbucket_adapter.search_repositories('foo\\"bar')
+        decoded_url = unquote_plus(mock_responses.calls[0].request.url)
+        assert 'name ~ "foo\\\\\\"bar"' in decoded_url
+
 
 class TestSearchIssues:
     def test_search(self, mock_responses, bitbucket_adapter):
@@ -1859,6 +1901,18 @@ class TestSearchIssues:
         bitbucket_adapter.search_issues('Fix "foo" bug')
         decoded_url = unquote_plus(mock_responses.calls[0].request.url)
         assert 'title ~ "Fix \\"foo\\" bug"' in decoded_url
+
+    def test_backslash_quote_sequence_escaped(self, mock_responses, bitbucket_adapter):
+        """`\\"` を含む検索語でもリテラルが早期終端しない（#174）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"values": [], "pagelen": 10},
+            status=200,
+        )
+        bitbucket_adapter.search_issues('foo\\"bar')
+        decoded_url = unquote_plus(mock_responses.calls[0].request.url)
+        assert 'title ~ "foo\\\\\\"bar"' in decoded_url
 
 
 class TestSearchCode:
@@ -2190,6 +2244,18 @@ class TestListPullRequestsSearchEscape:
         # エスケープされた \" が title~ フィルタ内に含まれることを確認
         assert 'title~"test\\"value"' in decoded_url
 
+    def test_trailing_backslash_escaped(self, mock_responses, bitbucket_adapter):
+        """search がバックスラッシュで終わる場合でもリテラルが壊れない（#174）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [], "next": None},
+            status=200,
+        )
+        bitbucket_adapter.list_pull_requests(search="test\\")
+        decoded_url = unquote(mock_responses.calls[0].request.url)
+        assert 'title~"test\\\\"' in decoded_url
+
 
 class TestSearchPullRequestsSearchEscape:
     def test_double_quote_escaped(self, mock_responses, bitbucket_adapter):
@@ -2203,6 +2269,18 @@ class TestSearchPullRequestsSearchEscape:
         bitbucket_adapter.search_pull_requests('Fix "foo" bug')
         decoded_url = unquote_plus(mock_responses.calls[0].request.url)
         assert 'title ~ "Fix \\"foo\\" bug"' in decoded_url
+
+    def test_backslash_quote_sequence_escaped(self, mock_responses, bitbucket_adapter):
+        """`\\"` を含む検索語でもリテラルが早期終端しない（#174）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [], "next": None},
+            status=200,
+        )
+        bitbucket_adapter.search_pull_requests('foo\\"bar')
+        decoded_url = unquote_plus(mock_responses.calls[0].request.url)
+        assert 'title ~ "foo\\\\\\"bar"' in decoded_url
 
 
 class TestPipelineVariablesFilterOrder:
