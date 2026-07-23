@@ -107,6 +107,14 @@ class BacklogAdapter(GitServiceAdapter):
                 ids.append(status["id"])
             except (KeyError, TypeError):
                 continue
+        if not ids:
+            # 全件が不正な形式だった場合、statusId[] が空になり絞り込みなし
+            # (--state open で closed/merged まで返る) へ静かに劣化してしまう。
+            raise GfoError(
+                _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                    endpoint="statuses", error="no valid status entries"
+                )
+            )
         return ids
 
     # --- 変換ヘルパー ---

@@ -1263,6 +1263,39 @@ class TestResolveMergedStatusId:
         assert result == 5
 
 
+# --- _resolve_all_status_ids ---
+
+
+class TestResolveAllStatusIds:
+    def test_shares_cache_with_resolve_merged_status_id(self, mock_responses, backlog_adapter):
+        """_fetch_statuses のキャッシュを共有し、statuses エンドポイントは1回だけ呼ばれる。"""
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 1, "name": "未対応"}, {"id": 5, "name": "Merged"}],
+            status=200,
+        )
+        merged_id = backlog_adapter._resolve_merged_status_id()
+        all_ids = backlog_adapter._resolve_all_status_ids()
+        assert merged_id == 5
+        assert all_ids == [1, 5]
+        assert len(mock_responses.calls) == 1
+
+    def test_all_ids_malformed_raises_gfo_error(self, mock_responses, backlog_adapter):
+        """全アイテムが id を持たない場合、statusId[] が空になり絞り込みが静かに外れる
+        のを防ぐため GfoError を送出する（#191 レビュー指摘）。"""
+        from gfo.exceptions import GfoError
+
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[{"name": "未対応"}, {"name": "完了"}],
+            status=200,
+        )
+        with pytest.raises(GfoError):
+            backlog_adapter._resolve_all_status_ids()
+
+
 # --- Registry ---
 
 
