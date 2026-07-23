@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import tomllib
 from pathlib import Path
 from unittest.mock import patch
@@ -996,6 +997,73 @@ def test_set_config_value_conflict_with_scalar(tmp_path):
     with patch("gfo.config.get_config_dir", return_value=d):
         with pytest.raises(ConfigError, match="not a table"):
             set_config_value("defaults.output.nested", "x")
+
+
+def test_set_config_value_preserves_existing_file_on_interrupted_write(tmp_path):
+    """書き込み中断時に既存の config.toml が破壊されず、内容が保持される。"""
+    d = tmp_path / "gfo_config"
+    d.mkdir()
+    config_path = d / "config.toml"
+    original_content = (
+        '[defaults]\noutput = "table"\n\n[hosts."gitea.example.com"]\ntype = "gitea"\n'
+    )
+    config_path.write_text(original_content, encoding="utf-8")
+    with (
+        patch("gfo.config.get_config_dir", return_value=d),
+        patch(
+            "gfo.config._write_toml", side_effect=RuntimeError("simulated interruption mid-write")
+        ),
+    ):
+        with pytest.raises(RuntimeError, match="simulated interruption mid-write"):
+            set_config_value("defaults.output", "json")
+    assert config_path.read_text(encoding="utf-8") == original_content
+    # 一時ファイルも残らない
+    assert list(d.iterdir()) == [config_path]
+
+
+def test_set_config_value_no_leftover_tmp_file_on_success(tmp_path):
+    """成功時、同ディレクトリに一時ファイルを残さない。"""
+    d = tmp_path / "gfo_config"
+    d.mkdir()
+    with patch("gfo.config.get_config_dir", return_value=d):
+        set_config_value("defaults.output", "json")
+    assert list(d.iterdir()) == [d / "config.toml"]
+
+
+def test_set_config_value_write_error_wrapped_as_config_error(tmp_path):
+    """一時ファイルの置換に失敗した場合は ConfigError でラップされる。"""
+    d = tmp_path / "gfo_config"
+    d.mkdir()
+    with (
+        patch("gfo.config.get_config_dir", return_value=d),
+        patch("gfo.config.os.replace", side_effect=OSError("disk full")),
+    ):
+        with pytest.raises(ConfigError, match="Failed to write config file"):
+            set_config_value("defaults.output", "json")
+
+
+def test_set_config_value_overwrite_preserves_existing_file_permissions(tmp_path):
+    """既存の config.toml への書き込みでは、ユーザーが設定したパーミッションを維持する。"""
+    d = tmp_path / "gfo_config"
+    d.mkdir()
+    config_path = d / "config.toml"
+    config_path.write_text('[defaults]\noutput = "table"\n', encoding="utf-8")
+    config_path.chmod(0o600)
+    with patch("gfo.config.get_config_dir", return_value=d):
+        set_config_value("defaults.output", "json")
+    assert (config_path.stat().st_mode & 0o777) == 0o600
+
+
+def test_set_config_value_new_file_gets_umask_default_permissions(tmp_path):
+    """新規作成の config.toml は mkstemp 既定の 0600 ではなく umask 準拠のパーミッションになる。"""
+    d = tmp_path / "gfo_config"
+    d.mkdir()
+    with patch("gfo.config.get_config_dir", return_value=d):
+        set_config_value("defaults.output", "json")
+    current_umask = os.umask(0)
+    os.umask(current_umask)
+    expected_mode = 0o666 & ~current_umask
+    assert (Path(d / "config.toml").stat().st_mode & 0o777) == expected_mode
 
 
 # ── unset_config_value ──

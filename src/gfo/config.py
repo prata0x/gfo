@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import os
+import stat
 import sys
+import tempfile
 import tomllib
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -303,11 +306,37 @@ def unset_config_value(key: str) -> bool:
 
 
 def _save_config(cfg: dict[str, Any]) -> None:
-    """dict を config.toml に TOML 形式で書き出す。"""
+    """dict を config.toml に TOML 形式で書き出す。
+
+    書き込み中断時に既存の config.toml を破損させないよう、同じディレクトリの
+    一時ファイルへ書き込んでから os.replace() で原子的に置き換える
+    （auth.py の _write_credentials_toml() と同じパターン）。
+    """
     path = get_config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        _write_toml(f, cfg)
+    try:
+        fd, tmp_path = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp", prefix=".config_")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                _write_toml(f, cfg)
+            # mkstemp は 0600 で作成するため、既存ファイルの上書きならその権限を
+            # 引き継ぎ、新規作成なら open() 相当 (umask 適用後の 0666) に戻す
+            try:
+                target_mode = stat.S_IMODE(os.stat(path).st_mode)
+            except OSError:
+                current_umask = os.umask(0)
+                os.umask(current_umask)
+                target_mode = 0o666 & ~current_umask
+            os.chmod(tmp_path, target_mode)
+            os.replace(tmp_path, path)
+        except BaseException:
+            with suppress(OSError):
+                os.unlink(tmp_path)
+            raise
+    except OSError as e:
+        raise ConfigError(
+            _("Failed to write config file {path}: {error}").format(path=path, error=e)
+        ) from e
 
 
 def _write_toml(f: Any, data: dict[str, Any], prefix: str = "") -> None:

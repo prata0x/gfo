@@ -2501,3 +2501,6 @@ msgstr "ファイルから認証トークンを読み込む（パス）"
 
 msgid "Warning: passing tokens via --auth-token is insecure (visible in the process list). Use --auth-token-stdin or --auth-token-file instead."
 msgstr "警告: --auth-token でのトークン指定は安全ではありません（プロセス一覧に見えます）。--auth-token-stdin または --auth-token-file を使用してください。"
+
+msgid "Failed to write config file {path}: {error}"
+msgstr "設定ファイル {path} の書き込みに失敗しました: {error}"
