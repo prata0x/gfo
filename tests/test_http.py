@@ -729,7 +729,7 @@ class TestRequestStream:
 
     @responses.activate
     def test_429_raises_rate_limit_error(self):
-        """429 応答は RateLimitError として送出される（リトライなし）。"""
+        """429 応答は RateLimitError として送出される（max_retries=0 のためリトライなし）。"""
         responses.add(
             responses.GET,
             f"{BASE}/limited",
@@ -740,6 +740,48 @@ class TestRequestStream:
         c = HttpClient(BASE, max_retries=0)
         with pytest.raises(RateLimitError):
             c.request_stream("GET", "/limited")
+
+    @responses.activate
+    def test_429_retries_and_yields_chunks_after_success(self, monkeypatch):
+        """429 後に成功すれば request()同様リトライし、body のチャンクを返す(#189)。"""
+        monkeypatch.setattr("gfo.http.time.sleep", lambda _: None)
+        responses.add(
+            responses.GET,
+            f"{BASE}/limited",
+            status=429,
+            headers={"Retry-After": "1"},
+        )
+        responses.add(
+            responses.GET,
+            f"{BASE}/limited",
+            body=b"diff --git a/x b/x",
+            status=200,
+        )
+        c = HttpClient(BASE, max_retries=1)
+        chunks = list(c.request_stream("GET", "/limited"))
+        assert b"".join(chunks) == b"diff --git a/x b/x"
+        assert len(responses.calls) == 2
+
+    @responses.activate
+    def test_429_retry_exhausted_raises_rate_limit_error(self, monkeypatch):
+        """max_retries 回リトライしても 429 が続く場合は RateLimitError を送出する。"""
+        monkeypatch.setattr("gfo.http.time.sleep", lambda _: None)
+        responses.add(
+            responses.GET,
+            f"{BASE}/limited",
+            status=429,
+            headers={"Retry-After": "1"},
+        )
+        responses.add(
+            responses.GET,
+            f"{BASE}/limited",
+            status=429,
+            headers={"Retry-After": "1"},
+        )
+        c = HttpClient(BASE, max_retries=1)
+        with pytest.raises(RateLimitError):
+            list(c.request_stream("GET", "/limited"))
+        assert len(responses.calls) == 2
 
 
 # ── 基本リクエスト ──

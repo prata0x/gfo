@@ -349,28 +349,31 @@ class HttpClient:
         ステータス検査後、`resp.iter_content(chunk_size)` を順に yield する。
         呼び出し側は `for chunk in client.request_stream(...): ...` で消費する。
 
-        404/429/5xx は `_handle_response` 経由で適切な HttpError を送出する。
+        429 レートリミット時は Retry-After 秒待機して最大 max_retries 回再送する
+        （`request()` と同じリトライ契約。再送前に古い応答を close する）。
+        404/その他 429 継続後/5xx は `_handle_response` 経由で適切な HttpError を送出する。
         ネットワーク例外は `NetworkError` でラップする。
         """
         is_absolute = path.startswith(("http://", "https://"))
         url = path if is_absolute else self._base_url + path
         same_origin = (not is_absolute) or _validate_same_origin(self._base_url, url)
-        try:
-            if same_origin:
-                merged_params = {**self._default_params, **self._auth_params, **(params or {})}
-                resp = self._session.request(
-                    method,
-                    url,
-                    params=merged_params,
-                    headers=headers,
-                    stream=True,
-                    timeout=timeout,
-                )
-            else:
+
+        def _send() -> requests.Response:
+            try:
+                if same_origin:
+                    merged_params = {**self._default_params, **self._auth_params, **(params or {})}
+                    return self._session.request(
+                        method,
+                        url,
+                        params=merged_params,
+                        headers=headers,
+                        stream=True,
+                        timeout=timeout,
+                    )
                 # 別オリジン: Session 経由だと Authorization / Cookie が自動付与
                 # されるため、requests.request を直接呼んで認証情報を遮断する。
                 ext_headers = dict(headers) if headers else {}
-                resp = requests.request(
+                return requests.request(
                     method,
                     url,
                     params=params,
@@ -379,14 +382,26 @@ class HttpClient:
                     timeout=timeout,
                     verify=_verify_for_url(url),
                 )
-        except requests.RequestException as e:
-            raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
-        try:
-            self._handle_response(resp)
-        except BaseException:
-            resp.close()
-            raise
-        return self._iter_chunks(resp, chunk_size)
+            except requests.RequestException as e:
+                raise gfo.exceptions.NetworkError(self._mask_api_key(str(e))) from e
+
+        for attempt in range(self._max_retries + 1):
+            resp = _send()
+            try:
+                self._handle_response(resp)
+            except gfo.exceptions.RateLimitError:
+                resp.close()
+                if attempt >= self._max_retries:
+                    raise
+                wait = self._parse_retry_after(resp.headers.get("Retry-After"))
+                time.sleep(wait)
+                continue
+            except BaseException:
+                resp.close()
+                raise
+            return self._iter_chunks(resp, chunk_size)
+
+        raise AssertionError("unreachable")  # pragma: no cover
 
     @staticmethod
     def _iter_chunks(resp: requests.Response, chunk_size: int) -> Iterator[bytes]:
