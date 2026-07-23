@@ -2257,6 +2257,55 @@ class TestListPullRequestsSearchEscape:
         assert 'title~"test\\\\"' in decoded_url
 
 
+class TestListPullRequestsAuthorBaseHeadEscape:
+    """author/base/head フィルタも search 同様にエスケープされる（#180）。"""
+
+    def test_author_double_quote_escaped(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [], "next": None},
+            status=200,
+        )
+        bitbucket_adapter.list_pull_requests(author='ali"ce')
+        decoded_url = unquote(mock_responses.calls[0].request.url)
+        assert 'author.username="ali\\"ce"' in decoded_url
+
+    def test_base_double_quote_escaped(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [], "next": None},
+            status=200,
+        )
+        bitbucket_adapter.list_pull_requests(base='ma"in')
+        decoded_url = unquote(mock_responses.calls[0].request.url)
+        assert 'destination.branch.name="ma\\"in"' in decoded_url
+
+    def test_head_double_quote_escaped(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [], "next": None},
+            status=200,
+        )
+        bitbucket_adapter.list_pull_requests(head='fea"ture')
+        decoded_url = unquote(mock_responses.calls[0].request.url)
+        assert 'source.branch.name="fea\\"ture"' in decoded_url
+
+    def test_author_trailing_backslash_escaped(self, mock_responses, bitbucket_adapter):
+        """author がバックスラッシュで終わる場合でもリテラルが壊れない。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [], "next": None},
+            status=200,
+        )
+        bitbucket_adapter.list_pull_requests(author="alice\\")
+        decoded_url = unquote(mock_responses.calls[0].request.url)
+        assert 'author.username="alice\\\\"' in decoded_url
+
+
 class TestSearchPullRequestsSearchEscape:
     def test_double_quote_escaped(self, mock_responses, bitbucket_adapter):
         """query にダブルクォートが含まれる場合にエスケープされる（#148）。"""

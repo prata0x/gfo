@@ -164,11 +164,11 @@ class BitbucketAdapter(GitServiceAdapter):
             params["state"] = state_map.get(state, state.upper())
         q_parts: list[str] = []
         if author:
-            q_parts.append(f'author.username="{author}"')
+            q_parts.append(f'author.username="{_escape_bql_string(author)}"')
         if base:
-            q_parts.append(f'destination.branch.name="{base}"')
+            q_parts.append(f'destination.branch.name="{_escape_bql_string(base)}"')
         if head:
-            q_parts.append(f'source.branch.name="{head}"')
+            q_parts.append(f'source.branch.name="{_escape_bql_string(head)}"')
         if search:
             q_parts.append(f'title~"{_escape_bql_string(search)}"')
         if q_parts:
