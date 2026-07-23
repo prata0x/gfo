@@ -22,3 +22,5 @@ paths:
 - **URL エンコード必須のパス**: Release タグ名・ラベル名の DELETE でタグ名/ラベル名を URL エンコードすること
 - **`remove_issue_reaction`**: `list_issue_reactions` の結果を `content` だけで絞り込まず、`get_current_username()` で自分自身のリアクションに限定してから削除対象の ID を決定すること（GitHub の同種修正 #161 と同じバグクラス）
   - 過去バグ: content の一致だけで最初の1件を削除しており、他ユーザーの同種リアクションを削除しうる状態だった
+- **`set_variable`**: GitLab は `gfo secret` と `gfo variable` が同一の CI/CD variables コレクションを `masked` フラグで共有する。既存レコードを GET した際は `masked` を読み、呼び出し元の `masked` との論理和（OR）で PUT すること（Bitbucket の `secured` フラグ絞り込み #138 と同じ根本原因）
+  - 過去バグ: 既存の `masked: True`（secret）を確認せず呼び出し元の既定値 `masked: False` で無条件 PUT しており、`gfo variable set` が既存 secret を平文へ格下げしていた
