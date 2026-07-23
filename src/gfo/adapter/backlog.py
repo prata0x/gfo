@@ -852,7 +852,14 @@ class BacklogAdapter(GitServiceAdapter):
         self._warn_unsupported_params("webhook create", secret=secret)
         payload: dict[str, Any] = {"hookUrl": url, "allEvent": not events}
         if events:
-            payload["activityTypeIds"] = _events_to_activity_type_ids(events)
+            activity_type_ids = _events_to_activity_type_ids(events)
+            if not activity_type_ids:
+                raise GfoError(
+                    _("None of the given webhook events are supported by Backlog: {events}").format(
+                        events=", ".join(events)
+                    )
+                )
+            payload["activityTypeIds"] = activity_type_ids
         resp = self._client.post(f"/projects/{self._project_key}/webhooks", json=payload)
         return self._to_webhook(resp.json())
 
@@ -881,7 +888,17 @@ class BacklogAdapter(GitServiceAdapter):
             payload["hookUrl"] = url
         if events is not None:
             payload["allEvent"] = not events
-            payload["activityTypeIds"] = _events_to_activity_type_ids(events)
+            if events:
+                activity_type_ids = _events_to_activity_type_ids(events)
+                if not activity_type_ids:
+                    raise GfoError(
+                        _(
+                            "None of the given webhook events are supported by Backlog: {events}"
+                        ).format(events=", ".join(events))
+                    )
+                payload["activityTypeIds"] = activity_type_ids
+            else:
+                payload["activityTypeIds"] = []
         resp = self._client.patch(f"/projects/{self._project_key}/webhooks/{hook_id}", json=payload)
         return self._to_webhook(resp.json())
 

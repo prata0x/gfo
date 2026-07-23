@@ -20,7 +20,13 @@ from gfo.adapter.base import (
     WikiPage,
 )
 from gfo.adapter.registry import get_adapter_class
-from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError, ServerError
+from gfo.exceptions import (
+    AuthenticationError,
+    GfoError,
+    NotFoundError,
+    NotSupportedError,
+    ServerError,
+)
 
 BASE = "https://example.backlog.com/api/v2"
 PR_PATH = f"{BASE}/projects/TEST/git/repositories/test-repo/pullRequests"
@@ -1817,6 +1823,17 @@ class TestCreateWebhook:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["activityTypeIds"] == [12]
 
+    def test_create_all_events_unmapped_raises_instead_of_silent_no_op_webhook(
+        self, mock_responses, backlog_adapter
+    ):
+        """全イベント名が未対応の場合、matches-nothing な webhook を静かに作らず GfoError を送出する
+        （pre-commit レビュー指摘 #198）。"""
+        with pytest.raises(GfoError, match="no_such_event"):
+            backlog_adapter.create_webhook(
+                url="https://example.com/hook", events=["no_such_event", "also_bogus"]
+            )
+        assert len(mock_responses.calls) == 0
+
 
 class TestDeleteWebhook:
     def test_delete(self, mock_responses, backlog_adapter):
@@ -1899,6 +1916,28 @@ class TestUpdateWebhook:
         assert any("active" in m for m in messages)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert "active" not in req_body
+
+    def test_update_all_events_unmapped_raises_instead_of_silent_no_op_webhook(
+        self, mock_responses, backlog_adapter
+    ):
+        """全イベント名が未対応の場合、matches-nothing な webhook を静かに作らず GfoError を送出する
+        （pre-commit レビュー指摘 #198）。"""
+        with pytest.raises(GfoError, match="no_such_event"):
+            backlog_adapter.update_webhook(100, events=["no_such_event"])
+        assert len(mock_responses.calls) == 0
+
+    def test_update_empty_events_clears_activity_type_ids(self, mock_responses, backlog_adapter):
+        """events=[] を渡すと allEvent=True で activityTypeIds が空配列になる（全イベント購読へ変更）。"""
+        mock_responses.add(
+            responses.PATCH,
+            f"{BASE}/projects/TEST/webhooks/100",
+            json=_webhook_data_bl(),
+            status=200,
+        )
+        backlog_adapter.update_webhook(100, events=[])
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["allEvent"] is True
+        assert req_body["activityTypeIds"] == []
 
 
 # --- Collaborator 系 ---
