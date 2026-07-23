@@ -5,6 +5,7 @@ from __future__ import annotations
 import email.utils
 import os
 import re
+import stat
 import sys
 import tempfile
 import time
@@ -433,10 +434,15 @@ class HttpClient:
                             ).format(max_bytes=max_bytes)
                         )
                     f.write(chunk)
-            # mkstemp は 0600 で作成するため、通常の open() 相当 (umask 適用後の 0666) に戻す
-            current_umask = os.umask(0)
-            os.umask(current_umask)
-            os.chmod(tmp_path, 0o666 & ~current_umask)
+            # mkstemp は 0600 で作成するため、既存ファイルの上書きならその権限を引き継ぎ、
+            # 新規作成なら open() 相当 (umask 適用後の 0666) に戻す
+            try:
+                target_mode = stat.S_IMODE(os.stat(output_path).st_mode)
+            except OSError:
+                current_umask = os.umask(0)
+                os.umask(current_umask)
+                target_mode = 0o666 & ~current_umask
+            os.chmod(tmp_path, target_mode)
             os.replace(tmp_path, output_path)
         except BaseException:
             try:

@@ -340,6 +340,23 @@ class TestDownloadFilePreservesExistingOnFailure:
         expected_mode = 0o666 & ~current_umask
         assert (out.stat().st_mode & 0o777) == expected_mode
 
+    @responses.activate
+    def test_overwrite_preserves_existing_file_permissions(self, tmp_path):
+        """既存ファイルへの再ダウンロードでは、ユーザーが設定したパーミッションを維持する。"""
+        responses.add(
+            responses.GET,
+            f"{BASE}/secret.bin",
+            body=b"new data",
+            status=200,
+        )
+        c = HttpClient(BASE)
+        out = tmp_path / "secret.bin"
+        out.write_bytes(b"old data")
+        out.chmod(0o600)
+        c.download_file(f"{BASE}/secret.bin", str(out))
+        assert out.read_bytes() == b"new data"
+        assert (out.stat().st_mode & 0o777) == 0o600
+
 
 class TestMaxDownloadBytesBoundary:
     """`_max_download_bytes` の境界値・無効値のフォールバック挙動。"""
