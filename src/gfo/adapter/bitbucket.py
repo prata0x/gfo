@@ -1505,19 +1505,21 @@ class BitbucketAdapter(GitServiceAdapter):
     # --- Search ---
 
     def search_repositories(self, query: str, *, limit: int = 30) -> list[Repository]:
+        escaped_query = query.replace('"', '\\"')
         results = paginate_response_body(
             self._client,
             f"/repositories/{quote(self._owner, safe='')}",
-            params={"q": f'name ~ "{query}"'},
+            params={"q": f'name ~ "{escaped_query}"'},
             limit=limit,
         )
         return [self._to_repository(r) for r in results]
 
     def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
+        escaped_query = query.replace('"', '\\"')
         results = paginate_response_body(
             self._client,
             f"{self._repos_path()}/issues",
-            params={"q": f'title ~ "{query}"'},
+            params={"q": f'title ~ "{escaped_query}"'},
             limit=limit,
         )
         return [self._to_issue(r) for r in results]
@@ -1557,7 +1559,8 @@ class BitbucketAdapter(GitServiceAdapter):
     ) -> list[PullRequest]:
         params = {}
         if query:
-            params["q"] = f'title ~ "{query}"'
+            escaped_query = query.replace('"', '\\"')
+            params["q"] = f'title ~ "{escaped_query}"'
         if state and state != "all":
             state_map = {"open": "OPEN", "closed": "DECLINED", "merged": "MERGED"}
             params["state"] = state_map.get(state, state.upper())

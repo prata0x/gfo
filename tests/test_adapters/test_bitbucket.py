@@ -1823,6 +1823,18 @@ class TestSearchRepositories:
         assert len(repos) >= 1
         assert isinstance(repos[0], Repository)
 
+    def test_double_quote_escaped(self, mock_responses, bitbucket_adapter):
+        """query にダブルクォートが含まれる場合にエスケープされる（#148）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/repositories/test-workspace",
+            json={"values": [], "pagelen": 10},
+            status=200,
+        )
+        bitbucket_adapter.search_repositories('Fix "foo" bug')
+        decoded_url = unquote_plus(mock_responses.calls[0].request.url)
+        assert 'name ~ "Fix \\"foo\\" bug"' in decoded_url
+
 
 class TestSearchIssues:
     def test_search(self, mock_responses, bitbucket_adapter):
@@ -1835,6 +1847,18 @@ class TestSearchIssues:
         issues = bitbucket_adapter.search_issues("bug")
         assert len(issues) >= 1
         assert isinstance(issues[0], Issue)
+
+    def test_double_quote_escaped(self, mock_responses, bitbucket_adapter):
+        """query にダブルクォートが含まれる場合にエスケープされる（#148）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"values": [], "pagelen": 10},
+            status=200,
+        )
+        bitbucket_adapter.search_issues('Fix "foo" bug')
+        decoded_url = unquote_plus(mock_responses.calls[0].request.url)
+        assert 'title ~ "Fix \\"foo\\" bug"' in decoded_url
 
 
 class TestSearchCode:
@@ -2165,6 +2189,20 @@ class TestListPullRequestsSearchEscape:
         decoded_url = unquote(url)
         # エスケープされた \" が title~ フィルタ内に含まれることを確認
         assert 'title~"test\\"value"' in decoded_url
+
+
+class TestSearchPullRequestsSearchEscape:
+    def test_double_quote_escaped(self, mock_responses, bitbucket_adapter):
+        """query にダブルクォートが含まれる場合にエスケープされる（#148）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests",
+            json={"values": [], "next": None},
+            status=200,
+        )
+        bitbucket_adapter.search_pull_requests('Fix "foo" bug')
+        decoded_url = unquote_plus(mock_responses.calls[0].request.url)
+        assert 'title ~ "Fix \\"foo\\" bug"' in decoded_url
 
 
 class TestPipelineVariablesFilterOrder:
