@@ -2525,3 +2525,6 @@ msgstr "変数"
 
 msgid "A {existing_kind} named '{name}' already exists; cannot create it as a {requested_kind}."
 msgstr "'{name}' という名前の {existing_kind} が既に存在するため、{requested_kind} として作成できません。"
+
+msgid "None of the given webhook events are supported by Backlog: {events}"
+msgstr "指定された webhook イベントは Backlog でサポートされていません: {events}"
