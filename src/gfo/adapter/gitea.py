@@ -1991,13 +1991,13 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def add_issue_dependency(self, number: int, depends_on: int) -> None:
         self._client.post(
             f"{self._repos_path()}/issues/{number}/dependencies",
-            json={"id": depends_on},
+            json={"index": depends_on, "owner": self._owner, "repo": self._repo},
         )
 
     def remove_issue_dependency(self, number: int, depends_on: int) -> None:
         self._client.delete(
             f"{self._repos_path()}/issues/{number}/dependencies",
-            json={"id": depends_on},
+            json={"index": depends_on, "owner": self._owner, "repo": self._repo},
         )
 
     # --- Issue Timeline ---
