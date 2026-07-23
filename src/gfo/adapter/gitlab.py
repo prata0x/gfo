@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import time
 from collections.abc import Iterable, Iterator
 from typing import TYPE_CHECKING, Any, ClassVar
 from urllib.parse import quote, urlparse, urlunparse
@@ -63,6 +64,9 @@ from .registry import register
 @register("gitlab")
 class GitLabAdapter(GitServiceAdapter):
     service_name = "GitLab"
+
+    _REBASE_POLL_INTERVAL: ClassVar[float] = 1.0
+    _REBASE_POLL_TIMEOUT: ClassVar[float] = 60.0
 
     def __init__(self, client: HttpClient, owner: str, repo: str, **kwargs: object) -> None:
         super().__init__(client, owner, repo, **kwargs)
@@ -269,13 +273,6 @@ class GitLabAdapter(GitServiceAdapter):
                     allowed=sorted(allowed_methods), method=method
                 )
             )
-        if method == "rebase":
-            # GitLab rebase は /merge ではなく専用の /rebase エンドポイントを使用
-            self._client.put(
-                f"{self._project_path()}/merge_requests/{number}/rebase",
-                json={},
-            )
-            return
         commit_msg = None
         if title is not None or message is not None:
             parts = [p for p in (title, message) if p is not None]
@@ -285,14 +282,47 @@ class GitLabAdapter(GitServiceAdapter):
             payload["squash"] = True
             if commit_msg is not None:
                 payload["squash_commit_message"] = commit_msg
+        elif method == "merge":
+            if commit_msg is not None:
+                payload["merge_commit_message"] = commit_msg
         else:
-            # method == "merge"
+            # method == "rebase": GitLab の /rebase は MR を対象ブランチに rebase する
+            # だけでマージは行わない。rebase 完了をポーリングしてから /merge を呼ぶ。
+            self._client.put(
+                f"{self._project_path()}/merge_requests/{number}/rebase",
+                json={},
+            )
+            self._wait_for_rebase(number)
             if commit_msg is not None:
                 payload["merge_commit_message"] = commit_msg
         self._client.put(
             f"{self._project_path()}/merge_requests/{number}/merge",
             json=payload,
         )
+
+    def _wait_for_rebase(self, number: int) -> None:
+        deadline = time.monotonic() + self._REBASE_POLL_TIMEOUT
+        while True:
+            resp = self._client.get(
+                f"{self._project_path()}/merge_requests/{number}",
+                params={"include_rebase_in_progress": "true"},
+            )
+            data = resp.json()
+            if data.get("merge_error"):
+                raise GfoError(
+                    _("Rebase failed for merge request !{number}: {error}").format(
+                        number=number, error=data["merge_error"]
+                    )
+                )
+            if not data.get("rebase_in_progress"):
+                return
+            if time.monotonic() >= deadline:
+                raise GfoError(
+                    _("Timed out waiting for merge request !{number} to finish rebasing").format(
+                        number=number
+                    )
+                )
+            time.sleep(self._REBASE_POLL_INTERVAL)
 
     def close_pull_request(self, number: int) -> None:
         self._client.put(

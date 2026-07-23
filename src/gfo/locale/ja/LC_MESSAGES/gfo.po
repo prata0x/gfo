@@ -2328,6 +2328,12 @@ msgstr "ラベルが見つかりません: {name}"
 msgid "Milestone not found: {title}"
 msgstr "マイルストーンが見つかりません: {title}"
 
+msgid "Rebase failed for merge request !{number}: {error}"
+msgstr "マージリクエスト !{number} の rebase に失敗しました: {error}"
+
+msgid "Timed out waiting for merge request !{number} to finish rebasing"
+msgstr "マージリクエスト !{number} の rebase 完了待ちでタイムアウトしました"
+
 msgid "PATH contains control characters; refused."
 msgstr "PATH に制御文字が含まれているため拒否しました。"
 
