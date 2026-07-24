@@ -1475,6 +1475,8 @@ gfo label clone --from alice/my-project
 gfo label clone --from alice/my-project --overwrite
 ```
 
+ラベルごとの結果（`name`, `status`: `created`/`updated`/`skipped`/`failed`, `error`）を出力します。1件でも失敗した場合、結果出力後に非 0 の exit code で終了します（`gfo batch pr create` と同じ規約）。
+
 ---
 
 ## gfo milestone

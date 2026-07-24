@@ -1461,6 +1461,8 @@ gfo label clone --from alice/my-project
 gfo label clone --from alice/my-project --overwrite
 ```
 
+Outputs a per-label result (`name`, `status`: `created`/`updated`/`skipped`/`failed`, `error`). If any label fails, the command exits with a non-zero exit code after printing the results (same convention as `gfo batch pr create`).
+
 ---
 
 ## gfo milestone
