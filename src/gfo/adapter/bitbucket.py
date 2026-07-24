@@ -944,10 +944,17 @@ class BitbucketAdapter(GitServiceAdapter):
             "pending": "INPROGRESS",
             "error": "FAILED",
         }
+        # Bitbucket の Build Status API は url を必須とする。--url 省略時は
+        # 無関係なダミー値ではなく、対象コミットの実際の Web UI ページにフォール
+        # バックする（#179）。
+        commit_url = (
+            f"{self._web_base_url()}/{quote(self._owner, safe='')}"
+            f"/{quote(self._repo, safe='')}/commits/{quote(ref, safe='')}"
+        )
         payload: dict[str, Any] = {
             "state": state_map.get(state, "INPROGRESS"),
             "key": context or "gfo",
-            "url": target_url or "https://example.com",  # Bitbucket は url 必須
+            "url": target_url or commit_url,
         }
         if description:
             payload["description"] = description
