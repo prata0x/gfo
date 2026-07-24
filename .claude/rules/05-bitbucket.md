@@ -22,6 +22,8 @@ paths:
 - **assignee チェック**: `isinstance(assignee, dict)` を必ず確認
   - 過去バグ: dict でない場合に KeyError が発生
 - **create_or_update_file**: `None` を返す（Bitbucket API は SHA を返さない）
+- **`create_commit_status` の `url`**: Bitbucket の Build Status API は `url` を必須とする。`--url` 省略時のフォールバックは `{_web_base_url()}/{owner}/{repo}/commits/{ref}`（対象コミットの実際の Web UI ページ）を使うこと
+  - 過去バグ（#179）: フォールバックが無関係なダミー値 `https://example.com` 固定で、Bitbucket UI 上のステータスリンクが IANA の予約ドメインに誘導されていた
 
 ## ブランチ保護・パイプライン変数
 

@@ -1467,6 +1467,31 @@ class TestCreateCommitStatus:
         assert req_body["state"] == "SUCCESSFUL"
         assert req_body["key"] == "ci/test"
 
+    def test_url_omitted_falls_back_to_commit_page(self, mock_responses, bitbucket_adapter):
+        """--url 省略時、ダミー値ではなく実際のコミットページ URL を送信する（#179）。"""
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/commit/abc123/statuses/build",
+            json=_commit_status_data(),
+            status=201,
+        )
+        bitbucket_adapter.create_commit_status("abc123", state="success")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["url"] == "https://bitbucket.org/test-workspace/test-repo/commits/abc123"
+
+    def test_url_specified_is_used_as_is(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/commit/abc123/statuses/build",
+            json=_commit_status_data(),
+            status=201,
+        )
+        bitbucket_adapter.create_commit_status(
+            "abc123", state="success", target_url="https://ci.example.com/build/1"
+        )
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["url"] == "https://ci.example.com/build/1"
+
 
 # --- File 系 ---
 
