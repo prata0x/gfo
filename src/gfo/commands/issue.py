@@ -335,8 +335,10 @@ def _parse_duration(s: str) -> int:
     import re
 
     total = 0
+    matched = False
     pattern = re.compile(r"(\d+)\s*([hHmMsS])")
     for match in pattern.finditer(s):
+        matched = True
         value = int(match.group(1))
         unit = match.group(2).lower()
         if unit == "h":
@@ -345,7 +347,7 @@ def _parse_duration(s: str) -> int:
             total += value * 60
         elif unit == "s":
             total += value
-    if total == 0:
+    if not matched:
         # Try plain integer as seconds
         try:
             total = int(s)

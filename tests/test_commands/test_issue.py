@@ -743,6 +743,21 @@ class TestParseDuration:
     def test_plain_integer(self):
         assert issue_cmd._parse_duration("3600") == 3600
 
+    def test_plain_zero(self):
+        assert issue_cmd._parse_duration("0") == 0
+
+    def test_zero_hours(self):
+        assert issue_cmd._parse_duration("0h") == 0
+
+    def test_zero_minutes(self):
+        assert issue_cmd._parse_duration("0m") == 0
+
+    def test_zero_seconds(self):
+        assert issue_cmd._parse_duration("0s") == 0
+
+    def test_zero_hours_zero_minutes(self):
+        assert issue_cmd._parse_duration("0h0m") == 0
+
     def test_invalid_format_raises(self):
         with pytest.raises(ConfigError):
             issue_cmd._parse_duration("invalid")
