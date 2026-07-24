@@ -14,6 +14,8 @@ paths:
 
 ## 重要な実装パターン
 
+- **BQL（Bitbucket Query Language）へ値を埋め込む箇所は必ず `_escape_bql_string()` を通すこと**: `q=` クエリパラメータへ文字列を `f'field="{value}"'` の形で埋め込む箇所（`list_issues`/`list_pull_requests`/`search_repositories` 等）は、直接値を渡す分岐も含めて漏れなくエスケープすること
+  - 過去バグ（#174/#180/#183）: `author`/`base`/`head`（PR一覧）、`state` の直接値指定分岐（issue 一覧）が未エスケープのままリテラルに埋め込まれており、値に `"` を含めるとリテラルが早期終端し、後続の BQL 式が注入されうる状態だった。修正時は新規追加箇所だけでなく既存の類似分岐も横断的に確認すること（#183 は #180 のレビュー中に発見された "同じクラスだが見落とされていた" 分岐）
 - **list_issues ラベルフィルタ**: `component.name="{label}"` クエリパラメータ
   - 過去バグ: パラメータが未使用のまま放置されていた
 - **state**: 大文字形式 `OPEN`, `MERGED`, `DECLINED`

@@ -274,7 +274,7 @@ class BitbucketAdapter(GitServiceAdapter):
             # （resolved / on hold / invalid / duplicate / wontfix / closed）
             conditions.append('(state != "new" AND state != "open")')
         elif state != "all":
-            conditions.append(f'state="{state}"')
+            conditions.append(f'state="{_escape_bql_string(state)}"')
         if assignee is not None:
             escaped = _escape_bql_string(assignee)
             conditions.append(f'assignee.nickname="{escaped}"')
