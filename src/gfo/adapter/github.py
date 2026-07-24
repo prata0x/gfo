@@ -1365,8 +1365,22 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             yield from resp.text.splitlines()
             return
         # 全ジョブのログを順に yield
-        jobs_resp = self._client.get(f"{self._repos_path()}/actions/runs/{pipeline_id}/jobs")
-        jobs = jobs_resp.json().get("jobs", [])
+        jobs: list[dict[str, Any]] = []
+        per_page = 100
+        page = 1
+        while True:
+            jobs_resp = self._client.get(
+                f"{self._repos_path()}/actions/runs/{pipeline_id}/jobs",
+                params={"per_page": per_page, "page": page},
+            )
+            body = jobs_resp.json()
+            page_jobs: list[dict[str, Any]] = body.get("jobs", []) if isinstance(body, dict) else []
+            if not page_jobs:
+                break
+            jobs.extend(page_jobs)
+            if len(page_jobs) < per_page:
+                break
+            page += 1
         for i, job in enumerate(jobs):
             if i > 0:
                 yield ""

@@ -1164,8 +1164,9 @@ class BitbucketAdapter(GitServiceAdapter):
             )
             yield from resp.text.splitlines()
             return
-        steps_resp = self._client.get(f"{self._repos_path()}/pipelines/{pipeline_id}/steps/")
-        steps = steps_resp.json().get("values", [])
+        steps = paginate_response_body(
+            self._client, f"{self._repos_path()}/pipelines/{pipeline_id}/steps/", limit=0
+        )
         for i, step in enumerate(steps):
             step_uuid = step.get("uuid", "")
             if i > 0:

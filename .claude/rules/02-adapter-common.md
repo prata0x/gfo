@@ -97,6 +97,19 @@ Bitbucket/Backlog/Azure DevOps/Gogs は milestones 自体が `NotSupportedError`
 | `continuationToken` | Azure DevOps 形式 |
 | オフセット形式（汎用） | Gitea 系 |
 
+## get_pipeline_logs のジョブ/ステップ一覧取得
+
+`get_pipeline_logs(pipeline_id, *, job_id=None)` の `job_id` 未指定分岐（パイプライン/ビルド全体のログを
+まとめて取得するパス）は、ジョブ/ステップ一覧の取得に必ず同一ファイル内の他の一覧系メソッドと同じ
+ページネーションヘルパーを使うこと。素の `self._client.get(...)` 1 回だけで完結させてはいけない。
+
+- 過去バグ（#145, #146）: GitLab（`paginate_page_param`）・GitHub（手動 `per_page`/`page` ループ）・
+  Azure DevOps（`paginate_top_skip`）・Bitbucket（`paginate_response_body`）の4アダプターすべてで、
+  `get_pipeline_logs` だけが自身のファイル内の他メソッドが使うページネーションを素通りしており、
+  各サービスのデフォルトページサイズ（GitLab/Gitea: 20件、GitHub: 30〜100件、Azure DevOps: `$top`
+  デフォルト100件、Bitbucket: `pagelen` デフォルト値）を超えるジョブ/ステップ数のパイプラインで、
+  ページ境界以降のログがエラーも警告も無く黙って欠落していた
+
 ## 出力・フィルタ規約
 
 - **`--jq` 対応必須**: 全ハンドラで `jq` 引数を出力に接続すること（シグネチャだけ広げて未接続は禁止）

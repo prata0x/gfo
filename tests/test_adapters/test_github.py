@@ -2657,6 +2657,33 @@ class TestGetPipelineLogs:
         with pytest.raises(NotFoundError):
             list(github_adapter.get_pipeline_logs(300, job_id=999))
 
+    def test_logs_paginates_beyond_first_page(self, mock_responses, github_adapter):
+        """ジョブ数が per_page (100) を超えても全ジョブのログを取得する（#146）。"""
+        page1_jobs = {"jobs": [{"id": i, "name": f"job-{i}"} for i in range(1, 101)]}
+        page2_jobs = {"jobs": [{"id": i, "name": f"job-{i}"} for i in range(101, 106)]}
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/runs/300/jobs",
+            json=page1_jobs,
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/runs/300/jobs",
+            json=page2_jobs,
+            status=200,
+        )
+        for i in range(1, 106):
+            mock_responses.add(
+                responses.GET,
+                f"{REPOS}/actions/jobs/{i}/logs",
+                body=f"log {i}",
+                status=200,
+            )
+        logs = "\n".join(github_adapter.get_pipeline_logs(300))
+        for i in range(1, 106):
+            assert f"=== job-{i} ===" in logs
+
 
 # --- User / Search 系 ---
 

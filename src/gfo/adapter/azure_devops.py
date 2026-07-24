@@ -1458,8 +1458,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             resp = self._client.get(f"/build/builds/{pipeline_id}/logs/{job_id}")
             yield from resp.text.splitlines()
             return
-        logs_resp = self._client.get(f"/build/builds/{pipeline_id}/logs")
-        log_entries = logs_resp.json().get("value", [])
+        log_entries = paginate_top_skip(self._client, f"/build/builds/{pipeline_id}/logs", limit=0)
         for i, entry in enumerate(log_entries):
             log_id = entry.get("id", "")
             if i > 0:

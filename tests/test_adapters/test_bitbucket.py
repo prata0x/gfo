@@ -1867,6 +1867,39 @@ class TestGetPipelineLogs:
         with pytest.raises(NotFoundError):
             list(bitbucket_adapter.get_pipeline_logs(300, job_id="bad"))
 
+    def test_logs_paginates_beyond_first_page(self, mock_responses, bitbucket_adapter):
+        """ステップ一覧が複数ページにまたがっても全ステップのログを取得する（#146）。"""
+        page2_url = f"{REPOS}/pipelines/300/steps/?page=2"
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pipelines/300/steps/",
+            json={"values": [{"uuid": "s1", "name": "build"}], "next": page2_url},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            page2_url,
+            json={"values": [{"uuid": "s2", "name": "test"}]},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pipelines/300/steps/s1/log",
+            body="build log",
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pipelines/300/steps/s2/log",
+            body="test log",
+            status=200,
+        )
+        logs = "\n".join(bitbucket_adapter.get_pipeline_logs(300))
+        assert "=== build ===" in logs
+        assert "build log" in logs
+        assert "=== test ===" in logs
+        assert "test log" in logs
+
 
 # --- User / Search 系 ---
 

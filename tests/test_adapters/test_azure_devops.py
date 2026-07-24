@@ -1954,6 +1954,33 @@ class TestGetPipelineLogs:
         with pytest.raises(NotFoundError):
             list(azure_devops_adapter.get_pipeline_logs(300, job_id=999))
 
+    def test_logs_paginates_beyond_first_page(self, mock_responses, azure_devops_adapter):
+        """ログ数が $top (100) を超えても全ログを取得する（#146）。"""
+        page1 = {"value": [{"id": i} for i in range(1, 101)], "count": 100}
+        page2 = {"value": [{"id": i} for i in range(101, 106)], "count": 5}
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/build/builds/300/logs",
+            json=page1,
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/build/builds/300/logs",
+            json=page2,
+            status=200,
+        )
+        for i in range(1, 106):
+            mock_responses.add(
+                responses.GET,
+                f"{BASE}/build/builds/300/logs/{i}",
+                body=f"log {i}",
+                status=200,
+            )
+        logs = "\n".join(azure_devops_adapter.get_pipeline_logs(300))
+        for i in range(1, 106):
+            assert f"=== Log {i} ===" in logs
+
 
 # --- User / Search 系 ---
 
