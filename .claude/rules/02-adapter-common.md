@@ -124,6 +124,8 @@ Bitbucket/Backlog/Azure DevOps/Gogs は milestones 自体が `NotSupportedError`
 - **`--jq` 対応必須**: 全ハンドラで `jq` 引数を出力に接続すること（シグネチャだけ広げて未接続は禁止）
 - **`list[str]` / `dict` を返すハンドラ**: `output()` は使えない → `apply_jq_filter` を直接適用すること
 - **limit 適用順序**: フィルタ後に limit を適用すること（フィルタ前に適用すると結果が過少になる）
+- **mutation 系ハンドラの成功メッセージ**: 素の `print()` ではなく `output_result()` を使うこと（`fmt`/`jq` を無視して平文を返してしまう）
+  - 過去バグ（#63 の取りこぼし、#142）: `review.py` の `handle_dismiss` だけが素の `print(_(...))` を使っており、`--format json` を指定しても平文メッセージが返っていた。`fmt`/`jq` 引数だけシグネチャに追加してハンドラ本体で未使用のままにする「対応済みに見える」パターンに注意
 
 ## upsert パターン
 
@@ -135,7 +137,7 @@ Bitbucket/Backlog/Azure DevOps/Gogs は milestones 自体が `NotSupportedError`
 - **メソッドシグネチャ**: `**kwargs` で受けず、`base.py` と同じ明示的キーワード引数にすること
 - **`from __future__ import annotations`**: 全 `commands/*.py` に必須
 - **Organization.url**: API URL ではなく Web URL を返すこと
-- **削除/書き込みハンドラ**: 成功メッセージを `print()` すること（既存の label/release/issue に倣う）
+- **削除/書き込みハンドラ**: 成功メッセージを `output_result()` で出力すること（既存の label/webhook に倣う。`--jq`/`--format` 対応の詳細は「出力・フィルタ規約」節を参照）
 
 ## HTTP タイムアウト・リトライ
 

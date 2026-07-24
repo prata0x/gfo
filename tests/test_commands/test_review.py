@@ -151,3 +151,14 @@ class TestHandleDismiss:
             args = make_args(number=1, review_id=42, message="outdated")
             with pytest.raises(HttpError):
                 review_cmd.handle_dismiss(args, fmt="table")
+
+    def test_json_format(self, capsys):
+        with patch_adapter("gfo.commands.review"):
+            args = make_args(number=1, review_id=42, message="outdated")
+            review_cmd.handle_dismiss(args, fmt="json")
+
+        data = json.loads(capsys.readouterr().out)
+        assert data["result"] == "dismissed"
+        assert data["number"] == 1
+        assert data["review_id"] == 42
+        assert data["message"]

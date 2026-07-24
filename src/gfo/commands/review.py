@@ -7,7 +7,7 @@ import argparse
 from gfo.commands import get_adapter
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
-from gfo.output import output
+from gfo.output import output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -36,10 +36,15 @@ def handle_dismiss(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
     """gfo review dismiss <number> <review_id> のハンドラ。"""
     adapter = get_adapter()
     adapter.dismiss_review(args.number, args.review_id, message=args.message or "")
-    print(
+    output_result(
         _("Dismissed review '{review_id}' on PR #{number}.").format(
             review_id=args.review_id, number=args.number
-        )
+        ),
+        result="dismissed",
+        fmt=fmt,
+        jq=jq,
+        number=args.number,
+        review_id=args.review_id,
     )
 
 
