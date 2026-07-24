@@ -83,7 +83,7 @@ class StubAdapter(GitServiceAdapter):
     def create_label(self, *, name, color=None, description=None):
         return None  # type: ignore[return-value]
 
-    def list_milestones(self, *, limit=0):
+    def list_milestones(self, *, state="open", limit=0):
         return []
 
     def create_milestone(self, *, title, description=None, due_date=None):

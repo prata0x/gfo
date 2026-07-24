@@ -499,7 +499,7 @@ class GitServiceAdapter(ABC):
 
     # --- Milestone ---
     @abstractmethod
-    def list_milestones(self, *, limit: int = 0) -> list[Milestone]: ...
+    def list_milestones(self, *, state: str = "open", limit: int = 0) -> list[Milestone]: ...
 
     @abstractmethod
     def create_milestone(
@@ -528,8 +528,9 @@ class GitServiceAdapter(ABC):
 
         list_milestones() をループしてタイトル一致を探す汎用実装。
         API クエリで効率的に解決できるサービスはオーバーライドすること。
+        closed になったマイルストーンもタイトル指定で解決できるよう state="all" で取得する。
         """
-        for ms in self.list_milestones():
+        for ms in self.list_milestones(state="all"):
             if ms.title == title:
                 return ms.number
         raise GfoError(_("Milestone not found: {title}").format(title=title))

@@ -402,6 +402,13 @@ def test_parser_milestone_list():
     parser, _ = create_parser()
     args = parser.parse_args(["milestone", "list"])
     assert args.subcommand == "list"
+    assert args.state == "open"
+
+
+def test_parser_milestone_list_state():
+    parser, _ = create_parser()
+    args = parser.parse_args(["milestone", "list", "--state", "all"])
+    assert args.state == "all"
 
 
 def test_parser_milestone_create():

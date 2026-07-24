@@ -61,6 +61,20 @@ GitServiceAdapter (ABC, adapter/base.py)
 すべて `frozen=True, slots=True` の `@dataclass`:
 `PullRequest`, `Issue`, `Repository`, `Release`, `Label`, `Milestone` ほか
 
+## list_milestones の state パラメータ
+
+`list_milestones(*, state: str = "open", limit: int = 0)`。GitHub/Gitea は `state` クエリパラメータ
+省略時に `open` のみを返す（`state=all` を明示しないと closed マイルストーンが一切取得できない）。
+GitLab は `state` パラメータの値が `active`/`closed` のみで `open`/`all` という値は無く、
+省略時に全件（active + closed）を返す。そのため `GitLabAdapter.list_milestones()` は
+`"open"→"active"`、`"closed"→"closed"`、`"all"→` パラメータ省略、とマッピングしている。
+Bitbucket/Backlog/Azure DevOps/Gogs は milestones 自体が `NotSupportedError` のため `state` は未使用。
+
+- 過去バグ（#206）: GitHub/Gitea の `list_milestones()` が `state` を一切送信しておらず、
+  closed マイルストーンが `gfo milestone list` にも `_resolve_milestone_id_by_title`
+  （`--milestone <title>` でのタイトル解決）にも一切現れなかった。後者は `state="all"` で
+  明示的に問い合わせるよう修正済み（`base.py: _resolve_milestone_id_by_title`）。
+
 ## create_or_update_file の戻り値
 
 戻り値型: `str | None`。**commit SHA を返せるアダプターは必ず返すこと。**

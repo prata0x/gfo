@@ -1200,6 +1200,39 @@ class TestListMilestones:
         assert len(milestones) == 1
         assert milestones[0].title == "v1.0"
 
+    def test_default_state_is_open(self, mock_responses, github_adapter):
+        """state 省略時は open のみ送信する（GitHub 側デフォルトと明示的に一致させる）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/milestones",
+            json=[],
+            status=200,
+        )
+        github_adapter.list_milestones()
+        assert "state=open" in mock_responses.calls[0].request.url
+
+    def test_state_all_includes_closed(self, mock_responses, github_adapter):
+        """state="all" 指定で closed マイルストーンも取得できる（#206）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/milestones",
+            json=[_milestone_data(), _milestone_data(number=2)],
+            status=200,
+        )
+        milestones = github_adapter.list_milestones(state="all")
+        assert len(milestones) == 2
+        assert "state=all" in mock_responses.calls[0].request.url
+
+    def test_state_closed(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/milestones",
+            json=[],
+            status=200,
+        )
+        github_adapter.list_milestones(state="closed")
+        assert "state=closed" in mock_responses.calls[0].request.url
+
 
 class TestCreateMilestone:
     def test_create(self, mock_responses, github_adapter):

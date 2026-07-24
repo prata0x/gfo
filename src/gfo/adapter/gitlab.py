@@ -880,10 +880,18 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- Milestone ---
 
-    def list_milestones(self, *, limit: int = 0) -> list[Milestone]:
+    def list_milestones(self, *, state: str = "open", limit: int = 0) -> list[Milestone]:
+        # GitLab の state パラメータは "active"/"closed" のみで "all" 相当は
+        # パラメータ省略で表現する（省略時は active + closed の全件を返す）。
+        params: dict[str, Any] = {}
+        if state == "open":
+            params["state"] = "active"
+        elif state == "closed":
+            params["state"] = "closed"
         results = paginate_page_param(
             self._client,
             f"{self._project_path()}/milestones",
+            params=params,
             limit=limit,
         )
         return [self._to_milestone(r) for r in results]

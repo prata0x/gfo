@@ -16,7 +16,7 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         open_in_browser(get_adapter(), "milestone")
         return
     adapter = get_adapter()
-    milestones = adapter.list_milestones()
+    milestones = adapter.list_milestones(state=getattr(args, "state", "open"))
     output(milestones, fmt=fmt, fields=["number", "title", "state", "due_date"], jq=jq)
 
 

@@ -379,7 +379,7 @@ class TestResolveMilestoneIdByTitle:
 
     def _make_adapter(self, milestones: list[Milestone]):
         adapter = TestGitServiceAdapterDeleteDefaults()._make_adapter()
-        adapter.list_milestones = lambda *, limit=0: milestones
+        adapter.list_milestones = lambda *, state="open", limit=0: milestones
         return adapter
 
     def test_found_returns_number(self):
@@ -397,3 +397,28 @@ class TestResolveMilestoneIdByTitle:
         adapter = self._make_adapter([])
         with pytest.raises(GfoError, match="Milestone not found"):
             adapter._resolve_milestone_id_by_title("nope")
+
+    def test_resolves_closed_milestone(self):
+        """closed になったマイルストーンもタイトル指定で解決できる（#206）。"""
+        adapter = self._make_adapter(
+            [
+                Milestone(number=3, title="v1.0", description=None, state="closed", due_date=None),
+            ]
+        )
+        assert adapter._resolve_milestone_id_by_title("v1.0") == 3
+
+    def test_calls_list_milestones_with_state_all(self):
+        """closed マイルストーンを取り逃さないよう state="all" で問い合わせる。"""
+        from gfo.exceptions import GfoError
+
+        adapter = TestGitServiceAdapterDeleteDefaults()._make_adapter()
+        captured = {}
+
+        def fake_list_milestones(*, state="open", limit=0):
+            captured["state"] = state
+            return []
+
+        adapter.list_milestones = fake_list_milestones
+        with pytest.raises(GfoError):
+            adapter._resolve_milestone_id_by_title("anything")
+        assert captured["state"] == "all"

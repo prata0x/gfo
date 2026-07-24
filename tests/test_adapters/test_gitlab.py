@@ -1474,6 +1474,39 @@ class TestListMilestones:
         milestones = gitlab_adapter.list_milestones()
         assert len(milestones) == 21
 
+    def test_default_state_maps_to_active(self, mock_responses, gitlab_adapter):
+        """state 省略時は GitLab の "active"（gfo の "open" 相当）を送信する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/milestones",
+            json=[],
+            status=200,
+        )
+        gitlab_adapter.list_milestones()
+        assert "state=active" in mock_responses.calls[0].request.url
+
+    def test_state_closed_maps_to_closed(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/milestones",
+            json=[],
+            status=200,
+        )
+        gitlab_adapter.list_milestones(state="closed")
+        assert "state=closed" in mock_responses.calls[0].request.url
+
+    def test_state_all_omits_state_param(self, mock_responses, gitlab_adapter):
+        """state="all" では GitLab に state パラメータを送らず全件取得する（#206）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/milestones",
+            json=[_milestone_data(), _milestone_data(iid=2)],
+            status=200,
+        )
+        milestones = gitlab_adapter.list_milestones(state="all")
+        assert len(milestones) == 2
+        assert "state=" not in mock_responses.calls[0].request.url
+
 
 class TestCreateMilestone:
     def test_create(self, mock_responses, gitlab_adapter):
