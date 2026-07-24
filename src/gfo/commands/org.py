@@ -11,21 +11,21 @@ from gfo.output import apply_jq_filter, output, output_result
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo org list のハンドラ。"""
-    adapter = get_adapter()
+    adapter = get_adapter(require_repo=False)
     orgs = adapter.list_organizations(limit=args.limit)
     output(orgs, fmt=fmt, fields=["name", "display_name", "url"], jq=jq)
 
 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo org view <name> のハンドラ。"""
-    adapter = get_adapter()
+    adapter = get_adapter(require_repo=False)
     org = adapter.get_organization(args.name)
     output(org, fmt=fmt, jq=jq)
 
 
 def handle_members(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo org members <name> のハンドラ。"""
-    adapter = get_adapter()
+    adapter = get_adapter(require_repo=False)
     members = adapter.list_org_members(args.name, limit=args.limit)
     if fmt == "json":
         json_str = json.dumps(members, ensure_ascii=False)
@@ -40,14 +40,14 @@ def handle_members(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
 
 def handle_repos(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo org repos <name> のハンドラ。"""
-    adapter = get_adapter()
+    adapter = get_adapter(require_repo=False)
     repos = adapter.list_org_repos(args.name, limit=args.limit)
     output(repos, fmt=fmt, fields=["name", "full_name", "private", "url"], jq=jq)
 
 
 def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo org create のハンドラ。"""
-    adapter = get_adapter()
+    adapter = get_adapter(require_repo=False)
     org = adapter.create_organization(
         args.name,
         display_name=getattr(args, "display_name", None),
@@ -58,7 +58,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 
 def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo org edit のハンドラ。"""
-    adapter = get_adapter()
+    adapter = get_adapter(require_repo=False)
     org = adapter.update_organization(
         args.name,
         display_name=getattr(args, "display_name", None),
@@ -71,7 +71,7 @@ def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo org delete のハンドラ。"""
     from gfo.i18n import _
 
-    adapter = get_adapter()
+    adapter = get_adapter(require_repo=False)
     if not confirm_action(
         args,
         _(

@@ -62,6 +62,19 @@ class TestHandleApi:
         out = capsys.readouterr().out
         assert '"id": 1' in out
 
+    def test_resolves_config_without_requiring_repo(self, sample_config, mock_client):
+        """api は任意パスへの生リクエストのため owner/repo 未解決でも動く（require_repo=False）。"""
+        args = make_args(method="GET", path="/user", data=None, header=None)
+        with (
+            patch(
+                "gfo.commands.api.resolve_project_config", return_value=sample_config
+            ) as mock_resolve,
+            patch("gfo.commands.api.resolve_token", return_value="test-token"),
+            patch("gfo.commands.api.create_http_client", return_value=mock_client),
+        ):
+            api_cmd.handle_api(args, fmt="json")
+        mock_resolve.assert_called_once_with(require_repo=False)
+
     def test_post_with_data(self, sample_config, mock_client, capsys):
         args = make_args(
             method="post",

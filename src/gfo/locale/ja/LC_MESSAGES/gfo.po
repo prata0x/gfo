@@ -2170,6 +2170,9 @@ msgstr "'{key}' を設定できません: '{part}' はテーブルではあり�
 msgid "Could not resolve host."
 msgstr "ホストを解決できませんでした。"
 
+msgid "Could not resolve owner/repo."
+msgstr "owner/repo を解決できませんでした。"
+
 msgid "Could not resolve service type."
 msgstr "サービス種別を解決できませんでした。"
 

@@ -82,3 +82,14 @@ class TestHandleWhoami:
             with pytest.raises(HttpError) as exc_info:
                 user_cmd.handle_whoami(args, fmt="table")
             assert exc_info.value.status_code == 401
+
+    def test_works_without_resolvable_repo(self, capsys):
+        """user はアカウント単位の操作のため owner/repo 未解決でも動く（require_repo=False）。"""
+        from unittest.mock import MagicMock, patch
+
+        adapter = MagicMock()
+        adapter.get_current_user.return_value = {"login": "testuser"}
+        with patch("gfo.commands.user.get_adapter", return_value=adapter) as mock_get_adapter:
+            args = make_args()
+            user_cmd.handle_whoami(args, fmt="table")
+        mock_get_adapter.assert_called_once_with(require_repo=False)

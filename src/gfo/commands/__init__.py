@@ -96,18 +96,24 @@ def read_token_input(*, stdin: bool = False, file_path: str | None = None) -> st
     return None
 
 
-def get_adapter() -> GitServiceAdapter:
-    """設定を解決してアダプターインスタンスを返す共通ヘルパー。"""
-    config = gfo.config.resolve_project_config()
+def get_adapter(*, require_repo: bool = True) -> GitServiceAdapter:
+    """設定を解決してアダプターインスタンスを返す共通ヘルパー。
+
+    `require_repo=False` は、org/user/notification 操作等 owner/repo を
+    一切参照しないハンドラ向け（owner/repo が未解決でも `ConfigError` にしない）。
+    """
+    config = gfo.config.resolve_project_config(require_repo=require_repo)
     return gfo.adapter.registry.create_adapter(config)
 
 
-def get_adapter_with_config() -> tuple[GitServiceAdapter, ProjectConfig]:
+def get_adapter_with_config(
+    *, require_repo: bool = True
+) -> tuple[GitServiceAdapter, ProjectConfig]:
     """設定を解決してアダプターインスタンスと設定オブジェクトをまとめて返す。
 
     service_type 等の設定値を参照しつつアダプターを使用するハンドラ向け。
     """
-    config = gfo.config.resolve_project_config()
+    config = gfo.config.resolve_project_config(require_repo=require_repo)
     return gfo.adapter.registry.create_adapter(config), config
 
 

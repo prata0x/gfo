@@ -125,3 +125,14 @@ class TestHandleDelete:
             args = make_args(id=1, yes=True)
             with pytest.raises(HttpError):
                 ssh_key_cmd.handle_delete(args, fmt="table")
+
+
+def test_handle_view_works_without_resolvable_repo():
+    """ssh-key はユーザーアカウント単位の操作のため owner/repo 未解決でも動く（require_repo=False）。"""
+    from unittest.mock import patch
+
+    with patch("gfo.commands.ssh_key.get_adapter") as mock_get_adapter:
+        mock_get_adapter.return_value.get_ssh_key.return_value = SAMPLE_KEY
+        args = make_args(id=1)
+        ssh_key_cmd.handle_view(args, fmt="table")
+    mock_get_adapter.assert_called_once_with(require_repo=False)

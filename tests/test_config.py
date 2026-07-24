@@ -711,6 +711,86 @@ def test_resolve_remote_url_failure_falls_back_to_git_config_owner_repo():
     assert cfg.repo == "ci-repo"
 
 
+def test_resolve_raises_when_owner_repo_unresolvable_bare_repo():
+    """bare リポジトリで remote も gfo.owner/gfo.repo も無い場合 → ConfigError。"""
+    from gfo.exceptions import GitCommandError
+
+    git_cfg = {
+        "gfo.type": "github",
+        "gfo.host": "github.com",
+        "gfo.api-url": None,
+        "gfo.owner": None,
+        "gfo.repo": None,
+        "gfo.organization": None,
+        "gfo.project-key": None,
+    }
+    with (
+        patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
+        patch(
+            "gfo.git_util.get_remote_url",
+            side_effect=GitCommandError("no remote"),
+        ),
+    ):
+        with pytest.raises(ConfigError, match="Could not resolve owner/repo"):
+            resolve_project_config()
+
+
+def test_resolve_raises_when_owner_repo_unresolvable_via_detect():
+    """detect_service() が owner/repo を解決できない場合 → ConfigError。"""
+    from gfo.detect import DetectResult
+
+    git_cfg = {
+        "gfo.type": None,
+        "gfo.host": None,
+        "gfo.api-url": None,
+        "gfo.owner": None,
+        "gfo.repo": None,
+        "gfo.organization": None,
+        "gfo.project-key": None,
+    }
+    detect_result = DetectResult(
+        service_type="github",
+        host="github.com",
+        owner="",
+        repo="",
+    )
+    with (
+        patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
+        patch("gfo.detect.detect_service", return_value=detect_result),
+    ):
+        with pytest.raises(ConfigError, match="Could not resolve owner/repo"):
+            resolve_project_config()
+
+
+def test_resolve_require_repo_false_allows_empty_owner_repo():
+    """require_repo=False では owner/repo が空文字列でも ConfigError にしない。"""
+    from gfo.detect import DetectResult
+
+    git_cfg = {
+        "gfo.type": None,
+        "gfo.host": None,
+        "gfo.api-url": None,
+        "gfo.owner": None,
+        "gfo.repo": None,
+        "gfo.organization": None,
+        "gfo.project-key": None,
+    }
+    detect_result = DetectResult(
+        service_type="github",
+        host="github.com",
+        owner="",
+        repo="",
+    )
+    with (
+        patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
+        patch("gfo.detect.detect_service", return_value=detect_result),
+    ):
+        cfg = resolve_project_config(require_repo=False)
+    assert cfg.owner == ""
+    assert cfg.repo == ""
+    assert cfg.host == "github.com"
+
+
 def test_resolve_raises_when_no_host():
     """gfo.host が未設定かつ detect_service も host を返さない → ConfigError。"""
     from gfo.detect import DetectResult

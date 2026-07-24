@@ -410,8 +410,13 @@ def _toml_value(value: Any) -> str:
 # ── 設定解決 ──
 
 
-def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
-    """3 層の設定解決を実行し、ProjectConfig を返す。"""
+def resolve_project_config(cwd: str | None = None, *, require_repo: bool = True) -> ProjectConfig:
+    """3 層の設定解決を実行し、ProjectConfig を返す。
+
+    `require_repo=False` を指定すると owner/repo が空文字列でも `ConfigError`
+    を送出しない。owner/repo を使わない `gfo api` 等、host/service_type/api_url
+    のみで足りる呼び出し元向け。
+    """
     # 循環依存回避のため遅延インポートを使用。
     # config.py はモジュールレベルで detect.py / git_util.py を import できない:
     #   detect.py → detect_service() で gfo.config を遅延 import
@@ -493,6 +498,11 @@ def resolve_project_config(cwd: str | None = None) -> ProjectConfig:
         pk_override = gfo.git_util.git_config_get("gfo.project-key", cwd=cwd)
         if pk_override:
             project_key = pk_override
+
+    if require_repo and (not owner or not repo):
+        err = ConfigError(_("Could not resolve owner/repo."))
+        err.hint = _init_hint
+        raise err
 
     # 4. api_url の解決
     api_url = gfo.git_util.git_config_get("gfo.api-url", cwd=cwd) if not override_active else None

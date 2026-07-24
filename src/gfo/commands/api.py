@@ -74,7 +74,7 @@ def _parse_headers(header_list: list[str] | None) -> dict[str, str]:
 
 def handle_api(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo api のハンドラ。"""
-    config = resolve_project_config()
+    config = resolve_project_config(require_repo=False)
     token = resolve_token(config.host, config.service_type)
     client = create_http_client(config.service_type, config.api_url, token)
 
