@@ -385,8 +385,10 @@ def detect_service(cwd: str | None = None) -> DetectResult:
             # URL パース結果と git config 設定が食い違う場合に警告
             if result.service_type is not None and result.service_type != saved_type:
                 warnings.warn(
-                    f"gfo.type={saved_type!r} but URL suggests {result.service_type!r}; "
-                    "using git config value.",
+                    _(
+                        "gfo.type={saved_type!r} but URL suggests {suggested!r}; "
+                        "using git config value."
+                    ).format(saved_type=saved_type, suggested=result.service_type),
                     stacklevel=2,
                 )
             # service_type と host を git config の値で統一する

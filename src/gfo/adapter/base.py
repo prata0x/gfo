@@ -159,7 +159,9 @@ class GitServiceAdapter(ABC):
         for param, value in kwargs.items():
             if value:
                 warnings.warn(
-                    f"{self.service_name} does not support {param} on {resource}",
+                    _("{service} does not support {param} on {resource}").format(
+                        service=self.service_name, param=param, resource=resource
+                    ),
                     stacklevel=3,
                 )
 

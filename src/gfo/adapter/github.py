@@ -969,7 +969,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             import warnings
 
             warnings.warn(
-                "label は add_labels/remove_labels と同時指定できません。label を無視します",
+                _(
+                    "label cannot be specified together with add_labels/remove_labels; ignoring label"
+                ),
                 stacklevel=2,
             )
         elif label is not None:

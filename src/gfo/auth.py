@@ -195,10 +195,11 @@ def load_tokens() -> dict[str, dict[str, str]]:
     old_format_hosts = [str(k) for k, v in tokens.items() if isinstance(v, str)]
     if old_format_hosts:
         warnings.warn(
-            "credentials.toml contains old format entries for: "
-            f"{', '.join(old_format_hosts)}. "
-            "Run 'gfo auth login' to re-register. "
-            "The old format compatibility shim will be removed in a future release.",
+            _(
+                "credentials.toml contains old format entries for: {hosts}. "
+                "Run 'gfo auth login' to re-register. "
+                "The old format compatibility shim will be removed in a future release."
+            ).format(hosts=", ".join(old_format_hosts)),
             stacklevel=2,
         )
     return {
@@ -314,14 +315,18 @@ def _set_credentials_permissions(path: Path) -> None:
             )
             if result.returncode != 0:
                 warnings.warn(
-                    "Could not set file permissions on credentials file "
-                    f"(icacls exited with code {result.returncode}).",
+                    _(
+                        "Could not set file permissions on credentials file "
+                        "(icacls exited with code {code})."
+                    ).format(code=result.returncode),
                     stacklevel=2,
                 )
         except OSError:
             warnings.warn(
-                "Could not set file permissions on credentials file "
-                "(getpass.getuser() failed, possibly in CI/Docker environment).",
+                _(
+                    "Could not set file permissions on credentials file "
+                    "(getpass.getuser() failed, possibly in CI/Docker environment)."
+                ),
                 stacklevel=2,
             )
 

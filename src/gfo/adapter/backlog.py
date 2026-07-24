@@ -65,7 +65,7 @@ def _events_to_activity_type_ids(events: list[str]) -> list[int]:
         mapped = _ACTIVITY_TYPE_IDS.get(event)
         if mapped is None:
             warnings.warn(
-                f"Backlog does not support webhook event '{event}'; ignored",
+                _("Backlog does not support webhook event '{event}'; ignored").format(event=event),
                 stacklevel=3,
             )
             continue
@@ -373,7 +373,7 @@ class BacklogAdapter(GitServiceAdapter):
             params["keyword"] = search
             if label:
                 warnings.warn(
-                    "Backlog does not support search and label simultaneously; label ignored",
+                    _("Backlog does not support search and label simultaneously; label ignored"),
                     stacklevel=2,
                 )
         elif label:
@@ -880,7 +880,9 @@ class BacklogAdapter(GitServiceAdapter):
             # active=False（--inactive）は _warn_unsupported_params の truthy
             # チェックでは検知できないため、None チェックで個別に警告する。
             warnings.warn(
-                f"{self.service_name} does not support active on webhook edit",
+                _("{service} does not support active on webhook edit").format(
+                    service=self.service_name
+                ),
                 stacklevel=2,
             )
         payload: dict[str, Any] = {}
