@@ -2296,6 +2296,7 @@ class GitLabAdapter(GitServiceAdapter):
                 link_id = r.get("issue_link_id") or r.get("id")
                 self._client.delete(f"{self._project_path()}/issues/{number}/links/{link_id}")
                 return
+        raise NotFoundError(detail=f"Issue dependency #{depends_on} not found on issue #{number}")
 
     # --- Issue Timeline ---
 
