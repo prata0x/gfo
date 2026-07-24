@@ -194,54 +194,70 @@ class TestGitLabGpgKey:
 
 
 class TestBitbucketGpgKey:
-    @responses.activate
-    def test_list(self, bitbucket_adapter):
+    """{selected_user} は owner（ワークスペース slug）ではなく認証済みユーザーの UUID を使う（#216）。"""
+
+    @staticmethod
+    def _mock_current_user():
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/users/test-workspace/gpg-keys",
+            "https://api.bitbucket.org/2.0/user",
+            json={"nickname": "testuser", "uuid": "{my-uuid}"},
+        )
+
+    @responses.activate
+    def test_list(self, bitbucket_adapter):
+        self._mock_current_user()
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/gpg-keys",
             json={"values": [_bitbucket_gpg_key_data()], "pagelen": 10},
         )
         keys = bitbucket_adapter.list_gpg_keys()
         assert len(keys) == 1
         assert keys[0].id == "AABBCCDD"
         assert keys[0].primary_key_id == "AABBCCDD"
+        assert "test-workspace" not in responses.calls[-1].request.url
 
     @responses.activate
     def test_create(self, bitbucket_adapter):
+        self._mock_current_user()
         responses.add(
             responses.POST,
-            "https://api.bitbucket.org/2.0/users/test-workspace/gpg-keys",
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/gpg-keys",
             json=_bitbucket_gpg_key_data(fingerprint="EEFF0011"),
             status=201,
         )
         key = bitbucket_adapter.create_gpg_key(armored_key="-----BEGIN PGP...")
         assert key.id == "EEFF0011"
-        req_body = json.loads(responses.calls[0].request.body)
+        req_body = json.loads(responses.calls[-1].request.body)
         assert req_body["key"] == "-----BEGIN PGP..."
 
     @responses.activate
     def test_delete(self, bitbucket_adapter):
+        self._mock_current_user()
         responses.add(
             responses.DELETE,
-            "https://api.bitbucket.org/2.0/users/test-workspace/gpg-keys/AABBCCDD",
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/gpg-keys/AABBCCDD",
             status=204,
         )
         bitbucket_adapter.delete_gpg_key(key_id="AABBCCDD")
 
     @responses.activate
     def test_list_empty(self, bitbucket_adapter):
+        self._mock_current_user()
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/users/test-workspace/gpg-keys",
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/gpg-keys",
             json={"values": [], "pagelen": 10},
         )
         assert bitbucket_adapter.list_gpg_keys() == []
 
     @responses.activate
     def test_list_404(self, bitbucket_adapter):
+        self._mock_current_user()
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/users/test-workspace/gpg-keys",
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/gpg-keys",
             status=404,
         )
         with pytest.raises(NotFoundError):
@@ -249,9 +265,10 @@ class TestBitbucketGpgKey:
 
     @responses.activate
     def test_delete_403(self, bitbucket_adapter):
+        self._mock_current_user()
         responses.add(
             responses.DELETE,
-            "https://api.bitbucket.org/2.0/users/test-workspace/gpg-keys/AABBCCDD",
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/gpg-keys/AABBCCDD",
             status=403,
         )
         with pytest.raises(AuthenticationError):

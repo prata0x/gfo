@@ -1467,27 +1467,45 @@ class BitbucketAdapter(GitServiceAdapter):
 
     # --- SSH Key ---
 
+    def _current_user_uuid(self) -> str:
+        """SSH/GPG key API の `{selected_user}` に使う認証済みユーザーの UUID を取得する。
+
+        `/users/{selected_user}/ssh-keys` 等は個人アカウント専用のエンドポイントで、
+        `{selected_user}` にはワークスペース slug（リポジトリ owner）ではなく
+        認証済みユーザー自身の UUID/Account ID を渡す必要がある（#216）。
+        """
+        uuid = self.get_current_user().get("uuid")
+        if not uuid:
+            raise GfoError(
+                _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                    endpoint="user", error="missing uuid"
+                )
+            )
+        return str(uuid)
+
     def get_ssh_key(self, key_id: int | str) -> SshKey:
-        resp = self._client.get(f"/users/{quote(self._owner, safe='')}/ssh-keys/{key_id}")
+        resp = self._client.get(
+            f"/users/{quote(self._current_user_uuid(), safe='')}/ssh-keys/{key_id}"
+        )
         return self._to_ssh_key(resp.json())
 
     def list_ssh_keys(self, *, limit: int = 30) -> list[SshKey]:
         results = paginate_response_body(
             self._client,
-            f"/users/{quote(self._owner, safe='')}/ssh-keys",
+            f"/users/{quote(self._current_user_uuid(), safe='')}/ssh-keys",
             limit=limit,
         )
         return [self._to_ssh_key(d) for d in results]
 
     def create_ssh_key(self, *, title: str, key: str) -> SshKey:
         resp = self._client.post(
-            f"/users/{quote(self._owner, safe='')}/ssh-keys",
+            f"/users/{quote(self._current_user_uuid(), safe='')}/ssh-keys",
             json={"label": title, "key": key},
         )
         return self._to_ssh_key(resp.json())
 
     def delete_ssh_key(self, *, key_id: int | str) -> None:
-        self._client.delete(f"/users/{quote(self._owner, safe='')}/ssh-keys/{key_id}")
+        self._client.delete(f"/users/{quote(self._current_user_uuid(), safe='')}/ssh-keys/{key_id}")
 
     @staticmethod
     @_wrap_conversion_error
@@ -1506,26 +1524,28 @@ class BitbucketAdapter(GitServiceAdapter):
     # --- GPG Key ---
 
     def get_gpg_key(self, key_id: int | str) -> GpgKey:
-        resp = self._client.get(f"/users/{quote(self._owner, safe='')}/gpg-keys/{key_id}")
+        resp = self._client.get(
+            f"/users/{quote(self._current_user_uuid(), safe='')}/gpg-keys/{key_id}"
+        )
         return self._to_gpg_key(resp.json())
 
     def list_gpg_keys(self, *, limit: int = 30) -> list[GpgKey]:
         results = paginate_response_body(
             self._client,
-            f"/users/{quote(self._owner, safe='')}/gpg-keys",
+            f"/users/{quote(self._current_user_uuid(), safe='')}/gpg-keys",
             limit=limit,
         )
         return [self._to_gpg_key(r) for r in results]
 
     def create_gpg_key(self, *, armored_key: str) -> GpgKey:
         resp = self._client.post(
-            f"/users/{quote(self._owner, safe='')}/gpg-keys",
+            f"/users/{quote(self._current_user_uuid(), safe='')}/gpg-keys",
             json={"key": armored_key},
         )
         return self._to_gpg_key(resp.json())
 
     def delete_gpg_key(self, *, key_id: int | str) -> None:
-        self._client.delete(f"/users/{quote(self._owner, safe='')}/gpg-keys/{key_id}")
+        self._client.delete(f"/users/{quote(self._current_user_uuid(), safe='')}/gpg-keys/{key_id}")
 
     @staticmethod
     def _to_gpg_key(data: dict[str, Any]) -> GpgKey:

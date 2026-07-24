@@ -183,55 +183,71 @@ class TestGitLabSshKey:
 
 
 class TestBitbucketSshKey:
-    @responses.activate
-    def test_list(self, bitbucket_adapter):
+    """{selected_user} は owner（ワークスペース slug）ではなく認証済みユーザーの UUID を使う（#216）。"""
+
+    @staticmethod
+    def _mock_current_user():
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/users/test-workspace/ssh-keys",
+            "https://api.bitbucket.org/2.0/user",
+            json={"nickname": "testuser", "uuid": "{my-uuid}"},
+        )
+
+    @responses.activate
+    def test_list(self, bitbucket_adapter):
+        self._mock_current_user()
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/ssh-keys",
             json={"values": [_bitbucket_ssh_key_data()], "pagelen": 10},
         )
         keys = bitbucket_adapter.list_ssh_keys()
         assert len(keys) == 1
         assert keys[0].id == "abc-123"
         assert keys[0].title == "my-key"
+        assert "test-workspace" not in responses.calls[-1].request.url
 
     @responses.activate
     def test_create(self, bitbucket_adapter):
+        self._mock_current_user()
         responses.add(
             responses.POST,
-            "https://api.bitbucket.org/2.0/users/test-workspace/ssh-keys",
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/ssh-keys",
             json=_bitbucket_ssh_key_data(uuid="{def-456}", label="new-key"),
             status=201,
         )
         key = bitbucket_adapter.create_ssh_key(title="new-key", key="ssh-rsa BBBB...")
         assert key.id == "def-456"
         assert key.title == "new-key"
-        req_body = json.loads(responses.calls[0].request.body)
+        req_body = json.loads(responses.calls[-1].request.body)
         assert req_body["label"] == "new-key"
 
     @responses.activate
     def test_delete(self, bitbucket_adapter):
+        self._mock_current_user()
         responses.add(
             responses.DELETE,
-            "https://api.bitbucket.org/2.0/users/test-workspace/ssh-keys/abc-123",
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/ssh-keys/abc-123",
             status=204,
         )
         bitbucket_adapter.delete_ssh_key(key_id="abc-123")
 
     @responses.activate
     def test_list_empty(self, bitbucket_adapter):
+        self._mock_current_user()
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/users/test-workspace/ssh-keys",
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/ssh-keys",
             json={"values": [], "pagelen": 10},
         )
         assert bitbucket_adapter.list_ssh_keys() == []
 
     @responses.activate
     def test_list_404(self, bitbucket_adapter):
+        self._mock_current_user()
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/users/test-workspace/ssh-keys",
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/ssh-keys",
             status=404,
         )
         with pytest.raises(NotFoundError):
@@ -239,9 +255,10 @@ class TestBitbucketSshKey:
 
     @responses.activate
     def test_delete_403(self, bitbucket_adapter):
+        self._mock_current_user()
         responses.add(
             responses.DELETE,
-            "https://api.bitbucket.org/2.0/users/test-workspace/ssh-keys/abc-123",
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/ssh-keys/abc-123",
             status=403,
         )
         with pytest.raises(AuthenticationError):
