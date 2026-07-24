@@ -1039,6 +1039,37 @@ class TestErrorHandling:
             bitbucket_adapter.get_repository()
 
 
+class TestUpdateRepository:
+    def test_update_name_description_private(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}",
+            json=_repo_data(),
+            status=200,
+        )
+        bitbucket_adapter.update_repository(name="new-name", description="new desc", private=True)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body == {"name": "new-name", "description": "new desc", "is_private": True}
+
+    def test_default_branch_warns_and_is_not_sent(self, mock_responses, bitbucket_adapter):
+        """default_branch は Bitbucket API 経由で変更できないため、警告のみで payload には含めない。"""
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}",
+            json=_repo_data(),
+            status=200,
+        )
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            bitbucket_adapter.update_repository(default_branch="develop")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "default_branch" not in req_body
+        messages = [str(x.message) for x in w]
+        assert any("default_branch" in m for m in messages)
+
+
 class TestDeleteRepository:
     def test_delete(self, mock_responses, bitbucket_adapter):
         mock_responses.add(

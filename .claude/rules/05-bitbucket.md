@@ -38,6 +38,11 @@ paths:
 - **`set_variable` / `set_secret`**: upsert パターン必須（GET で存在チェック → PUT/POST 使い分け）
   - 過去バグ: POST のみだと既存変数で API エラー
 
+## リポジトリ更新
+
+- **`update_repository` の非対応パラメータ**: `default_branch`/`archived` は Bitbucket API 経由で変更できない。両方とも `_warn_unsupported_params` の呼び出しに含めること（payload に積まず、かつ黙って無視しない）
+  - 過去バグ（#232）: `archived` は警告対象に含まれていたが `default_branch` が漏れており、`--default-branch` を指定しても警告なしに何も起きない中間状態になっていた
+
 ## PR checkout
 
 - **refspec はブランチ名**: GitHub の `refs/pull/{number}/head` とは異なり、ソースブランチ名をそのまま返す

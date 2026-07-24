@@ -402,6 +402,7 @@ class BitbucketAdapter(GitServiceAdapter):
     ) -> Repository:
         self._warn_unsupported_params(
             "repo update",
+            default_branch=default_branch,
             archived=archived,
             allow_merge_commit=allow_merge_commit,
             allow_squash_merge=allow_squash_merge,
