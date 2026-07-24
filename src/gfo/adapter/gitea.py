@@ -344,8 +344,10 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         if archived is not None:
             results = [r for r in results if r.get("archived", False) == archived]
         if visibility is not None:
-            is_private = visibility == "private"
-            results = [r for r in results if r.get("private", False) == is_private]
+            # Gitea には private/internal の2つの独立した bool しかなく、
+            # private だけを見るとinternal・publicを区別できない（#205 と同根）。
+            # _to_repository() が持つ private/internal/public 判定を再利用する。
+            results = [r for r in results if self._to_repository(r).visibility == visibility]
         if needs_client_filter and limit > 0:
             results = results[:limit]
         return [self._to_repository(r) for r in results]

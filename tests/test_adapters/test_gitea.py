@@ -3358,6 +3358,32 @@ class TestListRepositoriesArchivedGitea:
         assert repos[0].name == "active"
 
 
+class TestListRepositoriesVisibilityGitea:
+    """--visibility フィルタが private/internal/public を正しく区別する（#205）。"""
+
+    _REPOS = [
+        _repo_data(name="pub-repo"),
+        _repo_data(name="priv-repo", private=True),
+        _repo_data(name="internal-repo", internal=True),
+    ]
+
+    def test_visibility_public(self, mock_responses, gitea_adapter):
+        mock_responses.add(responses.GET, f"{BASE}/user/repos", json=self._REPOS, status=200)
+        repos = gitea_adapter.list_repositories(visibility="public")
+        assert [r.name for r in repos] == ["pub-repo"]
+
+    def test_visibility_private(self, mock_responses, gitea_adapter):
+        mock_responses.add(responses.GET, f"{BASE}/user/repos", json=self._REPOS, status=200)
+        repos = gitea_adapter.list_repositories(visibility="private")
+        assert [r.name for r in repos] == ["priv-repo"]
+
+    def test_visibility_internal(self, mock_responses, gitea_adapter):
+        """internal フィルタが public/private を取りこぼさず内部リポジトリだけを返す(#205)。"""
+        mock_responses.add(responses.GET, f"{BASE}/user/repos", json=self._REPOS, status=200)
+        repos = gitea_adapter.list_repositories(visibility="internal")
+        assert [r.name for r in repos] == ["internal-repo"]
+
+
 class TestCreateRepositoryAutoInitGitea:
     @responses.activate
     def test_auto_init_true(self, gitea_adapter):
