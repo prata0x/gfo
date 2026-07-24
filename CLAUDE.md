@@ -86,7 +86,7 @@ uv run pre-commit install
 
 ## ワークフロー（規律）
 
-GitHub Rules（`main` ブランチ保護・リリースタグ保護）は free プランでは実効しないが、**規律として遵守する**。
+GitHub Rules（`main` ブランチ保護は ruleset `main-protection`、リリースタグ保護は ruleset `release-tags`）は GitHub 側で enforce されている。
 
 - **`main` へ直接 commit / push・force-push しない。** 必ず feature branch を切る（`git switch -c <kebab>`）→ commit → push → `gh pr create --base main` → **CI green を確認して self-merge**（`gh pr merge --merge`。squash はリポジトリ設定で無効）。
 - **赤い CI はマージしない。**
