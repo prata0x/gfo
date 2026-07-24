@@ -1458,6 +1458,10 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             resp = self._client.get(f"/build/builds/{pipeline_id}/logs/{job_id}")
             yield from resp.text.splitlines()
             return
+        # Build Logs - List エンドポイントは api-version 以外のクエリパラメータを
+        # 一切ドキュメント化していない（List Builds 等の $top/continuationToken
+        # 対応エンドポイントとは異なる）。ページネーション非対応と判断し、単発 GET
+        # のままにする（#146 で調査、Azure DevOps 分は対象外と判断）。
         logs_resp = self._client.get(f"/build/builds/{pipeline_id}/logs")
         log_entries = logs_resp.json().get("value", [])
         for i, entry in enumerate(log_entries):
