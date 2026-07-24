@@ -1827,6 +1827,8 @@ gfo deploy-key view 3
 gfo deploy-key create --title TITLE --key KEY [--read-write]
 ```
 
+> Bitbucket does not support `--read-write` (Bitbucket Cloud deploy keys are always read-only; a warning is printed and the key is created as read-only)
+
 ```bash
 gfo deploy-key create --title "CI Server" --key "ssh-rsa AAAA..."
 gfo deploy-key create --title "Deploy Bot" --key "ssh-ed25519 AAAA..." --read-write

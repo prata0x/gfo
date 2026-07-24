@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterable, Iterator
 from typing import Any, ClassVar
 from urllib.parse import quote
@@ -1063,6 +1064,15 @@ class BitbucketAdapter(GitServiceAdapter):
         return [self._to_deploy_key(r) for r in results]
 
     def create_deploy_key(self, *, title: str, key: str, read_only: bool = True) -> DeployKey:
+        if not read_only:
+            # Bitbucket Cloud の Access Key（Deploy Key）は read-only 固定であり、
+            # read/write を選択する API パラメータ自体が存在しない（read_only=False
+            # は _warn_unsupported_params の truthy チェックをすり抜けるため個別に警告する）。
+            warnings.warn(
+                f"{self.service_name} does not support read-write deploy keys; "
+                "created as read-only",
+                stacklevel=2,
+            )
         payload = {"label": title, "key": key}
         resp = self._client.post(f"{self._repos_path()}/deploy-keys", json=payload)
         return self._to_deploy_key(resp.json())

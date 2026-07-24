@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import warnings
 from urllib.parse import unquote, unquote_plus
 
 import pytest
@@ -1641,6 +1642,41 @@ class TestCreateDeployKey:
         assert isinstance(key, DeployKey)
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["label"] == "Deploy Key"
+
+    def test_create_read_only_true_does_not_warn(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/deploy-keys",
+            json=_deploy_key_data(),
+            status=201,
+        )
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            bitbucket_adapter.create_deploy_key(
+                title="Deploy Key", key="ssh-rsa AAAA...", read_only=True
+            )
+        assert len(w) == 0
+
+    def test_create_read_write_warns_and_created_as_read_only(
+        self, mock_responses, bitbucket_adapter
+    ):
+        """Bitbucket Cloud には read-write の deploy key を作る API が無いため警告する（#200）。"""
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/deploy-keys",
+            json=_deploy_key_data(),
+            status=201,
+        )
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            bitbucket_adapter.create_deploy_key(
+                title="Deploy Key", key="ssh-rsa AAAA...", read_only=False
+            )
+        messages = [str(x.message) for x in w]
+        assert any("read-write" in m for m in messages)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "can_push" not in req_body
+        assert "read_only" not in req_body
 
 
 class TestDeleteDeployKey:
