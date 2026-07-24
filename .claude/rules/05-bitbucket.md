@@ -50,3 +50,8 @@ paths:
 
 - **`create_deploy_key`**: Bitbucket Cloud の Access Key（Deploy Key）は API レベルで read-only 固定であり、read/write を選択するパラメータ自体が存在しない（Bitbucket **Server**（オンプレミス版）にのみある機能で、Cloud には無い）。`read_only=False`（`--read-write` 相当）が渡された場合は payload に何も追加せず、`warnings.warn` で明示的に警告すること
   - `_warn_unsupported_params` の truthy チェックは通せない（`read_only=False` は falsy なので検知できない）ため、`if not read_only:` の明示チェックで個別に警告する必要がある（#200）
+
+## SSH Key / GPG Key
+
+- **`{selected_user}` は認証済みユーザーの UUID を使う**: `/users/{selected_user}/ssh-keys`・`/users/{selected_user}/gpg-keys` は個人アカウント専用のエンドポイントで、`{selected_user}` にはワークスペース slug ではなく認証済みユーザー自身の UUID（または Atlassian Account ID）を渡す必要がある。`_current_user_uuid()`（`get_current_user()["uuid"]`）を使うこと
+  - 過去バグ（#216）: リポジトリ spec の owner セグメント（`self._owner`）をそのまま `{selected_user}` に埋め込んでおり、個人アカウント所有リポジトリでは偶然 owner=本人のユーザー名と一致するため動作しうるが、ワークスペース（チーム）所有リポジトリでは owner がワークスペース slug になり、個人アカウント識別子として不正な値になっていた
