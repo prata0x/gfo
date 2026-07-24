@@ -1750,6 +1750,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                         headers={"Content-Type": "application/json-patch+json"},
                     )
                     return
+        raise NotFoundError(detail=f"Issue dependency #{depends_on} not found on issue #{number}")
 
     # --- Issue Timeline (Work Item Updates) ---
 

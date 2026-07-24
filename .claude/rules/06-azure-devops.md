@@ -55,3 +55,15 @@ paths:
   `"modified"` に化けてしまう
   - 過去バグ（#137）: `compare()` だけがこの分割処理を欠いており、rename を伴うファイルが常に
     `"modified"` と誤判定されていた（`list_pull_request_files()` 側は最初から正しく処理していた）
+
+## remove_issue_dependency
+
+work item の `relations` を GET で取得し、`depends_on`（対象 issue id）に一致するリレーションを
+探して `op: "remove"` の JSON Patch を送る（Azure DevOps は削除に relations 配列の index が必要で
+issue id から直接指定できない）。一致するリレーションが1件も見つからなかった場合は `NotFoundError`
+を送出すること（黙って正常終了しない）。
+
+- 過去バグ（#242、GitLab の #218 と同じバグクラス）: 一致が見つからない場合のフォールバックが無く、
+  `for` ループを抜けて暗黙に `None` を返して正常終了していた。CLI 層（`commands/issue.py` の
+  `handle_depends`）は戻り値を確認せず常に成功メッセージを出すため、既に存在しない依存関係を
+  指定しても「削除しました」と表示されていた
