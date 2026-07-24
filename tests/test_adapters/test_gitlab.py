@@ -4628,3 +4628,37 @@ class TestRemoveIssueReaction:
         gitlab_adapter.remove_issue_reaction(5, "+1")
         delete_calls = [c for c in mock_responses.calls if c.request.method == "DELETE"]
         assert len(delete_calls) == 0
+
+
+class TestRemoveIssueDependency:
+    def test_remove_issue_dependency_deletes_matching_link(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/issues/5/links",
+            json=[{"iid": 999, "issue_link_id": 42}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/issues/5/links/42",
+            status=204,
+        )
+        gitlab_adapter.remove_issue_dependency(5, 999)
+        delete_calls = [c for c in mock_responses.calls if c.request.method == "DELETE"]
+        assert len(delete_calls) == 1
+        assert delete_calls[0].request.url == f"{PROJECT}/issues/5/links/42"
+
+    def test_remove_issue_dependency_no_match_raises_not_found(
+        self, mock_responses, gitlab_adapter
+    ):
+        """対象の依存関係が見つからない場合は NotFoundError を送出する（黙って成功扱いにしない）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/issues/5/links",
+            json=[],
+            status=200,
+        )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.remove_issue_dependency(5, 999)
+        delete_calls = [c for c in mock_responses.calls if c.request.method == "DELETE"]
+        assert len(delete_calls) == 0
