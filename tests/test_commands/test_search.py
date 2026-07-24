@@ -42,6 +42,24 @@ class TestHandleRepos:
             search_cmd.handle_repos(args, fmt="table")
         adapter.search_repositories.assert_called_once_with("test", limit=10)
 
+    def test_table_output_shows_visibility(self, capsys):
+        """table 出力で visibility 列に値が表示される（存在しない 'private' フィールドで空欄化しない）。"""
+        private_repo = Repository(
+            name="secret-repo",
+            full_name="owner/secret-repo",
+            description="",
+            visibility="private",
+            default_branch="main",
+            clone_url="https://github.com/owner/secret-repo.git",
+            url="https://github.com/owner/secret-repo",
+        )
+        with patch_adapter("gfo.commands.search") as adapter:
+            adapter.search_repositories.return_value = [private_repo]
+            args = make_args(query="test", limit=10)
+            search_cmd.handle_repos(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "private" in out
+
     def test_json_output(self, capsys):
         with patch_adapter("gfo.commands.search") as adapter:
             adapter.search_repositories.return_value = [SAMPLE_REPO]

@@ -135,6 +135,24 @@ class TestHandleRepos:
         out = capsys.readouterr().out
         assert "repo1" in out
 
+    def test_table_output_shows_visibility(self, capsys):
+        """table 出力で visibility 列に値が表示される（存在しない 'private' フィールドで空欄化しない）。"""
+        private_repo = Repository(
+            name="secret-repo",
+            full_name="my-org/secret-repo",
+            description="",
+            visibility="private",
+            default_branch="main",
+            clone_url="https://github.com/my-org/secret-repo.git",
+            url="https://github.com/my-org/secret-repo",
+        )
+        with patch_adapter("gfo.commands.org") as adapter:
+            adapter.list_org_repos.return_value = [private_repo]
+            args = make_args(name="my-org", limit=30)
+            org_cmd.handle_repos(args, fmt="table")
+        out = capsys.readouterr().out
+        assert "private" in out
+
     def test_json_format(self, capsys):
         with patch_adapter("gfo.commands.org") as adapter:
             adapter.list_org_repos.return_value = [SAMPLE_REPO]
