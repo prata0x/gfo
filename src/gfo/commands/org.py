@@ -42,7 +42,7 @@ def handle_repos(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     """gfo org repos <name> のハンドラ。"""
     adapter = get_adapter(require_repo=False)
     repos = adapter.list_org_repos(args.name, limit=args.limit)
-    output(repos, fmt=fmt, fields=["name", "full_name", "private", "url"], jq=jq)
+    output(repos, fmt=fmt, fields=["name", "full_name", "visibility", "url"], jq=jq)
 
 
 def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
