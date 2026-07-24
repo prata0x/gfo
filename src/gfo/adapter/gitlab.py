@@ -1770,8 +1770,10 @@ class GitLabAdapter(GitServiceAdapter):
             resp = self._client.get(f"{self._project_path()}/jobs/{job_id}/trace")
             yield from resp.text.splitlines()
             return
-        jobs_resp = self._client.get(f"{self._project_path()}/pipelines/{pipeline_id}/jobs")
-        for i, job in enumerate(jobs_resp.json()):
+        jobs = paginate_page_param(
+            self._client, f"{self._project_path()}/pipelines/{pipeline_id}/jobs", limit=0
+        )
+        for i, job in enumerate(jobs):
             if i > 0:
                 yield ""
             header = f"=== {job.get('name', job['id'])} ==="
