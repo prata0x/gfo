@@ -2705,7 +2705,7 @@ class TestRemoveIssueDependency:
         assert body[0]["path"] == "/relations/0"
 
     def test_remove_issue_dependency_not_found(self, mock_responses, azure_devops_adapter):
-        """指定 ID が relations にない → 何も起きない（PATCH は呼ばれない）。"""
+        """指定 ID が relations にない → NotFoundError を送出する（黙って成功扱いにしない）。"""
         mock_responses.add(
             responses.GET,
             f"{WIT}/workitems/1",
@@ -2720,7 +2720,8 @@ class TestRemoveIssueDependency:
             },
             status=200,
         )
-        azure_devops_adapter.remove_issue_dependency(1, 999)
+        with pytest.raises(NotFoundError):
+            azure_devops_adapter.remove_issue_dependency(1, 999)
         # GET のみで PATCH は呼ばれない
         assert len(mock_responses.calls) == 1
 
