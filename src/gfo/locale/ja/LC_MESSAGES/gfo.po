@@ -2531,3 +2531,41 @@ msgstr "'{name}' という名前の {existing_kind} が既に存在するため�
 
 msgid "None of the given webhook events are supported by Backlog: {events}"
 msgstr "指定された webhook イベントは Backlog でサポートされていません: {events}"
+
+# --- warnings.warn() のユーザー向けメッセージ i18n 化 (issue #141) ---
+
+msgid "credentials.toml contains old format entries for: {hosts}. Run 'gfo auth login' to re-register. The old format compatibility shim will be removed in a future release."
+msgstr "credentials.toml に旧形式のエントリがあります: {hosts}。'gfo auth login' で再登録してください。旧形式との互換性維持は将来のリリースで削除されます。"
+
+msgid "Could not set file permissions on credentials file (icacls exited with code {code})."
+msgstr "認証情報ファイルの権限を設定できませんでした（icacls の終了コード: {code}）。"
+
+msgid "Could not set file permissions on credentials file (getpass.getuser() failed, possibly in CI/Docker environment)."
+msgstr "認証情報ファイルの権限を設定できませんでした（getpass.getuser() が失敗しました。CI/Docker 環境の可能性があります）。"
+
+msgid "GFO_MAX_DOWNLOAD_BYTES={val!r} is not a valid integer; using default 5 GiB."
+msgstr "GFO_MAX_DOWNLOAD_BYTES={val!r} は有効な整数ではありません。デフォルトの 5 GiB を使用します。"
+
+msgid "Remote 'origin' not found; using '{fallback}' instead."
+msgstr "リモート 'origin' が見つかりません。代わりに '{fallback}' を使用します。"
+
+msgid "label cannot be specified together with add_labels/remove_labels; ignoring label"
+msgstr "label は add_labels/remove_labels と同時指定できません。label を無視します"
+
+msgid "{service} does not support {param} on {resource}"
+msgstr "{service} は {resource} での {param} をサポートしていません"
+
+msgid "{service} does not support read-write deploy keys; created as read-only"
+msgstr "{service} は読み書き可能なデプロイキーをサポートしていません。読み取り専用として作成しました"
+
+msgid "Backlog does not support webhook event '{event}'; ignored"
+msgstr "Backlog は webhook イベント '{event}' をサポートしていません。無視します"
+
+msgid "Backlog does not support search and label simultaneously; label ignored"
+msgstr "Backlog は search と label の同時指定をサポートしていません。label を無視します"
+
+msgid "{service} does not support active on webhook edit"
+msgstr "{service} は webhook edit での active をサポートしていません"
+
+msgid "gfo.type={saved_type!r} but URL suggests {suggested!r}; using git config value."
+msgstr "gfo.type={saved_type!r} ですが URL は {suggested!r} を示唆しています。git config の値を使用します。"

@@ -56,13 +56,16 @@ def _to_pull_request(data: dict) -> PullRequest:
 `ValueError` や `IndexError` 等の追加例外も捕捉する必要があるケースだけ
 手書きの try/except を残す (デコレータでは捕捉しないため)。
 
-## エラーメッセージの i18n（必須）
+## エラーメッセージ・警告の i18n（必須）
 
 ユーザー向け例外（`GfoError` / `ConfigError` / `AuthError` / `DetectionError` /
-`HttpError` 系）に渡すメッセージは必ず `_()` を通し、`.po` に ja 訳を追加する:
+`HttpError` 系）と `warnings.warn()` に渡すメッセージは必ず `_()` を通し、`.po` に
+ja 訳を追加する（`warnings.warn()` もユーザーに直接表示される点で例外メッセージと
+同じ「ユーザー向けメッセージ」であり、対象に含む）:
 
 ```python
 raise ConfigError(_("No tokens configured for host: {host}").format(host=host))
+warnings.warn(_("{service} does not support {param} on {resource}").format(...), stacklevel=2)
 ```
 
 - f-string を直接渡さない（msgid はリテラルである必要がある。`_("...").format(...)` を使う）

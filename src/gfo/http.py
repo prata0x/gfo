@@ -158,7 +158,9 @@ def _max_download_bytes() -> int:
         import warnings
 
         warnings.warn(
-            f"GFO_MAX_DOWNLOAD_BYTES={val!r} is not a valid integer; using default 5 GiB.",
+            _("GFO_MAX_DOWNLOAD_BYTES={val!r} is not a valid integer; using default 5 GiB.").format(
+                val=val
+            ),
             stacklevel=2,
         )
         return default

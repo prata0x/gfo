@@ -7,6 +7,7 @@ import subprocess  # nosec B404
 import warnings
 
 from gfo.exceptions import GitCommandError
+from gfo.i18n import _
 
 _DEFAULT_TIMEOUT = 30
 _CLONE_TIMEOUT = 600
@@ -67,7 +68,9 @@ def get_remote_url(remote: str | None = None, cwd: str | None = None) -> str:
         fallback = next((r for r in remotes if r != "origin"), None)
         if fallback is not None:
             warnings.warn(
-                f"Remote 'origin' not found; using '{fallback}' instead.",
+                _("Remote 'origin' not found; using '{fallback}' instead.").format(
+                    fallback=fallback
+                ),
                 stacklevel=2,
             )
             return run_git("remote", "get-url", fallback, cwd=cwd)

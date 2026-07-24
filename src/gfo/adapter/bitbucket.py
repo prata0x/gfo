@@ -1077,8 +1077,9 @@ class BitbucketAdapter(GitServiceAdapter):
             # read/write を選択する API パラメータ自体が存在しない（read_only=False
             # は _warn_unsupported_params の truthy チェックをすり抜けるため個別に警告する）。
             warnings.warn(
-                f"{self.service_name} does not support read-write deploy keys; "
-                "created as read-only",
+                _("{service} does not support read-write deploy keys; created as read-only").format(
+                    service=self.service_name
+                ),
                 stacklevel=2,
             )
         payload = {"label": title, "key": key}

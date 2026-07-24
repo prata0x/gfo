@@ -1,8 +1,11 @@
-"""ユーザー向けエラーメッセージが _() を通っているかの静的検査（AST ベース）。
+"""ユーザー向けエラーメッセージ・警告が _() を通っているかの静的検査（AST ベース）。
 
 `raise GfoError("literal")` / `raise ConfigError(f"...")` のような、翻訳を通らない
 文字列リテラルを直接 message に渡す raise を検出する。正しい形は
 `raise ConfigError(_("No tokens configured for host: {host}").format(host=host))`。
+`warnings.warn("literal")` も同様に検出する（warnings.warn() はユーザーに直接表示される
+点で例外メッセージと同じ「ユーザー向けメッセージ」であり、.claude/rules/01-exceptions.md
+の対象に含まれる）。
 
 対象は src/gfo 配下の全モジュール（adapter/ と commands/ を含む）。
 `ValueError` 等の内部契約エラーは対象外（rules 01 参照）。
@@ -57,15 +60,30 @@ def _is_untranslated_literal(arg: ast.expr) -> bool:
     return False
 
 
+def _is_warnings_warn_call(func: ast.expr) -> bool:
+    """`warnings.warn(...)` 呼び出しかを判定する（`import warnings` 前提の Attribute 形式のみ）。"""
+    return (
+        isinstance(func, ast.Attribute)
+        and func.attr == "warn"
+        and (isinstance(func.value, ast.Name) and func.value.id == "warnings")
+    )
+
+
 def _iter_violations(path: Path) -> list[int]:
     tree = ast.parse(path.read_text(encoding="utf-8"))
     violations: list[int] = []
     for node in ast.walk(tree):
-        if not isinstance(node, ast.Raise) or not isinstance(node.exc, ast.Call):
-            continue
-        if _exception_name(node.exc.func) not in _USER_FACING_EXCEPTIONS:
-            continue
-        if any(_is_untranslated_literal(arg) for arg in node.exc.args):
+        if isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call):
+            if _exception_name(node.exc.func) not in _USER_FACING_EXCEPTIONS:
+                continue
+            if any(_is_untranslated_literal(arg) for arg in node.exc.args):
+                violations.append(node.lineno)
+        elif (
+            isinstance(node, ast.Call)
+            and _is_warnings_warn_call(node.func)
+            and node.args
+            and _is_untranslated_literal(node.args[0])
+        ):
             violations.append(node.lineno)
     return violations
 
@@ -74,9 +92,9 @@ def _iter_violations(path: Path) -> list[int]:
 def test_user_facing_error_messages_are_translated(path: Path):
     violations = _iter_violations(path)
     assert not violations, (
-        f"{path.relative_to(_SRC_DIR)}:{violations} — user-facing exception raised with a string literal "
-        "that does not go through _(). Wrap the message in _() and add a ja translation "
-        "to gfo.po (see .claude/rules/01-exceptions.md)."
+        f"{path.relative_to(_SRC_DIR)}:{violations} — user-facing exception/warning raised with a "
+        "string literal that does not go through _(). Wrap the message in _() and add a ja "
+        "translation to gfo.po (see .claude/rules/01-exceptions.md)."
     )
 
 
