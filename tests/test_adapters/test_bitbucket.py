@@ -562,6 +562,18 @@ class TestListIssues:
         req = mock_responses.calls[0].request
         assert "q=" not in req.url
 
+    def test_direct_state_value_escaped(self, mock_responses, bitbucket_adapter):
+        """open/closed/all 以外の直接値指定分岐でも state がエスケープされる（#183）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues",
+            json={"values": [_issue_data()]},
+            status=200,
+        )
+        bitbucket_adapter.list_issues(state='resolved" OR state="new')
+        decoded_url = unquote_plus(mock_responses.calls[0].request.url)
+        assert 'state="resolved\\" OR state=\\"new"' in decoded_url
+
     def test_assignee_filter(self, mock_responses, bitbucket_adapter):
         """assignee を指定すると q に assignee.nickname フィルタが追加される。"""
         mock_responses.add(
