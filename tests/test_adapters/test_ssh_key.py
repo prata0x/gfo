@@ -194,6 +194,19 @@ class TestBitbucketSshKey:
         )
 
     @responses.activate
+    def test_get(self, bitbucket_adapter):
+        self._mock_current_user()
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/ssh-keys/abc-123",
+            json=_bitbucket_ssh_key_data(),
+        )
+        key = bitbucket_adapter.get_ssh_key("abc-123")
+        assert key.id == "abc-123"
+        assert key.title == "my-key"
+        assert "test-workspace" not in responses.calls[-1].request.url
+
+    @responses.activate
     def test_list(self, bitbucket_adapter):
         self._mock_current_user()
         responses.add(

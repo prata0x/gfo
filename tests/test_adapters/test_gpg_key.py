@@ -205,6 +205,19 @@ class TestBitbucketGpgKey:
         )
 
     @responses.activate
+    def test_get(self, bitbucket_adapter):
+        self._mock_current_user()
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/gpg-keys/AABBCCDD",
+            json=_bitbucket_gpg_key_data(),
+        )
+        key = bitbucket_adapter.get_gpg_key("AABBCCDD")
+        assert key.id == "AABBCCDD"
+        assert key.primary_key_id == "AABBCCDD"
+        assert "test-workspace" not in responses.calls[-1].request.url
+
+    @responses.activate
     def test_list(self, bitbucket_adapter):
         self._mock_current_user()
         responses.add(
