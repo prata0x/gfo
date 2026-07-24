@@ -49,7 +49,15 @@ class TestHandleList:
         with _patch_all(sample_config, self.adapter):
             milestone_cmd.handle_list(args, fmt="table")
 
-        self.adapter.list_milestones.assert_called_once_with()
+        self.adapter.list_milestones.assert_called_once_with(state="open")
+
+    def test_calls_list_milestones_with_state(self, sample_config):
+        """--state closed 指定時、指定した state をそのまま adapter に渡す（#206）。"""
+        args = make_args(state="closed")
+        with _patch_all(sample_config, self.adapter):
+            milestone_cmd.handle_list(args, fmt="table")
+
+        self.adapter.list_milestones.assert_called_once_with(state="closed")
 
     def test_outputs_results(self, sample_config, capsys):
         args = make_args()
@@ -92,7 +100,7 @@ class TestHandleList:
             milestone_cmd.handle_list(args, fmt="table")
 
         # 空リストでも例外なく実行される
-        self.adapter.list_milestones.assert_called_once_with()
+        self.adapter.list_milestones.assert_called_once_with(state="open")
 
     def test_json_format_has_all_fields(self, sample_config, capsys):
         args = make_args()

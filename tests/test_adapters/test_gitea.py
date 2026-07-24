@@ -1441,6 +1441,39 @@ class TestListMilestones:
         milestones = gitea_adapter.list_milestones()
         assert len(milestones) == 51
 
+    def test_default_state_is_open(self, mock_responses, gitea_adapter):
+        """state 省略時は open のみ送信する（Gitea 側デフォルトと明示的に一致させる）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/milestones",
+            json=[],
+            status=200,
+        )
+        gitea_adapter.list_milestones()
+        assert "state=open" in mock_responses.calls[0].request.url
+
+    def test_state_all_includes_closed(self, mock_responses, gitea_adapter):
+        """state="all" 指定で closed マイルストーンも取得できる（#206）。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/milestones",
+            json=[_milestone_data(), _milestone_data(number=2)],
+            status=200,
+        )
+        milestones = gitea_adapter.list_milestones(state="all")
+        assert len(milestones) == 2
+        assert "state=all" in mock_responses.calls[0].request.url
+
+    def test_state_closed(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/milestones",
+            json=[],
+            status=200,
+        )
+        gitea_adapter.list_milestones(state="closed")
+        assert "state=closed" in mock_responses.calls[0].request.url
+
 
 class TestCreateMilestone:
     def test_create(self, mock_responses, gitea_adapter):

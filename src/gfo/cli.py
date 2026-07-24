@@ -902,6 +902,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     )
     milestone_sub = milestone_parser.add_subparsers(dest="subcommand")
     milestone_list = milestone_sub.add_parser("list", help=_("List milestones"))
+    milestone_list.add_argument(
+        "--state",
+        "-s",
+        choices=["open", "closed", "all"],
+        default="open",
+        help=_("Filter by state"),
+    )
     milestone_list.add_argument("--web", "-w", action="store_true", help=_("Open in browser"))
     milestone_create = milestone_sub.add_parser("create", help=_("Create milestone"))
     milestone_create.add_argument("title", help=_("Milestone title"))

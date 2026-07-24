@@ -196,7 +196,7 @@ class GogsAdapter(GiteaAdapter):
 
     # --- Milestone（非サポート）---
 
-    def list_milestones(self, *, limit: int = 0) -> list[Milestone]:
+    def list_milestones(self, *, state: str = "open", limit: int = 0) -> list[Milestone]:
         raise NotSupportedError("Gogs", "milestone operations")
 
     def create_milestone(

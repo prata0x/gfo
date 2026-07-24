@@ -693,9 +693,12 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- Milestone ---
 
-    def list_milestones(self, *, limit: int = 0) -> list[Milestone]:
+    def list_milestones(self, *, state: str = "open", limit: int = 0) -> list[Milestone]:
         results = paginate_link_header(
-            self._client, f"{self._repos_path()}/milestones", limit=limit
+            self._client,
+            f"{self._repos_path()}/milestones",
+            params={"state": state},
+            limit=limit,
         )
         return [self._to_milestone(r) for r in results]
 

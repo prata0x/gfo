@@ -1472,8 +1472,19 @@ Manage milestones.
 ### gfo milestone list
 
 ```
-gfo milestone list
+gfo milestone list [--state {open,closed,all}]
 ```
+
+| Option | Default | Description |
+|---|---|---|
+| `--state` / `-s` | `open` | Milestone state to display |
+
+```bash
+gfo milestone list
+gfo milestone list --state all
+```
+
+> On GitLab, `--state closed`/`--state open` map to GitLab's own `active`/`closed` values; `--state all` omits the filter (GitLab returns every milestone regardless of state when the parameter is omitted).
 
 ### gfo milestone create
 

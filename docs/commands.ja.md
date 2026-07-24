@@ -1486,8 +1486,19 @@ gfo label clone --from alice/my-project --overwrite
 ### gfo milestone list
 
 ```
-gfo milestone list
+gfo milestone list [--state {open,closed,all}]
 ```
+
+| オプション | デフォルト | 説明 |
+|---|---|---|
+| `--state` / `-s` | `open` | 表示するマイルストーンの状態 |
+
+```bash
+gfo milestone list
+gfo milestone list --state all
+```
+
+> GitLab では `--state closed`/`--state open` を GitLab 自身の `active`/`closed` にマッピングする。`--state all` はパラメータを省略する（GitLab は `state` 省略時に状態を問わず全件返すため）。
 
 ### gfo milestone create
 
