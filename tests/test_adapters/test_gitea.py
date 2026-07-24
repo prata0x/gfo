@@ -293,12 +293,33 @@ class TestToReview:
         assert review.state == "approved"
 
     def test_state_changes_requested(self):
+        """GitHub の実際の API 値 "CHANGES_REQUESTED"（github_like.py の共有 state_map 経由）。"""
         review = GiteaAdapter._to_review(_review_data(state="CHANGES_REQUESTED"))
         assert review.state == "changes_requested"
 
     def test_state_commented(self):
+        """GitHub の実際の API 値 "COMMENTED"（github_like.py の共有 state_map 経由）。"""
         review = GiteaAdapter._to_review(_review_data(state="COMMENTED"))
         assert review.state == "commented"
+
+    def test_state_request_changes(self):
+        """Gitea の実際の API 値は "REQUEST_CHANGES"（GitHub の "CHANGES_REQUESTED" とは別語）（#187）。"""
+        review = GiteaAdapter._to_review(_review_data(state="REQUEST_CHANGES"))
+        assert review.state == "changes_requested"
+
+    def test_state_comment(self):
+        """Gitea の実際の API 値は "COMMENT"（GitHub の "COMMENTED" とは別語）（#187）。"""
+        review = GiteaAdapter._to_review(_review_data(state="COMMENT"))
+        assert review.state == "commented"
+
+    def test_state_request_review(self):
+        """Gitea の "REQUEST_REVIEW"（レビュー依頼のみで未提出）は pending へ正規化される（#187）。"""
+        review = GiteaAdapter._to_review(_review_data(state="REQUEST_REVIEW"))
+        assert review.state == "pending"
+
+    def test_state_pending(self):
+        review = GiteaAdapter._to_review(_review_data(state="PENDING"))
+        assert review.state == "pending"
 
 
 class TestToBranch:
