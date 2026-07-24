@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import argparse
 import re
+from dataclasses import dataclass
 
 from gfo.commands import confirm_action, get_adapter
-from gfo.exceptions import ConfigError
+from gfo.exceptions import ConfigError, GfoError, PartialFailureError
 from gfo.i18n import _
 from gfo.output import output, output_result
 
@@ -88,6 +89,13 @@ def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     output(label, fmt=fmt, jq=jq)
 
 
+@dataclass(frozen=True, slots=True)
+class LabelCloneResult:
+    name: str
+    status: str  # "created" | "updated" | "skipped" | "failed"
+    error: str | None = None
+
+
 def handle_clone(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo label clone --from owner/repo のハンドラ。"""
     import gfo.adapter.registry
@@ -123,23 +131,28 @@ def handle_clone(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     adapter = get_adapter()
     existing = {lb.name for lb in adapter.list_labels()}
     overwrite = getattr(args, "overwrite", False)
-    created = 0
+    results: list[LabelCloneResult] = []
     for lb in source_labels:
         if lb.name in existing and not overwrite:
+            results.append(LabelCloneResult(name=lb.name, status="skipped"))
             continue
         if lb.name in existing and overwrite:
             try:
                 adapter.update_label(name=lb.name, color=lb.color, description=lb.description)
-            except Exception:  # nosec B110, B112 - best effort overwrite; skip on failure
+            except GfoError as e:
+                results.append(LabelCloneResult(name=lb.name, status="failed", error=str(e)))
                 continue
+            results.append(LabelCloneResult(name=lb.name, status="updated"))
         else:
-            adapter.create_label(name=lb.name, color=lb.color, description=lb.description)
-        created += 1
-    output_result(
-        _("Cloned {count} labels from '{source}'.").format(count=created, source=source_repo),
-        result="cloned",
-        count=created,
-        source=source_repo,
-        fmt=fmt,
-        jq=jq,
-    )
+            try:
+                adapter.create_label(name=lb.name, color=lb.color, description=lb.description)
+            except GfoError as e:
+                results.append(LabelCloneResult(name=lb.name, status="failed", error=str(e)))
+                continue
+            results.append(LabelCloneResult(name=lb.name, status="created"))
+
+    output(results, fmt=fmt, fields=["name", "status", "error"], jq=jq)
+
+    failed = sum(1 for r in results if r.status == "failed")
+    if failed:
+        raise PartialFailureError(failed, len(results))
