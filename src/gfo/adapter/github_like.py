@@ -82,11 +82,22 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
     @staticmethod
     @_wrap_conversion_error
     def _to_repository(data: dict[str, Any]) -> Repository:
+        if data.get("visibility"):
+            visibility = data["visibility"]
+        elif data.get("private"):
+            visibility = "private"
+        elif data.get("internal"):
+            # Gitea/Forgejo は "visibility" フィールドを持たず、代わりに private/internal
+            # の2つの独立した bool フィールドを持つ。internal リポジトリは
+            # private: False, internal: True で表現される。
+            visibility = "internal"
+        else:
+            visibility = "public"
         return Repository(
             name=data["name"],
             full_name=data["full_name"],
             description=data.get("description"),
-            visibility=data.get("visibility") or ("private" if data.get("private") else "public"),
+            visibility=visibility,
             default_branch=data.get("default_branch"),
             clone_url=data["clone_url"],
             url=data["html_url"],

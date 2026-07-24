@@ -26,6 +26,8 @@ paths:
   - `REQUEST_CHANGES`（Gitea）≠ `CHANGES_REQUESTED`（GitHub）
   - `REQUEST_REVIEW`（Gitea 固有。レビュー依頼のみで未提出）→ `pending` へ正規化
   - 過去バグ（#187）: GitHub の値のみを map しており、Gitea 側は map に一致せず `raw_state.lower()` のフォールバックで非正規化文字列（`comment`/`request_changes`）になっていた。既存テスト（`test_gitea.py`）も GitHub 風の値でしかテストしておらず、この不一致に気づけていなかった
+- **`visibility`**（`github_like.py: _to_repository`）: GitHub は `visibility` フィールド（`"public"`/`"private"`/`"internal"`）を直接返すが、Gitea/Forgejo にはこのフィールドが無く、代わりに独立した `private`（bool）と `internal`（bool）の2フィールドを持つ。フォールバック判定は `private` だけでなく `internal` も見ること
+  - 過去バグ（#205）: フォールバックが `private` しか見ておらず、Gitea の internal リポジトリ（`private: False, internal: True`）が常に `"public"` と誤判定されていた
 - **issue dependency（`add_issue_dependency` / `remove_issue_dependency`）**: リクエスト body は `{"index": ..., "owner": ..., "repo": ...}`（`IssueMeta` 構造体のフィールド名）。`{"id": ...}` ではない
   - 過去バグ: `id` フィールドを送っており Go 側の JSON バインドで全フィールドがゼロ値になっていた
 
