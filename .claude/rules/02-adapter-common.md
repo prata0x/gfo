@@ -89,13 +89,20 @@ Bitbucket/Backlog/Azure DevOps/Gogs は milestones 自体が `NotSupportedError`
 
 ## ページネーション方式（`http.py`）
 
-| 方式 | 使用サービス |
-|---|---|
-| `Link` ヘッダ | GitHub 形式 |
-| `X-Next-Page` ヘッダ | GitLab 形式 |
-| `startPosition` クエリパラメータ | Backlog 形式 |
-| `continuationToken` | Azure DevOps 形式 |
-| オフセット形式（汎用） | Gitea 系 |
+| 方式 | 使用サービス | 関数 |
+|---|---|---|
+| `Link` ヘッダ | GitHub / Gitea 系（Forgejo・Gogs・GitBucket 含む） | `paginate_link_header` |
+| `X-Next-Page` ヘッダ | GitLab | `paginate_page_param` |
+| レスポンスボディの `values`/`next` | Bitbucket Cloud | `paginate_response_body` |
+| `offset`/`count` クエリパラメータ | Backlog | `paginate_offset` |
+| `$top`/`$skip` クエリパラメータ | Azure DevOps | `paginate_top_skip` |
+
+- 過去バグ（#135）: 表に Azure DevOps が `continuationToken` 方式と誤記されていた。`Builds - List`
+  など一部エンドポイントは `continuationToken` を公式サポートするが（下記「Azure DevOps は対象外」節
+  参照）、`http.py` に `continuationToken` ベースの `paginate_*` 関数は存在せず、実際に一覧取得系で
+  使われているのは `$top`/`$skip` 方式の `paginate_top_skip`。Gitea 系（実際は `Link` ヘッダ）と
+  Backlog（実際は `offset`/`count`）の方式も入れ替わって記載されており、Bitbucket Cloud
+  （`paginate_response_body`）の行自体が欠落していた
 
 ## get_pipeline_logs のジョブ/ステップ一覧取得
 
