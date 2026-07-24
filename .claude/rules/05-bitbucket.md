@@ -45,3 +45,8 @@ paths:
 ## 非対応機能
 
 `NotSupportedError` でオーバーライド: `releases`, `labels`, `milestones`, コメント更新/削除
+
+## Deploy Key
+
+- **`create_deploy_key`**: Bitbucket Cloud の Access Key（Deploy Key）は API レベルで read-only 固定であり、read/write を選択するパラメータ自体が存在しない（Bitbucket **Server**（オンプレミス版）にのみある機能で、Cloud には無い）。`read_only=False`（`--read-write` 相当）が渡された場合は payload に何も追加せず、`warnings.warn` で明示的に警告すること
+  - `_warn_unsupported_params` の truthy チェックは通せない（`read_only=False` は falsy なので検知できない）ため、`if not read_only:` の明示チェックで個別に警告する必要がある（#200）
