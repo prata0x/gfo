@@ -30,6 +30,8 @@ paths:
   - 過去バグ（#205）: フォールバックが `private` しか見ておらず、Gitea の internal リポジトリ（`private: False, internal: True`）が常に `"public"` と誤判定されていた
 - **issue dependency（`add_issue_dependency` / `remove_issue_dependency`）**: リクエスト body は `{"index": ..., "owner": ..., "repo": ...}`（`IssueMeta` 構造体のフィールド名）。`{"id": ...}` ではない
   - 過去バグ: `id` フィールドを送っており Go 側の JSON バインドで全フィールドがゼロ値になっていた
+- **commit status "warning"**（`github_like.py: _to_check_run`）: Gitea の commit status API は `pending`/`success`/`error`/`failure`/`warning` の5値を返す。`CheckRun.status` は `"success" | "failure" | "pending" | "running"` の契約のみを許すため、GitHub には存在しない `warning` は `status_map` で明示的に `failure` へ正規化すること（severity 的には failure より軽いが、フォールバックで生の `"warning"` を契約外のまま漏らすよりは安全側に倒す）
+  - 過去バグ（#227）: `status_map` に `warning` のマッピングが無く、`.get(state, state)` のフォールバックで生値 `"warning"` がそのまま `CheckRun.status` に漏れていた
 
 ## Gogs 固有
 

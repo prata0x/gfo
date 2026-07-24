@@ -242,6 +242,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
             "failure": "failure",
             "pending": "pending",
             "error": "failure",
+            "warning": "failure",
         }
         state = data.get("state") or data.get("status") or ""
         return CheckRun(

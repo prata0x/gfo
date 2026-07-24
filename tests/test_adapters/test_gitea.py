@@ -3127,6 +3127,58 @@ class TestListPullRequestChecksGitea:
         assert checks[0].name == "ci/build"
         assert checks[0].status == "success"
 
+    def test_warning_state_maps_to_failure(self, mock_responses, gitea_adapter):
+        """Gitea 固有の commit status "warning" は CheckRun.status の契約
+        （success/failure/pending/running）に収まるよう failure へ正規化する。"""
+        pr = _pr_data()
+        pr["head"]["sha"] = "abc123"
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1",
+            json=pr,
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/statuses/abc123",
+            json=[
+                {
+                    "context": "lint",
+                    "status": "warning",
+                    "target_url": "https://ci.example.com/1",
+                    "created_at": "2025-01-01T00:00:00Z",
+                }
+            ],
+            status=200,
+        )
+        checks = gitea_adapter.list_pull_request_checks(1)
+        assert checks[0].status == "failure"
+
+    def test_error_state_maps_to_failure(self, mock_responses, gitea_adapter):
+        pr = _pr_data()
+        pr["head"]["sha"] = "abc123"
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1",
+            json=pr,
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/statuses/abc123",
+            json=[
+                {
+                    "context": "ci/build",
+                    "status": "error",
+                    "target_url": "https://ci.example.com/1",
+                    "created_at": "2025-01-01T00:00:00Z",
+                }
+            ],
+            status=200,
+        )
+        checks = gitea_adapter.list_pull_request_checks(1)
+        assert checks[0].status == "failure"
+
 
 class TestListPullRequestFilesGitea:
     def test_list_files(self, mock_responses, gitea_adapter):
