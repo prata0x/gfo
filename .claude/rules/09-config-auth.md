@@ -29,6 +29,23 @@ paths:
 2. `~/.config/gfo/config.toml`（グローバル）
 3. remote URL からの自動検出
 
+`resolve_project_config()` はデフォルト（`require_repo=True`）で `service_type`/
+`host` と同様に `owner`/`repo` も空文字列なら `ConfigError`（`gfo init` を促す
+hint 付き）を送出する。bare リポジトリ等で remote も `gfo.owner`/`gfo.repo` も
+無い場合、`detect_service()` は `owner=""`/`repo=""` の `DetectResult` を返す
+契約になっている。
+
+`resolve_project_config()`/`get_adapter()`/`get_adapter_with_config()` は
+owner/repo を全く参照しないアカウント/ホスト単位のコマンド（`org`, `user`,
+`notification`, `ssh-key`, `gpg-key`, `api`）からも共有で呼ばれる。これらは
+`require_repo=False` を明示的に渡し、owner/repo 未解決でも `ConfigError` に
+しない。新規コマンド追加時は、実装するアダプターメソッドが
+`self._owner`/`self._repo` を実際に参照するかで判断すること
+（`auth login` 等は `resolve_project_config()` 自体を呼ばず対象外）。
+
+過去バグ（#150）: 上記の空文字列フォールバックがそのまま `ProjectConfig` として
+返っており、`/repos//` のような不正なパスへ実際に API リクエストが送信されていた
+
 ## トークン解決の優先度
 
 1. **アカウント名の解決**（上から順に最初に見つかった値を使用）:

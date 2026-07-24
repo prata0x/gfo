@@ -110,3 +110,14 @@ class TestHandleRead:
             args = make_args(id="999", mark_all=False)
             with pytest.raises(HttpError):
                 notif_cmd.handle_read(args, fmt="table")
+
+
+def test_handle_list_works_without_resolvable_repo():
+    """notification はアカウント単位の操作のため owner/repo 未解決でも動く（require_repo=False）。"""
+    from unittest.mock import patch
+
+    with patch("gfo.commands.notification.get_adapter") as mock_get_adapter:
+        mock_get_adapter.return_value.list_notifications.return_value = []
+        args = make_args(unread_only=False, limit=30)
+        notif_cmd.handle_list(args, fmt="table")
+    mock_get_adapter.assert_called_once_with(require_repo=False)

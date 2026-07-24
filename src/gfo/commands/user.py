@@ -11,7 +11,7 @@ from gfo.output import apply_jq_filter
 
 def handle_whoami(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo user whoami のハンドラ。"""
-    adapter = get_adapter()
+    adapter = get_adapter(require_repo=False)
     user = adapter.get_current_user()
     if fmt == "json":
         json_str = json.dumps(user, ensure_ascii=False, indent=2)

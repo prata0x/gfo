@@ -279,3 +279,12 @@ class TestHandleDelete:
             args = make_args(name="my-org", yes=True)
             with pytest.raises(HttpError):
                 org_cmd.handle_delete(args, fmt="table")
+
+
+def test_handle_list_works_without_resolvable_repo():
+    """org はアカウント単位の操作のため owner/repo 未解決でも動く（require_repo=False）。"""
+    with patch("gfo.commands.org.get_adapter") as mock_get_adapter:
+        mock_get_adapter.return_value.list_organizations.return_value = []
+        args = make_args(limit=30)
+        org_cmd.handle_list(args, fmt="table")
+    mock_get_adapter.assert_called_once_with(require_repo=False)

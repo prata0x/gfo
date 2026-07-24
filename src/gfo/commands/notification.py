@@ -12,7 +12,7 @@ from gfo.output import output, output_result
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo notification list のハンドラ。"""
-    adapter = get_adapter()
+    adapter = get_adapter(require_repo=False)
     notifications = adapter.list_notifications(
         unread_only=args.unread_only,
         limit=args.limit,
@@ -27,7 +27,7 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 
 def handle_read(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo notification read のハンドラ。"""
-    adapter = get_adapter()
+    adapter = get_adapter(require_repo=False)
     if args.mark_all and args.id is not None:
         raise GfoError(_("Cannot specify both ID and --all."))
     if not args.mark_all and args.id is None:

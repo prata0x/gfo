@@ -11,28 +11,28 @@ from gfo.output import output, output_result
 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo gpg-key view <id> のハンドラ。"""
-    adapter = get_adapter()
+    adapter = get_adapter(require_repo=False)
     key = adapter.get_gpg_key(args.id)
     output(key, fmt=fmt, jq=jq)
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo gpg-key list のハンドラ。"""
-    adapter = get_adapter()
+    adapter = get_adapter(require_repo=False)
     keys = adapter.list_gpg_keys(limit=args.limit)
     output(keys, fmt=fmt, fields=["id", "primary_key_id", "emails", "created_at"], jq=jq)
 
 
 def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo gpg-key create --key KEY のハンドラ。"""
-    adapter = get_adapter()
+    adapter = get_adapter(require_repo=False)
     key = adapter.create_gpg_key(armored_key=args.key)
     output(key, fmt=fmt, jq=jq)
 
 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo gpg-key delete <id> のハンドラ。"""
-    adapter = get_adapter()
+    adapter = get_adapter(require_repo=False)
     if not confirm_action(
         args,
         _("Are you sure you want to delete GPG key '{id}'? [y/N]: ").format(id=args.id),
