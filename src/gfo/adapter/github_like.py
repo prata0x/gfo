@@ -203,6 +203,10 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
     def _to_commit_status(data: dict[str, Any]) -> CommitStatus:
         # GitHub は "state"、Gitea は "status" を使用する
         state = data.get("state") or data.get("status") or ""
+        # Gitea 固有の "warning" は CommitStatus.state の契約
+        # （success/failure/pending/error）に無いため failure へ正規化する
+        if state == "warning":
+            state = "failure"
         return CommitStatus(
             state=state,
             context=data.get("context") or "",

@@ -379,6 +379,12 @@ class TestToCommitStatus:
         assert cs.target_url == "https://ci.example.com/build/1"
         assert cs.created_at == "2025-01-01T00:00:00Z"
 
+    def test_warning_state_normalizes_to_failure(self):
+        """Gitea 固有の commit status "warning" は CommitStatus.state の契約
+        （success/failure/pending/error）に収まるよう failure へ正規化する。"""
+        cs = GiteaAdapter._to_commit_status(_commit_status_data(state="warning"))
+        assert cs.state == "failure"
+
 
 class TestToWebhook:
     def test_basic(self):
