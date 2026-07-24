@@ -46,3 +46,12 @@ paths:
 ## コマンド側の注意
 
 - `commands/repo.py` の `handle_create`: `organization` / `project_key` が `None` のチェック必須
+
+## changeType（diff / PR ファイル一覧）
+
+- `changeType` はカンマ区切りの複合値になり得る（例: `"rename, edit"`）。`list_pull_request_files()` と
+  `compare()` はいずれもモジュール共通の `_resolve_change_type()`（`change_type.split(",")[0].strip().lower()`
+  で先頭要素を取り出してからマップ）を通すこと。単一値として辞書引きすると複合値がフォールバックの
+  `"modified"` に化けてしまう
+  - 過去バグ（#137）: `compare()` だけがこの分割処理を欠いており、rename を伴うファイルが常に
+    `"modified"` と誤判定されていた（`list_pull_request_files()` 側は最初から正しく処理していた）

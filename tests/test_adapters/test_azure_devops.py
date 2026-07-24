@@ -2324,6 +2324,72 @@ class TestListPullRequestFilesAzure:
         with pytest.raises(GfoError, match="Unexpected Azure DevOps PR changes"):
             azure_devops_adapter.list_pull_request_files(1)
 
+    def test_compound_change_type_uses_primary(self, mock_responses, azure_devops_adapter):
+        """changeType がカンマ区切りの複合値の場合、先頭要素で判定する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests/1/iterations",
+            json={"value": [{"id": 1}], "count": 1},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests/1/iterations/1/changes",
+            json={
+                "changeEntries": [
+                    {"item": {"path": "/foo/bar.py"}, "changeType": "rename, edit"},
+                ]
+            },
+            status=200,
+        )
+        files = azure_devops_adapter.list_pull_request_files(1)
+        assert files[0].status == "renamed"
+
+
+class TestCompareAzureDevOps:
+    def test_compare(self, mock_responses, azure_devops_adapter):
+        from gfo.adapter.base import CompareResult
+
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/diffs/commits",
+            json={
+                "aheadCount": 2,
+                "behindCount": 0,
+                "changes": [
+                    {"item": {"path": "/baz.py"}, "changeType": "edit"},
+                ],
+            },
+            status=200,
+        )
+        result = azure_devops_adapter.compare("main", "feature")
+        assert isinstance(result, CompareResult)
+        assert result.ahead_by == 2
+        assert result.behind_by == 0
+        assert len(result.files) == 1
+        assert result.files[0].filename == "baz.py"
+        assert result.files[0].status == "modified"
+
+    def test_compound_change_type_resolves_to_renamed(self, mock_responses, azure_devops_adapter):
+        """changeType が複合値（例: "rename, edit"）の場合、先頭要素で判定する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/diffs/commits",
+            json={
+                "aheadCount": 0,
+                "behindCount": 0,
+                "changes": [
+                    {"item": {"path": "/foo/bar.py"}, "changeType": "rename, edit"},
+                    {"item": {"path": "/baz.py"}, "changeType": "edit"},
+                ],
+            },
+            status=200,
+        )
+        result = azure_devops_adapter.compare("main", "feature")
+        by_name = {f.filename: f.status for f in result.files}
+        assert by_name["foo/bar.py"] == "renamed"
+        assert by_name["baz.py"] == "modified"
+
 
 class TestListPullRequestCommitsAzure:
     def test_list_commits(self, mock_responses, azure_devops_adapter):

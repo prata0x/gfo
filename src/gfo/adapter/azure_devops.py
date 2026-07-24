@@ -59,6 +59,19 @@ _PR_STATE_FROM_API = {"active": "open", "abandoned": "closed", "completed": "mer
 
 _CLOSED_STATES = frozenset({"Closed", "Done", "Removed"})
 
+_CHANGE_TYPE_MAP = {
+    "add": "added",
+    "edit": "modified",
+    "delete": "deleted",
+    "rename": "renamed",
+}
+
+
+def _resolve_change_type(change_type: str) -> str:
+    # changeType はカンマ区切りで複合値になる場合がある（例: "rename, edit"）
+    primary = change_type.split(",")[0].strip().lower()
+    return _CHANGE_TYPE_MAP.get(primary, "modified")
+
 
 def _add_refs_prefix(branch: str) -> str:
     if branch.startswith("refs/heads/"):
@@ -332,12 +345,6 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         return out
 
     def list_pull_request_files(self, number: int) -> list[PullRequestFile]:
-        _CHANGE_MAP = {
-            "add": "added",
-            "edit": "modified",
-            "delete": "deleted",
-            "rename": "renamed",
-        }
         # 最新のイテレーションを取得
         iters = self._client.get(
             f"{self._git_path()}/pullrequests/{number}/iterations",
@@ -365,12 +372,10 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         for entry in resp.get("changeEntries", []):
             item = entry.get("item", {})
             change_type = entry.get("changeType", "edit")
-            # changeType はカンマ区切りで複合値になる場合がある（例: "rename, edit"）
-            primary = change_type.split(",")[0].strip().lower()
             out.append(
                 PullRequestFile(
                     filename=item.get("path", ""),
-                    status=_CHANGE_MAP.get(primary, "modified"),
+                    status=_resolve_change_type(change_type),
                     additions=0,
                     deletions=0,
                 )
@@ -737,12 +742,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         files = tuple(
             CompareFile(
                 filename=c.get("item", {}).get("path", "").lstrip("/"),
-                status={
-                    "add": "added",
-                    "edit": "modified",
-                    "delete": "deleted",
-                    "rename": "renamed",
-                }.get(c.get("changeType", "edit"), "modified"),
+                status=_resolve_change_type(c.get("changeType", "edit")),
                 additions=0,
                 deletions=0,
             )
