@@ -21,6 +21,11 @@ paths:
   - Gitea はissueレスポンスに `pull_request: null` が含まれる
 - **ページネーション**: `per_page_key="limit"`
 - **マイルストーン**: `number` フィールドなし → `id` でフォールバック（`github_like.py: _to_milestone`）
+- **review state**（`github_like.py: _to_review`）: Gitea の実際の API 値（`go-gitea/gitea` の `ReviewStateType`）は GitHub と異なる文字列を使う。`state_map` は両方の値を含めること
+  - `COMMENT`（Gitea）≠ `COMMENTED`（GitHub）
+  - `REQUEST_CHANGES`（Gitea）≠ `CHANGES_REQUESTED`（GitHub）
+  - `REQUEST_REVIEW`（Gitea 固有。レビュー依頼のみで未提出）→ `pending` へ正規化
+  - 過去バグ（#187）: GitHub の値のみを map しており、Gitea 側は map に一致せず `raw_state.lower()` のフォールバックで非正規化文字列（`comment`/`request_changes`）になっていた。既存テスト（`test_gitea.py`）も GitHub 風の値でしかテストしておらず、この不一致に気づけていなかった
 - **issue dependency（`add_issue_dependency` / `remove_issue_dependency`）**: リクエスト body は `{"index": ..., "owner": ..., "repo": ...}`（`IssueMeta` 構造体のフィールド名）。`{"id": ...}` ではない
   - 過去バグ: `id` フィールドを送っており Go 側の JSON バインドで全フィールドがゼロ値になっていた
 

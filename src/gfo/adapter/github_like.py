@@ -141,11 +141,16 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
     @_wrap_conversion_error
     def _to_review(data: dict[str, Any]) -> Review:
         state_map = {
+            # GitHub の実際の値
             "APPROVED": "approved",
             "CHANGES_REQUESTED": "changes_requested",
             "COMMENTED": "commented",
             "PENDING": "pending",
             "DISMISSED": "dismissed",
+            # Gitea/Forgejo/Gogs の実際の値（GitHub とは異なる文字列）
+            "COMMENT": "commented",
+            "REQUEST_CHANGES": "changes_requested",
+            "REQUEST_REVIEW": "pending",  # レビュー依頼のみでまだ提出されていない状態
         }
         raw_state = data.get("state", "commented")
         state = state_map.get(raw_state.upper(), raw_state.lower())
