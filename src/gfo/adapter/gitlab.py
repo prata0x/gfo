@@ -1194,6 +1194,9 @@ class GitLabAdapter(GitServiceAdapter):
             "skipped": "skipped",
             "manual": "pending",
             "created": "pending",
+            "waiting_for_resource": "pending",
+            "preparing": "pending",
+            "scheduled": "pending",
         }
         items = paginate_page_param(
             self._client,

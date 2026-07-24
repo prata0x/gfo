@@ -3312,6 +3312,29 @@ class TestListPullRequestChecks:
         assert checks[0].name == "feature"
         assert checks[0].status == "success"
 
+    @pytest.mark.parametrize("gitlab_status", ["waiting_for_resource", "preparing", "scheduled"])
+    def test_unmapped_pipeline_status_normalizes_to_pending(
+        self, mock_responses, gitlab_adapter, gitlab_status
+    ):
+        """CheckRun.status の契約（success/failure/pending/running）に収まるよう、
+        GitLab 固有のパイプライン状態は pending へ正規化する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/merge_requests/1/pipelines",
+            json=[
+                {
+                    "id": 100,
+                    "status": gitlab_status,
+                    "ref": "feature",
+                    "web_url": "https://gitlab.com/pipelines/100",
+                    "created_at": "2025-01-01T00:00:00Z",
+                }
+            ],
+            status=200,
+        )
+        checks = gitlab_adapter.list_pull_request_checks(1)
+        assert checks[0].status == "pending"
+
 
 class TestListPullRequestFiles:
     def test_list_files(self, mock_responses, gitlab_adapter):

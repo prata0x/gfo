@@ -24,3 +24,5 @@ paths:
   - 過去バグ: content の一致だけで最初の1件を削除しており、他ユーザーの同種リアクションを削除しうる状態だった
 - **`set_variable`**: GitLab は `gfo secret` と `gfo variable` が同一の CI/CD variables コレクションを `masked` フラグで共有する。既存レコードを GET した際は `masked` を読み、呼び出し元の `masked` との論理和（OR）で PUT すること（Bitbucket の `secured` フラグ絞り込み #138 と同じ根本原因）
   - 過去バグ: 既存の `masked: True`（secret）を確認せず呼び出し元の既定値 `masked: False` で無条件 PUT しており、`gfo variable set` が既存 secret を平文へ格下げしていた
+- **`list_pull_request_checks` の pipeline status**（`CheckRun.status`）: GitLab CI パイプラインの `status` は `created`/`waiting_for_resource`/`preparing`/`pending`/`running`/`success`/`failed`/`canceled`/`skipped`/`manual`/`scheduled` の11値を公式に取りうる。`status_map` はこの全値をカバーすること（未マップの値は `.get(status, status)` のフォールバックで契約外の生値が `CheckRun.status` に漏れる）
+  - 過去バグ（#230）: `waiting_for_resource`（`resource_group` 使用時）・`preparing`・`scheduled`（delayed job）が `status_map` に無く、生値のまま漏れていた。いずれも `"pending"` へ正規化して解決
