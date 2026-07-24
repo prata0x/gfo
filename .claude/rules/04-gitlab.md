@@ -18,7 +18,8 @@ paths:
 - **create_or_update_file**: `None` を返す（GitLab files API は SHA を返さない）
 - **認証**: `PRIVATE-TOKEN: {token}` ヘッダ
 - **プロジェクト ID の URL エンコード**: `owner/repo` を `%2F` エンコード（`urllib.parse.quote(path, safe='')`）。サブグループ `group/sub/repo` も同様に処理される
-- **ページネーション**: `X-Next-Page` ヘッダが空文字 = 最終ページ。`per_page` デフォルト 20、最大 100
+- **ページネーション**: `X-Next-Page` ヘッダが空文字 = 最終ページ。`paginate_page_param()` 経由の一覧取得では `per_page` を呼び出し側が明示指定することはなく、同関数のデフォルト値 100（GitLab API 上限と同値）が使われるが、`limit`（`--limit` 由来）が 100 未満の場合は `per_page` が `limit` に切り下げられる（`http.py` の `if 0 < limit < per_page: per_page = limit`）。GitLab API 自体の無指定時デフォルトは 20 だが、この経路は明示的に `per_page` を送るためそれには依存しない。ただし `_resolve_milestone_id_by_title`（`milestones` を `title` フィルタのみで取得）や `list_issue_templates`（`templates/issues`）のように `paginate_page_param()` を経由しない素の GET は `per_page` 未指定のため GitLab 側の無指定時デフォルト（20）がそのまま適用される
+  - 過去バグ（#245）: 「デフォルト 20」と記載されており、GitLab API 自体の無指定時デフォルトを `paginate_page_param()` 経由の一覧取得における gfo の送信値であるかのように誤って記載していた。#135 と同種の rules ファイル drift
 - **URL エンコード必須のパス**: Release タグ名・ラベル名の DELETE でタグ名/ラベル名を URL エンコードすること
 - **`remove_issue_reaction`**: `list_issue_reactions` の結果を `content` だけで絞り込まず、`get_current_username()` で自分自身のリアクションに限定してから削除対象の ID を決定すること（GitHub の同種修正 #161 と同じバグクラス）
   - 過去バグ: content の一致だけで最初の1件を削除しており、他ユーザーの同種リアクションを削除しうる状態だった
