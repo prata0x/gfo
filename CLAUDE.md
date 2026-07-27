@@ -1,8 +1,5 @@
 # gfo – Git Forge Operator
 
-@.claude/vendor/universal.md
-@.claude/vendor/product-repo.md
-
 複数の Git ホスティングサービスを**統一コマンド**で操作する Python CLI ツール。
 
 ## プロジェクト概要
@@ -90,9 +87,10 @@ GitHub Rules（`main` ブランチ保護・リリースタグ保護）は free �
 
 - **`main` へ直接 commit / push・force-push しない。** 必ず feature branch を切る（`git switch -c <kebab>`）→ commit → push → `gh pr create --base main` → **CI green を確認して self-merge**（`gh pr merge --merge`。squash はリポジトリ設定で無効）。
 - **赤い CI はマージしない。**
-- 問題を見つけたら **issue を起票** してから着手する。
+- 問題を見つけたら **issue を起票** してから着手する。バックログは ad-hoc なメモ・TODO コメント・引き継ぎ文書ではなく GitHub Issues（`gh` CLI）で管理する。
 - リリースタグ（保護対象）を勝手に作成・移動・削除しない。
 - branch への commit / push・PR 作成・**CI green 後の self-merge** は通常運用＝確認不要。
+- 一般化されたルール（「X なら常に Y」）が一度確認されたら、適用範囲が広がっても機械的に適用し続ける。例外の候補は一方的にルールを狭めず、別途確認事項として提起する。
 
 ---
 
@@ -111,7 +109,7 @@ GitHub Rules（`main` ブランチ保護・リリースタグ保護）は free �
 
 ## コミット規約
 
-Header ≤72 目安。scope 例: `cli, adapter, github, gitlab, pr, issue, release, http, config, auth, ci, deps, docs`。
+[Conventional Commits](https://www.conventionalcommits.org/) に従う。Header ≤72 目安。scope 例: `cli, adapter, github, gitlab, pr, issue, release, http, config, auth, ci, deps, docs`。
 
 ---
 
