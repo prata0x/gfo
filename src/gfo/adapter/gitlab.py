@@ -94,7 +94,7 @@ class GitLabAdapter(GitServiceAdapter):
             title=data["title"],
             body=data.get("description"),
             state=state,
-            author=data["author"]["username"],
+            author=(data.get("author") or {}).get("username") or "",
             source_branch=data["source_branch"],
             target_branch=data["target_branch"],
             draft=data.get("draft", False),

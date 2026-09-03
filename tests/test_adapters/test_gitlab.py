@@ -246,6 +246,13 @@ class TestToPullRequest:
         pr = GitLabAdapter._to_pull_request(_mr_data(state="merged"))
         assert pr.state == "merged"
 
+    def test_author_null_falls_back_to_empty(self):
+        """author が null（削除済みユーザーの MR）の場合は空文字列へフォールバックする（#598）。"""
+        data = _mr_data()
+        data["author"] = None
+        pr = GitLabAdapter._to_pull_request(data)
+        assert pr.author == ""
+
 
 class TestToIssue:
     def test_basic(self):
