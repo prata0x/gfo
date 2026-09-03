@@ -618,7 +618,9 @@ class BacklogAdapter(GitServiceAdapter):
 
     def _branch_web_url(self, name: str) -> str:
         hostname = urllib.parse.urlparse(self._client.base_url).hostname
-        return f"https://{hostname}/git/{self._project_key}/{self._repo}/tree/{name}"
+        # ブランチ名に # ? % 等の特殊文字や / を含む場合に正しいページへ到達するよう
+        # quote する（/ は階層区切りとして維持）。
+        return f"https://{hostname}/git/{self._project_key}/{self._repo}/tree/{urllib.parse.quote(name, safe='/')}"
 
     def _tag_web_url(self, name: str) -> str:
         return self._branch_web_url(name)

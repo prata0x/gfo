@@ -380,6 +380,23 @@ class TestBranchWebUrl:
         branch = gitea_adapter.get_branch("feature")
         assert branch.url == "https://gitea.example.com/test-owner/test-repo/src/branch/feature"
 
+    def test_branch_web_url_quotes_special_chars(self, gitea_adapter):
+        # Gitea / Forgejo / Gogs が継承する共有実装。# ? % を quote する。
+        assert (
+            gitea_adapter._branch_web_url("release#123")
+            == "https://gitea.example.com/test-owner/test-repo/src/branch/release%23123"
+        )
+        assert (
+            gitea_adapter._branch_web_url("a?b%c")
+            == "https://gitea.example.com/test-owner/test-repo/src/branch/a%3Fb%25c"
+        )
+
+    def test_branch_web_url_keeps_slash(self, gitea_adapter):
+        assert (
+            gitea_adapter._branch_web_url("feature/foo")
+            == "https://gitea.example.com/test-owner/test-repo/src/branch/feature/foo"
+        )
+
 
 class TestToTag:
     def test_basic(self):

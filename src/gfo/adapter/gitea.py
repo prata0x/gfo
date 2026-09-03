@@ -1033,8 +1033,12 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     # --- Branch ---
 
     def _branch_web_url(self, name: str) -> str:
-        # Gitea / Forgejo / Gogs の Web パスは /src/branch/ を使用する。
-        return f"{self._web_base_url()}/{self._owner}/{self._repo}/src/branch/{name}"
+        # Gitea / Forgejo / Gogs の Web パスは /src/branch/ を使用する。ブランチ名に
+        # # ? % 等の特殊文字や / を含む場合に正しいページへ到達するよう quote する
+        # （/ は階層区切りとして維持）。
+        return (
+            f"{self._web_base_url()}/{self._owner}/{self._repo}/src/branch/{quote(name, safe='/')}"
+        )
 
     def get_branch(self, name: str) -> Branch:
         resp = self._client.get(f"{self._repos_path()}/branches/{quote(name, safe='')}")

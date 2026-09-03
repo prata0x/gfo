@@ -4661,3 +4661,21 @@ class TestBranchWebUrl:
         )
         branch = github_adapter.get_branch("feature")
         assert branch.url == "https://github.com/test-owner/test-repo/tree/feature"
+
+    def test_branch_web_url_quotes_special_chars(self, github_adapter):
+        # # ? % 等の特殊文字を含むブランチ名も正しいページへ到達するよう quote する
+        assert (
+            github_adapter._branch_web_url("release#123")
+            == "https://github.com/test-owner/test-repo/tree/release%23123"
+        )
+        assert (
+            github_adapter._branch_web_url("a?b%c")
+            == "https://github.com/test-owner/test-repo/tree/a%3Fb%25c"
+        )
+
+    def test_branch_web_url_keeps_slash(self, github_adapter):
+        # 階層区切りの / は維持する（feature/foo は tree/feature/foo として到達）
+        assert (
+            github_adapter._branch_web_url("feature/foo")
+            == "https://github.com/test-owner/test-repo/tree/feature/foo"
+        )
