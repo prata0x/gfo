@@ -2390,6 +2390,24 @@ class TestCompareAzureDevOps:
         assert result.files[0].filename == "baz.py"
         assert result.files[0].status == "modified"
 
+    def test_compare_handles_null_item(self, mock_responses, azure_devops_adapter):
+        """item が明示的に null の変更エントリ（delete 等）でもクラッシュしない。"""
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/diffs/commits",
+            json={
+                "aheadCount": 1,
+                "behindCount": 0,
+                "changes": [
+                    {"item": None, "changeType": "delete"},
+                ],
+            },
+            status=200,
+        )
+        result = azure_devops_adapter.compare("main", "feature")
+        assert len(result.files) == 1
+        assert result.files[0].filename == ""
+
     def test_compound_change_type_resolves_to_renamed(self, mock_responses, azure_devops_adapter):
         """changeType が複合値（例: "rename, edit"）の場合、先頭要素で判定する。"""
         mock_responses.add(
