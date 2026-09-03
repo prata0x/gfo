@@ -3366,6 +3366,48 @@ class TestListIssueTemplates:
         templates = github_adapter.list_issue_templates()
         assert templates == []
 
+    @responses.activate
+    def test_excludes_config_yml_chooser(self, github_adapter):
+        import base64
+
+        template_content = "---\nname: Bug Report\nabout: Report a bug\n---\n## Description\n..."
+        encoded = base64.b64encode(template_content.encode()).decode()
+        config_content = (
+            "blank_issues_enabled: false\n"
+            "contact_links:\n  - name: Community Support\n    url: https://example.com/support\n"
+        )
+        config_encoded = base64.b64encode(config_content.encode()).decode()
+        responses.add(
+            responses.GET,
+            f"{REPOS}/contents/.github/ISSUE_TEMPLATE",
+            json=[
+                {
+                    "name": "config.yml",
+                    "url": f"{REPOS}/contents/.github/ISSUE_TEMPLATE/config.yml",
+                },
+                {
+                    "name": "bug_report.md",
+                    "url": f"{REPOS}/contents/.github/ISSUE_TEMPLATE/bug_report.md",
+                },
+            ],
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            f"{REPOS}/contents/.github/ISSUE_TEMPLATE/config.yml",
+            json={"content": config_encoded},
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            f"{REPOS}/contents/.github/ISSUE_TEMPLATE/bug_report.md",
+            json={"content": encoded},
+            status=200,
+        )
+        templates = github_adapter.list_issue_templates()
+        assert len(templates) == 1
+        assert templates[0].name == "Bug Report"
+
 
 class TestParseIssueTemplate:
     def test_basic_frontmatter(self):
