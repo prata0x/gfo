@@ -881,7 +881,12 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def list_pull_request_checks(self, number: int) -> list[CheckRun]:
         resp = self._client.get(f"{self._repos_path()}/pulls/{number}")
-        sha = resp.json()["head"]["sha"]
+        try:
+            sha = resp.json()["head"]["sha"]
+        except (KeyError, TypeError) as e:
+            raise GfoError(
+                _("Unexpected API response: missing field {error}").format(error=e)
+            ) from e
         results = paginate_link_header(
             self._client,
             f"{self._repos_path()}/statuses/{sha}",

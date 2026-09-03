@@ -839,7 +839,12 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def list_pull_request_checks(self, number: int) -> list[CheckRun]:
         # PR の head SHA を取得
         pr_resp = self._client.get(f"{self._repos_path()}/pulls/{number}")
-        sha = pr_resp.json()["head"]["sha"]
+        try:
+            sha = pr_resp.json()["head"]["sha"]
+        except (KeyError, TypeError) as e:
+            raise GfoError(
+                _("Unexpected API response: missing field {error}").format(error=e)
+            ) from e
 
         # Check Runs（GitHub Actions 等）
         runs: list[CheckRun] = []
