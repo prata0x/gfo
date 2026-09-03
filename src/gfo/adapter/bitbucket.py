@@ -432,7 +432,7 @@ class BitbucketAdapter(GitServiceAdapter):
         )
         files = tuple(
             CompareFile(
-                filename=r.get("new", {}).get("path") or r.get("old", {}).get("path") or "",
+                filename=(r.get("new") or {}).get("path") or (r.get("old") or {}).get("path") or "",
                 status=r.get("status", "modified"),
                 additions=r.get("lines_added", 0),
                 deletions=r.get("lines_removed", 0),
