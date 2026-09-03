@@ -2347,6 +2347,43 @@ class TestListPullRequestFilesBitbucket:
         assert files[0].deletions == 2
 
 
+class TestCompareBitbucket:
+    def test_compare_handles_null_old_new(self, mock_responses, bitbucket_adapter):
+        # Bitbucket diffstat は削除ファイルで "new": null、追加ファイルで "old": null を
+        # キー省略ではなく明示的な null 値として返す (#593)。
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/diffstat/base..head",
+            json={
+                "values": [
+                    {
+                        "type": "diffstat",
+                        "status": "removed",
+                        "lines_added": 0,
+                        "lines_removed": 5,
+                        "old": {"path": "old_file.py"},
+                        "new": None,
+                    },
+                    {
+                        "type": "diffstat",
+                        "status": "added",
+                        "lines_added": 3,
+                        "lines_removed": 0,
+                        "old": None,
+                        "new": {"path": "new_file.py"},
+                    },
+                ]
+            },
+            status=200,
+        )
+        result = bitbucket_adapter.compare("base", "head")
+        assert len(result.files) == 2
+        assert result.files[0].filename == "old_file.py"
+        assert result.files[0].status == "removed"
+        assert result.files[1].filename == "new_file.py"
+        assert result.files[1].status == "added"
+
+
 class TestListPullRequestCommitsBitbucket:
     def test_list_commits(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
