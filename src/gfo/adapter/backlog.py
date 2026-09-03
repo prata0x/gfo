@@ -616,26 +616,33 @@ class BacklogAdapter(GitServiceAdapter):
             updated_at=data.get("updated"),
         )
 
+    def _branch_web_url(self, name: str) -> str:
+        hostname = urllib.parse.urlparse(self._client.base_url).hostname
+        return f"https://{hostname}/git/{self._project_key}/{self._repo}/tree/{name}"
+
+    def _tag_web_url(self, name: str) -> str:
+        return self._branch_web_url(name)
+
     @staticmethod
     @_wrap_conversion_error
-    def _to_branch(data: dict[str, Any]) -> Branch:
+    def _to_branch(data: dict[str, Any], default_url: str = "") -> Branch:
 
         return Branch(
             name=data["name"],
             sha=data.get("commit", {}).get("id") or "",
             protected=False,
-            url="",
+            url=data.get("url") or default_url,
         )
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_tag(data: dict[str, Any]) -> Tag:
+    def _to_tag(data: dict[str, Any], default_url: str = "") -> Tag:
 
         return Tag(
             name=data["name"],
             sha=data.get("commit", {}).get("id") or "",
             message="",
-            url="",
+            url=data.get("url") or default_url,
         )
 
     @staticmethod
@@ -782,7 +789,7 @@ class BacklogAdapter(GitServiceAdapter):
         )
         for r in results:
             if r.get("name") == name:
-                return self._to_branch(r)
+                return self._to_branch(r, self._branch_web_url(name))
 
         raise NotFoundError(detail=f"Branch '{name}' not found")
 
@@ -792,14 +799,14 @@ class BacklogAdapter(GitServiceAdapter):
             f"/projects/{self._project_key}/git/repositories/{urllib.parse.quote(self._repo, safe='')}/branches",
             limit=limit,
         )
-        return [self._to_branch(r) for r in results]
+        return [self._to_branch(r, self._branch_web_url(r["name"])) for r in results]
 
     def create_branch(self, *, name: str, ref: str) -> Branch:
         resp = self._client.post(
             f"/projects/{self._project_key}/git/repositories/{urllib.parse.quote(self._repo, safe='')}/branches",
             json={"name": name, "startPoint": ref},
         )
-        return self._to_branch(resp.json())
+        return self._to_branch(resp.json(), self._branch_web_url(name))
 
     def delete_branch(self, *, name: str) -> None:
         self._client.delete(
@@ -817,7 +824,7 @@ class BacklogAdapter(GitServiceAdapter):
         )
         for r in results:
             if r.get("name") == name:
-                return self._to_tag(r)
+                return self._to_tag(r, self._tag_web_url(name))
 
         raise NotFoundError(detail=f"Tag '{name}' not found")
 
@@ -827,7 +834,7 @@ class BacklogAdapter(GitServiceAdapter):
             f"/projects/{self._project_key}/git/repositories/{urllib.parse.quote(self._repo, safe='')}/tags",
             limit=limit,
         )
-        return [self._to_tag(r) for r in results]
+        return [self._to_tag(r, self._tag_web_url(r["name"])) for r in results]
 
     def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
         payload: dict[str, Any] = {"name": name, "startPoint": ref}
@@ -837,7 +844,7 @@ class BacklogAdapter(GitServiceAdapter):
             f"/projects/{self._project_key}/git/repositories/{urllib.parse.quote(self._repo, safe='')}/tags",
             json=payload,
         )
-        return self._to_tag(resp.json())
+        return self._to_tag(resp.json(), self._tag_web_url(name))
 
     # --- Webhook ---
 

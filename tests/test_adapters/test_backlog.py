@@ -1668,6 +1668,7 @@ class TestListBranches:
         assert len(branches) == 1
         assert isinstance(branches[0], Branch)
         assert branches[0].name == "feature"
+        assert branches[0].url == "https://example.backlog.com/git/TEST/test-repo/tree/feature"
 
 
 class TestCreateBranch:
@@ -1680,6 +1681,7 @@ class TestCreateBranch:
         )
         branch = backlog_adapter.create_branch(name="new-branch", ref="main")
         assert isinstance(branch, Branch)
+        assert branch.url == "https://example.backlog.com/git/TEST/test-repo/tree/new-branch"
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["name"] == "new-branch"
         assert req_body["startPoint"] == "main"
@@ -1712,6 +1714,7 @@ class TestListTags:
         assert len(tags) == 1
         assert isinstance(tags[0], Tag)
         assert tags[0].name == "v1.0.0"
+        assert tags[0].url == "https://example.backlog.com/git/TEST/test-repo/tree/v1.0.0"
 
 
 class TestCreateTag:
@@ -1724,6 +1727,7 @@ class TestCreateTag:
         )
         tag = backlog_adapter.create_tag(name="v2.0.0", ref="main")
         assert isinstance(tag, Tag)
+        assert tag.url == "https://example.backlog.com/git/TEST/test-repo/tree/v2.0.0"
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["name"] == "v2.0.0"
         assert req_body["startPoint"] == "main"
@@ -2144,6 +2148,27 @@ class TestToBranch:
         assert branch.name == "main"
         assert branch.sha == ""
 
+    def test_url_falls_back_to_default(self):
+        """レスポンスに url が無い場合は default_url を使う（#606）。"""
+        data = _branch_data_bl(name="feature", sha="abc123")
+        branch = BacklogAdapter._to_branch(
+            data, "https://example.backlog.com/git/TEST/test-repo/tree/feature"
+        )
+        assert branch.url == "https://example.backlog.com/git/TEST/test-repo/tree/feature"
+
+    def test_url_prefers_explicit(self):
+        """レスポンスに url があればそれを優先し default_url を無視する。"""
+        data = _branch_data_bl(name="feature", sha="abc123")
+        data["url"] = "https://explicit.example/branch"
+        branch = BacklogAdapter._to_branch(data, "https://default.example/tree/feature")
+        assert branch.url == "https://explicit.example/branch"
+
+    def test_url_default_empty(self):
+        """default_url を省略した場合は url が空文字になる。"""
+        data = _branch_data_bl(name="feature", sha="abc123")
+        branch = BacklogAdapter._to_branch(data)
+        assert branch.url == ""
+
 
 class TestToTag:
     def test_basic(self):
@@ -2160,6 +2185,20 @@ class TestToTag:
         tag = BacklogAdapter._to_tag(data)
         assert tag.name == "v0.1.0"
         assert tag.sha == ""
+
+    def test_url_falls_back_to_default(self):
+        """レスポンスに url が無い場合は default_url を使う（#606）。"""
+        data = _tag_data_bl(name="v1.0.0", sha="def456")
+        tag = BacklogAdapter._to_tag(
+            data, "https://example.backlog.com/git/TEST/test-repo/tree/v1.0.0"
+        )
+        assert tag.url == "https://example.backlog.com/git/TEST/test-repo/tree/v1.0.0"
+
+    def test_url_default_empty(self):
+        """default_url を省略した場合は url が空文字になる。"""
+        data = _tag_data_bl(name="v1.0.0", sha="def456")
+        tag = BacklogAdapter._to_tag(data)
+        assert tag.url == ""
 
 
 class TestToWebhook:
