@@ -2169,6 +2169,23 @@ class TestToBranch:
         branch = BacklogAdapter._to_branch(data)
         assert branch.url == ""
 
+    def test_branch_web_url_quotes_special_chars(self, backlog_adapter):
+        # # ? % 等の特殊文字を含むブランチ名も正しいページへ到達するよう quote する
+        assert (
+            backlog_adapter._branch_web_url("release#123")
+            == "https://example.backlog.com/git/TEST/test-repo/tree/release%23123"
+        )
+        assert (
+            backlog_adapter._tag_web_url("a?b%c")
+            == "https://example.backlog.com/git/TEST/test-repo/tree/a%3Fb%25c"
+        )
+
+    def test_branch_web_url_keeps_slash(self, backlog_adapter):
+        assert (
+            backlog_adapter._branch_web_url("feature/foo")
+            == "https://example.backlog.com/git/TEST/test-repo/tree/feature/foo"
+        )
+
 
 class TestToTag:
     def test_basic(self):

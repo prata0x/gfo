@@ -1031,8 +1031,9 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def _branch_web_url(self, name: str) -> str:
         # GitHub / GitBucket 系の Web パス。Gitea 系は /src/branch/ を使うため
-        # GiteaAdapter でオーバーライドする。
-        return f"{self._web_base_url()}/{self._owner}/{self._repo}/tree/{name}"
+        # GiteaAdapter でオーバーライドする。ブランチ名に # ? % 等の特殊文字や
+        # / を含む場合に正しいページへ到達するよう quote する（/ は階層区切りとして維持）。
+        return f"{self._web_base_url()}/{self._owner}/{self._repo}/tree/{quote(name, safe='/')}"
 
     def get_branch(self, name: str) -> Branch:
         resp = self._client.get(f"{self._repos_path()}/branches/{quote(name, safe='')}")
