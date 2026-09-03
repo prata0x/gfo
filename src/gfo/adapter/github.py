@@ -1022,9 +1022,14 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- Branch ---
 
+    def _branch_web_url(self, name: str) -> str:
+        # GitHub / GitBucket 系の Web パス。Gitea 系は /src/branch/ を使うため
+        # GiteaAdapter でオーバーライドする。
+        return f"{self._web_base_url()}/{self._owner}/{self._repo}/tree/{name}"
+
     def get_branch(self, name: str) -> Branch:
         resp = self._client.get(f"{self._repos_path()}/branches/{quote(name, safe='')}")
-        return self._to_branch(resp.json())
+        return self._to_branch(resp.json(), self._branch_web_url(name))
 
     def list_branches(self, *, limit: int = 30) -> list[Branch]:
         results = paginate_link_header(
@@ -1032,7 +1037,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             f"{self._repos_path()}/branches",
             limit=limit,
         )
-        return [self._to_branch(r) for r in results]
+        return [self._to_branch(r, self._branch_web_url(r["name"])) for r in results]
 
     def create_branch(self, *, name: str, ref: str) -> Branch:
         # ref が SHA でなければまず解決
@@ -1045,7 +1050,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             json={"ref": f"refs/heads/{name}", "sha": sha},
         )
         resp = self._client.get(f"{self._repos_path()}/branches/{quote(name, safe='')}")
-        return self._to_branch(resp.json())
+        return self._to_branch(resp.json(), self._branch_web_url(name))
 
     def delete_branch(self, *, name: str) -> None:
         self._client.delete(f"{self._repos_path()}/git/refs/heads/{quote(name, safe='')}")

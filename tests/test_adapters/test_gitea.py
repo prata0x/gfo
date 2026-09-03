@@ -356,6 +356,32 @@ class TestToBranch:
         assert branch.sha == "fallback_sha"
 
 
+class TestBranchWebUrl:
+    def test_list_branches_builds_url(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/branches",
+            json=[
+                {"name": "main", "commit": {"sha": "aaa"}, "protected": True},
+                {"name": "feature", "commit": {"sha": "bbb"}, "protected": False},
+            ],
+        )
+        branches = gitea_adapter.list_branches()
+        assert branches[0].url == "https://gitea.example.com/test-owner/test-repo/src/branch/main"
+        assert (
+            branches[1].url == "https://gitea.example.com/test-owner/test-repo/src/branch/feature"
+        )
+
+    def test_get_branch_builds_url(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/branches/feature",
+            json={"name": "feature", "commit": {"sha": "bbb"}, "protected": False},
+        )
+        branch = gitea_adapter.get_branch("feature")
+        assert branch.url == "https://gitea.example.com/test-owner/test-repo/src/branch/feature"
+
+
 class TestToTag:
     def test_basic(self):
         tag = GiteaAdapter._to_tag(_tag_data())
