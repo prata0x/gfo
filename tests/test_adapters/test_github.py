@@ -4293,3 +4293,46 @@ class TestToIssueMissingCreatedAt:
         data["created_at"] = ""
         issue = GitHubAdapter._to_issue(data)
         assert issue.created_at == ""
+
+
+# --- Branch web URL 構築テスト (#591) ---
+
+
+class TestBranchWebUrl:
+    def test_list_branches_builds_url(self, mock_responses, github_adapter):
+        # GitHub の list_branches レスポンス（short-branch）には _links が無い
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/branches",
+            json=[
+                {"name": "main", "commit": {"sha": "aaa"}, "protected": True},
+                {"name": "feature", "commit": {"sha": "bbb"}, "protected": False},
+            ],
+        )
+        branches = github_adapter.list_branches()
+        assert branches[0].url == "https://github.com/test-owner/test-repo/tree/main"
+        assert branches[1].url == "https://github.com/test-owner/test-repo/tree/feature"
+
+    def test_get_branch_uses_links_html_when_present(self, mock_responses, github_adapter):
+        # branch-with-protection スキーマは _links.html を持つ
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/branches/feature",
+            json={
+                "name": "feature",
+                "commit": {"sha": "bbb"},
+                "protected": False,
+                "_links": {"html": "https://github.com/test-owner/test-repo/tree/feature"},
+            },
+        )
+        branch = github_adapter.get_branch("feature")
+        assert branch.url == "https://github.com/test-owner/test-repo/tree/feature"
+
+    def test_get_branch_builds_url_when_links_absent(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/branches/feature",
+            json={"name": "feature", "commit": {"sha": "bbb"}, "protected": False},
+        )
+        branch = github_adapter.get_branch("feature")
+        assert branch.url == "https://github.com/test-owner/test-repo/tree/feature"

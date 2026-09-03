@@ -176,14 +176,14 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_branch(data: dict[str, Any]) -> Branch:
+    def _to_branch(data: dict[str, Any], default_url: str = "") -> Branch:
         commit = data.get("commit") or {}
         sha = commit.get("sha") or commit.get("id") or ""
         return Branch(
             name=data["name"],
             sha=sha,
             protected=data.get("protected", False),
-            url=data.get("_links", {}).get("html") or "",
+            url=data.get("_links", {}).get("html") or default_url,
         )
 
     @staticmethod

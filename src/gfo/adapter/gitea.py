@@ -1027,9 +1027,13 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- Branch ---
 
+    def _branch_web_url(self, name: str) -> str:
+        # Gitea / Forgejo / Gogs の Web パスは /src/branch/ を使用する。
+        return f"{self._web_base_url()}/{self._owner}/{self._repo}/src/branch/{name}"
+
     def get_branch(self, name: str) -> Branch:
         resp = self._client.get(f"{self._repos_path()}/branches/{quote(name, safe='')}")
-        return self._to_branch(resp.json())
+        return self._to_branch(resp.json(), self._branch_web_url(name))
 
     def list_branches(self, *, limit: int = 30) -> list[Branch]:
         results = paginate_link_header(
@@ -1038,14 +1042,14 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             limit=limit,
             per_page_key="limit",
         )
-        return [self._to_branch(r) for r in results]
+        return [self._to_branch(r, self._branch_web_url(r["name"])) for r in results]
 
     def create_branch(self, *, name: str, ref: str) -> Branch:
         resp = self._client.post(
             f"{self._repos_path()}/branches",
             json={"new_branch_name": name, "old_branch_name": ref},
         )
-        return self._to_branch(resp.json())
+        return self._to_branch(resp.json(), self._branch_web_url(name))
 
     def delete_branch(self, *, name: str) -> None:
         self._client.delete(f"{self._repos_path()}/branches/{quote(name, safe='')}")
