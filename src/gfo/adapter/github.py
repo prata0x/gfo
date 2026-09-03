@@ -300,6 +300,8 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             return []
         templates: list[IssueTemplate] = []
         for f in files:
+            if f.get("name", "").lower() == "config.yml":
+                continue
             if not f.get("name", "").endswith((".md", ".yml", ".yaml")):
                 continue
             try:
