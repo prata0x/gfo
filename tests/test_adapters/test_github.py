@@ -3784,6 +3784,30 @@ class TestSearchCommits:
         assert len(result) == 1
         assert result[0].sha == "abc123"
 
+    @responses.activate
+    def test_search_commits_tolerates_null_commit_author(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{BASE}/search/commits",
+            json={
+                "items": [
+                    {
+                        "sha": "abc123",
+                        "commit": {
+                            "message": "fix",
+                            "author": None,
+                        },
+                        "author": {"login": "alice"},
+                        "html_url": "",
+                    }
+                ]
+            },
+        )
+        result = github_adapter.search_commits("fix", limit=10)
+        assert len(result) == 1
+        assert result[0].author == "alice"
+        assert result[0].created_at == ""
+
 
 class TestSearchCode:
     @responses.activate
@@ -3940,6 +3964,25 @@ class TestIssueTimeline:
         result = github_adapter.get_issue_timeline(1)
         assert len(result) == 1
         assert result[0].event == "labeled"
+
+    @responses.activate
+    def test_get_issue_timeline_tolerates_null_label(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/issues/1/timeline",
+            json=[
+                {
+                    "id": 1,
+                    "event": "labeled",
+                    "actor": {"login": "alice"},
+                    "created_at": "2024-01-01T00:00:00Z",
+                    "label": None,
+                }
+            ],
+        )
+        result = github_adapter.get_issue_timeline(1)
+        assert len(result) == 1
+        assert result[0].detail == ""
 
 
 # ── C-01: download_release_asset パストラバーサル防止 ──

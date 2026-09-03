@@ -2180,7 +2180,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 event=e.get("event") or "",
                 actor=(e.get("actor") or {}).get("login") or "",
                 created_at=e.get("created_at") or "",
-                detail=e.get("label", {}).get("name") or e.get("body") or "",
+                detail=(e.get("label") or {}).get("name") or e.get("body") or "",
             )
             for e in results
         ]
@@ -2319,10 +2319,10 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 sha=r.get("sha") or "",
                 message=(r.get("commit") or {}).get("message") or "",
                 author=(r.get("author") or {}).get("login")
-                or (r.get("commit") or {}).get("author", {}).get("name")
+                or ((r.get("commit") or {}).get("author") or {}).get("name")
                 or "",
                 url=r.get("html_url") or "",
-                created_at=(r.get("commit") or {}).get("author", {}).get("date") or "",
+                created_at=((r.get("commit") or {}).get("author") or {}).get("date") or "",
             )
             for r in results
         ]
