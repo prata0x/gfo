@@ -1559,6 +1559,10 @@ class TestListBranches:
         assert len(branches) == 1
         assert isinstance(branches[0], Branch)
         assert branches[0].name == "feature"
+        assert (
+            branches[0].url
+            == "https://dev.azure.com/test-org/test-project/_git/test-repo?version=GBfeature"
+        )
 
 
 class TestCreateBranch:
@@ -1578,6 +1582,10 @@ class TestCreateBranch:
         )
         branch = azure_devops_adapter.create_branch(name="new-branch", ref="abc123")
         assert isinstance(branch, Branch)
+        assert (
+            branch.url
+            == "https://dev.azure.com/test-org/test-project/_git/test-repo?version=GBnew-branch"
+        )
 
 
 class TestGetBranchExactMatch:
@@ -2123,6 +2131,18 @@ class TestToBranch:
         branch = AzureDevOpsAdapter._to_branch(data)
         assert branch.name == "main"
         assert branch.sha == "def456"
+
+    def test_url_default_empty(self):
+        """default_url を渡さない場合は空文字を返す。"""
+        data = _branch_data_az(name="feature", sha="abc123")
+        branch = AzureDevOpsAdapter._to_branch(data)
+        assert branch.url == ""
+
+    def test_url_fallback(self):
+        """default_url を渡した場合はそれを url に設定する。"""
+        data = _branch_data_az(name="feature", sha="abc123")
+        branch = AzureDevOpsAdapter._to_branch(data, default_url="https://x/y")
+        assert branch.url == "https://x/y"
 
 
 class TestToTag:
