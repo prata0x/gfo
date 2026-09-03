@@ -164,7 +164,7 @@ class GitBucketAdapter(GitHubAdapter):
     # --- Release ---
 
     @staticmethod
-    def _to_release(data: dict[str, Any]) -> Release:
+    def _to_release(data: dict[str, Any], default_url: str = "") -> Release:
         """GitBucket リリースの変換。created_at / html_url が省略される場合に対応する。"""
         try:
             return Release(
@@ -173,7 +173,7 @@ class GitBucketAdapter(GitHubAdapter):
                 body=data.get("body"),
                 draft=data.get("draft", False),
                 prerelease=data.get("prerelease", False),
-                url=data.get("html_url") or "",
+                url=data.get("html_url") or default_url,
                 created_at=data.get("created_at") or "",
             )
         except (KeyError, TypeError) as e:
@@ -232,7 +232,10 @@ class GitBucketAdapter(GitHubAdapter):
         if target:
             payload["target_commitish"] = target
         resp = self._client.post(f"{self._repos_path()}/releases", json=payload)
-        return self._to_release(self._parse_response(resp))
+        return self._to_release(
+            self._parse_response(resp),
+            default_url=self.get_web_url("release", tag),
+        )
 
     def get_release(self, *, tag: str) -> Release:
         raise NotSupportedError("GitBucket", "release view")
