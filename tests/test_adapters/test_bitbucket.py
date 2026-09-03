@@ -131,6 +131,13 @@ class TestToPullRequest:
         pr = BitbucketAdapter._to_pull_request(_pr_data(state="MERGED"))
         assert pr.state == "merged"
 
+    def test_null_author(self):
+        """deleted author account (null) falls back to empty string (#596)."""
+        data = _pr_data()
+        data["author"] = None
+        pr = BitbucketAdapter._to_pull_request(data)
+        assert pr.author == ""
+
 
 class TestToIssue:
     def test_new(self):
@@ -162,6 +169,13 @@ class TestToIssue:
         data["assignee"] = {"display_name": "User Name"}
         issue = BitbucketAdapter._to_issue(data)
         assert issue.assignees == []
+
+    def test_null_reporter(self):
+        """deleted reporter account (null) falls back to empty string (#596)."""
+        data = _issue_data()
+        data["reporter"] = None
+        issue = BitbucketAdapter._to_issue(data)
+        assert issue.author == ""
 
     def test_non_dict_content_raises_gfo_error(self):
         """content が dict 以外の truthy 値のとき AttributeError でなく GfoError になる。"""
