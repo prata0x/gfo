@@ -620,6 +620,23 @@ class TestToRelease:
         assert rel.created_at == ""
         assert rel.title == ""
 
+    def test_missing_html_url_falls_back_to_default_url(self):
+        data = {"tag_name": "v1.0.0"}
+        rel = GitBucketAdapter._to_release(
+            data, default_url="https://gitbucket.example.com/o/r/releases/tag/v1.0.0"
+        )
+        assert rel.url == "https://gitbucket.example.com/o/r/releases/tag/v1.0.0"
+
+    def test_html_url_takes_precedence_over_default_url(self):
+        data = {
+            "tag_name": "v1.0.0",
+            "html_url": "https://gitbucket.example.com/o/r/releases/v1.0.0",
+        }
+        rel = GitBucketAdapter._to_release(
+            data, default_url="https://fallback.example.com/o/r/releases/tag/v1.0.0"
+        )
+        assert rel.url == "https://gitbucket.example.com/o/r/releases/v1.0.0"
+
     def test_missing_tag_name_raises_gfo_error(self):
         with pytest.raises(GfoError):
             GitBucketAdapter._to_release({})
@@ -682,6 +699,18 @@ class TestCreateRelease:
         )
         rel = gitbucket_adapter.create_release(tag="v1.0.0", title="Release v1.0.0")
         assert rel.tag == "v1.0.0"
+
+    def test_create_falls_back_to_web_url_when_html_url_absent(
+        self, mock_responses, gitbucket_adapter
+    ):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/releases",
+            json=self._release_payload(),
+            status=201,
+        )
+        rel = gitbucket_adapter.create_release(tag="v1.0.0", title="Release v1.0.0")
+        assert rel.url == ("https://gitbucket.example.com/test-owner/test-repo/releases/tag/v1.0.0")
 
 
 class TestListTags:
