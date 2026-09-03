@@ -862,19 +862,27 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             url="",
         )
 
-    @staticmethod
-    @_wrap_conversion_error
-    def _to_branch(data: dict[str, Any]) -> Branch:
+    def _branch_web_url(self, name: str) -> str:
+        return (
+            f"https://dev.azure.com/{self._org}/{self._project}/_git/{self._repo}?version=GB{name}"
+        )
 
-        # AzDO: name は "refs/heads/xxx" 形式
-        name = data["name"]
+    @staticmethod
+    def _branch_name(data: dict[str, Any]) -> str:
+        name: str = data["name"]
         if name.startswith("refs/heads/"):
             name = name[len("refs/heads/") :]
+        return name
+
+    @staticmethod
+    @_wrap_conversion_error
+    def _to_branch(data: dict[str, Any], default_url: str = "") -> Branch:
+        name = AzureDevOpsAdapter._branch_name(data)
         return Branch(
             name=name,
             sha=(data.get("objectId") or ""),
             protected=False,
-            url="",
+            url=default_url,
         )
 
     @staticmethod
@@ -1141,7 +1149,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         items = [i for i in items if i.get("name") == f"refs/heads/{name}"]
         if not items:
             raise NotFoundError(detail=f"Branch '{name}' not found")
-        return self._to_branch(items[0])
+        return self._to_branch(items[0], default_url=self._branch_web_url(name))
 
     def list_branches(self, *, limit: int = 30) -> list[Branch]:
         results = paginate_top_skip(
@@ -1151,7 +1159,10 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             limit=limit,
             result_key="value",
         )
-        return [self._to_branch(r) for r in results]
+        return [
+            self._to_branch(r, default_url=self._branch_web_url(self._branch_name(r)))
+            for r in results
+        ]
 
     def create_branch(self, *, name: str, ref: str) -> Branch:
         # AzDO refs 更新 API でブランチを作成（pushes API は commit が必要なので使用しない）
@@ -1164,7 +1175,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         items = resp.json().get("value", [])
         if not items:
             raise GfoError(_("Branch '{name}' not found after creation").format(name=name))
-        return self._to_branch(items[0])
+        return self._to_branch(items[0], default_url=self._branch_web_url(name))
 
     def delete_branch(self, *, name: str) -> None:
         # 現在の SHA を取得
