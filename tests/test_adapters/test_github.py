@@ -2944,6 +2944,16 @@ class TestListPullRequestChecks:
         assert checks[1].name == "external-ci"
         assert checks[1].status == "success"
 
+    def test_missing_head_sha_wrapped(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1",
+            json={"number": 1, "state": "open"},
+            status=200,
+        )
+        with pytest.raises(GfoError):
+            github_adapter.list_pull_request_checks(1)
+
 
 class TestListPullRequestFiles:
     def test_list_files(self, mock_responses, github_adapter):

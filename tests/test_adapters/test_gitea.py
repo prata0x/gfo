@@ -3210,6 +3210,16 @@ class TestListPullRequestChecksGitea:
         checks = gitea_adapter.list_pull_request_checks(1)
         assert checks[0].status == "failure"
 
+    def test_missing_head_sha_wrapped(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1",
+            json={"number": 1, "state": "open"},
+            status=200,
+        )
+        with pytest.raises(GfoError):
+            gitea_adapter.list_pull_request_checks(1)
+
 
 class TestListPullRequestFilesGitea:
     def test_list_files(self, mock_responses, gitea_adapter):
