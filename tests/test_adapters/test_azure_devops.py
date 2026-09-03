@@ -1345,6 +1345,18 @@ def _tag_data_az(*, name="v1.0.0", sha="def456"):
     }
 
 
+def _make_adapter_az():
+    from unittest.mock import MagicMock
+
+    return AzureDevOpsAdapter(
+        MagicMock(),
+        "test-owner",
+        "test-repo",
+        organization="test-org",
+        project_key="test-project",
+    )
+
+
 def _commit_status_data(*, state="succeeded", context_name="test", context_genre="ci"):
     return {
         "state": state,
@@ -1639,6 +1651,25 @@ class TestListTags:
         assert len(tags) == 1
         assert isinstance(tags[0], Tag)
         assert tags[0].name == "v1.0.0"
+        assert tags[0].url == (
+            "https://dev.azure.com/test-org/test-project/_git/test-repo?version=GTv1.0.0"
+        )
+
+
+class TestGetTag:
+    def test_get(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/refs",
+            json={"value": [_tag_data_az()], "count": 1},
+            status=200,
+        )
+        tag = azure_devops_adapter.get_tag(name="v1.0.0")
+        assert isinstance(tag, Tag)
+        assert tag.name == "v1.0.0"
+        assert tag.url == (
+            "https://dev.azure.com/test-org/test-project/_git/test-repo?version=GTv1.0.0"
+        )
 
 
 class TestCreateTag:
@@ -1652,6 +1683,9 @@ class TestCreateTag:
         )
         tag = azure_devops_adapter.create_tag(name="v2.0.0", ref="abc123")
         assert isinstance(tag, Tag)
+        assert tag.url == (
+            "https://dev.azure.com/test-org/test-project/_git/test-repo?version=GTv2.0.0"
+        )
 
 
 # --- CommitStatus 系 ---
@@ -2160,6 +2194,41 @@ class TestToTag:
         tag = AzureDevOpsAdapter._to_tag(data)
         assert tag.name == "v2.0.0"
         assert tag.sha == "abc123"
+
+    def test_url_default_empty(self):
+        """default_url を渡さない場合は空文字を返す。"""
+        data = _tag_data_az(name="v1.0.0", sha="def456")
+        tag = AzureDevOpsAdapter._to_tag(data)
+        assert tag.url == ""
+
+    def test_url_fallback(self):
+        """default_url を渡した場合はそれを url に設定する。"""
+        data = _tag_data_az(name="v1.0.0", sha="def456")
+        tag = AzureDevOpsAdapter._to_tag(data, default_url="https://x/y")
+        assert tag.url == "https://x/y"
+
+
+class TestTagWebUrl:
+    def test_format(self):
+        """version=GT{name} 形式の Web URL を返す。"""
+        adapter = _make_adapter_az()
+        url = adapter._tag_web_url("v1.0.0")
+        assert url == (
+            f"https://dev.azure.com/{adapter._org}/{adapter._project}/_git/{adapter._repo}"
+            "?version=GTv1.0.0"
+        )
+
+    def test_special_chars_quoted(self):
+        """# ? % はエンコードされる。"""
+        adapter = _make_adapter_az()
+        url = adapter._tag_web_url("a b#c?d%e")
+        assert "version=GTa%20b%23c%3Fd%25e" in url
+
+    def test_slash_preserved(self):
+        """/ は階層区切りとして維持される。"""
+        adapter = _make_adapter_az()
+        url = adapter._tag_web_url("feature/v1")
+        assert "version=GTfeature/v1" in url
 
 
 class TestToCommitStatus:
