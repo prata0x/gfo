@@ -56,11 +56,6 @@ from .models import (
 from .registry import register
 
 
-def _is_sha(ref: str) -> bool:
-    """ref が Git の SHA（hex 文字列）なら True。短縮 SHA も含む。"""
-    return len(ref) > 0 and all(c in "0123456789abcdef" for c in ref)
-
-
 @register("github")
 class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     service_name = "GitHub"
@@ -1045,11 +1040,16 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return [self._to_branch(r, self._branch_web_url(r["name"])) for r in results]
 
     def create_branch(self, *, name: str, ref: str) -> Branch:
-        # ref が SHA でなければまず解決（短縮 SHA も hex 文字列とみなす）
+        # Resolve ref as a branch name first; fall back to treating it as a
+        # raw commit SHA only when no such branch exists. Relying on the
+        # character set to decide would misclassify all-hex branch names as
+        # SHAs (see #614).
         sha = ref
-        if not _is_sha(ref):
+        try:
             resp = self._client.get(f"{self._repos_path()}/git/ref/heads/{quote(ref, safe='')}")
             sha = resp.json()["object"]["sha"]
+        except NotFoundError:
+            pass
         self._client.post(
             f"{self._repos_path()}/git/refs",
             json={"ref": f"refs/heads/{name}", "sha": sha},

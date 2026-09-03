@@ -783,3 +783,34 @@ class TestMigrateRepository:
     def test_not_supported(self, gitbucket_adapter):
         with pytest.raises(NotSupportedError):
             gitbucket_adapter.migrate_repository("https://github.com/a/b.git", "c")
+
+
+class TestCreateBranch:
+    def test_create_from_hex_branch_name(self, mock_responses, gitbucket_adapter):
+        # GitBucketAdapter は create_branch を override せず GitHubAdapter を継承。
+        # 全文字 hex のブランチ名も SHA と誤判定せずブランチとして解決する (#614)。
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/git/ref/heads/cafe",
+            json={"object": {"sha": "shaC0FFEE"}},
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/git/refs",
+            json={"ref": "refs/heads/new-branch", "object": {"sha": "shaC0FFEE"}},
+            status=201,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/branches/new-branch",
+            json={
+                "name": "new-branch",
+                "commit": {"sha": "shaC0FFEE", "url": ""},
+                "protected": False,
+            },
+            status=200,
+        )
+        gitbucket_adapter.create_branch(name="new-branch", ref="cafe")
+        post_body = json_mod.loads(mock_responses.calls[1].request.body)
+        assert post_body["sha"] == "shaC0FFEE"
