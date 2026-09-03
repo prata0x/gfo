@@ -2077,6 +2077,30 @@ class TestCreateBranch:
         assert req_body["ref"] == "refs/heads/new-branch"
         assert req_body["sha"] == sha40
 
+    def test_create_from_short_sha(self, mock_responses, github_adapter):
+        # 短縮 SHA（40 文字未満の hex）も SHA として直接 POST /git/refs する
+        short_sha = "abc123def456"
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/git/refs",
+            json={"ref": "refs/heads/new-branch", "object": {"sha": short_sha}},
+            status=201,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/branches/new-branch",
+            json=_branch_data(name="new-branch", sha=short_sha),
+            status=200,
+        )
+        branch = github_adapter.create_branch(name="new-branch", ref=short_sha)
+        assert isinstance(branch, Branch)
+        # ブランチ名解決の GET は発生しない（直接 SHA を使用）
+        assert not any(
+            f"{REPOS}/git/ref/heads/{short_sha}" in c.request.url for c in mock_responses.calls
+        )
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["sha"] == short_sha
+
     def test_create_from_branch_name(self, mock_responses, github_adapter):
         # 既存ブランチ名が ref として渡された場合、SHA を解決してから作成する
         mock_responses.add(
