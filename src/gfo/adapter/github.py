@@ -2127,7 +2127,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             Reaction(
                 id=r["id"],
                 content=r["content"],
-                user=r["user"]["login"],
+                user=(r.get("user") or {}).get("login") or "",
                 created_at=r.get("created_at") or "",
             )
             for r in results
@@ -2142,7 +2142,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return Reaction(
             id=r["id"],
             content=r["content"],
-            user=r["user"]["login"],
+            user=(r.get("user") or {}).get("login") or "",
             created_at=r.get("created_at") or "",
         )
 
@@ -2256,7 +2256,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                     title=r["title"],
                     body=r.get("body"),
                     state="merged" if pr_data.get("merged_at") else r["state"],
-                    author=r["user"]["login"],
+                    author=(r.get("user") or {}).get("login") or "",
                     source_branch="",
                     target_branch="",
                     draft=r.get("draft", False),

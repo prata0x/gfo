@@ -3483,6 +3483,49 @@ class TestIssueReactions:
         assert result.content == "+1"
 
     @responses.activate
+    def test_list_issue_reactions_tolerates_null_user(self, github_adapter):
+        """Deleted/ghost accounts return user=null; it must not crash (#604)."""
+        responses.add(
+            responses.GET,
+            f"{REPOS}/issues/1/reactions",
+            json=[
+                {
+                    "id": 1,
+                    "content": "+1",
+                    "user": {"login": "alice"},
+                    "created_at": "2024-01-01T00:00:00Z",
+                },
+                {
+                    "id": 2,
+                    "content": "-1",
+                    "user": None,
+                    "created_at": "2024-01-02T00:00:00Z",
+                },
+            ],
+        )
+        result = github_adapter.list_issue_reactions(1)
+        assert len(result) == 2
+        assert result[0].user == "alice"
+        assert result[1].user == ""
+
+    @responses.activate
+    def test_add_issue_reaction_tolerates_null_user(self, github_adapter):
+        """Deleted/ghost accounts return user=null; it must not crash (#604)."""
+        responses.add(
+            responses.POST,
+            f"{REPOS}/issues/1/reactions",
+            json={
+                "id": 1,
+                "content": "+1",
+                "user": None,
+                "created_at": "2024-01-01T00:00:00Z",
+            },
+        )
+        result = github_adapter.add_issue_reaction(1, "+1")
+        assert result.content == "+1"
+        assert result.user == ""
+
+    @responses.activate
     def test_remove_issue_reaction_deletes_own_reaction_only(self, github_adapter):
         """他ユーザーが先に同種のリアクションを付けていても、自分自身のものだけを削除する。"""
         responses.add(
@@ -3564,6 +3607,44 @@ class TestSearchPullRequests:
         result = github_adapter.search_pull_requests("bug", limit=10)
         assert len(result) == 1
         assert result[0].title == "Fix bug"
+
+    @responses.activate
+    def test_search_pull_requests_tolerates_null_user(self, github_adapter):
+        """Deleted/ghost accounts return user=null; it must not crash (#604)."""
+        responses.add(
+            responses.GET,
+            f"{BASE}/search/issues",
+            json={
+                "items": [
+                    {
+                        "number": 1,
+                        "title": "Fix bug",
+                        "body": "",
+                        "state": "open",
+                        "user": {"login": "alice"},
+                        "html_url": "",
+                        "created_at": "2024-01-01T00:00:00Z",
+                        "pull_request": {},
+                        "draft": False,
+                    },
+                    {
+                        "number": 2,
+                        "title": "By ghost",
+                        "body": "",
+                        "state": "open",
+                        "user": None,
+                        "html_url": "",
+                        "created_at": "2024-01-02T00:00:00Z",
+                        "pull_request": {},
+                        "draft": False,
+                    },
+                ]
+            },
+        )
+        result = github_adapter.search_pull_requests("bug", limit=10)
+        assert len(result) == 2
+        assert result[0].author == "alice"
+        assert result[1].author == ""
 
 
 class TestSearchCommits:
