@@ -741,7 +741,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         changes = data.get("changes") or []
         files = tuple(
             CompareFile(
-                filename=c.get("item", {}).get("path", "").lstrip("/"),
+                filename=(c.get("item") or {}).get("path", "").lstrip("/"),
                 status=_resolve_change_type(c.get("changeType", "edit")),
                 additions=0,
                 deletions=0,
