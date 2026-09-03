@@ -1398,6 +1398,97 @@ class TestErrorHandling:
             github_adapter.list_labels()
 
 
+# --- null user 耐性 (#597) ---
+
+
+class TestNullUserConversion:
+    def test_to_pull_request_null_user(self):
+        """_to_pull_request が user=null でも author="" で変換を続行する (#597)。"""
+        data = {
+            "number": 1,
+            "title": "PR",
+            "state": "open",
+            "merged_at": None,
+            "user": None,
+            "head": {"ref": "feature"},
+            "base": {"ref": "main"},
+            "draft": False,
+            "html_url": "https://github.com/o/r/pull/1",
+            "created_at": "2025-01-01T00:00:00Z",
+        }
+        pr = GitHubAdapter._to_pull_request(data)
+        assert pr.author == ""
+
+    def test_to_issue_null_user(self):
+        data = {
+            "number": 1,
+            "title": "issue",
+            "state": "open",
+            "user": None,
+            "assignees": [],
+            "labels": [],
+            "created_at": "2025-01-01T00:00:00Z",
+        }
+        issue = GitHubAdapter._to_issue(data)
+        assert issue.author == ""
+
+    def test_to_comment_null_user(self):
+        data = {
+            "id": 1,
+            "body": "comment",
+            "user": None,
+            "created_at": "2025-01-01T00:00:00Z",
+        }
+        comment = GitHubAdapter._to_comment(data)
+        assert comment.author == ""
+
+    def test_to_review_null_user(self):
+        data = {
+            "id": 1,
+            "state": "APPROVED",
+            "body": "",
+            "user": None,
+            "submitted_at": "2025-01-01T00:00:00Z",
+        }
+        review = GitHubAdapter._to_review(data)
+        assert review.author == ""
+
+    def test_list_pull_requests_tolerates_null_user(self, mock_responses, github_adapter):
+        """一覧内に user=null が混じっても他の PR は返る (#597)。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[
+                {
+                    "number": 1,
+                    "title": "ok",
+                    "state": "open",
+                    "user": {"login": "a"},
+                    "head": {"ref": "f"},
+                    "base": {"ref": "main"},
+                    "draft": False,
+                    "html_url": "https://github.com/o/r/pull/1",
+                    "created_at": "2025-01-01T00:00:00Z",
+                },
+                {
+                    "number": 2,
+                    "title": "deleted author",
+                    "state": "open",
+                    "user": None,
+                    "head": {"ref": "f2"},
+                    "base": {"ref": "main"},
+                    "draft": False,
+                    "html_url": "https://github.com/o/r/pull/2",
+                    "created_at": "2025-01-01T00:00:00Z",
+                },
+            ],
+            status=200,
+        )
+        prs = github_adapter.list_pull_requests()
+        assert [p.number for p in prs] == [1, 2]
+        assert prs[1].author == ""
+
+
 # --- Delete 系 ---
 
 

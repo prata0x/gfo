@@ -293,10 +293,9 @@ class TestToComment:
     def test_null_user(self):
         data = _comment_data()
         data["user"] = None
-        from gfo.exceptions import GfoError
 
-        with pytest.raises(GfoError):
-            GiteaAdapter._to_comment(data)
+        comment = GiteaAdapter._to_comment(data)
+        assert comment.author == ""
 
 
 class TestToReview:
