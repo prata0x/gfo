@@ -864,7 +864,14 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     def _branch_web_url(self, name: str) -> str:
         return (
-            f"https://dev.azure.com/{self._org}/{self._project}/_git/{self._repo}?version=GB{name}"
+            f"https://dev.azure.com/{self._org}/{self._project}/_git/{self._repo}"
+            f"?version=GB{quote(name, safe='/')}"
+        )
+
+    def _tag_web_url(self, name: str) -> str:
+        return (
+            f"https://dev.azure.com/{self._org}/{self._project}/_git/{self._repo}"
+            f"?version=GT{quote(name, safe='/')}"
         )
 
     @staticmethod
@@ -887,7 +894,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_tag(data: dict[str, Any]) -> Tag:
+    def _to_tag(data: dict[str, Any], default_url: str = "") -> Tag:
 
         name = data.get("name", "")
         if name.startswith("refs/tags/"):
@@ -896,7 +903,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             name=name,
             sha=data.get("objectId") or "",
             message="",
-            url="",
+            url=default_url,
         )
 
     @staticmethod
@@ -1201,7 +1208,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         items = [i for i in items if i.get("name") == f"refs/tags/{name}"]
         if not items:
             raise NotFoundError(detail=f"Tag '{name}' not found")
-        return self._to_tag(items[0])
+        return self._to_tag(items[0], default_url=self._tag_web_url(name))
 
     def list_tags(self, *, limit: int = 30) -> list[Tag]:
         results = paginate_top_skip(
@@ -1211,13 +1218,15 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             limit=limit,
             result_key="value",
         )
-        return [self._to_tag(r) for r in results]
+        return [
+            self._to_tag(r, default_url=self._tag_web_url(self._to_tag(r).name)) for r in results
+        ]
 
     def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
         # Lightweight tag: refs 更新 API でタグを作成
         payload = [{"name": f"refs/tags/{name}", "oldObjectId": "0" * 40, "newObjectId": ref}]
         self._client.post(f"{self._git_path()}/refs", json=payload)
-        return Tag(name=name, sha=ref, message=message, url="")
+        return Tag(name=name, sha=ref, message=message, url=self._tag_web_url(name))
 
     def delete_tag(self, *, name: str) -> None:
         resp = self._client.get(
