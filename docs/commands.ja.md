@@ -1068,7 +1068,7 @@ gfo repo fork --org myorg
 > **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
 
 ```
-gfo repo edit [--name NAME] [--description TEXT] [--private | --public] [--default-branch BRANCH] [--allow-merge-commit | --no-allow-merge-commit] [--allow-squash-merge | --no-allow-squash-merge] [--allow-rebase-merge | --no-allow-rebase-merge] [--delete-branch-on-merge | --no-delete-branch-on-merge]
+gfo repo edit [--name NAME] [--description TEXT] [--private | --public] [--wiki | --no-wiki] [--default-branch BRANCH] [--allow-merge-commit | --no-allow-merge-commit] [--allow-squash-merge | --no-allow-squash-merge] [--allow-rebase-merge | --no-allow-rebase-merge] [--delete-branch-on-merge | --no-delete-branch-on-merge]
 ```
 
 | オプション | 説明 |
@@ -1077,6 +1077,7 @@ gfo repo edit [--name NAME] [--description TEXT] [--private | --public] [--defau
 | `--description TEXT` | リポジトリの説明 |
 | `--private` | リポジトリを非公開に設定 |
 | `--public` | リポジトリを公開に設定 |
+| `--wiki` / `--no-wiki` | リポジトリ Wiki の有効/無効（Gitea / Forgejo） |
 | `--default-branch BRANCH` | デフォルトブランチを変更 |
 | `--allow-merge-commit` / `--no-allow-merge-commit` | マージコミットの許可/禁止 |
 | `--allow-squash-merge` / `--no-allow-squash-merge` | スカッシュマージの許可/禁止 |

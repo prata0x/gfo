@@ -1054,7 +1054,7 @@ Edit repository settings.
 > **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
 
 ```
-gfo repo edit [--name NAME] [--description TEXT] [--private | --public] [--default-branch BRANCH] [--allow-merge-commit | --no-allow-merge-commit] [--allow-squash-merge | --no-allow-squash-merge] [--allow-rebase-merge | --no-allow-rebase-merge] [--delete-branch-on-merge | --no-delete-branch-on-merge]
+gfo repo edit [--name NAME] [--description TEXT] [--private | --public] [--wiki | --no-wiki] [--default-branch BRANCH] [--allow-merge-commit | --no-allow-merge-commit] [--allow-squash-merge | --no-allow-squash-merge] [--allow-rebase-merge | --no-allow-rebase-merge] [--delete-branch-on-merge | --no-delete-branch-on-merge]
 ```
 
 | Option | Description |
@@ -1063,6 +1063,7 @@ gfo repo edit [--name NAME] [--description TEXT] [--private | --public] [--defau
 | `--description TEXT` | Repository description |
 | `--private` | Set repository as private |
 | `--public` | Set repository as public |
+| `--wiki` / `--no-wiki` | Enable/disable the repository wiki (Gitea and Forgejo) |
 | `--default-branch BRANCH` | Change default branch |
 | `--allow-merge-commit` / `--no-allow-merge-commit` | Allow/disallow merge commits |
 | `--allow-squash-merge` / `--no-allow-squash-merge` | Allow/disallow squash merging |

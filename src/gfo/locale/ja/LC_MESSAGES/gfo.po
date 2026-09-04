@@ -1028,6 +1028,9 @@ msgstr "デプロイキー ID"
 msgid "Description"
 msgstr "説明"
 
+msgid "Disable wiki"
+msgstr "Wiki を無効にする"
+
 msgid "Destination (host/owner/repo)"
 msgstr "移行先 (host/owner/repo)"
 
@@ -1039,6 +1042,9 @@ msgstr "強制プッシュを禁止する"
 
 msgid "Display name"
 msgstr "表示名"
+
+msgid "Enable wiki"
+msgstr "Wiki を有効にする"
 
 msgid "Don't enforce rules for admins"
 msgstr "管理者へのルール適用を解除する"

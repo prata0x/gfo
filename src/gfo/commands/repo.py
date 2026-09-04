@@ -254,7 +254,7 @@ def handle_sync_fork(args: argparse.Namespace, *, fmt: str, jq: str | None = Non
 def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo edit のハンドラ。"""
     adapter = get_adapter()
-    repo = adapter.update_repository(
+    update_kwargs = dict(
         name=getattr(args, "name", None),
         description=getattr(args, "description", None),
         private=getattr(args, "private", None),
@@ -264,6 +264,9 @@ def handle_edit(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
         allow_rebase_merge=getattr(args, "allow_rebase_merge", None),
         delete_branch_on_merge=getattr(args, "delete_branch_on_merge", None),
     )
+    if adapter.service_name in ("Gitea", "Forgejo", "Gogs"):
+        update_kwargs["has_wiki"] = getattr(args, "has_wiki", None)
+    repo = adapter.update_repository(**update_kwargs)
     output(repo, fmt=fmt, jq=jq)
     if getattr(args, "name", None):
         print(
