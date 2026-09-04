@@ -134,7 +134,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_issue(data: dict[str, Any]) -> Issue:
+    def _to_issue(data: dict[str, Any], default_url: str = "") -> Issue:
         fields = data["fields"]
         raw_state = fields.get("System.State", "")
         state = "closed" if raw_state in _CLOSED_STATES else "open"
@@ -154,7 +154,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             author=(fields.get("System.CreatedBy") or {}).get("uniqueName", ""),
             assignees=assignees,
             labels=labels,
-            url=data.get("url", ""),
+            url=default_url or data.get("url", ""),
             created_at=fields.get("System.CreatedDate", ""),
             updated_at=fields.get("System.ChangedDate"),
         )
@@ -529,7 +529,9 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                     )
                 )
             for item in batch_body.get("value", []):
-                results.append(self._to_issue(item))
+                item_id = item.get("id") if isinstance(item, dict) else None
+                default_url = self.get_web_url("issue", item_id) if item_id is not None else ""
+                results.append(self._to_issue(item, default_url=default_url))
 
         return results[:limit] if limit > 0 else results
 
@@ -569,11 +571,12 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             data=_json.dumps(patch_ops),
             headers={"Content-Type": "application/json-patch+json"},
         )
-        return self._to_issue(resp.json())
+        created = resp.json()
+        return self._to_issue(created, default_url=self.get_web_url("issue", created["id"]))
 
     def get_issue(self, number: int) -> Issue:
         resp = self._client.get(f"{self._wit_path()}/workitems/{number}")
-        return self._to_issue(resp.json())
+        return self._to_issue(resp.json(), default_url=self.get_web_url("issue", number))
 
     def _resolve_state_by_category(self, number: int, categories: tuple[str, ...]) -> str:
         """work item の種別の状態一覧から、指定カテゴリに属する状態名を解決する。
@@ -1108,7 +1111,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             data=_json.dumps(patch_ops),
             headers={"Content-Type": "application/json-patch+json"},
         )
-        return self._to_issue(resp.json())
+        return self._to_issue(resp.json(), default_url=self.get_web_url("issue", number))
 
     # --- Review (Reviewers API) ---
 
@@ -1674,7 +1677,15 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         batch_body = resp.json()
         if not isinstance(batch_body, dict):
             raise GfoError(_("Unexpected API response: {error}").format(error=type(batch_body)))
-        return [self._to_issue(item) for item in batch_body.get("value", [])]
+        return [
+            self._to_issue(
+                item,
+                default_url=self.get_web_url("issue", item.get("id"))
+                if item.get("id") is not None
+                else "",
+            )
+            for item in batch_body.get("value", [])
+        ]
 
     def _search_api_url(self) -> str:
         """Code Search API の絶対 URL を構築する。

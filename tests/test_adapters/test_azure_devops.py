@@ -215,6 +215,30 @@ class TestToIssue:
         with pytest.raises(GfoError):
             AzureDevOpsAdapter._to_issue(data)
 
+    def test_url_uses_default_url_over_api_url(self):
+        """default_url が渡されたとき、API の self-link ではなく構築済み Web URL を返す。"""
+        data = _issue_data(id=42)
+        issue = AzureDevOpsAdapter._to_issue(
+            data, default_url="https://dev.azure.com/test-org/test-project/_workitems?id=42"
+        )
+        assert issue.url == "https://dev.azure.com/test-org/test-project/_workitems?id=42"
+
+    def test_url_falls_back_to_api_url_when_no_default(self):
+        """default_url が空のときは既存挙動通り API の self-link を返す。"""
+        issue = AzureDevOpsAdapter._to_issue(_issue_data(id=7))
+        assert issue.url == "https://dev.azure.com/test-org/test-project/_apis/wit/workItems/7"
+
+    def test_url_wired_through_get_issue(self, mock_responses, azure_devops_adapter):
+        """get_issue は Issue.url に構築済み Web URL を配線する。"""
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems/42",
+            json=_issue_data(id=42),
+            status=200,
+        )
+        issue = azure_devops_adapter.get_issue(42)
+        assert issue.url == "https://dev.azure.com/test-org/test-project/_workitems?id=42"
+
 
 class TestToRepository:
     def test_basic(self, azure_devops_adapter):
