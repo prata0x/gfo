@@ -382,6 +382,27 @@ class TestMaxDownloadBytesBoundary:
         assert _max_download_bytes() == 0
 
 
+class TestMaxRetryAfterSecondsBoundary:
+    """`_max_retry_after_seconds` の境界値・無効値のフォールバック挙動。"""
+
+    def test_negative_clamped_to_zero(self, monkeypatch):
+        """負の値は max(0, n) で 0 に丸められる。"""
+        monkeypatch.setenv("GFO_RETRY_AFTER_MAX", "-100")
+        from gfo.http import _max_retry_after_seconds
+
+        assert _max_retry_after_seconds() == 0
+
+    def test_invalid_env_falls_back_to_default_with_warning(self, monkeypatch, recwarn):
+        """GFO_RETRY_AFTER_MAX='invalid' は 300 秒デフォルトにフォールバック + warning。"""
+        monkeypatch.setenv("GFO_RETRY_AFTER_MAX", "invalid")
+        from gfo.http import _max_retry_after_seconds
+
+        assert _max_retry_after_seconds() == 300
+        warnings_text = " ".join(str(w.message) for w in recwarn.list)
+        assert "GFO_RETRY_AFTER_MAX" in warnings_text
+        assert "invalid" in warnings_text
+
+
 class TestInsecureEnvWarning:
     """GFO_INSECURE=1 のとき、起動時に stderr で警告が出ること。"""
 

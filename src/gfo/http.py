@@ -26,6 +26,9 @@ def _max_retry_after_seconds() -> int:
     一部 API (GitHub Secondary rate limit など) は Retry-After に長めの値
     (3600 秒等) を返すことがあり、デフォルト 300 で clamp すると過剰リトライで
     レート制限を再度踏むため、運用上 externalize できるようにしておく。
+
+    不正な値が設定されている場合は警告を出し、既定値にフォールバックする
+    (silent fallback だとユーザーが上限を設定したつもりで効いていない事故が起きるため)。
     """
     val = os.environ.get("GFO_RETRY_AFTER_MAX", "").strip()
     if not val:
@@ -33,6 +36,14 @@ def _max_retry_after_seconds() -> int:
     try:
         n = int(val)
     except ValueError:
+        import warnings
+
+        warnings.warn(
+            _(
+                "GFO_RETRY_AFTER_MAX={val!r} is not a valid integer; using default 300 seconds."
+            ).format(val=val),
+            stacklevel=2,
+        )
         return 300
     return max(0, n)
 
