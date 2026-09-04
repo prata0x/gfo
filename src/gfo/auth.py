@@ -239,7 +239,7 @@ def get_auth_status() -> list[dict[str, str]]:
         if env_var in seen_env_vars:
             continue
         val = os.environ.get(env_var)
-        if val:
+        if val and val.strip():
             seen_env_vars.add(env_var)
             # クラウドサービスは実ホスト名を使用、自己ホスト型は "(env) service" 形式
             display_host = _SERVICE_DEFAULT_HOSTS.get(service_type, f"(env) {service_type}")
@@ -256,7 +256,7 @@ def get_auth_status() -> list[dict[str, str]]:
                 seen_hosts.add(display_host)
 
     # GFO_TOKEN 汎用フォールバック（resolve_token の最終手段）
-    if os.environ.get("GFO_TOKEN"):
+    if (gfo_token := os.environ.get("GFO_TOKEN")) and gfo_token.strip():
         host_key = "(all services)"
         if host_key not in seen_hosts:
             result.append(
