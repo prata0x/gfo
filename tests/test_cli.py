@@ -292,6 +292,16 @@ def test_parser_repo_create_private():
     assert args.visibility == "private"
 
 
+def test_parser_repo_edit_wiki():
+    parser, _ = create_parser()
+
+    assert parser.parse_args(["repo", "edit", "--wiki"]).has_wiki is True
+    assert parser.parse_args(["repo", "edit", "--no-wiki"]).has_wiki is False
+
+    with pytest.raises(ConfigError):
+        parser.parse_args(["repo", "edit", "--wiki", "--no-wiki"])
+
+
 def test_parser_repo_create_public():
     parser, _ = create_parser()
     args = parser.parse_args(["repo", "create", "my-repo", "--public"])

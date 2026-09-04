@@ -961,6 +961,21 @@ class TestParseRepoArg:
 
 
 class TestHandleEdit:
+    @pytest.mark.parametrize("service_name, has_wiki", [("Gitea", True), ("Forgejo", False)])
+    def test_passes_wiki_setting_to_gitea_and_forgejo(
+        self, sample_config, sample_repo, service_name, has_wiki
+    ):
+        adapter = MagicMock()
+        adapter.service_name = service_name
+        adapter.update_repository.return_value = sample_repo
+        args = make_args(
+            name=None, description=None, private=None, default_branch=None, has_wiki=has_wiki
+        )
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_edit(args, fmt="table")
+
+        assert adapter.update_repository.call_args.kwargs["has_wiki"] is has_wiki
+
     def test_calls_update_repository(self, sample_config, sample_repo, capsys):
         adapter = MagicMock()
         adapter.update_repository.return_value = sample_repo

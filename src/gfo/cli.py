@@ -625,6 +625,13 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     _repo_private_group.add_argument(
         "--public", dest="private", action="store_false", help=_("Set as public")
     )
+    _repo_wiki = repo_edit.add_mutually_exclusive_group()
+    _repo_wiki.add_argument(
+        "--wiki", dest="has_wiki", action="store_true", default=None, help=_("Enable wiki")
+    )
+    _repo_wiki.add_argument(
+        "--no-wiki", dest="has_wiki", action="store_false", help=_("Disable wiki")
+    )
     repo_edit.add_argument("--default-branch", dest="default_branch", help=_("Default branch name"))
     _repo_merge_commit = repo_edit.add_mutually_exclusive_group()
     _repo_merge_commit.add_argument(
