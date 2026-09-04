@@ -86,6 +86,43 @@ class TestGitHubNotification:
         assert notifs[0].title == "Fix bug"
         assert notifs[0].unread is True
         assert notifs[0].repository == "owner/repo"
+        assert notifs[0].url == "https://github.com/owner/repo/issues/1"
+
+    @responses.activate
+    def test_list_pull_request_subject_builds_web_url(self, github_adapter):
+        responses.add(
+            responses.GET,
+            "https://api.github.com/notifications",
+            json=[
+                _github_notification_data(
+                    subject={
+                        "title": "Add feature",
+                        "url": "https://api.github.com/repos/owner/repo/pulls/2",
+                        "type": "PullRequest",
+                    }
+                )
+            ],
+        )
+        notifs = github_adapter.list_notifications()
+        assert notifs[0].url == "https://github.com/owner/repo/pull/2"
+
+    @responses.activate
+    def test_list_unknown_subject_type_yields_empty_url(self, github_adapter):
+        responses.add(
+            responses.GET,
+            "https://api.github.com/notifications",
+            json=[
+                _github_notification_data(
+                    subject={
+                        "title": "v1.0.0",
+                        "url": "https://api.github.com/repos/owner/repo/releases/9",
+                        "type": "Release",
+                    }
+                )
+            ],
+        )
+        notifs = github_adapter.list_notifications()
+        assert notifs[0].url == ""
 
     @responses.activate
     def test_list_unread_only(self, github_adapter):

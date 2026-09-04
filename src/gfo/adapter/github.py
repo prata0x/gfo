@@ -1862,18 +1862,38 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def mark_all_notifications_read(self) -> None:
         self._client.put("/notifications", json={})
 
-    @staticmethod
+    # subject.type -> Web URL のパスセグメント。Notifications API の thread/subject
+    # スキーマは html_url 相当を持たず subject.url は api.github.com の self-link
+    # (例: /repos/{owner}/{repo}/issues/{number}) なので、末尾の番号と repository.full_name
+    # から Web URL を組み立てる。Commit/Release/Discussion 等パスセグメントが
+    # issues/pull と一致しない型は空文字列にフォールバックする。
+    _NOTIFICATION_SUBJECT_WEB_PATHS: ClassVar[dict[str, str]] = {
+        "Issue": "issues",
+        "PullRequest": "pull",
+    }
+
+    def _notification_web_url(self, subject: dict[str, Any], repo_full_name: str) -> str:
+        path = self._NOTIFICATION_SUBJECT_WEB_PATHS.get(subject.get("type") or "")
+        subject_url = subject.get("url")
+        if not path or not subject_url or not repo_full_name:
+            return ""
+        number = subject_url.rstrip("/").rsplit("/", 1)[-1]
+        if not number:
+            return ""
+        return f"{self._web_base_url()}/{repo_full_name}/{path}/{number}"
+
     @_wrap_conversion_error
-    def _to_notification(data: dict[str, Any]) -> Notification:
+    def _to_notification(self, data: dict[str, Any]) -> Notification:
         subject = data.get("subject") or {}
         repo = data.get("repository") or {}
+        repo_full_name = repo.get("full_name") or ""
         return Notification(
             id=str(data["id"]),
             title=subject.get("title") or "",
             reason=data.get("reason") or "",
             unread=data.get("unread", False),
-            repository=repo.get("full_name") or "",
-            url=subject.get("url") or "",
+            repository=repo_full_name,
+            url=self._notification_web_url(subject, repo_full_name),
             updated_at=data.get("updated_at") or "",
         )
 
