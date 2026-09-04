@@ -1879,13 +1879,19 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     # --- Organization ---
 
+    def _org_web_url(self, login: str) -> str:
+        # GET /user/orgs は organization-simple スキーマを返し html_url を持たないため、
+        # login から Web URL を組み立ててフォールバックにする。
+        return f"{self._web_base_url()}/{login}"
+
     def list_organizations(self, *, limit: int = 30) -> list[Organization]:
         results = paginate_link_header(self._client, "/user/orgs", limit=limit)
-        return [self._to_organization(d) for d in results]
+        return [self._to_organization(d, self._org_web_url(d["login"])) for d in results]
 
     def get_organization(self, name: str) -> Organization:
         resp = self._client.get(f"/orgs/{quote(name, safe='')}")
-        return self._to_organization(resp.json())
+        data = resp.json()
+        return self._to_organization(data, self._org_web_url(data["login"]))
 
     def list_org_members(self, name: str, *, limit: int = 30) -> list[str]:
         results = paginate_link_header(
@@ -1904,12 +1910,12 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_organization(data: dict[str, Any]) -> Organization:
+    def _to_organization(data: dict[str, Any], default_url: str = "") -> Organization:
         return Organization(
             name=data["login"],
             display_name=data.get("name") or data.get("login") or "",
             description=data.get("description"),
-            url=data.get("html_url") or data.get("url") or "",
+            url=data.get("html_url") or default_url,
         )
 
     def create_organization(
@@ -1922,12 +1928,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["description"] = description
         resp = self._client.post("/user/orgs", json=payload)
         data = resp.json()
-        return Organization(
-            name=data["login"],
-            display_name=data.get("name") or data.get("login") or "",
-            description=data.get("description"),
-            url=data.get("html_url") or data.get("url") or "",
-        )
+        return self._to_organization(data, self._org_web_url(data["login"]))
 
     def delete_organization(self, name: str) -> None:
         self._client.delete(f"/orgs/{quote(name, safe='')}")
@@ -1945,7 +1946,8 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         if description is not None:
             payload["description"] = description
         resp = self._client.patch(f"/orgs/{quote(name, safe='')}", json=payload)
-        return self._to_organization(resp.json())
+        data = resp.json()
+        return self._to_organization(data, self._org_web_url(data["login"]))
 
     # --- SSH Key ---
 
