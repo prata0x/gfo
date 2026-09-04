@@ -2691,6 +2691,22 @@ class TestTestWebhook:
 
 
 class TestUpdateWebhook:
+    def test_update_secret_does_not_overwrite_content_type(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/hooks/100",
+            json={
+                "id": 100,
+                "config": {"url": "https://example.com/hook", "content_type": "form"},
+                "events": ["push"],
+                "active": True,
+            },
+            status=200,
+        )
+        gitea_adapter.update_webhook(100, secret="new-secret")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body["config"] == {"secret": "new-secret"}
+
     def test_update_url(self, mock_responses, gitea_adapter):
         mock_responses.add(
             responses.PATCH,
