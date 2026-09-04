@@ -4115,6 +4115,78 @@ class TestUploadReleaseAssetUrl:
         assert "uploads.github.com" in responses.calls[1].request.url
 
 
+class TestListOrganizations:
+    def test_url_falls_back_to_login_when_html_url_absent(self, mock_responses, github_adapter):
+        # GET /user/orgs は organization-simple スキーマを返し html_url を持たない
+        mock_responses.add(
+            responses.GET,
+            "https://api.github.com/user/orgs",
+            json=[
+                {
+                    "login": "my-org",
+                    "id": 1,
+                    "url": "https://api.github.com/orgs/my-org",
+                    "description": None,
+                }
+            ],
+            status=200,
+        )
+        orgs = github_adapter.list_organizations()
+        assert orgs[0].url == "https://github.com/my-org"
+
+    def test_url_prefers_html_url_when_present(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            "https://api.github.com/user/orgs",
+            json=[
+                {
+                    "login": "my-org",
+                    "id": 1,
+                    "url": "https://api.github.com/orgs/my-org",
+                    "html_url": "https://github.com/my-org",
+                    "description": None,
+                }
+            ],
+            status=200,
+        )
+        orgs = github_adapter.list_organizations()
+        assert orgs[0].url == "https://github.com/my-org"
+
+
+class TestGetOrganization:
+    def test_url_falls_back_to_login_when_html_url_absent(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            "https://api.github.com/orgs/my-org",
+            json={
+                "login": "my-org",
+                "id": 1,
+                "url": "https://api.github.com/orgs/my-org",
+                "description": None,
+            },
+            status=200,
+        )
+        org = github_adapter.get_organization("my-org")
+        assert org.url == "https://github.com/my-org"
+
+
+class TestCreateOrganization:
+    def test_url_falls_back_to_login_when_html_url_absent(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.POST,
+            "https://api.github.com/user/orgs",
+            json={
+                "login": "my-org",
+                "id": 1,
+                "url": "https://api.github.com/orgs/my-org",
+                "description": None,
+            },
+            status=201,
+        )
+        org = github_adapter.create_organization("my-org")
+        assert org.url == "https://github.com/my-org"
+
+
 class TestUpdateOrganization:
     def test_update_display_name(self, mock_responses, github_adapter):
         mock_responses.add(
