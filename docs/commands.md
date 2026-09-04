@@ -339,7 +339,7 @@ gfo pr status
 
 Lock pull request conversation.
 
-> **Supported services**: GitHub, GitLab, Gitea
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
 
 ```
 gfo pr lock NUMBER [--reason REASON]
@@ -358,7 +358,7 @@ gfo pr lock 42 --reason "resolved"
 
 Unlock pull request conversation.
 
-> **Supported services**: GitHub, GitLab, Gitea
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
 
 ```
 gfo pr unlock NUMBER
@@ -672,7 +672,7 @@ gfo issue delete 10
 
 Lock issue conversation.
 
-> **Supported services**: GitHub, GitLab, Gitea
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
 
 ```
 gfo issue lock NUMBER [--reason REASON]
@@ -691,7 +691,7 @@ gfo issue lock 10 --reason "resolved"
 
 Unlock issue conversation.
 
-> **Supported services**: GitHub, GitLab, Gitea
+> **Supported services**: GitHub, GitLab, Gitea, Forgejo
 
 ```
 gfo issue unlock NUMBER

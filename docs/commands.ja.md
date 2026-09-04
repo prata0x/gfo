@@ -353,7 +353,7 @@ gfo pr status
 
 PR の会話をロックします。
 
-> **対応サービス**: GitHub, GitLab, Gitea
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
 
 ```
 gfo pr lock NUMBER [--reason REASON]
@@ -372,7 +372,7 @@ gfo pr lock 42 --reason "resolved"
 
 PR の会話ロックを解除します。
 
-> **対応サービス**: GitHub, GitLab, Gitea
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
 
 ```
 gfo pr unlock NUMBER
@@ -686,7 +686,7 @@ gfo issue delete 10
 
 Issue の会話をロックします。
 
-> **対応サービス**: GitHub, GitLab, Gitea
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
 
 ```
 gfo issue lock NUMBER [--reason REASON]
@@ -705,7 +705,7 @@ gfo issue lock 10 --reason "resolved"
 
 Issue の会話ロックを解除します。
 
-> **対応サービス**: GitHub, GitLab, Gitea
+> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
 
 ```
 gfo issue unlock NUMBER
