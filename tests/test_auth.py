@@ -66,6 +66,21 @@ def test_resolve_token_gfo_token_fallback(tmp_path, monkeypatch):
     assert resolve_token("github.com", "github") == "gfo_universal"
 
 
+@pytest.mark.parametrize("env_var", ["GITHUB_TOKEN", "GFO_TOKEN"])
+def test_resolve_token_ignores_whitespace_only_environment_tokens(tmp_path, monkeypatch, env_var):
+    """空白のみの環境変数トークンは無効として扱う。"""
+    creds = tmp_path / "credentials.toml"
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+    monkeypatch.setenv(env_var, "   ")
+    if env_var == "GITHUB_TOKEN":
+        monkeypatch.delenv("GFO_TOKEN", raising=False)
+    else:
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+    with pytest.raises(AuthError):
+        resolve_token("github.com", "github")
+
+
 def test_resolve_token_auth_error(tmp_path, monkeypatch):
     """全未設定 → AuthError。"""
     creds = tmp_path / "credentials.toml"
