@@ -196,9 +196,39 @@ class TestFormatTable:
             ["files"],
         )
         assert (
-            "filename=status=weird,name.py, status=modified, additions=3, deletions=1; " in result
+            "filename=status\\=weird,name.py, status=modified, additions=3, deletions=1; " in result
         )
         assert "deletions=1; filename=normal.py, status=added" in result
+
+    def test_nested_dataclass_collection_escapes_item_separator(self):
+        """ネストした dataclass の値に要素区切りが含まれても境界を壊さない。"""
+        result = format_table(
+            [
+                CompareResult(
+                    total_commits=1,
+                    ahead_by=1,
+                    behind_by=0,
+                    files=(CompareFile("a; filename=fake.py", "modified", 1, 0),),
+                )
+            ],
+            ["files"],
+        )
+        assert "filename=a\\; filename\\=fake.py, status=modified" in result
+
+    def test_nested_dataclass_collection_escapes_all_nested_delimiters(self):
+        """ネストした値の全区切り文字とバックスラッシュをエスケープする。"""
+        result = format_table(
+            [
+                CompareResult(
+                    total_commits=1,
+                    ahead_by=1,
+                    behind_by=0,
+                    files=(CompareFile("a=1, b; c\\d.py", "modified", 1, 0),),
+                )
+            ],
+            ["files"],
+        )
+        assert "filename=a\\=1\\, b\\; c\\\\d.py, status=modified" in result
 
 
 class TestFormatJson:
@@ -355,9 +385,24 @@ class TestFormatPlain:
             ["files"],
         )
         assert result == (
-            "filename=status=weird,name.py, status=modified, additions=3, deletions=1; "
+            "filename=status\\=weird,name.py, status=modified, additions=3, deletions=1; "
             "filename=normal.py, status=added, additions=10, deletions=0"
         )
+
+    def test_nested_dataclass_collection_escapes_delimiters_in_plain(self):
+        """プレーン形式でもネストした値の区切り文字をエスケープする。"""
+        result = format_plain(
+            [
+                CompareResult(
+                    total_commits=1,
+                    ahead_by=1,
+                    behind_by=0,
+                    files=(CompareFile("a, b; c=d.py", "modified", 1, 0),),
+                )
+            ],
+            ["files"],
+        )
+        assert result.startswith("filename=a\\, b\\; c\\=d.py, status=modified")
 
 
 class TestOutput:
