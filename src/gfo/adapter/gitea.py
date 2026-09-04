@@ -1588,7 +1588,15 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             payload["status_check_contexts"] = require_status_checks
         if allow_force_push is not None:
             payload["enable_force_push"] = allow_force_push
-        resp = self._client.post(f"{self._repos_path()}/branch_protections", json=payload)
+        try:
+            self.get_branch_protection(branch)
+        except NotFoundError:
+            resp = self._client.post(f"{self._repos_path()}/branch_protections", json=payload)
+        else:
+            resp = self._client.patch(
+                f"{self._repos_path()}/branch_protections/{quote(branch, safe='')}",
+                json=payload,
+            )
         return self._to_branch_protection(resp.json())
 
     def remove_branch_protection(self, branch: str) -> None:

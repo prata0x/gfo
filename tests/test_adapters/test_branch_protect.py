@@ -272,6 +272,11 @@ class TestGiteaBranchProtect:
     @responses.activate
     def test_set(self, gitea_adapter):
         responses.add(
+            responses.GET,
+            "https://gitea.example.com/api/v1/repos/test-owner/test-repo/branch_protections/main",
+            status=404,
+        )
+        responses.add(
             responses.POST,
             "https://gitea.example.com/api/v1/repos/test-owner/test-repo/branch_protections",
             json={
@@ -283,6 +288,34 @@ class TestGiteaBranchProtect:
         )
         bp = gitea_adapter.set_branch_protection("main", require_reviews=2)
         assert bp.require_reviews == 2
+
+    @responses.activate
+    def test_set_existing_uses_patch(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitea.example.com/api/v1/repos/test-owner/test-repo/branch_protections/main",
+            json={
+                "branch_name": "main",
+                "required_approvals": 1,
+                "status_check_contexts": [],
+                "enable_force_push": False,
+            },
+        )
+        responses.add(
+            responses.PATCH,
+            "https://gitea.example.com/api/v1/repos/test-owner/test-repo/branch_protections/main",
+            json={
+                "branch_name": "main",
+                "required_approvals": 2,
+                "status_check_contexts": [],
+                "enable_force_push": False,
+            },
+        )
+
+        bp = gitea_adapter.set_branch_protection("main", require_reviews=2)
+
+        assert bp.require_reviews == 2
+        assert [call.request.method for call in responses.calls] == ["GET", "PATCH"]
 
     @responses.activate
     def test_remove(self, gitea_adapter):
