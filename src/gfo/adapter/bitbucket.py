@@ -814,7 +814,10 @@ class BitbucketAdapter(GitServiceAdapter):
         resp = self._client.get(f"{self._repos_path()}/pullrequests/{number}")
         data = resp.json()
         reviewers = data.get("reviewers") or []
-        return [r.get("nickname") or "" for r in reviewers if r.get("nickname")]
+        try:
+            return [r.get("nickname") or "" for r in reviewers if r.get("nickname")]
+        except (KeyError, TypeError, AttributeError) as e:
+            raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
 
     def request_reviewers(self, number: int, reviewers: list[str]) -> None:
         raise NotSupportedError(self.service_name, "pr reviewers add")
@@ -831,19 +834,22 @@ class BitbucketAdapter(GitServiceAdapter):
         resp = self._client.get(f"{self._repos_path()}/pullrequests/{number}")
         data = resp.json()
         results = []
-        for participant in data.get("participants") or []:
-            user = participant.get("user") or {}
-            approved = participant.get("approved", False)
-            if approved:
-                results.append(
-                    Review(
-                        id=0,
-                        state="approved",
-                        body="",
-                        author=user.get("nickname") or "",
-                        url="",
+        try:
+            for participant in data.get("participants") or []:
+                user = participant.get("user") or {}
+                approved = participant.get("approved", False)
+                if approved:
+                    results.append(
+                        Review(
+                            id=0,
+                            state="approved",
+                            body="",
+                            author=user.get("nickname") or "",
+                            url="",
+                        )
                     )
-                )
+        except (KeyError, TypeError, AttributeError) as e:
+            raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
         return results
 
     def create_review(self, number: int, *, state: str, body: str = "") -> Review:
