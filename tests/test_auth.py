@@ -81,6 +81,16 @@ def test_resolve_token_ignores_whitespace_only_environment_tokens(tmp_path, monk
         resolve_token("github.com", "github")
 
 
+def test_resolve_token_falls_back_from_whitespace_service_token(tmp_path, monkeypatch):
+    """空白のサービス別トークンから有効な GFO_TOKEN にフォールバックする。"""
+    creds = tmp_path / "credentials.toml"
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+    monkeypatch.setenv("GITHUB_TOKEN", "   ")
+    monkeypatch.setenv("GFO_TOKEN", "gfo_fallback")
+
+    assert resolve_token("github.com", "github") == "gfo_fallback"
+
+
 def test_resolve_token_auth_error(tmp_path, monkeypatch):
     """全未設定 → AuthError。"""
     creds = tmp_path / "credentials.toml"
@@ -786,6 +796,19 @@ def test_get_auth_status_gfo_token_not_shown_when_unset(tmp_path, monkeypatch):
     status = get_auth_status()
 
     assert not any(s["source"] == "env:GFO_TOKEN" for s in status)
+
+
+@pytest.mark.parametrize("env_var", ["GITHUB_TOKEN", "GFO_TOKEN"])
+def test_get_auth_status_ignores_whitespace_only_environment_tokens(tmp_path, monkeypatch, env_var):
+    """空白のみの環境変数トークンは auth status に表示しない。"""
+    creds = tmp_path / "credentials.toml"
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+    _clear_service_env_vars(monkeypatch)
+    monkeypatch.setenv(env_var, "   ")
+
+    status = get_auth_status()
+
+    assert not any(entry["source"] == f"env:{env_var}" for entry in status)
 
 
 def test_get_auth_status_multiple_accounts(tmp_path, monkeypatch):
