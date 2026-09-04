@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
+from gfo.adapter.models import CompareFile, CompareResult
 from gfo.exceptions import (
     AuthError,
     GfoError,
@@ -158,6 +159,26 @@ class TestFormatTable:
         assert "['alice', 'bob']" not in result
         assert "('ci/build', 'ci/test')" not in result
 
+    def test_nested_dataclass_collection_is_not_dict_repr(self):
+        """ネストした dataclass のコレクションも読みやすく表示する。"""
+        result = format_table(
+            [
+                CompareResult(
+                    total_commits=2,
+                    ahead_by=2,
+                    behind_by=0,
+                    files=(
+                        CompareFile("a.py", "modified", 3, 1),
+                        CompareFile("b.py", "added", 10, 0),
+                    ),
+                )
+            ],
+            ["files"],
+        )
+        assert "{'filename'" not in result
+        assert "filename=a.py" in result
+        assert "filename=b.py" in result
+
 
 class TestFormatJson:
     def test_single_item_is_array(self):
@@ -275,6 +296,26 @@ class TestFormatPlain:
             ["assignees", "checks"],
         )
         assert result == "alice, bob\tci/build, ci/test"
+
+    def test_nested_dataclass_collection_is_not_dict_repr(self):
+        """ネストした dataclass のコレクションも dict repr にしない。"""
+        result = format_plain(
+            [
+                CompareResult(
+                    total_commits=2,
+                    ahead_by=2,
+                    behind_by=0,
+                    files=(
+                        CompareFile("a.py", "modified", 3, 1),
+                        CompareFile("b.py", "added", 10, 0),
+                    ),
+                )
+            ],
+            ["files"],
+        )
+        assert "{'filename'" not in result
+        assert "filename=a.py" in result
+        assert "filename=b.py" in result
 
 
 class TestOutput:
