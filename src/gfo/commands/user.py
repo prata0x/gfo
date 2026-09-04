@@ -19,6 +19,9 @@ def handle_whoami(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
             print(apply_jq_filter(json_str, jq))
         else:
             print(json_str)
+    elif fmt == "plain":
+        for value in user.values():
+            print(value)
     else:
         for key, value in user.items():
             print(f"{key}: {value}")

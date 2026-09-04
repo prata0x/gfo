@@ -44,6 +44,17 @@ class TestHandleWhoami:
         assert "login: testuser" in out
         assert "email: test@example.com" in out
 
+    def test_whoami_plain_format(self, capsys):
+        """fmt='plain' ではラベルなしで値だけが出力される。"""
+        with patch_adapter("gfo.commands.user") as adapter:
+            adapter.get_current_user.return_value = {
+                "login": "testuser",
+                "email": "test@example.com",
+            }
+            args = make_args()
+            user_cmd.handle_whoami(args, fmt="plain")
+        assert capsys.readouterr().out == "testuser\ntest@example.com\n"
+
     def test_whoami_jq_filter(self, capsys):
         """--jq '.login' が適用される。"""
         with patch_adapter("gfo.commands.user") as adapter:
