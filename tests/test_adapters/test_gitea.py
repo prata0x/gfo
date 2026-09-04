@@ -25,6 +25,7 @@ from gfo.adapter.base import (
     Tag,
     Webhook,
     WikiPage,
+    WikiRevision,
 )
 from gfo.adapter.gitea import GiteaAdapter
 from gfo.adapter.registry import get_adapter_class
@@ -3144,6 +3145,58 @@ class TestDeleteWikiPage:
         )
         gitea_adapter.delete_wiki_page("Home")
         assert mock_responses.calls[0].request.method == "DELETE"
+
+
+class TestListWikiRevisions:
+    def test_list_uses_commits_and_nested_commit_date(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/wiki/revisions/Home",
+            json={
+                "commits": [
+                    {
+                        "sha": "abc",
+                        "commiter": {"name": "alice", "date": "2026-08-01T00:00:00Z"},
+                        "message": "Update page",
+                    }
+                ],
+                "count": 1,
+            },
+            status=200,
+        )
+
+        revisions = gitea_adapter.list_wiki_revisions("Home")
+
+        assert revisions == [
+            WikiRevision(
+                sha="abc",
+                author="alice",
+                message="Update page",
+                created_at="2026-08-01T00:00:00Z",
+            )
+        ]
+
+    def test_list_fetches_all_pages(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/wiki/revisions/Home",
+            json={"commits": [{"sha": "abc", "commiter": {"name": "alice"}}], "count": 2},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/wiki/revisions/Home",
+            json={"commits": [{"sha": "def", "author": {"name": "bob"}}], "count": 2},
+            status=200,
+        )
+
+        revisions = gitea_adapter.list_wiki_revisions("Home")
+
+        assert [revision.sha for revision in revisions] == ["abc", "def"]
+        assert [call.request.url for call in mock_responses.calls] == [
+            f"{REPOS}/wiki/revisions/Home?page=1",
+            f"{REPOS}/wiki/revisions/Home?page=2",
+        ]
 
 
 # --- Phase 2: PR operations ---

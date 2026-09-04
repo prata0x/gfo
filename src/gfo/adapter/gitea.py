@@ -2309,15 +2309,32 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     # --- Wiki Revisions ---
 
     def list_wiki_revisions(self, page_name: str) -> list[WikiRevision]:
-        resp = self._client.get(f"{self._repos_path()}/wiki/revisions/{quote(page_name, safe='')}")
-        data = resp.json()
-        revisions = data if isinstance(data, list) else data.get("page_revisions") or []
+        path = f"{self._repos_path()}/wiki/revisions/{quote(page_name, safe='')}"
+        revisions: list[dict[str, Any]] = []
+        page = 1
+        total = 0
+        while True:
+            data = self._client.get(path, params={"page": page}).json()
+            if isinstance(data, list):
+                page_revisions = data
+                total = len(page_revisions)
+            else:
+                page_revisions = data.get("commits") or []
+                total = data.get("count") or 0
+            revisions.extend(page_revisions)
+            if not page_revisions or len(revisions) >= total:
+                break
+            page += 1
+
         return [
             WikiRevision(
-                sha=r.get("commit_sha") or r.get("sha") or "",
-                author=(r.get("commiter") or r.get("committer") or {}).get("name") or "",
+                sha=r.get("sha") or r.get("commit_sha") or "",
+                author=(r.get("commiter") or r.get("committer") or r.get("author") or {}).get(
+                    "name"
+                )
+                or "",
                 message=r.get("message") or "",
-                created_at=r.get("commit_date") or r.get("created") or "",
+                created_at=(r.get("commiter") or r.get("author") or {}).get("date") or "",
             )
             for r in revisions
         ]
