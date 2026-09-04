@@ -2722,7 +2722,7 @@ class TestUpdateWebhook:
         webhook = gitea_adapter.update_webhook(100, url="https://new.example.com/hook")
         assert webhook.url == "https://new.example.com/hook"
         req_body = json.loads(mock_responses.calls[0].request.body)
-        assert req_body["config"]["url"] == "https://new.example.com/hook"
+        assert req_body["config"] == {"url": "https://new.example.com/hook"}
 
     def test_update_events(self, mock_responses, gitea_adapter):
         mock_responses.add(
