@@ -625,6 +625,12 @@ class BacklogAdapter(GitServiceAdapter):
     def _tag_web_url(self, name: str) -> str:
         return self._branch_web_url(name)
 
+    def _wiki_web_url(self, wiki_id: int | str) -> str:
+        hostname = urllib.parse.urlparse(self._client.base_url).hostname
+        # Wiki は特定の git リポジトリではなくプロジェクト単位のリソース。
+        # Add Wiki Page API の Location ヘッダ (.../alias/wiki/{id}) が正規の Web URL。
+        return f"https://{hostname}/alias/wiki/{wiki_id}"
+
     @staticmethod
     @_wrap_conversion_error
     def _to_branch(data: dict[str, Any], default_url: str = "") -> Branch:
@@ -661,13 +667,13 @@ class BacklogAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_wiki_page(data: dict[str, Any]) -> WikiPage:
+    def _to_wiki_page(data: dict[str, Any], default_url: str = "") -> WikiPage:
 
         return WikiPage(
             id=data["id"],
             title=data.get("name") or "",
             content=data.get("content") or "",
-            url="",
+            url=data.get("url") or default_url,
             updated_at=data.get("updated"),
         )
 
@@ -1025,12 +1031,15 @@ class BacklogAdapter(GitServiceAdapter):
         resp = self._client.get("/wikis", params={"projectIdOrKey": self._project_key})
         pages = resp.json()
         if isinstance(pages, list):
-            return [self._to_wiki_page(p) for p in pages[: limit if limit > 0 else None]]
+            return [
+                self._to_wiki_page(p, self._wiki_web_url(p.get("id", "")))
+                for p in pages[: limit if limit > 0 else None]
+            ]
         return []
 
     def get_wiki_page(self, page_id: int | str) -> WikiPage:
         resp = self._client.get(f"/wikis/{page_id}")
-        return self._to_wiki_page(resp.json())
+        return self._to_wiki_page(resp.json(), self._wiki_web_url(page_id))
 
     def create_wiki_page(self, *, title: str, content: str) -> WikiPage:
         project_id = self._ensure_project_id()
@@ -1038,7 +1047,7 @@ class BacklogAdapter(GitServiceAdapter):
             "/wikis",
             json={"projectId": project_id, "name": title, "content": content},
         )
-        return self._to_wiki_page(resp.json())
+        return self._to_wiki_page(resp.json(), self._wiki_web_url(resp.json().get("id", "")))
 
     def update_wiki_page(
         self,
@@ -1053,7 +1062,7 @@ class BacklogAdapter(GitServiceAdapter):
         if content is not None:
             payload["content"] = content
         resp = self._client.patch(f"/wikis/{page_id}", json=payload)
-        return self._to_wiki_page(resp.json())
+        return self._to_wiki_page(resp.json(), self._wiki_web_url(page_id))
 
     def delete_wiki_page(self, page_id: int | str) -> None:
         self._client.delete(f"/wikis/{page_id}")

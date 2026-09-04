@@ -2047,6 +2047,7 @@ class TestListWikiPages:
         pages = backlog_adapter.list_wiki_pages()
         assert len(pages) == 1
         assert isinstance(pages[0], WikiPage)
+        assert pages[0].url == "https://example.backlog.com/alias/wiki/1"
 
 
 class TestGetWikiPage:
@@ -2060,6 +2061,7 @@ class TestGetWikiPage:
         page = backlog_adapter.get_wiki_page(1)
         assert isinstance(page, WikiPage)
         assert page.title == "Home"
+        assert page.url == "https://example.backlog.com/alias/wiki/1"
 
 
 class TestCreateWikiPage:
@@ -2080,6 +2082,7 @@ class TestCreateWikiPage:
         assert isinstance(page, WikiPage)
         req_body = json.loads(mock_responses.calls[1].request.body)
         assert req_body["name"] == "Home"
+        assert page.url == "https://example.backlog.com/alias/wiki/1"
 
 
 class TestUpdateWikiPage:
@@ -2092,6 +2095,7 @@ class TestUpdateWikiPage:
         )
         page = backlog_adapter.update_wiki_page(1, title="Home", content="Updated")
         assert isinstance(page, WikiPage)
+        assert page.url == "https://example.backlog.com/alias/wiki/1"
 
 
 class TestDeleteWikiPage:
@@ -2269,6 +2273,28 @@ class TestToWikiPage:
         data = {"id": 3, "name": None, "content": "body"}
         page = BacklogAdapter._to_wiki_page(data)
         assert page.title == ""
+
+    def test_url_fallback_to_default_url(self):
+        """API レスポンスに url が無い場合は default_url をフォールバックとして使う。"""
+        data = {"id": 7, "name": "Docs", "content": "x"}
+        page = BacklogAdapter._to_wiki_page(
+            data, default_url="https://example.backlog.com/alias/wiki/7"
+        )
+        assert page.url == "https://example.backlog.com/alias/wiki/7"
+
+    def test_url_explicit_takes_precedence_over_default(self):
+        """API が url を返す場合は default_url より優先される。"""
+        data = {"id": 7, "name": "Docs", "content": "x", "url": "https://elsewhere/wiki/7"}
+        page = BacklogAdapter._to_wiki_page(
+            data, default_url="https://example.backlog.com/alias/wiki/7"
+        )
+        assert page.url == "https://elsewhere/wiki/7"
+
+    def test_url_empty_when_no_default(self):
+        """default_url も API url も無い場合は空文字になる。"""
+        data = {"id": 7, "name": "Docs", "content": "x"}
+        page = BacklogAdapter._to_wiki_page(data)
+        assert page.url == ""
 
 
 class TestAddTimeEntry:
