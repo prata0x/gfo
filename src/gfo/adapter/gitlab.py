@@ -2443,13 +2443,18 @@ class GitLabAdapter(GitServiceAdapter):
             params=params,
             limit=limit,
         )
+        web_base = self._web_base_url()
         return [
             Package(
                 name=p.get("name") or "",
                 type=p.get("package_type") or "",
                 version=p.get("version") or "",
                 owner="",
-                url=p.get("_links", {}).get("web_path") or "",
+                url=(
+                    f"{web_base}{web_path}"
+                    if (web_path := p.get("_links", {}).get("web_path"))
+                    else ""
+                ),
                 created_at=p.get("created_at") or "",
             )
             for p in results
@@ -2465,12 +2470,14 @@ class GitLabAdapter(GitServiceAdapter):
         if not results:
             raise NotFoundError(detail=f"Package '{name}' not found")
         p = results[0]
+        web_path = p.get("_links", {}).get("web_path") or ""
+        url = f"{self._web_base_url()}{web_path}" if web_path else ""
         return Package(
             name=p.get("name") or "",
             type=p.get("package_type") or "",
             version=p.get("version") or "",
             owner="",
-            url=p.get("_links", {}).get("web_path") or "",
+            url=url,
             created_at=p.get("created_at") or "",
         )
 

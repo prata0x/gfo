@@ -4390,6 +4390,7 @@ class TestPackagesGitLab:
         assert len(pkgs) == 1
         assert pkgs[0].name == "mypkg"
         assert pkgs[0].type == "npm"
+        assert pkgs[0].url == "https://gitlab.com/test-owner/test-repo/-/packages/1"
 
     def test_list_packages_filtered_by_type(self, mock_responses, gitlab_adapter):
         mock_responses.add(
@@ -4429,6 +4430,26 @@ class TestPackagesGitLab:
         )
         p = gitlab_adapter.get_package("npm", "mypkg")
         assert p.name == "mypkg"
+        assert p.url == "https://gitlab.com/test/test/-/packages/42"
+
+    def test_list_packages_missing_web_path_yields_empty_url(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/packages",
+            json=[
+                {
+                    "id": 1,
+                    "name": "mypkg",
+                    "package_type": "npm",
+                    "version": "1.0",
+                    "created_at": "2025-01-01T00:00:00Z",
+                }
+            ],
+            status=200,
+        )
+        pkgs = gitlab_adapter.list_packages()
+        assert len(pkgs) == 1
+        assert pkgs[0].url == ""
 
     def test_get_package_not_found(self, mock_responses, gitlab_adapter):
         from gfo.exceptions import NotFoundError
