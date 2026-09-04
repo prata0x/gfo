@@ -179,6 +179,27 @@ class TestFormatTable:
         assert "filename=a.py" in result
         assert "filename=b.py" in result
 
+    def test_nested_dataclass_collection_preserves_item_boundaries(self):
+        """ネストした dataclass の要素間はフィールド間と異なる区切りで表示する。"""
+        result = format_table(
+            [
+                CompareResult(
+                    total_commits=1,
+                    ahead_by=1,
+                    behind_by=0,
+                    files=(
+                        CompareFile("status=weird,name.py", "modified", 3, 1),
+                        CompareFile("normal.py", "added", 10, 0),
+                    ),
+                )
+            ],
+            ["files"],
+        )
+        assert (
+            "filename=status=weird,name.py, status=modified, additions=3, deletions=1; " in result
+        )
+        assert "deletions=1; filename=normal.py, status=added" in result
+
 
 class TestFormatJson:
     def test_single_item_is_array(self):
@@ -316,6 +337,27 @@ class TestFormatPlain:
         assert "{'filename'" not in result
         assert "filename=a.py" in result
         assert "filename=b.py" in result
+
+    def test_nested_dataclass_collection_preserves_item_boundaries(self):
+        """プレーン形式でもネストした dataclass の要素境界を保持する。"""
+        result = format_plain(
+            [
+                CompareResult(
+                    total_commits=1,
+                    ahead_by=1,
+                    behind_by=0,
+                    files=(
+                        CompareFile("status=weird,name.py", "modified", 3, 1),
+                        CompareFile("normal.py", "added", 10, 0),
+                    ),
+                )
+            ],
+            ["files"],
+        )
+        assert result == (
+            "filename=status=weird,name.py, status=modified, additions=3, deletions=1; "
+            "filename=normal.py, status=added, additions=10, deletions=0"
+        )
 
 
 class TestOutput:
