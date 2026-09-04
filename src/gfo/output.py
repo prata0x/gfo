@@ -32,7 +32,9 @@ def _field_str(val: Any) -> str:
     if val is None:
         return ""
     if isinstance(val, (list, tuple)):
-        return ", ".join(str(item) for item in val)
+        return ", ".join(_field_str(item) for item in val)
+    if isinstance(val, dict):
+        return ", ".join(f"{key}={_field_str(value)}" for key, value in val.items())
     return str(val)
 
 
