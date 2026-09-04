@@ -516,6 +516,21 @@ class TestNotSupported:
         with pytest.raises(NotSupportedError):
             gitbucket_adapter.list_deploy_keys()
 
+    @pytest.mark.parametrize(
+        ("method", "kwargs", "operation"),
+        [
+            ("get_ssh_key", {"key_id": 1}, "ssh-key operations"),
+            ("get_gpg_key", {"key_id": 1}, "gpg-key operations"),
+            ("get_deploy_key", {"key_id": 1}, "deploy key operations"),
+        ],
+    )
+    def test_get_keys_raise_not_supported(
+        self, mock_responses, gitbucket_adapter, method, kwargs, operation
+    ):
+        with pytest.raises(NotSupportedError, match=f"GitBucket does not support {operation}"):
+            getattr(gitbucket_adapter, method)(**kwargs)
+        assert not mock_responses.calls
+
     def test_create_deploy_key_raises(self, gitbucket_adapter):
         with pytest.raises(NotSupportedError):
             gitbucket_adapter.create_deploy_key(title="test", key="ssh-ed25519 AAAA test")
