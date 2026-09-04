@@ -2238,6 +2238,7 @@ class TestListReviews:
         assert len(reviews) == 1
         assert isinstance(reviews[0], Review)
         assert reviews[0].state == "approved"
+        assert reviews[0].url == gitlab_adapter.get_web_url("pr", 1)
 
 
 class TestCreateReview:
@@ -2248,8 +2249,9 @@ class TestCreateReview:
             json={"approved": True},
             status=201,
         )
-        gitlab_adapter.create_review(1, state="approve")
+        review = gitlab_adapter.create_review(1, state="approve")
         assert mock_responses.calls[0].request.method == "POST"
+        assert review.url == gitlab_adapter.get_web_url("pr", 1)
 
     def test_request_changes(self, mock_responses, gitlab_adapter):
         mock_responses.add(
@@ -2258,7 +2260,8 @@ class TestCreateReview:
             json={"approved": False},
             status=201,
         )
-        gitlab_adapter.create_review(1, state="request_changes")
+        review = gitlab_adapter.create_review(1, state="request_changes")
+        assert review.url == gitlab_adapter.get_web_url("pr", 1)
 
     def test_comment_state(self, mock_responses, gitlab_adapter):
         """COMMENT 状態（else 分岐）はノートとして作成し state="commented" を返す。"""
@@ -2271,6 +2274,7 @@ class TestCreateReview:
         review = gitlab_adapter.create_review(1, state="COMMENT", body="LGTM")
         assert review.state == "commented"
         assert review.id == 42
+        assert review.url == f"{gitlab_adapter.get_web_url('pr', 1)}#note_42"
 
 
 # --- Branch 系 ---

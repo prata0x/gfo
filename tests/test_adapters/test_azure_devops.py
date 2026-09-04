@@ -1534,6 +1534,7 @@ class TestListReviews:
         assert len(reviews) == 1
         assert isinstance(reviews[0], Review)
         assert reviews[0].state == "approved"
+        assert reviews[0].url == azure_devops_adapter.get_web_url("pr", 1)
 
 
 class TestCreateReview:
@@ -1551,9 +1552,10 @@ class TestCreateReview:
             json=_review_data(vote=10),
             status=200,
         )
-        azure_devops_adapter.create_review(1, state="approve")
+        review = azure_devops_adapter.create_review(1, state="approve")
         put_body = json.loads(mock_responses.calls[1].request.body)
         assert put_body["vote"] == 10
+        assert review.url == azure_devops_adapter.get_web_url("pr", 1)
 
 
 # --- Branch 系 ---
@@ -2148,6 +2150,12 @@ class TestToReview:
         data = _review_data(vote=-5)
         review = AzureDevOpsAdapter._to_review(data)
         assert review.state == "changes_requested"
+
+    def test_url_passthrough(self):
+        """url 引数で渡した PR ページ URL が Review.url に設定される (#640)。"""
+        data = _review_data(vote=10)
+        review = AzureDevOpsAdapter._to_review(data, "https://example.com/pr/1")
+        assert review.url == "https://example.com/pr/1"
 
 
 class TestToBranch:

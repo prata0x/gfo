@@ -844,7 +844,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_review(data: dict[str, Any]) -> Review:
+    def _to_review(data: dict[str, Any], url: str = "") -> Review:
 
         vote_map = {
             10: "approved",
@@ -859,7 +859,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             state=vote_map.get(vote, "commented"),
             body="",
             author=data.get("uniqueName") or data.get("displayName") or "",
-            url="",
+            url=url,
         )
 
     def _branch_web_url(self, name: str) -> str:
@@ -1117,7 +1117,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         reviewers = resp.json()
         if not isinstance(reviewers, list):
             reviewers = reviewers.get("value", [])
-        return [self._to_review(r) for r in reviewers]
+        return [self._to_review(r, self.get_web_url("pr", number)) for r in reviewers]
 
     def _connection_data_url(self) -> str:
         """組織レベルの connectionData エンドポイント URL を返す。
@@ -1143,7 +1143,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             f"{self._git_path()}/pullrequests/{number}/reviewers/{user_id}",
             json=payload,
         )
-        return self._to_review(resp.json())
+        return self._to_review(resp.json(), self.get_web_url("pr", number))
 
     # --- Branch ---
 

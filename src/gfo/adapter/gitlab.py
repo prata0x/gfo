@@ -1414,7 +1414,7 @@ class GitLabAdapter(GitServiceAdapter):
                     state="approved",
                     body="",
                     author=user.get("username") or "",
-                    url="",
+                    url=self.get_web_url("pr", number),
                 )
             )
         return results
@@ -1422,10 +1422,18 @@ class GitLabAdapter(GitServiceAdapter):
     def create_review(self, number: int, *, state: str, body: str = "") -> Review:
         if state.upper() == "APPROVE":
             self._client.post(f"{self._project_path()}/merge_requests/{number}/approve", json={})
-            return Review(id=0, state="approved", body=body, author="", url="")
+            return Review(
+                id=0, state="approved", body=body, author="", url=self.get_web_url("pr", number)
+            )
         elif state.upper() == "REQUEST_CHANGES":
             self._client.post(f"{self._project_path()}/merge_requests/{number}/unapprove", json={})
-            return Review(id=0, state="changes_requested", body=body, author="", url="")
+            return Review(
+                id=0,
+                state="changes_requested",
+                body=body,
+                author="",
+                url=self.get_web_url("pr", number),
+            )
         else:
             # コメントとして作成
             resp = self._client.post(
@@ -1438,7 +1446,7 @@ class GitLabAdapter(GitServiceAdapter):
                 state="commented",
                 body=body,
                 author=(note.get("author") or {}).get("username") or "",
-                url="",
+                url=f"{self.get_web_url('pr', number)}#note_{note.get('id') or 0}",
             )
 
     # --- Branch ---
