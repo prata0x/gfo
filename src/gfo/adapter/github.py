@@ -1252,20 +1252,22 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         secret: str | None = None,
         active: bool | None = None,
     ) -> Webhook:
-        payload: dict[str, Any] = {}
         if url is not None or secret is not None:
             config: dict[str, Any] = {}
             if url is not None:
                 config["url"] = url
-            config["content_type"] = "json"
             if secret is not None:
                 config["secret"] = secret
-            payload["config"] = config
+            self._client.patch(f"{self._repos_path()}/hooks/{hook_id}/config", json=config)
+        payload: dict[str, Any] = {}
         if events is not None:
             payload["events"] = events
         if active is not None:
             payload["active"] = active
-        resp = self._client.patch(f"{self._repos_path()}/hooks/{hook_id}", json=payload)
+        if payload:
+            resp = self._client.patch(f"{self._repos_path()}/hooks/{hook_id}", json=payload)
+        else:
+            resp = self._client.get(f"{self._repos_path()}/hooks/{hook_id}")
         return self._to_webhook(resp.json())
 
     # --- DeployKey ---

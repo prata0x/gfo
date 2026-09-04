@@ -2466,6 +2466,12 @@ class TestUpdateWebhook:
     def test_update_url(self, mock_responses, github_adapter):
         mock_responses.add(
             responses.PATCH,
+            f"{REPOS}/hooks/100/config",
+            json={"url": "https://new.example.com/hook", "content_type": "json"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
             f"{REPOS}/hooks/100",
             json={
                 "id": 100,
@@ -2478,7 +2484,31 @@ class TestUpdateWebhook:
         webhook = github_adapter.update_webhook(100, url="https://new.example.com/hook")
         assert webhook.url == "https://new.example.com/hook"
         req_body = json.loads(mock_responses.calls[0].request.body)
-        assert req_body["config"]["url"] == "https://new.example.com/hook"
+        assert req_body["url"] == "https://new.example.com/hook"
+
+    def test_update_secret_only_does_not_clear_url(self, mock_responses, github_adapter):
+        """secret のみ更新した際、config の url キーを送らないこと（送ると既存 url が消える）。"""
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/hooks/100/config",
+            json={"url": "https://old.example.com/hook", "content_type": "json"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/hooks/100",
+            json={
+                "id": 100,
+                "config": {"url": "https://old.example.com/hook", "content_type": "json"},
+                "events": ["push"],
+                "active": True,
+            },
+            status=200,
+        )
+        webhook = github_adapter.update_webhook(100, secret="new-secret")
+        assert webhook.url == "https://old.example.com/hook"
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body == {"secret": "new-secret"}
 
     def test_update_events(self, mock_responses, github_adapter):
         mock_responses.add(
@@ -2511,6 +2541,35 @@ class TestUpdateWebhook:
         )
         webhook = github_adapter.update_webhook(100, active=False)
         assert webhook.active is False
+
+    def test_update_url_and_active(self, mock_responses, github_adapter):
+        """config と本体を両方更新する場合、config PATCH の後に本体 PATCH を呼ぶこと。"""
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/hooks/100/config",
+            json={"url": "https://new.example.com/hook", "content_type": "json"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/hooks/100",
+            json={
+                "id": 100,
+                "config": {"url": "https://new.example.com/hook", "content_type": "json"},
+                "events": ["push"],
+                "active": False,
+            },
+            status=200,
+        )
+        webhook = github_adapter.update_webhook(
+            100, url="https://new.example.com/hook", active=False
+        )
+        assert webhook.url == "https://new.example.com/hook"
+        assert webhook.active is False
+        config_req_body = json.loads(mock_responses.calls[0].request.body)
+        assert config_req_body["url"] == "https://new.example.com/hook"
+        main_req_body = json.loads(mock_responses.calls[1].request.body)
+        assert main_req_body == {"active": False}
 
 
 # --- DeployKey 系 ---
