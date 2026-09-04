@@ -1380,6 +1380,7 @@ class TestListReviews:
         assert len(reviews) == 1
         assert isinstance(reviews[0], Review)
         assert reviews[0].state == "approved"
+        assert reviews[0].url == bitbucket_adapter.get_web_url("pr", 1)
 
 
 class TestCreateReview:
@@ -1390,8 +1391,9 @@ class TestCreateReview:
             json={"approved": True, "user": {"nickname": "reviewer"}},
             status=200,
         )
-        bitbucket_adapter.create_review(1, state="approve")
+        review = bitbucket_adapter.create_review(1, state="approve")
         assert mock_responses.calls[0].request.method == "POST"
+        assert review.url == bitbucket_adapter.get_web_url("pr", 1)
 
     def test_request_changes(self, mock_responses, bitbucket_adapter):
         """REQUEST_CHANGES 分岐は /request-changes エンドポイントを呼ぶ。"""
@@ -1404,6 +1406,7 @@ class TestCreateReview:
         review = bitbucket_adapter.create_review(1, state="REQUEST_CHANGES", body="Needs work")
         assert review.state == "changes_requested"
         assert mock_responses.calls[0].request.method == "POST"
+        assert review.url == bitbucket_adapter.get_web_url("pr", 1)
 
 
 # --- Branch 系 ---

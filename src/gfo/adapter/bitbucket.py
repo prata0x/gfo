@@ -845,7 +845,7 @@ class BitbucketAdapter(GitServiceAdapter):
                             state="approved",
                             body="",
                             author=user.get("nickname") or "",
-                            url="",
+                            url=self.get_web_url("pr", number),
                         )
                     )
         except (KeyError, TypeError, AttributeError) as e:
@@ -858,13 +858,21 @@ class BitbucketAdapter(GitServiceAdapter):
                 f"{self._repos_path()}/pullrequests/{number}/approve",
                 json={},
             )
-            return Review(id=0, state="approved", body=body, author="", url="")
+            return Review(
+                id=0, state="approved", body=body, author="", url=self.get_web_url("pr", number)
+            )
         elif state.upper() == "REQUEST_CHANGES":
             self._client.post(
                 f"{self._repos_path()}/pullrequests/{number}/request-changes",
                 json={},
             )
-            return Review(id=0, state="changes_requested", body=body, author="", url="")
+            return Review(
+                id=0,
+                state="changes_requested",
+                body=body,
+                author="",
+                url=self.get_web_url("pr", number),
+            )
         else:
             resp = self._client.post(
                 f"{self._repos_path()}/pullrequests/{number}/comments",
@@ -877,7 +885,7 @@ class BitbucketAdapter(GitServiceAdapter):
                 state="commented",
                 body=body,
                 author=user,
-                url="",
+                url=self.get_web_url("pr", number),
             )
 
     # --- Branch ---
