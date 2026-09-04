@@ -1243,7 +1243,6 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             config: dict[str, Any] = {}
             if url is not None:
                 config["url"] = url
-            config["content_type"] = "json"
             if secret is not None:
                 config["secret"] = secret
             payload["config"] = config
