@@ -37,6 +37,12 @@ class SampleItem:
     author: str
 
 
+@dataclass(frozen=True)
+class ItemWithCollections:
+    assignees: list[str]
+    checks: tuple[str, ...]
+
+
 class TestFormatTable:
     def test_single_item(self):
         result = format_table(
@@ -140,6 +146,17 @@ class TestFormatTable:
         lines = result.split("\n")
         # セパレーター行の幅は日本語タイトルの表示幅(12)以上
         assert len(lines[1].split("  ")[1]) >= 12
+
+    def test_collection_values_are_comma_separated(self):
+        """list/tuple フィールドは Python repr ではなくカンマ区切りで表示する。"""
+        result = format_table(
+            [ItemWithCollections(["alice", "bob"], ("ci/build", "ci/test"))],
+            ["assignees", "checks"],
+        )
+        assert "alice, bob" in result
+        assert "ci/build, ci/test" in result
+        assert "['alice', 'bob']" not in result
+        assert "('ci/build', 'ci/test')" not in result
 
 
 class TestFormatJson:
@@ -250,6 +267,14 @@ class TestFormatPlain:
             ["number", "state"],
         )
         assert result == "1\topen"
+
+    def test_collection_values_are_comma_separated(self):
+        """list/tuple フィールドは Python repr ではなくカンマ区切りで表示する。"""
+        result = format_plain(
+            [ItemWithCollections(["alice", "bob"], ("ci/build", "ci/test"))],
+            ["assignees", "checks"],
+        )
+        assert result == "alice, bob\tci/build, ci/test"
 
 
 class TestOutput:
