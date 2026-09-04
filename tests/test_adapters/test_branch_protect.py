@@ -158,12 +158,39 @@ class TestGitLabBranchProtect:
     @responses.activate
     def test_set(self, gitlab_adapter):
         responses.add(
+            responses.GET,
+            "https://gitlab.com/api/v4/projects/test-owner%2Ftest-repo/protected_branches/main",
+            status=404,
+        )
+        responses.add(
             responses.POST,
             "https://gitlab.com/api/v4/projects/test-owner%2Ftest-repo/protected_branches",
             json={"name": "main", "allow_force_push": False, "required_approvals": 2},
         )
         bp = gitlab_adapter.set_branch_protection("main", require_reviews=2)
         assert bp.require_reviews == 2
+
+    @responses.activate
+    def test_set_updates_existing_branch(self, gitlab_adapter):
+        branch_url = (
+            "https://gitlab.com/api/v4/projects/test-owner%2Ftest-repo/protected_branches/main"
+        )
+        responses.add(
+            responses.GET,
+            branch_url,
+            json={"name": "main", "allow_force_push": False, "required_approvals": 1},
+        )
+        responses.add(
+            responses.PATCH,
+            branch_url,
+            json={"name": "main", "allow_force_push": True, "required_approvals": 2},
+        )
+
+        bp = gitlab_adapter.set_branch_protection("main", require_reviews=2, allow_force_push=True)
+
+        assert bp.require_reviews == 2
+        assert bp.allow_force_push is True
+        assert responses.calls[1].request.method == "PATCH"
 
     @responses.activate
     def test_remove(self, gitlab_adapter):

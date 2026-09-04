@@ -1900,7 +1900,13 @@ class GitLabAdapter(GitServiceAdapter):
             payload["allow_force_push"] = allow_force_push
         if require_reviews is not None:
             payload["required_approvals"] = require_reviews
-        resp = self._client.post(f"{self._project_path()}/protected_branches", json=payload)
+        branch_path = f"{self._project_path()}/protected_branches/{quote(branch, safe='')}"
+        try:
+            self._client.get(branch_path)
+        except NotFoundError:
+            resp = self._client.post(f"{self._project_path()}/protected_branches", json=payload)
+        else:
+            resp = self._client.patch(branch_path, json=payload)
         return self._to_branch_protection(resp.json())
 
     def remove_branch_protection(self, branch: str) -> None:
