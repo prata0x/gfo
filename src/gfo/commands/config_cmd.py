@@ -15,7 +15,7 @@ from gfo.config import (
 )
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
-from gfo.output import apply_jq_filter
+from gfo.output import _sanitize_for_plain, apply_jq_filter
 
 
 def handle_get(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -50,11 +50,17 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
 
     entries = _flatten(cfg)
     if not entries:
+        if fmt == "plain":
+            return
         print(_("No configuration set."))
         return
 
-    for key, value in entries:
-        print(f"{key}={value}")
+    if fmt == "plain":
+        for _key, value in entries:
+            print(_sanitize_for_plain(value))
+    else:
+        for key, value in entries:
+            print(f"{key}={value}")
 
 
 def handle_unset(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
