@@ -2422,6 +2422,55 @@ class TestListRequestedReviewersBitbucket:
         reviewers = bitbucket_adapter.list_requested_reviewers(1)
         assert reviewers == ["reviewer1", "reviewer2"]
 
+    def test_list_reviewers_non_dict_element_raises_gfo_error(
+        self, mock_responses, bitbucket_adapter
+    ):
+        """reviewers の要素が dict でない場合、AttributeError を GfoError に変換する (#625)。"""
+        pr = _pr_data()
+        pr["reviewers"] = [{"nickname": "reviewer1"}, "not-a-dict", None]
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests/1",
+            json=pr,
+            status=200,
+        )
+        with pytest.raises(GfoError):
+            bitbucket_adapter.list_requested_reviewers(1)
+
+
+class TestListReviewsBitbucket:
+    def test_list_reviews(self, mock_responses, bitbucket_adapter):
+        pr = _pr_data()
+        pr["participants"] = [
+            {"user": {"nickname": "approver1"}, "approved": True},
+            {"user": {"nickname": "reviewer2"}, "approved": False},
+        ]
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests/1",
+            json=pr,
+            status=200,
+        )
+        reviews = bitbucket_adapter.list_reviews(1)
+        assert len(reviews) == 1
+        assert reviews[0].author == "approver1"
+        assert reviews[0].state == "approved"
+
+    def test_list_reviews_non_dict_participant_raises_gfo_error(
+        self, mock_responses, bitbucket_adapter
+    ):
+        """participants の要素が dict でない場合、AttributeError を GfoError に変換する (#625)。"""
+        pr = _pr_data()
+        pr["participants"] = ["not-a-dict", None]
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests/1",
+            json=pr,
+            status=200,
+        )
+        with pytest.raises(GfoError):
+            bitbucket_adapter.list_reviews(1)
+
 
 class TestListPullRequestsSearchEscape:
     def test_double_quote_escaped(self, mock_responses, bitbucket_adapter):
