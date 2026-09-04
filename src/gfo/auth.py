@@ -74,12 +74,12 @@ def resolve_token(host: str, service_type: str) -> str:
     env_var = _SERVICE_ENV_MAP.get(service_type)
     if env_var:
         val = os.environ.get(env_var)
-        if val:
+        if val and val.strip():
             return val
 
     # 3. GFO_TOKEN
     gfo_token = os.environ.get("GFO_TOKEN")
-    if gfo_token:
+    if gfo_token and gfo_token.strip():
         return gfo_token
 
     # 4. 未設定
