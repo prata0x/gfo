@@ -21,7 +21,8 @@ def handle_whoami(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
             print(json_str)
     elif fmt == "plain":
         for value in user.values():
-            print(value)
+            plain_value = "" if value is None else str(value)
+            print(plain_value.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t"))
     else:
         for key, value in user.items():
             print(f"{key}: {value}")
