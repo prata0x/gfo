@@ -395,6 +395,9 @@ class GitBucketAdapter(GitHubAdapter):
     def delete_gpg_key(self, *, key_id: int | str) -> None:
         raise NotSupportedError("GitBucket", "gpg-key operations")
 
+    def get_gpg_key(self, key_id: int | str) -> GpgKey:
+        raise NotSupportedError("GitBucket", "gpg-key operations")
+
     # --- TagProtection（GitBucket 未実装）---
 
     def list_tag_protections(self, *, limit: int = 30) -> list[TagProtection]:
@@ -419,6 +422,9 @@ class GitBucketAdapter(GitHubAdapter):
     def delete_ssh_key(self, *, key_id: int | str) -> None:
         raise NotSupportedError("GitBucket", "ssh-key operations")
 
+    def get_ssh_key(self, key_id: int | str) -> SshKey:
+        raise NotSupportedError("GitBucket", "ssh-key operations")
+
     # --- Deploy key（GitBucket 未実装）---
 
     def list_deploy_keys(self, *, limit: int = 30) -> list[DeployKey]:
@@ -428,6 +434,9 @@ class GitBucketAdapter(GitHubAdapter):
         raise NotSupportedError("GitBucket", "deploy key operations")
 
     def delete_deploy_key(self, *, key_id: int) -> None:
+        raise NotSupportedError("GitBucket", "deploy key operations")
+
+    def get_deploy_key(self, key_id: int) -> DeployKey:
         raise NotSupportedError("GitBucket", "deploy key operations")
 
     # --- Repo update/archive（GitBucket は GitHub 互換度が限定的）---
