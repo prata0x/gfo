@@ -1676,25 +1676,21 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         )
         return [self._to_repository(r) for r in results]
 
+    @_wrap_conversion_error
     def _to_organization(self, data: dict[str, Any]) -> Organization:
         from urllib.parse import urlparse
 
-        try:
-            org_name = data.get("username") or data.get("login") or ""
-            parsed = urlparse(self._client.base_url)
-            port_str = f":{parsed.port}" if parsed.port else ""
-            web_base = f"{parsed.scheme}://{parsed.hostname}{port_str}"
-            url = f"{web_base}/{org_name}" if org_name else ""
-            return Organization(
-                name=org_name,
-                display_name=data.get("full_name") or org_name,
-                description=data.get("description"),
-                url=url,
-            )
-        except (KeyError, TypeError) as e:
-            raise GfoError(
-                _("Unexpected API response: missing field {error}").format(error=e)
-            ) from e
+        org_name = data.get("username") or data.get("login") or ""
+        parsed = urlparse(self._client.base_url)
+        port_str = f":{parsed.port}" if parsed.port else ""
+        web_base = f"{parsed.scheme}://{parsed.hostname}{port_str}"
+        url = f"{web_base}/{org_name}" if org_name else ""
+        return Organization(
+            name=org_name,
+            display_name=data.get("full_name") or org_name,
+            description=data.get("description"),
+            url=url,
+        )
 
     def create_organization(
         self, name: str, *, display_name: str | None = None, description: str | None = None

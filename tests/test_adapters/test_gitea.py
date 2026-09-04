@@ -3873,6 +3873,18 @@ class TestUpdateOrganization:
         assert org.description == "New description"
 
 
+class TestToOrganizationErrorHandling:
+    def test_non_dict_response_wrapped_as_gfo_error(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            "https://gitea.example.com/api/v1/orgs/my-org",
+            json="not-a-dict",
+            status=200,
+        )
+        with pytest.raises(GfoError):
+            gitea_adapter.get_organization("my-org")
+
+
 # --- Workflow ---
 
 
