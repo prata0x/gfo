@@ -2546,6 +2546,9 @@ msgstr "認証情報ファイルの権限を設定できませんでした（get
 msgid "GFO_MAX_DOWNLOAD_BYTES={val!r} is not a valid integer; using default 5 GiB."
 msgstr "GFO_MAX_DOWNLOAD_BYTES={val!r} は有効な整数ではありません。デフォルトの 5 GiB を使用します。"
 
+msgid "GFO_RETRY_AFTER_MAX={val!r} is not a valid integer; using default 300 seconds."
+msgstr "GFO_RETRY_AFTER_MAX={val!r} は有効な整数ではありません。デフォルトの 300 秒を使用します。"
+
 msgid "Remote 'origin' not found; using '{fallback}' instead."
 msgstr "リモート 'origin' が見つかりません。代わりに '{fallback}' を使用します。"
 
