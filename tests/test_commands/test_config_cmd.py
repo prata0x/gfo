@@ -60,6 +60,13 @@ class TestHandleGet:
         result = json.loads(capsys.readouterr().out)
         assert result == {"key": "defaults.output", "value": "plain"}
 
+    def test_get_plain_format_sanitizes_control_characters(self, config_dir, capsys):
+        """fmt=plain では値中の改行・CR・タブをエスケープ。"""
+        _write_config(config_dir, '[defaults]\nvalue = "line1\\nline2\\r\\tvalue"\n')
+        args = make_args(key="defaults.value")
+        config_cmd.handle_get(args, fmt="plain")
+        assert capsys.readouterr().out == r"line1\nline2\r\tvalue" + "\n"
+
     def test_get_empty_config(self, config_dir):
         """空の config → ConfigError。"""
         args = make_args(key="defaults.output")
