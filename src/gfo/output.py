@@ -29,7 +29,11 @@ def _pad_right(val: str, width: int) -> str:
 
 def _field_str(val: Any) -> str:
     """フィールド値を文字列化する。None は空文字列に変換する。"""
-    return "" if val is None else str(val)
+    if val is None:
+        return ""
+    if isinstance(val, (list, tuple)):
+        return ", ".join(str(item) for item in val)
+    return str(val)
 
 
 def _sanitize_for_table(val: str) -> str:
