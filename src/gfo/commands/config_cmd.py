@@ -27,6 +27,8 @@ def handle_get(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
     if fmt == "json":
         json_str = json.dumps({"key": args.key, "value": value}, ensure_ascii=False, indent=2)
         print(apply_jq_filter(json_str, jq) if jq else json_str)
+    elif fmt == "plain":
+        print(_sanitize_for_plain(str(value)))
     else:
         print(value)
 
