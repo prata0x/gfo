@@ -2944,6 +2944,44 @@ class TestListPullRequestChecks:
         assert checks[1].name == "external-ci"
         assert checks[1].status == "success"
 
+    def test_null_html_url_yields_empty_url(self, mock_responses, github_adapter):
+        pr_data = _pr_data()
+        pr_data["head"]["sha"] = "abc123"
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls/1",
+            json=pr_data,
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/commits/abc123/check-runs",
+            json={
+                "total_count": 1,
+                "check_runs": [
+                    {
+                        "name": "ci/lint",
+                        "status": "completed",
+                        "conclusion": "success",
+                        "html_url": None,
+                        "url": "https://api.github.com/repos/o/r/check-runs/4",
+                        "started_at": "2025-01-01T00:00:00Z",
+                    }
+                ],
+            },
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/commits/abc123/status",
+            json={"statuses": []},
+            status=200,
+        )
+        checks = github_adapter.list_pull_request_checks(1)
+        assert len(checks) == 1
+        assert checks[0].name == "ci/lint"
+        assert checks[0].url == ""
+
     def test_missing_head_sha_wrapped(self, mock_responses, github_adapter):
         mock_responses.add(
             responses.GET,

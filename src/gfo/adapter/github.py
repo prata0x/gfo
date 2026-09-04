@@ -874,7 +874,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                     name=cr.get("name") or "",
                     status=status,
                     conclusion=cr.get("conclusion") or conclusion,
-                    url=cr.get("html_url") or cr.get("url") or "",
+                    url=cr.get("html_url") or "",
                     started_at=cr.get("started_at") or "",
                 )
             )
