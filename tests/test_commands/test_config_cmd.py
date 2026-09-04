@@ -169,6 +169,25 @@ class TestHandleList:
         assert "defaults.output=table" in out
         assert 'hosts."gitlab.example.com".type=gitlab' in out
 
+    def test_list_plain_format_outputs_values_only(self, config_dir, capsys):
+        """fmt=plain ではキー名なしで値だけを一覧表示。"""
+        _write_config(config_dir, '[defaults]\noutput = "json"\nhost = "github.com"\n')
+        args = make_args()
+        config_cmd.handle_list(args, fmt="plain")
+        assert capsys.readouterr().out.splitlines() == ["json", "github.com"]
+
+    def test_list_plain_format_sanitizes_control_characters(self, config_dir, capsys):
+        """fmt=plain では値中の改行・CR・タブをエスケープ。"""
+        _write_config(config_dir, '[defaults]\nvalue = "line1\\nline2\\r\\tvalue"\n')
+        args = make_args()
+        config_cmd.handle_list(args, fmt="plain")
+        assert capsys.readouterr().out == r"line1\nline2\r\tvalue" + "\n"
+
+    def test_list_plain_format_empty_config_outputs_nothing(self, config_dir, capsys):
+        """fmt=plain で空の設定は何も出力しない。"""
+        config_cmd.handle_list(make_args(), fmt="plain")
+        assert capsys.readouterr().out == ""
+
     def test_list_json_format(self, config_dir, capsys):
         """fmt=json で JSON 出力。"""
         _write_config(config_dir, '[defaults]\noutput = "json"\n')
