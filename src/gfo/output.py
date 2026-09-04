@@ -27,16 +27,22 @@ def _pad_right(val: str, width: int) -> str:
     return val + " " * max(0, width - w)
 
 
-def _field_str(val: Any) -> str:
+def _field_str(val: Any, *, escape_item_separator: bool = False) -> str:
     """フィールド値を文字列化する。None は空文字列に変換する。"""
     if val is None:
         return ""
     if isinstance(val, (list, tuple)):
         separator = "; " if any(isinstance(item, dict) for item in val) else ", "
-        return separator.join(_field_str(item) for item in val)
+        return separator.join(
+            _field_str(item, escape_item_separator=isinstance(item, dict)) for item in val
+        )
     if isinstance(val, dict):
-        return ", ".join(f"{key}={_field_str(value)}" for key, value in val.items())
-    return str(val)
+        return ", ".join(
+            f"{key}={_field_str(value, escape_item_separator=escape_item_separator)}"
+            for key, value in val.items()
+        )
+    result = str(val)
+    return result.replace(";", r"\;") if escape_item_separator else result
 
 
 def _sanitize_for_table(val: str) -> str:

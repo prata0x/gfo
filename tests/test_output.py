@@ -188,7 +188,7 @@ class TestFormatTable:
                     ahead_by=1,
                     behind_by=0,
                     files=(
-                        CompareFile("status=weird,name.py", "modified", 3, 1),
+                        CompareFile("status=weird,name;part.py", "modified", 3, 1),
                         CompareFile("normal.py", "added", 10, 0),
                     ),
                 )
@@ -196,7 +196,8 @@ class TestFormatTable:
             ["files"],
         )
         assert (
-            "filename=status=weird,name.py, status=modified, additions=3, deletions=1; " in result
+            "filename=status=weird,name\\;part.py, status=modified, additions=3, deletions=1; "
+            in result
         )
         assert "deletions=1; filename=normal.py, status=added" in result
 
@@ -347,7 +348,7 @@ class TestFormatPlain:
                     ahead_by=1,
                     behind_by=0,
                     files=(
-                        CompareFile("status=weird,name.py", "modified", 3, 1),
+                        CompareFile("status=weird,name;part.py", "modified", 3, 1),
                         CompareFile("normal.py", "added", 10, 0),
                     ),
                 )
@@ -355,7 +356,7 @@ class TestFormatPlain:
             ["files"],
         )
         assert result == (
-            "filename=status=weird,name.py, status=modified, additions=3, deletions=1; "
+            "filename=status=weird,name\\;part.py, status=modified, additions=3, deletions=1; "
             "filename=normal.py, status=added, additions=10, deletions=0"
         )
 
