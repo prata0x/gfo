@@ -769,6 +769,28 @@ class TestListTags:
         tags = gitbucket_adapter.list_tags()
         assert tags[0].name == "v9.9.9"
 
+    def test_null_ref_falls_back_to_empty_name(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/git/refs/tags",
+            json=[{"ref": None, "object": {"sha": "x"}}],
+            status=200,
+        )
+
+        tags = gitbucket_adapter.list_tags()
+        assert tags[0].name == ""
+
+    def test_invalid_item_is_wrapped_as_gfo_error(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/git/refs/tags",
+            json=["not-a-ref"],
+            status=200,
+        )
+
+        with pytest.raises(GfoError, match="Unexpected API response"):
+            gitbucket_adapter.list_tags()
+
     def test_empty(self, mock_responses, gitbucket_adapter):
         mock_responses.add(responses.GET, f"{REPOS}/git/refs/tags", json=[], status=200)
         assert gitbucket_adapter.list_tags() == []
