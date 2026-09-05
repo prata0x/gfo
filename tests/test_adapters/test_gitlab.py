@@ -4442,6 +4442,15 @@ class TestPackagesGitLab:
         assert p.name == "mypkg"
         assert p.url == "https://gitlab.com/test/test/-/packages/42"
 
+    def test_get_package_handles_null_links(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/packages",
+            json=[{"name": "mypkg", "package_type": "npm", "_links": None}],
+            status=200,
+        )
+        assert gitlab_adapter.get_package("npm", "mypkg").url == ""
+
     def test_list_packages_missing_web_path_yields_empty_url(self, mock_responses, gitlab_adapter):
         mock_responses.add(
             responses.GET,

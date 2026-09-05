@@ -4362,6 +4362,15 @@ class TestPackagesGitea:
         p = gitea_adapter.get_package("container", "mypkg")
         assert p.version == "2.0"
 
+    def test_get_package_without_version_handles_null_owner(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/packages/test-owner",
+            json=[{"name": "mypkg", "type": "container", "version": "1.0", "owner": None}],
+            status=200,
+        )
+        assert gitea_adapter.get_package("container", "mypkg").owner == "test-owner"
+
     def test_get_package_without_version_empty_raises(self, mock_responses, gitea_adapter):
         from gfo.exceptions import NotFoundError
 
