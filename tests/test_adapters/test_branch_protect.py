@@ -7,7 +7,7 @@ import json
 import pytest
 import responses
 
-from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError
+from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError, ServerError
 
 # --- GitHub ---
 
@@ -64,6 +64,19 @@ class TestGitHubBranchProtect:
         assert bp.require_reviews == 1
         req_body = json.loads(responses.calls[1].request.body)
         assert req_body["required_pull_request_reviews"]["required_approving_review_count"] == 1
+
+    @responses.activate
+    def test_set_propagates_server_error_from_current_protection(self, github_adapter):
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/test-owner/test-repo/branches/main/protection",
+            status=503,
+        )
+
+        with pytest.raises(ServerError):
+            github_adapter.set_branch_protection("main", require_reviews=1)
+
+        assert len(responses.calls) == 1
 
     @responses.activate
     def test_remove(self, github_adapter):

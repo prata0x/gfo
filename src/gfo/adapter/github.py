@@ -1787,7 +1787,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
         try:
             current = self.get_branch_protection(branch)
-        except (NotFoundError, HttpError):
+        except NotFoundError:
             current = BranchProtection(
                 branch=branch,
                 require_reviews=0,
