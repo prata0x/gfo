@@ -635,6 +635,12 @@ class TestSafetyMetadata:
         assert out["safety"]["local_git_write"] is True
         assert out["safety"]["network_write"] is False
 
+    def test_safety_local_git_write_init(self, capsys):
+        args = make_args(command="schema", subcommand=None, list_commands=False, target=["init"])
+        handle_schema(args, fmt="json")
+        out = json.loads(capsys.readouterr().out)
+        assert out["safety"]["local_git_write"] is True
+
     def test_safety_map_covers_dispatch(self):
         """_SAFETY_MAP が _DISPATCH の全キーをカバーしている。"""
         from gfo.cli import _DISPATCH

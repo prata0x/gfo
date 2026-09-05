@@ -328,7 +328,7 @@ _SAFETY_FIELDS = (
 # コマンドの安全性メタデータ（#57）。値は _SAFETY_FIELDS と同順のタプル。
 # 全キーを明示的に列挙する（未登録キーは同期ガードテストで検出、フォールバックしない）。
 _SAFETY_MAP: dict[tuple[str, str | None], tuple[bool, bool, bool, bool, bool]] = {
-    ("init", None): (False, False, False, False, False),
+    ("init", None): (False, False, False, False, True),
     ("auth", "login"): (False, False, False, False, False),
     ("auth", "status"): (False, False, False, False, False),
     ("auth", "switch"): (False, False, False, False, False),
