@@ -333,6 +333,9 @@ def handle_topics(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
 
     from gfo.output import apply_jq_filter
 
+    if jq is not None:
+        fmt = "json"
+
     adapter = get_adapter()
     action = getattr(args, "topics_action", None)
     if action is None:
