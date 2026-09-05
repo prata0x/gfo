@@ -31,6 +31,7 @@ from gfo.adapter.base import (
 )
 from gfo.adapter.registry import get_adapter_class
 from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError, ServerError
+from gfo.http import HttpClient
 
 BASE = "https://dev.azure.com/test-org/test-project/_apis"
 GIT = f"{BASE}/git/repositories/test-repo"
@@ -1372,8 +1373,10 @@ def _tag_data_az(*, name="v1.0.0", sha="def456"):
 def _make_adapter_az():
     from unittest.mock import MagicMock
 
+    client = MagicMock()
+    client.base_url = BASE
     return AzureDevOpsAdapter(
-        MagicMock(),
+        client,
         "test-owner",
         "test-repo",
         organization="test-org",
@@ -2261,6 +2264,86 @@ class TestTagWebUrl:
         adapter = _make_adapter_az()
         url = adapter._tag_web_url("feature/v1")
         assert "version=GTfeature/v1" in url
+
+
+class TestSelfHostedWebUrls:
+    @pytest.fixture
+    def adapter(self, azure_devops_adapter):
+        client = HttpClient(
+            "https://tfs.example.com/tfs/DefaultCollection/test-project/_apis",
+            basic_auth=("", "test-pat"),
+            default_params={"api-version": "7.1"},
+        )
+        return AzureDevOpsAdapter(
+            client,
+            "test-owner",
+            "test-repo",
+            organization="test-org",
+            project_key="test-project",
+        )
+
+    def test_web_urls_keep_host_and_collection_path(self, adapter):
+        expected_base = "https://tfs.example.com/tfs/DefaultCollection/test-project"
+        assert adapter.get_web_url("pr", 5) == f"{expected_base}/_git/test-repo/pullrequest/5"
+        assert adapter.get_web_url("issue", 3) == f"{expected_base}/_workitems?id=3"
+        assert adapter._branch_web_url("main") == (f"{expected_base}/_git/test-repo?version=GBmain")
+
+    def test_api_urls_keep_collection_path(self, adapter):
+        assert adapter._connection_data_url() == (
+            "https://tfs.example.com/tfs/DefaultCollection/_apis/connectionData"
+        )
+        assert adapter._search_api_url() == (
+            "https://tfs.example.com/tfs/DefaultCollection/test-project/_apis/"
+            "search/codesearchresults"
+        )
+
+    def test_search_result_url_keeps_collection_path(self, mock_responses, adapter):
+        search_url = adapter._search_api_url()
+        mock_responses.add(
+            responses.POST,
+            search_url,
+            json={"results": [{"path": "/src/main.py", "repository": {"name": "test-repo"}}]},
+            status=200,
+        )
+        result = adapter.search_code("main")
+        assert result[0].url == (
+            "https://tfs.example.com/tfs/DefaultCollection/test-project/_git/"
+            "test-repo?path=%2Fsrc%2Fmain.py"
+        )
+
+    def test_dependency_target_url_keeps_collection_path(self, mock_responses, adapter):
+        work_item_url = (
+            "https://tfs.example.com/tfs/DefaultCollection/test-project/_apis/wit/workitems/10"
+        )
+        mock_responses.add(responses.PATCH, work_item_url, json=_issue_data(id=10), status=200)
+        adapter.add_issue_dependency(10, 20)
+        target_url = json.loads(mock_responses.calls[0].request.body)[0]["value"]["url"]
+        assert target_url == (
+            "https://tfs.example.com/tfs/DefaultCollection/test-project/_apis/wit/workitems/20"
+        )
+
+    def test_organization_fallback_keeps_collection_path(self, adapter):
+        organization = adapter._to_organization({"name": "OtherProject"})
+        assert organization.url == "https://tfs.example.com/tfs/DefaultCollection/OtherProject"
+
+    def test_project_name_with_spaces_keeps_api_scope(self):
+        client = HttpClient(
+            "https://tfs.example.com/tfs/DefaultCollection/My Project/_apis",
+            basic_auth=("", "test-pat"),
+        )
+        adapter = AzureDevOpsAdapter(
+            client,
+            "test-owner",
+            "test-repo",
+            organization="DefaultCollection",
+            project_key="My Project",
+        )
+        assert adapter._web_base_url() == (
+            "https://tfs.example.com/tfs/DefaultCollection/My Project"
+        )
+        assert adapter._connection_data_url() == (
+            "https://tfs.example.com/tfs/DefaultCollection/_apis/connectionData"
+        )
 
 
 class TestToCommitStatus:

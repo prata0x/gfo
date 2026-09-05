@@ -109,6 +109,20 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     def _wit_path(self) -> str:
         return "/wit"
 
+    def _web_base_url(self) -> str:
+        """Return the project Web URL derived from the configured API URL."""
+        parsed = urlparse(self._client.base_url)
+        path = parsed.path.rstrip("/")
+        project_segments = (f"/{self._project}", f"/{quote(self._project, safe='')}")
+        for project_segment in project_segments:
+            index = path.rfind(project_segment + "/_apis")
+            if index >= 0:
+                path = path[:index] + project_segment
+                break
+        else:
+            path = path.removesuffix("/_apis")
+        return f"{parsed.scheme}://{parsed.netloc}{path}"
+
     # --- 変換ヘルパー ---
 
     @staticmethod
@@ -866,16 +880,10 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         )
 
     def _branch_web_url(self, name: str) -> str:
-        return (
-            f"https://dev.azure.com/{self._org}/{self._project}/_git/{self._repo}"
-            f"?version=GB{quote(name, safe='/')}"
-        )
+        return f"{self._web_base_url()}/_git/{self._repo}?version=GB{quote(name, safe='/')}"
 
     def _tag_web_url(self, name: str) -> str:
-        return (
-            f"https://dev.azure.com/{self._org}/{self._project}/_git/{self._repo}"
-            f"?version=GT{quote(name, safe='/')}"
-        )
+        return f"{self._web_base_url()}/_git/{self._repo}?version=GT{quote(name, safe='/')}"
 
     @staticmethod
     def _branch_name(data: dict[str, Any]) -> str:
@@ -1129,8 +1137,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         スコープ URL だが、connectionData は組織スコープ
         (`https://dev.azure.com/{org}/_apis/connectionData`) で呼ぶ必要がある。
         """
-        parsed = urlparse(self._client.base_url)
-        return f"{parsed.scheme}://{parsed.netloc}/{self._org}/_apis/connectionData"
+        return self._org_api_url("/connectionData")
 
     def create_review(self, number: int, *, state: str, body: str = "") -> Review:
         vote_map = {"APPROVE": 10, "REQUEST_CHANGES": -10, "COMMENT": 0}
@@ -1563,10 +1570,10 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         """
         base: str = self._client.base_url
         # /{project}/_apis を /_apis に置換
-        project_segment = f"/{quote(self._project, safe='')}"
-        idx = base.find(project_segment + "/_apis")
-        if idx >= 0:
-            return base[:idx] + "/_apis" + path
+        for project_segment in (f"/{self._project}", f"/{quote(self._project, safe='')}"):
+            idx = base.find(project_segment + "/_apis")
+            if idx >= 0:
+                return base[:idx] + "/_apis" + path
         return base + path
 
     def list_organizations(self, *, limit: int = 30) -> list[Organization]:
@@ -1607,7 +1614,10 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         if web.get("href"):
             web_url = web["href"]
         elif name:
-            web_url = f"https://dev.azure.com/{self._org}/{name}"
+            organization_base = self._web_base_url().removesuffix(
+                f"/{quote(self._project, safe='')}"
+            )
+            web_url = f"{organization_base}/{quote(name, safe='')}"
         return Organization(
             name=name,
             display_name=name,
@@ -1618,11 +1628,11 @@ class AzureDevOpsAdapter(GitServiceAdapter):
     # --- Browse ---
 
     def get_web_url(self, resource: str = "repo", number: int | str | None = None) -> str:
-        base = f"https://dev.azure.com/{self._org}/{self._project}/_git/{self._repo}"
+        base = f"{self._web_base_url()}/_git/{self._repo}"
         if resource == "pr":
             return f"{base}/pullrequests" if number is None else f"{base}/pullrequest/{number}"
         if resource == "issue":
-            proj_base = f"https://dev.azure.com/{self._org}/{self._project}"
+            proj_base = self._web_base_url()
             return (
                 f"{proj_base}/_workitems"
                 if number is None
@@ -1633,7 +1643,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         if resource == "milestone":
             raise NotSupportedError(self.service_name, "browse milestone")
         if resource == "settings":
-            return f"https://dev.azure.com/{self._org}/{self._project}/_settings/repositories"
+            return f"{self._web_base_url()}/_settings/repositories"
         return base
 
     # --- Search ---
@@ -1696,9 +1706,11 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         parsed = urlparse(self._client.base_url)
         if parsed.hostname == "dev.azure.com":
             host = f"{parsed.scheme}://almsearch.dev.azure.com"
+            path = f"/{quote(self._org, safe='')}/{quote(self._project, safe='')}"
         else:
-            host = f"{parsed.scheme}://{parsed.netloc}"
-        return f"{host}/{quote(self._org, safe='')}/{quote(self._project, safe='')}/_apis/search/codesearchresults"
+            host = self._web_base_url()
+            path = ""
+        return f"{host}{path}/_apis/search/codesearchresults"
 
     def search_code(self, query: str, *, limit: int = 30) -> list[CodeSearchResult]:
         url = self._search_api_url()
@@ -1716,8 +1728,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         results = data.get("results", [])
         if limit > 0:
             results = results[:limit]
-        parsed = urlparse(self._client.base_url)
-        base_web = f"{parsed.scheme}://{parsed.netloc}/{self._org}/{self._project}"
+        base_web = self._web_base_url()
         return [
             CodeSearchResult(
                 path=(r.get("path") or "").lstrip("/"),
@@ -1746,11 +1757,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         return deps
 
     def add_issue_dependency(self, number: int, depends_on: int) -> None:
-        parsed = urlparse(self._client.base_url)
-        base = f"{parsed.scheme}://{parsed.hostname}"
-        if parsed.port:
-            base += f":{parsed.port}"
-        target_url = f"{base}/{self._org}/{self._project}/_apis/wit/workitems/{depends_on}"
+        target_url = f"{self._web_base_url()}/_apis/wit/workitems/{depends_on}"
         patch = [
             {
                 "op": "add",
