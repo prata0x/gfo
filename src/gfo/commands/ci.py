@@ -7,7 +7,7 @@ import argparse
 from gfo.commands import confirm_action, get_adapter
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
-from gfo.output import output, output_result
+from gfo.output import _sanitize_for_plain, output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -87,7 +87,7 @@ def handle_logs(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     """gfo ci logs <id> のハンドラ。"""
     adapter = get_adapter()
     for line in adapter.get_pipeline_logs(args.id, job_id=getattr(args, "job", None)):
-        print(line)
+        print(_sanitize_for_plain(line))
 
 
 def handle_watch(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

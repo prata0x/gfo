@@ -200,6 +200,13 @@ class TestHandleLogs:
         out = capsys.readouterr().out
         assert "job log\noutput\n" in out
 
+    def test_escapes_control_characters(self, capsys):
+        with patch_adapter("gfo.commands.ci") as adapter:
+            adapter.get_pipeline_logs.return_value = iter(["safe\x00\x1b[2K\x7f"])
+            args = make_args(id="123", job=None)
+            ci_cmd.handle_logs(args, fmt="table")
+        assert capsys.readouterr().out == r"safe\x00\x1b[2K\x7f" + "\n"
+
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.ci") as adapter:
             adapter.get_pipeline_logs.side_effect = GfoError("logs failed")
