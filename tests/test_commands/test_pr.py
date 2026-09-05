@@ -766,6 +766,14 @@ class TestHandleCommits:
 
 
 class TestHandleReviewers:
+    def test_sanitizes_control_characters_in_plain_output(self, capsys):
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.list_requested_reviewers.return_value = ["safe\x00\x1b[2Kdone"]
+            args = make_args(number=1, reviewer_action=None)
+            pr_cmd.handle_reviewers(args, fmt="table")
+
+        assert capsys.readouterr().out == r"safe\x00\x1b[2Kdone" + "\n"
+
     def test_list_action(self, capsys):
         with patch_adapter("gfo.commands.pr") as adapter:
             adapter.list_requested_reviewers.return_value = []
