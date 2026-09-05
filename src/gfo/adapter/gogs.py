@@ -137,34 +137,54 @@ class GogsAdapter(GiteaAdapter):
         )
 
     def list_pull_request_checks(self, number: int) -> list[CheckRun]:
-        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+        raise NotSupportedError(
+            "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
+        )
 
     def list_pull_request_files(self, number: int) -> list[PullRequestFile]:
-        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+        raise NotSupportedError(
+            "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
+        )
 
     def list_pull_request_commits(self, number: int) -> list[PullRequestCommit]:
-        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+        raise NotSupportedError(
+            "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
+        )
 
     def list_requested_reviewers(self, number: int) -> list[str]:
-        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+        raise NotSupportedError(
+            "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
+        )
 
     def request_reviewers(self, number: int, reviewers: list[str]) -> None:
-        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+        raise NotSupportedError(
+            "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
+        )
 
     def remove_reviewers(self, number: int, reviewers: list[str]) -> None:
-        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+        raise NotSupportedError(
+            "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
+        )
 
     def update_pull_request_branch(self, number: int) -> None:
-        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+        raise NotSupportedError(
+            "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
+        )
 
     def enable_auto_merge(self, number: int, *, merge_method: str | None = None) -> None:
-        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+        raise NotSupportedError(
+            "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
+        )
 
     def dismiss_review(self, number: int, review_id: int, *, message: str = "") -> None:
-        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+        raise NotSupportedError(
+            "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
+        )
 
     def mark_pull_request_ready(self, number: int) -> None:
-        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+        raise NotSupportedError(
+            "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
+        )
 
     # --- Issue ---
 
@@ -274,7 +294,9 @@ class GogsAdapter(GiteaAdapter):
         milestone: str | None = None,
         draft: bool | None = None,
     ) -> PullRequest:
-        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+        raise NotSupportedError(
+            "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
+        )
 
     # --- Comment（更新・削除は非対応）---
 
@@ -287,10 +309,14 @@ class GogsAdapter(GiteaAdapter):
     # --- Review（PR 非対応のため）---
 
     def list_reviews(self, number: int) -> list[Review]:
-        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+        raise NotSupportedError(
+            "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
+        )
 
     def create_review(self, number: int, *, state: str, body: str = "") -> Review:
-        raise NotSupportedError("Gogs", "pull request operations", web_url=self._pr_url())
+        raise NotSupportedError(
+            "Gogs", "pull request operations", web_url=self._pr_url(f"pulls/{number}")
+        )
 
     # --- Pipeline（CI なし）---
 
