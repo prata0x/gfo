@@ -976,7 +976,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             id=data["id"],
             status=status,
             ref=source_branch,
-            url=data.get("_links", {}).get("web", {}).get("href") or "",
+            url=((data.get("_links") or {}).get("web") or {}).get("href") or "",
             created_at=data.get("queueTime") or "",
         )
 
@@ -1814,7 +1814,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
                         actor=(u.get("revisedBy") or {}).get("displayName") or "",
                         created_at=(
                             u.get("revisedDate")
-                            or u.get("fields", {}).get("System.ChangedDate", {}).get("newValue")
+                            or (fields.get("System.ChangedDate") or {}).get("newValue")
                             or ""
                         ),
                         detail="; ".join(detail_parts[:3]),

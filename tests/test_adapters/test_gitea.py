@@ -355,6 +355,12 @@ class TestToBranch:
         branch = GiteaAdapter._to_branch(data)
         assert branch.sha == "fallback_sha"
 
+    def test_null_links_falls_back_to_empty_url(self):
+        data = _branch_data()
+        data["_links"] = None
+        branch = GiteaAdapter._to_branch(data)
+        assert branch.url == ""
+
 
 class TestBranchWebUrl:
     def test_list_branches_builds_url(self, mock_responses, gitea_adapter):
@@ -487,6 +493,12 @@ class TestToWikiPageData:
     def test_no_last_commit(self):
         data = _wiki_page_data()
         data.pop("last_commit")
+        page = GiteaAdapter._to_wiki_page_data(data)
+        assert page.updated_at is None
+
+    def test_null_last_commit(self):
+        data = _wiki_page_data()
+        data["last_commit"] = None
         page = GiteaAdapter._to_wiki_page_data(data)
         assert page.updated_at is None
 

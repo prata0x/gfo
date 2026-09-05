@@ -521,7 +521,7 @@ class BitbucketAdapter(GitServiceAdapter):
             name=data["name"],
             sha=target.get("hash") or "",
             message=data.get("message") or "",
-            url=(data.get("links") or {}).get("html", {}).get("href") or "",
+            url=((data.get("links") or {}).get("html") or {}).get("href") or "",
         )
 
     @staticmethod
@@ -1486,7 +1486,7 @@ class BitbucketAdapter(GitServiceAdapter):
             name=workspace.get("slug") or "",
             display_name=workspace.get("name") or "",
             description=None,
-            url=(workspace.get("links") or {}).get("html", {}).get("href") or "",
+            url=((workspace.get("links") or {}).get("html") or {}).get("href") or "",
         )
 
     # --- SSH Key ---
@@ -1642,7 +1642,7 @@ class BitbucketAdapter(GitServiceAdapter):
                 CodeSearchResult(
                     path=path,
                     repository=f"{self._owner}/{self._repo}",
-                    url=(file_info.get("links") or {}).get("self", {}).get("href", ""),
+                    url=((file_info.get("links") or {}).get("self") or {}).get("href", ""),
                     matched_text=matched,
                 )
             )
