@@ -19,7 +19,7 @@ from gfo.detect import detect_service, get_known_service_type, probe_unknown_hos
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 from gfo.git_util import git_clone
 from gfo.i18n import _
-from gfo.output import _sanitize_for_plain, output, output_result
+from gfo.output import _sanitize_for_plain, _sanitize_for_table, output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -318,13 +318,24 @@ def handle_languages(args: argparse.Namespace, *, fmt: str, jq: str | None = Non
 
     from gfo.output import apply_jq_filter
 
+    if jq is not None:
+        fmt = "json"
+
     adapter = get_adapter()
     languages = adapter.get_languages()
-    json_str = json.dumps(languages, indent=2, ensure_ascii=False)
-    if jq is not None:
-        print(apply_jq_filter(json_str, jq))
-    else:
-        print(json_str)
+    if fmt == "json":
+        json_str = json.dumps(languages, indent=2, ensure_ascii=False)
+        if jq is not None:
+            print(apply_jq_filter(json_str, jq))
+        else:
+            print(json_str)
+        return
+
+    for key, value in languages.items():
+        if fmt == "plain":
+            print(_sanitize_for_plain(str(value)))
+        else:
+            print(f"{_sanitize_for_table(str(key))}={_sanitize_for_table(str(value))}")
 
 
 def handle_topics(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
