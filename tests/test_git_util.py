@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import warnings
 from unittest.mock import MagicMock, patch
@@ -33,6 +34,7 @@ class TestRunGit:
             check=False,
             timeout=30,
             cwd=None,
+            env={**os.environ, "LC_ALL": "C"},
             shell=False,
         )
 
@@ -61,6 +63,13 @@ class TestRunGit:
         )
         with pytest.raises(GitCommandError, match="Not inside a git repository"):
             git_util.run_git("config", "--local", "gfo.type")
+
+    @patch("gfo.git_util.subprocess.run")
+    def test_git_process_uses_c_locale(self, mock_run):
+        mock_run.return_value = _mock_result(stderr="fatal: not a git repository", returncode=128)
+        with pytest.raises(GitCommandError, match="Not inside a git repository"):
+            git_util.run_git("status")
+        assert mock_run.call_args.kwargs["env"]["LC_ALL"] == "C"
 
     @patch("gfo.git_util.subprocess.run")
     def test_file_not_found_raises_git_command_error(self, mock_run):
@@ -254,6 +263,7 @@ class TestGitConfigSet:
             check=False,
             timeout=30,
             cwd=None,
+            env={**os.environ, "LC_ALL": "C"},
             shell=False,
         )
 
@@ -270,6 +280,7 @@ class TestGitFetch:
             check=False,
             timeout=30,
             cwd=None,
+            env={**os.environ, "LC_ALL": "C"},
             shell=False,
         )
 
@@ -359,6 +370,7 @@ class TestGitCheckoutNewBranch:
             check=False,
             timeout=30,
             cwd=None,
+            env={**os.environ, "LC_ALL": "C"},
             shell=False,
         )
 
@@ -373,6 +385,7 @@ class TestGitCheckoutNewBranch:
             check=False,
             timeout=30,
             cwd=None,
+            env={**os.environ, "LC_ALL": "C"},
             shell=False,
         )
 
