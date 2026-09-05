@@ -1548,7 +1548,8 @@ class BitbucketAdapter(GitServiceAdapter):
 
     def get_gpg_key(self, key_id: int | str) -> GpgKey:
         resp = self._client.get(
-            f"/users/{quote(self._current_user_uuid(), safe='')}/gpg-keys/{key_id}"
+            f"/users/{quote(self._current_user_uuid(), safe='')}/gpg-keys/{key_id}",
+            params={"fields": "+key"},
         )
         return self._to_gpg_key(resp.json())
 
@@ -1556,6 +1557,7 @@ class BitbucketAdapter(GitServiceAdapter):
         results = paginate_response_body(
             self._client,
             f"/users/{quote(self._current_user_uuid(), safe='')}/gpg-keys",
+            params={"fields": "+key"},
             limit=limit,
         )
         return [self._to_gpg_key(r) for r in results]
@@ -1564,6 +1566,7 @@ class BitbucketAdapter(GitServiceAdapter):
         resp = self._client.post(
             f"/users/{quote(self._current_user_uuid(), safe='')}/gpg-keys",
             json={"key": armored_key},
+            params={"fields": "+key"},
         )
         return self._to_gpg_key(resp.json())
 
