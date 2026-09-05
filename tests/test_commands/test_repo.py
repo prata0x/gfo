@@ -1204,6 +1204,15 @@ class TestHandleTopics:
         data = json.loads(out)
         assert data == ["python", "cli"]
 
+    def test_list_plain_outputs_one_topic_per_line(self, sample_config, capsys):
+        adapter = MagicMock()
+        adapter.list_topics.return_value = ["python", "cli"]
+        args = make_args(topics_action="list")
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_topics(args, fmt="plain")
+
+        assert capsys.readouterr().out == "python\ncli\n"
+
     def test_add(self, sample_config, capsys):
         adapter = MagicMock()
         adapter.add_topic.return_value = ["python", "cli", "new-topic"]
