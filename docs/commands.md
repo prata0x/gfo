@@ -2209,7 +2209,7 @@ gfo browse --settings          # Open settings page
 gfo browse --pr 42 --print     # Print URL only (don't open browser)
 ```
 
-> Backlog does not support `--issue` / `--settings` (`NotSupportedError`)
+> Backlog does not support `--settings` (`NotSupportedError`). `--issue` opens `https://{host}/view/{PROJECT_KEY}-{number}`.
 
 ---
 

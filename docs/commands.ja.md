@@ -2223,7 +2223,7 @@ gfo browse --settings          # 設定ページを開く
 gfo browse --pr 42 --print     # URL を表示するだけ（ブラウザは開かない）
 ```
 
-> Backlog は `--issue` / `--settings` 非対応（`NotSupportedError`）
+> Backlog は `--settings` 非対応（`NotSupportedError`）。`--issue` は `https://{host}/view/{PROJECT_KEY}-{number}` を開きます。
 
 ---
 
