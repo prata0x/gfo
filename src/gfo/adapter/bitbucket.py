@@ -495,7 +495,7 @@ class BitbucketAdapter(GitServiceAdapter):
             id=data["id"],
             body=body,
             author=author,
-            url=(data.get("links") or {}).get("html", {}).get("href") or "",
+            url=((data.get("links") or {}).get("html") or {}).get("href") or "",
             created_at=data.get("created_on") or "",
             updated_at=data.get("updated_on"),
         )
@@ -509,7 +509,7 @@ class BitbucketAdapter(GitServiceAdapter):
             name=data["name"],
             sha=target.get("hash") or "",
             protected=False,
-            url=(data.get("links") or {}).get("html", {}).get("href") or "",
+            url=((data.get("links") or {}).get("html") or {}).get("href") or "",
         )
 
     @staticmethod
@@ -1451,7 +1451,7 @@ class BitbucketAdapter(GitServiceAdapter):
             name=data.get("slug") or "",
             display_name=data.get("name") or "",
             description=None,
-            url=(data.get("links") or {}).get("html", {}).get("href") or "",
+            url=((data.get("links") or {}).get("html") or {}).get("href") or "",
         )
 
     def list_org_members(self, name: str, *, limit: int = 30) -> list[str]:
