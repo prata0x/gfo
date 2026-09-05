@@ -93,7 +93,17 @@ class TestHandleWhoami:
             args = make_args()
             user_cmd.handle_whoami(args, fmt="table")
         out = capsys.readouterr().out
-        assert "bio: dev:ops\nline2" in out
+        assert "bio: dev:ops\\nline2" in out
+
+    def test_whoami_table_format_sanitizes_control_characters(self, capsys):
+        """fmt='table' では値中の改行・CR・タブがエスケープされる。"""
+        with patch_adapter("gfo.commands.user") as adapter:
+            adapter.get_current_user.return_value = {
+                "bio": "line1\nline2\rline3\tline4",
+            }
+            args = make_args()
+            user_cmd.handle_whoami(args, fmt="table")
+        assert capsys.readouterr().out == "bio: line1\\nline2\\rline3 line4\n"
 
     def test_whoami_error_propagation(self):
         """HttpError(401) がそのまま伝搬する。"""
