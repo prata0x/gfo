@@ -506,15 +506,13 @@ class TestClosePullRequest:
 
 class TestReopenPullRequest:
     def test_reopen(self, mock_responses, bitbucket_adapter):
-        mock_responses.add(
-            responses.PUT,
-            f"{REPOS}/pullrequests/1",
-            json=_pr_data(state="OPEN"),
-            status=200,
+        with pytest.raises(NotSupportedError, match="Bitbucket Cloud.*pr reopen") as exc_info:
+            bitbucket_adapter.reopen_pull_request(1)
+        assert not mock_responses.calls
+        assert (
+            exc_info.value.web_url
+            == "https://bitbucket.org/test-workspace/test-repo/pull-requests/1"
         )
-        bitbucket_adapter.reopen_pull_request(1)
-        req_body = json.loads(mock_responses.calls[0].request.body)
-        assert req_body["state"] == "OPEN"
 
 
 class TestCheckoutRefspec:

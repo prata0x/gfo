@@ -242,9 +242,10 @@ class BitbucketAdapter(GitServiceAdapter):
         )
 
     def reopen_pull_request(self, number: int) -> None:
-        self._client.put(
-            f"{self._repos_path()}/pullrequests/{number}",
-            json={"state": "OPEN"},
+        raise NotSupportedError(
+            self.service_name,
+            "pr reopen",
+            web_url=self.get_web_url("pr", number),
         )
 
     def get_pr_checkout_refspec(self, number: int, *, pr: PullRequest | None = None) -> str:
