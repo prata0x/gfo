@@ -3982,6 +3982,28 @@ class TestListWorkflows:
         assert "limit" not in mock_responses.calls[0].request.url
         assert "page" not in mock_responses.calls[0].request.url
 
+    def test_list_applies_limit_client_side(self, mock_responses, gitea_adapter):
+        workflows_data = [
+            {
+                "id": workflow_id,
+                "name": f"CI {workflow_id}",
+                "path": f".gitea/workflows/ci-{workflow_id}.yml",
+                "state": "active",
+            }
+            for workflow_id in range(35)
+        ]
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/workflows",
+            json={"workflows": workflows_data, "total_count": len(workflows_data)},
+            status=200,
+        )
+
+        workflows = gitea_adapter.list_workflows(limit=10)
+
+        assert [workflow.id for workflow in workflows] == list(range(10))
+        assert len(mock_responses.calls) == 1
+
     def test_list(self, mock_responses, gitea_adapter):
         mock_responses.add(
             responses.GET,
