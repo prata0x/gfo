@@ -1803,7 +1803,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             fields = u.get("fields") or {}
             detail_parts = []
             for field_name, change in fields.items():
-                new_val = change.get("newValue") or ""
+                new_val = (change or {}).get("newValue") or ""
                 if new_val:
                     detail_parts.append(f"{field_name}: {new_val}")
             if detail_parts:
