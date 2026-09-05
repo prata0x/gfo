@@ -13,6 +13,7 @@ import urllib.parse
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from gfo.adapter._helpers import _wrap_conversion_error
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 from gfo.i18n import _
 
@@ -187,6 +188,14 @@ class GitBucketAdapter(GitHubAdapter):
 
     # --- Tag（/tags エンドポイントが二重エンコード JSON を返すため /git/refs/tags を使用）---
 
+    @staticmethod
+    @_wrap_conversion_error
+    def _to_ref_tag(data: dict[str, Any]) -> Tag:
+        ref = data.get("ref") or ""
+        name = ref[len("refs/tags/") :] if ref.startswith("refs/tags/") else ref
+        sha = (data.get("object") or {}).get("sha") or ""
+        return Tag(name=name, sha=sha, message="", url="")
+
     def list_tags(self, *, limit: int = 30) -> list[Tag]:
         """GitBucket の GET /tags は二重エンコード JSON を返すため GET /git/refs/tags を使用。"""
         results = paginate_link_header(
@@ -194,13 +203,7 @@ class GitBucketAdapter(GitHubAdapter):
             f"{self._repos_path()}/git/refs/tags",
             limit=limit,
         )
-        tags = []
-        for item in results:
-            ref = item.get("ref", "")
-            name = ref[len("refs/tags/") :] if ref.startswith("refs/tags/") else ref
-            sha = (item.get("object") or {}).get("sha") or ""
-            tags.append(Tag(name=name, sha=sha, message="", url=""))
-        return tags
+        return [self._to_ref_tag(item) for item in results]
 
     def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
         """GitBucket は POST /git/refs 未実装のため非対応。"""
