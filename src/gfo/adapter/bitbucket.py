@@ -1557,7 +1557,7 @@ class BitbucketAdapter(GitServiceAdapter):
         results = paginate_response_body(
             self._client,
             f"/users/{quote(self._current_user_uuid(), safe='')}/gpg-keys",
-            params={"fields": "+key"},
+            params={"fields": "+values.key"},
             limit=limit,
         )
         return [self._to_gpg_key(r) for r in results]

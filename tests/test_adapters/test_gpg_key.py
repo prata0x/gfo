@@ -222,17 +222,19 @@ class TestBitbucketGpgKey:
     @responses.activate
     def test_list(self, bitbucket_adapter):
         self._mock_current_user()
+        response_data = _bitbucket_gpg_key_data()
+        response_data.pop("key")
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/gpg-keys",
-            json={"values": [_bitbucket_gpg_key_data()], "pagelen": 10},
+            json={"values": [response_data], "pagelen": 10},
         )
         keys = bitbucket_adapter.list_gpg_keys()
         assert len(keys) == 1
         assert keys[0].id == "AABBCCDD"
         assert keys[0].primary_key_id == "AABBCCDD"
-        assert keys[0].public_key == "-----BEGIN PGP PUBLIC KEY BLOCK-----..."
-        assert "fields=%2Bkey" in responses.calls[-1].request.url
+        assert keys[0].public_key == ""
+        assert "fields=%2Bvalues.key" in responses.calls[-1].request.url
         assert "test-workspace" not in responses.calls[-1].request.url
 
     @responses.activate
