@@ -19,7 +19,7 @@ from gfo.detect import detect_service, get_known_service_type, probe_unknown_hos
 from gfo.exceptions import ConfigError, DetectionError, GitCommandError
 from gfo.git_util import git_clone
 from gfo.i18n import _
-from gfo.output import output, output_result
+from gfo.output import _sanitize_for_plain, output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -349,11 +349,15 @@ def handle_topics(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     else:
         raise ConfigError(_("Unknown topics action: {action}").format(action=action))
 
-    json_str = json.dumps(topics, indent=2, ensure_ascii=False)
-    if jq is not None:
-        print(apply_jq_filter(json_str, jq))
-    else:
-        print(json_str)
+    if fmt == "json":
+        json_str = json.dumps(topics, indent=2, ensure_ascii=False)
+        if jq is not None:
+            print(apply_jq_filter(json_str, jq))
+        else:
+            print(json_str)
+        return
+    for topic in topics:
+        print(_sanitize_for_plain(topic))
 
 
 def _parse_compare_spec(spec: str) -> tuple[str, str]:
