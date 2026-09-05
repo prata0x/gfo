@@ -4370,6 +4370,16 @@ class TestToIssueMissingCreatedAt:
 class TestPackagesGitLab:
     """GitLab の list_packages / get_package / delete_package。"""
 
+    def test_list_packages_handles_null_links(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/packages",
+            json=[{"name": "mypkg", "package_type": "npm", "_links": None}],
+            status=200,
+        )
+        pkgs = gitlab_adapter.list_packages()
+        assert pkgs[0].url == ""
+
     def test_list_packages_basic(self, mock_responses, gitlab_adapter):
         mock_responses.add(
             responses.GET,

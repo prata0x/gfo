@@ -343,8 +343,8 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         )
         out: list[CheckRun] = []
         for s in results:
-            genre = s.get("context", {}).get("genre", "")
-            name = s.get("context", {}).get("name", "")
+            genre = (s.get("context") or {}).get("genre", "")
+            name = (s.get("context") or {}).get("name", "")
             full_name = f"{genre}/{name}" if genre else name
             state = _STATE_MAP.get(s.get("state", ""), "pending")
             out.append(
@@ -406,8 +406,8 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             PullRequestCommit(
                 sha=c.get("commitId", ""),
                 message=c.get("comment", ""),
-                author=c.get("author", {}).get("name", ""),
-                created_at=c.get("author", {}).get("date", ""),
+                author=(c.get("author") or {}).get("name", ""),
+                created_at=(c.get("author") or {}).get("date", ""),
             )
             for c in results
         ]
@@ -600,7 +600,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         に関わらず共通のため、固定の状態名ではなくカテゴリで解決する。
         """
         item_resp = self._client.get(f"{self._wit_path()}/workitems/{number}")
-        work_item_type = item_resp.json().get("fields", {}).get("System.WorkItemType")
+        work_item_type = (item_resp.json().get("fields") or {}).get("System.WorkItemType")
         if not work_item_type:
             raise GfoError(
                 _("Cannot determine work item type for work item #{number}").format(number=number)
@@ -1732,8 +1732,8 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         return [
             CodeSearchResult(
                 path=(r.get("path") or "").lstrip("/"),
-                repository=r.get("repository", {}).get("name", ""),
-                url=f"{base_web}/_git/{quote(r.get('repository', {}).get('name', ''), safe='')}?path={quote(r.get('path', ''), safe='')}",
+                repository=(r.get("repository") or {}).get("name", ""),
+                url=f"{base_web}/_git/{quote((r.get('repository') or {}).get('name', ''), safe='')}?path={quote(r.get('path', ''), safe='')}",
                 matched_text=r.get("fileName", ""),
             )
             for r in results
