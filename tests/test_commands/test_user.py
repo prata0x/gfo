@@ -55,6 +55,16 @@ class TestHandleWhoami:
             user_cmd.handle_whoami(args, fmt="plain")
         assert capsys.readouterr().out == "testuser\ntest@example.com\n"
 
+    def test_whoami_plain_format_sanitizes_control_characters(self, capsys):
+        """fmt='plain' では値中の改行・CR・タブがエスケープされる。"""
+        with patch_adapter("gfo.commands.user") as adapter:
+            adapter.get_current_user.return_value = {
+                "bio": "line1\nline2\rline3\tline4",
+            }
+            args = make_args()
+            user_cmd.handle_whoami(args, fmt="plain")
+        assert capsys.readouterr().out == "line1\\nline2\\rline3\\tline4\n"
+
     def test_whoami_jq_filter(self, capsys):
         """--jq '.login' が適用される。"""
         with patch_adapter("gfo.commands.user") as adapter:
