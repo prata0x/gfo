@@ -14,6 +14,7 @@ from gfo.exceptions import (
     NetworkError,
     NotFoundError,
     NotSupportedError,
+    PartialFailureError,
     RateLimitError,
     ServerError,
     UnsupportedServiceError,
@@ -218,6 +219,7 @@ class TestErrorCode:
             (ValidationError(422, "x"), "validation_error"),
             (NetworkError("x"), "network_error"),
             (NotSupportedError("S", "op"), "not_supported"),
+            (PartialFailureError(1, 2), "partial_failure"),
             (UnsupportedServiceError("x"), "unsupported_service"),
         ],
     )
@@ -243,6 +245,7 @@ class TestExitCode:
             (ValidationError(422, "x"), ExitCode.GENERAL),
             (NetworkError("x"), ExitCode.NETWORK),
             (NotSupportedError("S", "op"), ExitCode.NOT_SUPPORTED),
+            (PartialFailureError(1, 2), ExitCode.PARTIAL_FAILURE),
             (UnsupportedServiceError("x"), ExitCode.GENERAL),
         ],
     )
@@ -307,6 +310,10 @@ class TestHint:
     def test_validation_error_hint(self):
         err = ValidationError(422, "Validation Failed")
         assert err.hint == "Check the request parameters for invalid or missing values."
+
+    def test_partial_failure_error_hint(self):
+        err = PartialFailureError(1, 2)
+        assert err.hint == "Inspect the status/error fields of each item in the output for details."
 
 
 class TestCatchByBaseClass:
