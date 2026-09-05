@@ -1191,6 +1191,22 @@ class TestHandleLanguages:
         data = json.loads(out)
         assert data == {}
 
+    @pytest.mark.parametrize(
+        ("fmt", "expected"),
+        [
+            ("table", "Python=45678\nGo=12345\n"),
+            ("plain", "45678\n12345\n"),
+        ],
+    )
+    def test_non_json_formats(self, sample_config, capsys, fmt, expected):
+        adapter = MagicMock()
+        adapter.get_languages.return_value = {"Python": 45678, "Go": 12345}
+        args = make_args()
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_languages(args, fmt=fmt)
+
+        assert capsys.readouterr().out == expected
+
 
 class TestHandleTopics:
     def test_list(self, sample_config, capsys):
