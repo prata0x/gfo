@@ -6,7 +6,7 @@ import argparse
 import json
 
 from gfo.commands import get_adapter
-from gfo.output import _sanitize_for_plain, apply_jq_filter
+from gfo.output import _sanitize_for_plain, _sanitize_for_table, apply_jq_filter
 
 
 def handle_whoami(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -24,4 +24,4 @@ def handle_whoami(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
             print(_sanitize_for_plain(str(value)))
     else:
         for key, value in user.items():
-            print(f"{key}: {value}")
+            print(f"{key}: {_sanitize_for_table(str(value))}")
