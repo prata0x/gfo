@@ -85,6 +85,14 @@ def _repo_data(*, name="test-repo"):
 
 
 class TestToPullRequest:
+    def test_url_uses_web_url(self):
+        data = _pr_data()
+        data.pop("url")
+        pr = BacklogAdapter._to_pull_request(
+            data, web_url="https://example.backlog.com/git/TEST/test-repo/pullRequests/1"
+        )
+        assert pr.url == "https://example.backlog.com/git/TEST/test-repo/pullRequests/1"
+
     def test_open(self):
         pr = BacklogAdapter._to_pull_request(_pr_data(status_id=1))
         assert pr.state == "open"
@@ -138,6 +146,12 @@ class TestToPullRequest:
 
 
 class TestToIssue:
+    def test_url_uses_web_url(self):
+        data = _issue_data()
+        data.pop("url")
+        issue = BacklogAdapter._to_issue(data, web_url="https://example.backlog.com/view/TEST-1")
+        assert issue.url == "https://example.backlog.com/view/TEST-1"
+
     def test_open(self):
         issue = BacklogAdapter._to_issue(_issue_data(status_id=1))
         assert issue.state == "open"

@@ -172,7 +172,9 @@ class BacklogAdapter(GitServiceAdapter):
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_pull_request(data: dict[str, Any], merged_status_id: int | None = None) -> PullRequest:
+    def _to_pull_request(
+        data: dict[str, Any], merged_status_id: int | None = None, web_url: str = ""
+    ) -> PullRequest:
         status_id = (data.get("status") or {}).get("id", 1)
         if status_id == _STATUS_CLOSED_ID:
             state = "closed"
@@ -193,13 +195,13 @@ class BacklogAdapter(GitServiceAdapter):
             source_branch=data.get("branch", ""),
             target_branch=data.get("base", ""),
             draft=False,
-            url=data.get("url", ""),
+            url=web_url,
             created_at=data.get("created", ""),
             updated_at=data.get("updated"),
         )
 
     @staticmethod
-    def _to_issue(data: dict[str, Any]) -> Issue:
+    def _to_issue(data: dict[str, Any], web_url: str = "") -> Issue:
         try:
             status_id = (data.get("status") or {}).get("id", 1)
             state = "closed" if status_id == _STATUS_CLOSED_ID else "open"
@@ -222,7 +224,7 @@ class BacklogAdapter(GitServiceAdapter):
                 author=created_user.get("userId", ""),
                 assignees=assignees,
                 labels=[],
-                url=data.get("url", ""),
+                url=web_url,
                 created_at=data.get("created", ""),
                 updated_at=data.get("updated"),
             )
@@ -285,7 +287,10 @@ class BacklogAdapter(GitServiceAdapter):
             # state="all": 動的 merged_status_id が必要
             merged_id = self._resolve_merged_status_id()
         results = paginate_offset(self._client, self._pr_path(), params=params, limit=limit)
-        return [self._to_pull_request(r, merged_id) for r in results]
+        return [
+            self._to_pull_request(r, merged_id, self.get_web_url("pr", r.get("number")))
+            for r in results
+        ]
 
     def create_pull_request(
         self,
@@ -314,11 +319,21 @@ class BacklogAdapter(GitServiceAdapter):
             "branch": head,
         }
         resp = self._client.post(self._pr_path(), json=payload)
-        return self._to_pull_request(resp.json(), self._resolve_merged_status_id())
+        data = resp.json()
+        return self._to_pull_request(
+            data,
+            self._resolve_merged_status_id(),
+            self.get_web_url("pr", data.get("number")),
+        )
 
     def get_pull_request(self, number: int) -> PullRequest:
         resp = self._client.get(f"{self._pr_path()}/{number}")
-        return self._to_pull_request(resp.json(), self._resolve_merged_status_id())
+        data = resp.json()
+        return self._to_pull_request(
+            data,
+            self._resolve_merged_status_id(),
+            self.get_web_url("pr", data.get("number", number)),
+        )
 
     def merge_pull_request(
         self,
@@ -379,7 +394,10 @@ class BacklogAdapter(GitServiceAdapter):
         elif label:
             params["keyword"] = label
         results = paginate_offset(self._client, "/issues", params=params, limit=limit)
-        return [self._to_issue(r) for r in results]
+        return [
+            self._to_issue(r, self.get_web_url("issue", r.get("issueKey", r.get("id"))))
+            for r in results
+        ]
 
     def create_issue(  # type: ignore[override]  # issue_type, priority 追加引数
         self,
@@ -467,11 +485,15 @@ class BacklogAdapter(GitServiceAdapter):
             payload["dueDate"] = due_date
 
         resp = self._client.post("/issues", json=payload)
-        return self._to_issue(resp.json())
+        data = resp.json()
+        return self._to_issue(data, self.get_web_url("issue", data.get("issueKey", data.get("id"))))
 
     def get_issue(self, number: int) -> Issue:
         resp = self._client.get(f"/issues/{self._project_key}-{number}")
-        return self._to_issue(resp.json())
+        data = resp.json()
+        return self._to_issue(
+            data, self.get_web_url("issue", data.get("issueKey", f"{self._project_key}-{number}"))
+        )
 
     def close_issue(self, number: int) -> None:
         self._client.patch(
@@ -747,7 +769,12 @@ class BacklogAdapter(GitServiceAdapter):
         if base is not None:
             payload["base"] = base
         resp = self._client.patch(f"{self._pr_path()}/{number}", json=payload)
-        return self._to_pull_request(resp.json(), self._resolve_merged_status_id())
+        data = resp.json()
+        return self._to_pull_request(
+            data,
+            self._resolve_merged_status_id(),
+            self.get_web_url("pr", data.get("number", number)),
+        )
 
     # --- Issue update ---
 
@@ -784,7 +811,10 @@ class BacklogAdapter(GitServiceAdapter):
         if due_date is not None:
             payload["dueDate"] = due_date
         resp = self._client.patch(f"/issues/{self._project_key}-{number}", json=payload)
-        return self._to_issue(resp.json())
+        data = resp.json()
+        return self._to_issue(
+            data, self.get_web_url("issue", data.get("issueKey", f"{self._project_key}-{number}"))
+        )
 
     # --- Branch ---
 
@@ -992,10 +1022,12 @@ class BacklogAdapter(GitServiceAdapter):
         if resource == "pr":
             return f"{base}/pullRequests" if number is None else f"{base}/pullRequests/{number}"
         if resource == "issue":
-            raise NotSupportedError(
-                self.service_name,
-                "browse issue (Backlog uses string-format issue keys like PROJ-123)",
-            )
+            if number is None:
+                return f"https://{hostname}/view/{self._project_key}"
+            issue_key = str(number)
+            if "-" not in issue_key:
+                issue_key = f"{self._project_key}-{issue_key}"
+            return f"https://{hostname}/view/{urllib.parse.quote(issue_key, safe='-')}"
         if resource == "release":
             raise NotSupportedError(self.service_name, "browse release")
         if resource == "milestone":
@@ -1023,7 +1055,10 @@ class BacklogAdapter(GitServiceAdapter):
             params={"projectId[]": project_id, "keyword": query},
             limit=limit,
         )
-        return [self._to_issue(r) for r in results]
+        return [
+            self._to_issue(r, self.get_web_url("issue", r.get("issueKey", r.get("id"))))
+            for r in results
+        ]
 
     # --- Wiki ---
 
