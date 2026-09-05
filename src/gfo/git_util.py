@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess  # nosec B404
 import warnings
@@ -28,6 +29,7 @@ def run_git(*args: str, cwd: str | None = None) -> str:
             check=False,
             timeout=_DEFAULT_TIMEOUT,
             cwd=cwd,
+            env={**os.environ, "LC_ALL": "C"},
             shell=False,
         )
     except (FileNotFoundError, PermissionError) as e:
