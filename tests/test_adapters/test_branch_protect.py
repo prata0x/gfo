@@ -7,7 +7,13 @@ import json
 import pytest
 import responses
 
-from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError, ServerError
+from gfo.exceptions import (
+    AuthenticationError,
+    NotFoundError,
+    NotSupportedError,
+    RateLimitError,
+    ServerError,
+)
 
 # --- GitHub ---
 
@@ -77,6 +83,46 @@ class TestGitHubBranchProtect:
             github_adapter.set_branch_protection("main", require_reviews=1)
 
         assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_set_propagates_rate_limit_error_from_current_protection(
+        self, github_adapter, monkeypatch
+    ):
+        monkeypatch.setattr("gfo.http.time.sleep", lambda _: None)
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/test-owner/test-repo/branches/main/protection",
+            status=429,
+        )
+
+        with pytest.raises(RateLimitError):
+            github_adapter.set_branch_protection("main", require_reviews=1)
+
+        assert all(call.request.method == "GET" for call in responses.calls)
+
+    @responses.activate
+    def test_set_falls_back_when_current_protection_is_missing(self, github_adapter):
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/test-owner/test-repo/branches/main/protection",
+            status=404,
+        )
+        responses.add(
+            responses.PUT,
+            "https://api.github.com/repos/test-owner/test-repo/branches/main/protection",
+            json={
+                "required_pull_request_reviews": {"required_approving_review_count": 1},
+                "required_status_checks": None,
+                "enforce_admins": {"enabled": False},
+                "allow_force_pushes": {"enabled": False},
+                "allow_deletions": {"enabled": False},
+            },
+        )
+
+        bp = github_adapter.set_branch_protection("main", require_reviews=1)
+
+        assert bp.require_reviews == 1
+        assert len(responses.calls) == 2
 
     @responses.activate
     def test_remove(self, github_adapter):
