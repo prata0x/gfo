@@ -1213,6 +1213,16 @@ class TestHandleTopics:
 
         assert capsys.readouterr().out == "python\ncli\n"
 
+    @pytest.mark.parametrize("fmt", ["table", "plain"])
+    def test_jq_overrides_non_json_format(self, sample_config, capsys, fmt):
+        adapter = MagicMock()
+        adapter.list_topics.return_value = ["python", "cli"]
+        args = make_args(topics_action="list")
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_topics(args, fmt=fmt, jq=".[0]")
+
+        assert capsys.readouterr().out == '"python"\n'
+
     def test_add(self, sample_config, capsys):
         adapter = MagicMock()
         adapter.add_topic.return_value = ["python", "cli", "new-topic"]
