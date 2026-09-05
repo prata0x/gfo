@@ -1079,7 +1079,7 @@ gfo repo edit [--name NAME] [--description TEXT] [--private | --public] [--wiki 
 | `--description TEXT` | リポジトリの説明 |
 | `--private` | リポジトリを非公開に設定 |
 | `--public` | リポジトリを公開に設定 |
-| `--wiki` / `--no-wiki` | リポジトリ Wiki の有効/無効（Gitea / Forgejo） |
+| `--wiki` / `--no-wiki` | リポジトリ Wiki の有効/無効（Gitea / Forgejo / Gogs） |
 | `--default-branch BRANCH` | デフォルトブランチを変更 |
 | `--allow-merge-commit` / `--no-allow-merge-commit` | マージコミットの許可/禁止 |
 | `--allow-squash-merge` / `--no-allow-squash-merge` | スカッシュマージの許可/禁止 |

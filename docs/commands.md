@@ -1065,7 +1065,7 @@ gfo repo edit [--name NAME] [--description TEXT] [--private | --public] [--wiki 
 | `--description TEXT` | Repository description |
 | `--private` | Set repository as private |
 | `--public` | Set repository as public |
-| `--wiki` / `--no-wiki` | Enable/disable the repository wiki (Gitea and Forgejo) |
+| `--wiki` / `--no-wiki` | Enable/disable the repository wiki (Gitea, Forgejo, and Gogs) |
 | `--default-branch BRANCH` | Change default branch |
 | `--allow-merge-commit` / `--no-allow-merge-commit` | Allow/disallow merge commits |
 | `--allow-squash-merge` / `--no-allow-squash-merge` | Allow/disallow squash merging |
