@@ -1451,7 +1451,7 @@ class BitbucketAdapter(GitServiceAdapter):
             name=data.get("slug") or "",
             display_name=data.get("name") or "",
             description=None,
-            url=data.get("links", {}).get("html", {}).get("href") or "",
+            url=(data.get("links") or {}).get("html", {}).get("href") or "",
         )
 
     def list_org_members(self, name: str, *, limit: int = 30) -> list[str]:

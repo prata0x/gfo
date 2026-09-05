@@ -2445,6 +2445,16 @@ class TestDeleteTag:
 
 
 class TestListPullRequestChecksAzure:
+    def test_list_checks_handles_null_context(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests/1/statuses",
+            json={"value": [{"context": None, "state": "pending"}], "count": 1},
+            status=200,
+        )
+        checks = azure_devops_adapter.list_pull_request_checks(1)
+        assert checks[0].name == ""
+
     def test_list_checks(self, mock_responses, azure_devops_adapter):
         mock_responses.add(
             responses.GET,
@@ -2614,6 +2624,16 @@ class TestCompareAzureDevOps:
 
 
 class TestListPullRequestCommitsAzure:
+    def test_list_commits_handles_null_author(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{GIT}/pullrequests/1/commits",
+            json={"value": [{"commitId": "abc123", "author": None}], "count": 1},
+            status=200,
+        )
+        commits = azure_devops_adapter.list_pull_request_commits(1)
+        assert commits[0].author == ""
+
     def test_list_commits(self, mock_responses, azure_devops_adapter):
         mock_responses.add(
             responses.GET,

@@ -4263,6 +4263,16 @@ class TestClientFilterLimit:
 class TestPackagesGitea:
     """Gitea の list_packages / get_package / delete_package。"""
 
+    def test_list_packages_handles_null_owner(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/packages/test-owner",
+            json=[{"name": "mypkg", "type": "container", "owner": None}],
+            status=200,
+        )
+        pkgs = gitea_adapter.list_packages()
+        assert pkgs[0].owner == "test-owner"
+
     def test_list_packages_basic(self, mock_responses, gitea_adapter):
         mock_responses.add(
             responses.GET,

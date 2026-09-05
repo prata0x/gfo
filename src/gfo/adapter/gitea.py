@@ -2139,7 +2139,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 name=p.get("name") or "",
                 type=p.get("type") or "",
                 version=p.get("version") or "",
-                owner=p.get("owner", {}).get("login") or self._owner,
+                owner=(p.get("owner") or {}).get("login") or self._owner,
                 url=p.get("html_url") or "",
                 created_at=p.get("created_at") or "",
             )
@@ -2176,7 +2176,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             name=resp_data.get("name") or "",
             type=resp_data.get("type") or "",
             version=resp_data.get("version") or "",
-            owner=resp_data.get("owner", {}).get("login") or self._owner,
+            owner=(resp_data.get("owner") or {}).get("login") or self._owner,
             url=resp_data.get("html_url") or "",
             created_at=resp_data.get("created_at") or "",
         )
