@@ -215,6 +215,8 @@ class TestBitbucketGpgKey:
         key = bitbucket_adapter.get_gpg_key("AABBCCDD")
         assert key.id == "AABBCCDD"
         assert key.primary_key_id == "AABBCCDD"
+        assert key.public_key == "-----BEGIN PGP PUBLIC KEY BLOCK-----..."
+        assert "fields=%2Bkey" in responses.calls[-1].request.url
         assert "test-workspace" not in responses.calls[-1].request.url
 
     @responses.activate
@@ -229,6 +231,8 @@ class TestBitbucketGpgKey:
         assert len(keys) == 1
         assert keys[0].id == "AABBCCDD"
         assert keys[0].primary_key_id == "AABBCCDD"
+        assert keys[0].public_key == "-----BEGIN PGP PUBLIC KEY BLOCK-----..."
+        assert "fields=%2Bkey" in responses.calls[-1].request.url
         assert "test-workspace" not in responses.calls[-1].request.url
 
     @responses.activate
@@ -244,6 +248,7 @@ class TestBitbucketGpgKey:
         assert key.id == "EEFF0011"
         req_body = json.loads(responses.calls[-1].request.body)
         assert req_body["key"] == "-----BEGIN PGP..."
+        assert "fields=%2Bkey" in responses.calls[-1].request.url
 
     @responses.activate
     def test_delete(self, bitbucket_adapter):
