@@ -238,6 +238,18 @@ class TestBitbucketGpgKey:
         assert "test-workspace" not in responses.calls[-1].request.url
 
     @responses.activate
+    def test_list_includes_public_key(self, bitbucket_adapter):
+        self._mock_current_user()
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/gpg-keys",
+            json={"values": [_bitbucket_gpg_key_data()], "pagelen": 10},
+        )
+        keys = bitbucket_adapter.list_gpg_keys()
+        assert keys[0].public_key == "-----BEGIN PGP PUBLIC KEY BLOCK-----..."
+        assert "fields=%2Bvalues.key" in responses.calls[-1].request.url
+
+    @responses.activate
     def test_create(self, bitbucket_adapter):
         self._mock_current_user()
         responses.add(
