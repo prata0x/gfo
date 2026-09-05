@@ -329,8 +329,8 @@ msgid "Deleted milestone '{number}'."
 msgstr "マイルストーン '{number}' を削除しました。"
 
 # commands/review.py
-msgid "--body is required when using --comment"
-msgstr "--comment 使用時は --body が必須です"
+msgid "--body is required when using --comment or --request-changes"
+msgstr "--comment または --request-changes 使用時は --body が必須です"
 
 # commands/variable.py
 msgid "Deleted variable '{name}'."

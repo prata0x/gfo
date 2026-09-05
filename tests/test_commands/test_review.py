@@ -78,6 +78,13 @@ class TestHandleCreate:
             with pytest.raises(ConfigError):
                 review_cmd.handle_create(args, fmt="table")
 
+    def test_request_changes_without_body_raises(self):
+        with patch_adapter("gfo.commands.review") as adapter:
+            args = make_args(number=1, approve=False, request_changes=True, comment=False, body="")
+            with pytest.raises(ConfigError):
+                review_cmd.handle_create(args, fmt="table")
+        adapter.create_review.assert_not_called()
+
     def test_json_output(self, capsys):
         with patch_adapter("gfo.commands.review") as adapter:
             adapter.create_review.return_value = SAMPLE_REVIEW

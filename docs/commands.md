@@ -509,6 +509,8 @@ gfo pr review dismiss NUMBER REVIEW_ID [--message MESSAGE]
 
 One of `--approve`, `--request-changes`, or `--comment` is required.
 
+`--body` is required with `--request-changes` and `--comment`.
+
 ```bash
 gfo pr review list 42
 gfo pr review create 42 --approve

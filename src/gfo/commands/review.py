@@ -26,8 +26,8 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         state = "REQUEST_CHANGES"
     else:
         state = "COMMENT"
-    if state == "COMMENT" and not args.body:
-        raise ConfigError(_("--body is required when using --comment"))
+    if state in ("COMMENT", "REQUEST_CHANGES") and not args.body:
+        raise ConfigError(_("--body is required when using --comment or --request-changes"))
     review = adapter.create_review(args.number, state=state, body=args.body or "")
     output(review, fmt=fmt, jq=jq)
 
