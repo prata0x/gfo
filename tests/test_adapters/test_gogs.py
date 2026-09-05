@@ -284,6 +284,14 @@ class TestDeleteInheritance:
         assert request.body == b'{"enable_wiki": false}'
         assert repo.full_name == "test-owner/test-repo"
 
+    def test_update_repository_warns_for_false_unsupported_value(
+        self, mock_responses, gogs_adapter
+    ):
+        mock_responses.add(responses.GET, REPOS, json=_repo_data(), status=200)
+
+        with pytest.warns(UserWarning):
+            gogs_adapter.update_repository(private=False)
+
 
 class TestSyncFork:
     def test_raises_not_supported(self, gogs_adapter):
