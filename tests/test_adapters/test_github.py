@@ -2215,8 +2215,13 @@ class TestGetTag:
 
 class TestCreateTag:
     def test_create(self, mock_responses, github_adapter):
-        # 40文字の hex SHA を渡すと直接 POST /git/refs する
+        # Unknown refs are treated as raw 40-character commit SHAs.
         sha40 = "d" * 40
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/git/ref/heads/{sha40}",
+            status=404,
+        )
         mock_responses.add(
             responses.POST,
             f"{REPOS}/git/refs",
@@ -2231,8 +2236,34 @@ class TestCreateTag:
         )
         tag = github_adapter.create_tag(name="v2.0.0", ref=sha40)
         assert isinstance(tag, Tag)
-        req_body = json.loads(mock_responses.calls[0].request.body)
+        req_body = json.loads(mock_responses.calls[1].request.body)
         assert req_body["ref"] == "refs/tags/v2.0.0"
+
+    def test_create_from_all_hex_branch_name(self, mock_responses, github_adapter):
+        branch_name = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/git/ref/heads/{branch_name}",
+            json={"object": {"sha": "resolved-sha"}},
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/git/refs",
+            json={"ref": "refs/tags/v2.0.1", "object": {"sha": "resolved-sha"}},
+            status=201,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/tags",
+            json=[_tag_data(name="v2.0.1", sha="resolved-sha")],
+            status=200,
+        )
+
+        github_adapter.create_tag(name="v2.0.1", ref=branch_name)
+
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["sha"] == "resolved-sha"
 
 
 class TestDeleteTag:

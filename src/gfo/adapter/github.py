@@ -1092,11 +1092,13 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return [self._to_tag(r) for r in results]
 
     def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
-        # lightweight tag: ref を直接 refs/tags に push
+        # Resolve ref as a branch name first; all-hex branch names are valid.
         sha = ref
-        if not (len(ref) == 40 and all(c in "0123456789abcdef" for c in ref)):
+        try:
             resp = self._client.get(f"{self._repos_path()}/git/ref/heads/{quote(ref, safe='')}")
             sha = resp.json()["object"]["sha"]
+        except NotFoundError:
+            pass
         self._client.post(
             f"{self._repos_path()}/git/refs",
             json={"ref": f"refs/tags/{name}", "sha": sha},
