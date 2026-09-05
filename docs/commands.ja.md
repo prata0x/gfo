@@ -523,6 +523,8 @@ gfo pr review dismiss NUMBER REVIEW_ID [--message MESSAGE]
 
 `--approve`, `--request-changes`, `--comment` のいずれか 1 つが必須です。
 
+`--request-changes` または `--comment` を指定する場合、`--body` も必須です。
+
 ```bash
 gfo pr review list 42
 gfo pr review create 42 --approve
