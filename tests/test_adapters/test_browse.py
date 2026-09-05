@@ -408,9 +408,8 @@ class TestBacklogBrowse:
             == "https://example.backlog.com/git/TEST/test-repo/pullRequests"
         )
 
-    def test_issue_not_supported(self, backlog_adapter):
-        with pytest.raises(NotSupportedError):
-            backlog_adapter.get_web_url("issue", 7)
+    def test_issue(self, backlog_adapter):
+        assert backlog_adapter.get_web_url("issue", 7) == "https://example.backlog.com/view/TEST-7"
 
     def test_release_not_supported(self, backlog_adapter):
         with pytest.raises(NotSupportedError):
