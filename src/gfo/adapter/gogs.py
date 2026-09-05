@@ -521,7 +521,7 @@ class GogsAdapter(GiteaAdapter):
     def delete_wiki_page(self, page_id: int | str) -> None:
         raise NotSupportedError("Gogs", "wiki operations")
 
-    # --- Repo update/archive/languages/topics/compare（Gogs 0.13 未対応）---
+    # --- Repo update/archive/languages/topics/compare（Gogs 0.13 部分対応）---
 
     def update_repository(
         self,
@@ -537,7 +537,21 @@ class GogsAdapter(GiteaAdapter):
         allow_rebase_merge: bool | None = None,
         delete_branch_on_merge: bool | None = None,
     ) -> Repository:
-        raise NotSupportedError("Gogs", "repo update")
+        self._warn_unsupported_params(
+            "repo update",
+            name=name,
+            description=description,
+            private=private,
+            default_branch=default_branch,
+            archived=archived,
+            allow_merge_commit=allow_merge_commit,
+            allow_squash_merge=allow_squash_merge,
+            allow_rebase_merge=allow_rebase_merge,
+            delete_branch_on_merge=delete_branch_on_merge,
+        )
+        if has_wiki is not None:
+            self._client.patch(f"{self._repos_path()}/wiki", json={"enable_wiki": has_wiki})
+        return self.get_repository()
 
     def sync_fork(self, *, branch: str | None = None) -> None:
         raise NotSupportedError("Gogs", "repo sync")

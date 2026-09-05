@@ -31,6 +31,18 @@ def _issue_data(*, number=1, state="open"):
     }
 
 
+def _repo_data():
+    return {
+        "name": "test-repo",
+        "full_name": "test-owner/test-repo",
+        "description": "description",
+        "private": False,
+        "default_branch": "main",
+        "clone_url": "https://gogs.example.com/test-owner/test-repo.git",
+        "html_url": _REPO_WEB,
+    }
+
+
 class TestRegistry:
     def test_registered(self):
         assert get_adapter_class("gogs") is GogsAdapter
@@ -259,6 +271,18 @@ class TestDeleteInheritance:
     def test_migrate_repository_not_supported(self, gogs_adapter):
         with pytest.raises(NotSupportedError):
             gogs_adapter.migrate_repository("https://github.com/a/b.git", "c")
+
+    def test_update_repository_wiki(self, mock_responses, gogs_adapter):
+        mock_responses.add(responses.PATCH, f"{REPOS}/wiki", status=204)
+        mock_responses.add(responses.GET, REPOS, json=_repo_data(), status=200)
+
+        repo = gogs_adapter.update_repository(has_wiki=False)
+
+        request = mock_responses.calls[0].request
+        assert request.method == "PATCH"
+        assert request.url == f"{REPOS}/wiki"
+        assert request.body == b'{"enable_wiki": false}'
+        assert repo.full_name == "test-owner/test-repo"
 
 
 class TestSyncFork:
