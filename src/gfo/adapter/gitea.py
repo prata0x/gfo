@@ -1364,27 +1364,11 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         )
 
     def list_workflows(self, *, limit: int = 30) -> list[Workflow]:
-        results: list[dict[str, Any]] = []
-        per_page = min(limit, 30) if limit > 0 else 30
-        page = 1
-        while True:
-            resp = self._client.get(
-                f"{self._repos_path()}/actions/workflows",
-                params={"limit": per_page, "page": page},
-            )
-            body = resp.json()
-            page_data: list[dict[str, Any]] = (
-                body.get("workflows", []) if isinstance(body, dict) else []
-            )
-            if not page_data:
-                break
-            results.extend(page_data)
-            if limit > 0 and len(results) >= limit:
-                results = results[:limit]
-                break
-            if len(page_data) < per_page:
-                break
-            page += 1
+        resp = self._client.get(f"{self._repos_path()}/actions/workflows")
+        body = resp.json()
+        results: list[dict[str, Any]] = body.get("workflows", []) if isinstance(body, dict) else []
+        if limit > 0:
+            results = results[:limit]
         return [self._to_workflow_data(r) for r in results]
 
     def enable_workflow(self, workflow_id: int | str) -> None:
