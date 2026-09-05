@@ -2431,6 +2431,12 @@ class TestToPipeline:
         pipeline = AzureDevOpsAdapter._to_pipeline(data)
         assert pipeline.url == ""
 
+    def test_null_web_link_falls_back_to_empty_url(self):
+        data = _pipeline_data_az(status="completed", result="succeeded")
+        data["_links"] = {"web": None}
+        pipeline = AzureDevOpsAdapter._to_pipeline(data)
+        assert pipeline.url == ""
+
 
 class TestDeleteTag:
     def test_basic(self, mock_responses, azure_devops_adapter):
@@ -3126,6 +3132,7 @@ class TestGetIssueTimeline:
                         "revisedBy": None,
                         "fields": {
                             "System.State": {"newValue": "Closed"},
+                            "System.ChangedDate": None,
                         },
                     }
                 ]
