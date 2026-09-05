@@ -15,7 +15,7 @@ from gfo.config import (
 )
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
-from gfo.output import _sanitize_for_plain, apply_jq_filter
+from gfo.output import _sanitize_for_plain, _sanitize_for_table, apply_jq_filter
 
 
 def handle_get(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -30,7 +30,7 @@ def handle_get(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
     elif fmt == "plain":
         print(_sanitize_for_plain(str(value)))
     else:
-        print(value)
+        print(_sanitize_for_table(str(value)))
 
 
 def handle_set(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -62,7 +62,7 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
             print(_sanitize_for_plain(value))
     else:
         for key, value in entries:
-            print(f"{key}={value}")
+            print(f"{_sanitize_for_table(key)}={_sanitize_for_table(value)}")
 
 
 def handle_unset(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
