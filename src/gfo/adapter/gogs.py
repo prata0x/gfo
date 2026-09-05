@@ -539,15 +539,15 @@ class GogsAdapter(GiteaAdapter):
     ) -> Repository:
         self._warn_unsupported_params(
             "repo update",
-            name=name,
-            description=description,
-            private=private,
-            default_branch=default_branch,
-            archived=archived,
-            allow_merge_commit=allow_merge_commit,
-            allow_squash_merge=allow_squash_merge,
-            allow_rebase_merge=allow_rebase_merge,
-            delete_branch_on_merge=delete_branch_on_merge,
+            name=name is not None,
+            description=description is not None,
+            private=private is not None,
+            default_branch=default_branch is not None,
+            archived=archived is not None,
+            allow_merge_commit=allow_merge_commit is not None,
+            allow_squash_merge=allow_squash_merge is not None,
+            allow_rebase_merge=allow_rebase_merge is not None,
+            delete_branch_on_merge=delete_branch_on_merge is not None,
         )
         if has_wiki is not None:
             self._client.patch(f"{self._repos_path()}/wiki", json={"enable_wiki": has_wiki})
