@@ -30,7 +30,13 @@ from gfo.adapter.base import (
     Tag,
 )
 from gfo.adapter.registry import get_adapter_class
-from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError, ServerError
+from gfo.exceptions import (
+    AuthenticationError,
+    GfoError,
+    NotFoundError,
+    NotSupportedError,
+    ServerError,
+)
 from gfo.http import HttpClient
 
 BASE = "https://dev.azure.com/test-org/test-project/_apis"
@@ -893,6 +899,11 @@ def _mock_states(mock_responses, work_item_type, states):
 
 
 class TestCloseIssue:
+    def test_null_fields_raise_gfo_error(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(responses.GET, f"{WIT}/workitems/3", json={"fields": None}, status=200)
+        with pytest.raises(GfoError, match="Cannot determine work item type"):
+            azure_devops_adapter._resolve_state_by_category(3, ("Completed",))
+
     def test_close(self, mock_responses, azure_devops_adapter):
         """Agile プロセステンプレート: Completed カテゴリの状態名 (Closed) を使う。"""
         _mock_states(
@@ -2076,6 +2087,17 @@ class TestSearchIssues:
 
 
 class TestSearchCode:
+    def test_search_code_handles_null_repository(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.POST,
+            "https://almsearch.dev.azure.com/test-org/test-project/_apis/search/codesearchresults",
+            json={"results": [{"path": "/src/main.py", "repository": None}]},
+            status=200,
+        )
+        result = azure_devops_adapter.search_code("main")
+        assert result[0].repository == ""
+        assert result[0].url.endswith("/_git/?path=%2Fsrc%2Fmain.py")
+
     def test_search_code(self, mock_responses, azure_devops_adapter):
         mock_responses.add(
             responses.POST,
