@@ -255,6 +255,16 @@ class TestBitbucketOrg:
         assert org.url == ""
 
     @responses.activate
+    def test_view_handles_null_html_link(self, bitbucket_adapter):
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/workspaces/my-ws",
+            json={"slug": "my-ws", "name": "My Workspace", "links": {"html": None}},
+        )
+        org = bitbucket_adapter.get_organization("my-ws")
+        assert org.url == ""
+
+    @responses.activate
     def test_members(self, bitbucket_adapter):
         responses.add(
             responses.GET,
