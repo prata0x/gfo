@@ -2152,6 +2152,10 @@ class TestToBranch:
         assert branch.name == "main"
         assert branch.sha == ""
 
+    def test_null_commit(self):
+        branch = BacklogAdapter._to_branch({"name": "main", "commit": None})
+        assert branch.sha == ""
+
     def test_url_falls_back_to_default(self):
         """レスポンスに url が無い場合は default_url を使う（#606）。"""
         data = _branch_data_bl(name="feature", sha="abc123")
@@ -2205,6 +2209,10 @@ class TestToTag:
         data = {"name": "v0.1.0", "commit": {}}
         tag = BacklogAdapter._to_tag(data)
         assert tag.name == "v0.1.0"
+        assert tag.sha == ""
+
+    def test_null_commit(self):
+        tag = BacklogAdapter._to_tag({"name": "v0.1.0", "commit": None})
         assert tag.sha == ""
 
     def test_url_falls_back_to_default(self):

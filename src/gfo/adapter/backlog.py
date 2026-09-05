@@ -637,7 +637,7 @@ class BacklogAdapter(GitServiceAdapter):
 
         return Branch(
             name=data["name"],
-            sha=data.get("commit", {}).get("id") or "",
+            sha=(data.get("commit") or {}).get("id") or "",
             protected=False,
             url=data.get("url") or default_url,
         )
@@ -648,7 +648,7 @@ class BacklogAdapter(GitServiceAdapter):
 
         return Tag(
             name=data["name"],
-            sha=data.get("commit", {}).get("id") or "",
+            sha=(data.get("commit") or {}).get("id") or "",
             message="",
             url=data.get("url") or default_url,
         )

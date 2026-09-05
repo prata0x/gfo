@@ -1939,7 +1939,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             title=data.get("title") or "",
             content=content,
             url=data.get("html_url") or "",
-            updated_at=data.get("last_commit", {}).get("created"),
+            updated_at=(data.get("last_commit") or {}).get("created"),
         )
 
     # --- Issue Reaction ---

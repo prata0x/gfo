@@ -183,7 +183,7 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
             name=data["name"],
             sha=sha,
             protected=data.get("protected", False),
-            url=data.get("_links", {}).get("html") or default_url,
+            url=(data.get("_links") or {}).get("html") or default_url,
         )
 
     @staticmethod

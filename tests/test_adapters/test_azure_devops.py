@@ -2425,6 +2425,12 @@ class TestToPipeline:
         pipeline = AzureDevOpsAdapter._to_pipeline(data)
         assert pipeline.status == "cancelled"
 
+    def test_null_links_falls_back_to_empty_url(self):
+        data = _pipeline_data_az(status="completed", result="succeeded")
+        data["_links"] = None
+        pipeline = AzureDevOpsAdapter._to_pipeline(data)
+        assert pipeline.url == ""
+
 
 class TestDeleteTag:
     def test_basic(self, mock_responses, azure_devops_adapter):
@@ -3108,6 +3114,26 @@ class TestGetIssueTimeline:
         events = azure_devops_adapter.get_issue_timeline(1)
         assert len(events) == 1
         assert events[0].actor == ""
+
+    def test_timeline_null_changed_date_field(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{WIT}/workitems/1/updates",
+            json={
+                "value": [
+                    {
+                        "id": 1,
+                        "revisedBy": None,
+                        "fields": {
+                            "System.State": {"newValue": "Closed"},
+                        },
+                    }
+                ]
+            },
+            status=200,
+        )
+        events = azure_devops_adapter.get_issue_timeline(1)
+        assert events[0].created_at == ""
 
     def test_timeline_limit(self, mock_responses, azure_devops_adapter):
         """limit パラメータで件数制限。"""

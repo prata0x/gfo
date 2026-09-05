@@ -2125,6 +2125,16 @@ class TestSearchCode:
         result = bitbucket_adapter.search_code("nonexistent")
         assert result == []
 
+    def test_search_code_null_self_link(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/workspaces/test-workspace/search/code",
+            json={"values": [{"file": {"path": "README.md", "links": {"self": None}}}]},
+            status=200,
+        )
+        result = bitbucket_adapter.search_code("README")
+        assert result[0].url == ""
+
 
 # --- 変換ヘルパー単体テスト ---
 
@@ -2175,6 +2185,19 @@ class TestToTag:
         }
         tag = BitbucketAdapter._to_tag(data)
         assert tag.message == "Release v2.0.0"
+
+    def test_null_html_link(self):
+        data = {"name": "v1.0.0", "target": {"hash": "abc123"}, "links": {"html": None}}
+        tag = BitbucketAdapter._to_tag(data)
+        assert tag.url == ""
+
+
+class TestToOrganization:
+    def test_null_html_link(self):
+        organization = BitbucketAdapter._to_organization(
+            {"slug": "team", "name": "Team", "links": {"html": None}}
+        )
+        assert organization.url == ""
 
 
 class TestToCommitStatus:
