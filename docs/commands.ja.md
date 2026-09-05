@@ -1649,7 +1649,7 @@ gfo tag list [--limit N]
 
 タグの詳細を表示します。
 
-> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
+> **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
 
 ```
 gfo tag view NAME

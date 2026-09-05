@@ -1467,6 +1467,20 @@ class TestListTags:
         assert tags[0].name == "v1.0.0"
 
 
+class TestGetTag:
+    def test_get(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/refs/tags/v1.0.0",
+            json=_tag_data(),
+            status=200,
+        )
+        tag = bitbucket_adapter.get_tag(name="v1.0.0")
+        assert isinstance(tag, Tag)
+        assert tag.name == "v1.0.0"
+        assert tag.sha == "def456"
+
+
 class TestCreateTag:
     def test_create(self, mock_responses, bitbucket_adapter):
         mock_responses.add(

@@ -1635,7 +1635,7 @@ gfo tag list [--limit N]
 
 View tag details.
 
-> **Supported services**: GitHub, GitLab, Gitea, Forgejo
+> **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
 
 ```
 gfo tag view NAME
