@@ -48,12 +48,22 @@ def _field_str(val: Any, *, escape_separators: bool = False) -> str:
 
 def _sanitize_for_table(val: str) -> str:
     """テーブル表示用に改行・タブをエスケープする。"""
-    return val.replace("\n", "\\n").replace("\r", "\\r").replace("\t", " ")
+    result = val.replace("\n", "\\n").replace("\r", "\\r").replace("\t", " ")
+    return _escape_control_chars(result)
 
 
 def _sanitize_for_plain(val: str) -> str:
     """プレーン形式用に改行・タブをエスケープする（1アイテム=1行を保証する）。"""
-    return val.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+    result = val.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+    return _escape_control_chars(result)
+
+
+def _escape_control_chars(val: str) -> str:
+    """端末制御文字を可視なエスケープ表記に変換する。"""
+    return "".join(
+        f"\\x{ord(char):02x}" if ord(char) < 0x20 or 0x7F <= ord(char) <= 0x9F else char
+        for char in val
+    )
 
 
 def apply_jq_filter(json_str: str, expression: str) -> str:

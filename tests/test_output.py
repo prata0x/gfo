@@ -133,6 +133,15 @@ class TestFormatTable:
         data_row = result.split("\n")[2]
         assert "\t" not in data_row
 
+    def test_control_characters_are_escaped(self):
+        """端末制御文字がテーブル出力へ生で混入しない。"""
+        result = format_table(
+            [SampleItem(1, "safe\x00\x07\x1b[2K\x7f\x9b2Jdone", "open", "alice")],
+            ["number", "title"],
+        )
+        assert "safe\\x00\\x07\\x1b[2K\\x7f\\x9b2Jdone" in result
+        assert not any(char in result for char in "\x00\x07\x1b\x7f\x9b")
+
     def test_multibyte_title_width(self):
         """日本語タイトルの表示幅は文字数の2倍として計算される。"""
         assert _display_width("日本語") == 6
@@ -312,6 +321,15 @@ class TestFormatPlain:
         assert len(lines) == 2  # 2アイテム = 2行
         assert lines[0] == "1\tline1\\nline2\\r\\nline3"
         assert lines[1] == "2\tLGTM"
+
+    def test_control_characters_are_escaped(self):
+        """端末制御文字がプレーン出力へ生で混入しない。"""
+        result = format_plain(
+            [SampleItem(1, "safe\x00\x07\x1b[2K\x7f\x9b2Jdone", "open", "alice")],
+            ["number", "title"],
+        )
+        assert result == "1\tsafe\\x00\\x07\\x1b[2K\\x7f\\x9b2Jdone"
+        assert not any(char in result for char in "\x00\x07\x1b\x7f\x9b")
 
     def test_none_field_shown_as_empty_in_plain(self):
         """None フィールドはプレーン形式で空文字列として出力される（"None" にならない）（R35-03）。"""
