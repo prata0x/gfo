@@ -3958,6 +3958,30 @@ class TestToOrganizationErrorHandling:
 
 
 class TestListWorkflows:
+    def test_list_without_server_pagination(self, mock_responses, gitea_adapter):
+        workflows_data = [
+            {
+                "id": workflow_id,
+                "name": f"CI {workflow_id}",
+                "path": f".gitea/workflows/ci-{workflow_id}.yml",
+                "state": "active",
+            }
+            for workflow_id in range(35)
+        ]
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/workflows",
+            json={"workflows": workflows_data, "total_count": len(workflows_data)},
+            status=200,
+        )
+
+        workflows = gitea_adapter.list_workflows(limit=0)
+
+        assert len(workflows) == 35
+        assert len(mock_responses.calls) == 1
+        assert "limit" not in mock_responses.calls[0].request.url
+        assert "page" not in mock_responses.calls[0].request.url
+
     def test_list(self, mock_responses, gitea_adapter):
         mock_responses.add(
             responses.GET,
