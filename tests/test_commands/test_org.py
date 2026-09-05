@@ -124,6 +124,14 @@ class TestHandleMembers:
             with pytest.raises(GfoError, match="forbidden"):
                 org_cmd.handle_members(args, fmt="table")
 
+    def test_sanitizes_control_characters_in_plain_output(self, capsys):
+        with patch_adapter("gfo.commands.org") as adapter:
+            adapter.list_org_members.return_value = ["safe\x00\x1b[2Kdone"]
+            args = make_args(name="my-org", limit=30)
+            org_cmd.handle_members(args, fmt="table")
+
+        assert capsys.readouterr().out == r"safe\x00\x1b[2Kdone" + "\n"
+
 
 class TestHandleRepos:
     def test_calls_list_org_repos(self, capsys):

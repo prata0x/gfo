@@ -7,7 +7,7 @@ import json
 
 from gfo.commands import confirm_action, get_adapter
 from gfo.i18n import _
-from gfo.output import apply_jq_filter, output_result
+from gfo.output import _sanitize_for_plain, apply_jq_filter, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -22,7 +22,7 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
             print(json_str)
     else:
         for username in usernames:
-            print(username)
+            print(_sanitize_for_plain(username))
 
 
 def handle_add(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

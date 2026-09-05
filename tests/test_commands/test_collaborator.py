@@ -68,6 +68,14 @@ class TestHandleList:
         out = capsys.readouterr().out
         assert "alice" in out
 
+    def test_sanitizes_control_characters_in_plain_output(self, capsys):
+        with patch_adapter("gfo.commands.collaborator") as adapter:
+            adapter.list_collaborators.return_value = ["safe\x00\x1b[2Kdone"]
+            args = make_args(limit=30)
+            collab_cmd.handle_list(args, fmt="table")
+
+        assert capsys.readouterr().out == r"safe\x00\x1b[2Kdone" + "\n"
+
 
 class TestHandleAdd:
     def test_calls_add_collaborator(self):

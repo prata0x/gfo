@@ -10,7 +10,7 @@ from gfo._context import cli_remote
 from gfo.commands import get_adapter, open_in_browser, read_file_arg
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
-from gfo.output import apply_jq_filter, output, output_result
+from gfo.output import _sanitize_for_plain, apply_jq_filter, output, output_result
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -306,7 +306,7 @@ def handle_reviewers(args: argparse.Namespace, *, fmt: str, jq: str | None = Non
                 print(json_str)
         else:
             for reviewer in reviewers:
-                print(reviewer)
+                print(_sanitize_for_plain(reviewer))
 
 
 def handle_update_branch(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
