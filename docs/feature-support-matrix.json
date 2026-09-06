@@ -5,6 +5,9 @@
     "partial": "△ Partially supported",
     "none": "× Not supported (raises NotSupportedError)"
   },
+  "notes": {
+    "Repo Fork / gogs": "Known issue: the inherited Gitea endpoint is unavailable and may return an API error instead of NotSupportedError."
+  },
   "services": [
     "github",
     "gitlab",

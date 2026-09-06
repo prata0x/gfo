@@ -264,6 +264,7 @@ gfo config get 'hosts."gitlab.example.com".type'
 > - PR Reviewers (Bitbucket): `list` only (`add` / `remove` not supported).
 > - Branch Protect (Bitbucket): Only force-push and deletion control; review requirements, status checks, and admin enforcement are not supported.
 > - Org (Azure DevOps): `list`, `view`, `repos` only; `members`, `create`, `delete` are not supported.
+> - Repo Fork (Gogs): Known issue; the inherited Gitea endpoint is unavailable and may return an API error instead of `NotSupportedError`.
 
 A machine-readable mirror of this table is available at [`docs/feature-support-matrix.json`](docs/feature-support-matrix.json).
 
