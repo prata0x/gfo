@@ -926,7 +926,7 @@ gfo issue time delete 10 42
 
 異なるサービス間で Issue を移行します。ラベルの自動同期、コメントの移行にも対応。gfo のキラー機能。
 
-> **対応サービス**: GitHub, GitLab, Bitbucket（部分）, Azure DevOps（部分）, Backlog（部分）, Gitea, Forgejo
+> **対応サービス**: GitHub, GitLab, Bitbucket（部分）, Azure DevOps（部分）, Backlog（部分）, Gogs（部分）, Gitea, Forgejo, GitBucket（部分: closed Issue は移行先に指定不可）
 
 ```
 gfo issue migrate --from SERVICE_SPEC --to SERVICE_SPEC {--number N | --numbers N,N,... | --all}

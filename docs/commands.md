@@ -912,7 +912,7 @@ gfo issue time delete 10 42
 
 Migrate issues between different services. Supports automatic label synchronization and comment migration. gfo's killer feature.
 
-> **Supported services**: GitHub, GitLab, Bitbucket (partial), Azure DevOps (partial), Backlog (partial), Gitea, Forgejo
+> **Supported services**: GitHub, GitLab, Bitbucket (partial), Azure DevOps (partial), Backlog (partial), Gogs (partial), Gitea, Forgejo, GitBucket (partial: closed issues cannot be migrated as the destination)
 
 ```
 gfo issue migrate --from SERVICE_SPEC --to SERVICE_SPEC {--number N | --numbers N,N,... | --all}
