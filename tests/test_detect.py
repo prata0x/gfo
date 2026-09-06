@@ -417,6 +417,17 @@ class TestProbeUnknownHost:
         assert probe_unknown_host("git.example.com") is None
 
     @responses.activate
+    def test_generic_version_response_with_build_is_not_gitea(self):
+        """汎用サービスの version/build レスポンスは Gitea として検出しない。"""
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v1/version",
+            json={"version": "2.4.1", "build": "abc123"},
+            status=200,
+        )
+        assert probe_unknown_host("git.example.com") is None
+
+    @responses.activate
     def test_gitlab_detected(self):
         responses.add(
             responses.GET,
