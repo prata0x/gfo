@@ -1063,6 +1063,8 @@ gfo repo fork
 gfo repo fork --org myorg
 ```
 
+> **対応サービス**: GitHub, GitLab, Bitbucket, Gitea, Forgejo（Gogs は既知の不具合あり。Azure DevOps、Backlog、GitBucket は非対応）
+
 ### gfo repo edit
 
 リポジトリの設定を編集します。

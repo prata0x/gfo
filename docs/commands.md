@@ -1049,6 +1049,8 @@ gfo repo fork
 gfo repo fork --org myorg
 ```
 
+> **Supported services**: GitHub, GitLab, Bitbucket, Gitea, Forgejo (Gogs has a known issue; Azure DevOps, Backlog, and GitBucket are not supported)
+
 ### gfo repo edit
 
 Edit repository settings.

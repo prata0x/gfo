@@ -72,6 +72,17 @@
       "gogs": "none",
       "gitbucket": "none"
     },
+    "Repo Fork": {
+      "github": "full",
+      "gitlab": "full",
+      "bitbucket": "full",
+      "azure-devops": "none",
+      "backlog": "none",
+      "gitea": "full",
+      "forgejo": "full",
+      "gogs": "none",
+      "gitbucket": "none"
+    },
     "Repo Update": {
       "github": "full",
       "gitlab": "full",
