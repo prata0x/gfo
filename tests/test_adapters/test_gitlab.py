@@ -1318,6 +1318,44 @@ class TestGetRelease:
         assert rel.tag == "v1.0.0"
 
 
+class TestGetLatestRelease:
+    def test_skips_upcoming_release(self, mock_responses, gitlab_adapter):
+        """released_at が未来日時の upcoming release を最新として返さない。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/releases",
+            json=[
+                {
+                    **_release_data(tag="v2.0.0-upcoming"),
+                    "upcoming_release": True,
+                    "released_at": "2099-01-01T00:00:00Z",
+                },
+                _release_data(tag="v1.0.0"),
+            ],
+            status=200,
+        )
+        rel = gitlab_adapter.get_latest_release()
+        assert rel.tag == "v1.0.0"
+        assert rel.prerelease is False
+
+    def test_all_upcoming_raises_not_found(self, mock_responses, gitlab_adapter):
+        """全件が upcoming release の場合は NotFoundError とする。"""
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/releases",
+            json=[
+                {
+                    **_release_data(tag="v2.0.0-upcoming"),
+                    "upcoming_release": True,
+                    "released_at": "2099-01-01T00:00:00Z",
+                },
+            ],
+            status=200,
+        )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.get_latest_release()
+
+
 class TestUpdateRelease:
     def test_update(self, mock_responses, gitlab_adapter):
         mock_responses.add(

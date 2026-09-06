@@ -743,14 +743,19 @@ class GitLabAdapter(GitServiceAdapter):
         return self._to_release(resp.json())
 
     def get_latest_release(self) -> Release:
+        # GitLab の GET /releases は released_at 降順でソートされるため、
+        # released_at が未来日時の upcoming release が意図せず先頭に来る。
+        # クエリパラメータで upcoming を除外できないため、複数件取得して
+        # クライアント側で除外してから先頭を採用する。
         results = paginate_page_param(
             self._client,
             f"{self._project_path()}/releases",
-            limit=1,
+            limit=30,
         )
-        if not results:
+        published = [r for r in results if not r.get("upcoming_release", False)]
+        if not published:
             raise NotFoundError()
-        return self._to_release(results[0])
+        return self._to_release(published[0])
 
     # --- Release Assets ---
 
