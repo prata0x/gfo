@@ -3214,6 +3214,32 @@ class TestToCommitStatus:
         cs = GitLabAdapter._to_commit_status(data)
         assert cs.state == "pending"
 
+    def test_canceled(self):
+        data = {"status": "canceled", "name": "ci/test", "created_at": "2025-01-01T00:00:00Z"}
+        cs = GitLabAdapter._to_commit_status(data)
+        assert cs.state == "error"
+
+    def test_cancelled(self):
+        data = {"status": "cancelled", "name": "ci/test", "created_at": "2025-01-01T00:00:00Z"}
+        cs = GitLabAdapter._to_commit_status(data)
+        assert cs.state == "error"
+
+    @pytest.mark.parametrize(
+        "raw",
+        [
+            "created",
+            "waiting_for_resource",
+            "preparing",
+            "scheduled",
+            "manual",
+            "skipped",
+        ],
+    )
+    def test_unmapped_ci_states_normalized_to_pending(self, raw):
+        data = {"status": raw, "name": "ci/test", "created_at": "2025-01-01T00:00:00Z"}
+        cs = GitLabAdapter._to_commit_status(data)
+        assert cs.state == "pending"
+
 
 class TestToWebhook:
     def test_basic(self):
