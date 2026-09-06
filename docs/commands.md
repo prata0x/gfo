@@ -1907,7 +1907,7 @@ gfo collaborator remove alice
 
 Operate CI/CD pipeline jobs and workflows.
 
-> **Supported services**: GitHub, GitLab, Gitea, Forgejo
+> **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
 
 ### gfo ci list
 

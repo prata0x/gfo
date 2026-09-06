@@ -1921,7 +1921,7 @@ gfo collaborator remove alice
 
 CI/CD パイプラインのジョブ・ワークフローを操作します。
 
-> **対応サービス**: GitHub, GitLab, Gitea, Forgejo
+> **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo
 
 ### gfo ci list
 
