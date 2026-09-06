@@ -4498,3 +4498,39 @@ class TestReleaseAssetsUploadDownloadGitea:
         f.write_bytes(b"x")
         with pytest.raises(NotFoundError):
             gitea_adapter.upload_release_asset(tag="missing", file_path=str(f))
+
+
+class TestTimeEntriesUserField:
+    """Gitea の TrackedTime はネスト user ではなく user_name（フラット文字列）を返す。"""
+
+    _TIME_ENTRY = {
+        "id": 42,
+        "created": "2026-08-01T00:00:00Z",
+        "time": 3600,
+        "user_id": 7,
+        "user_name": "alice",
+        "issue_id": 10,
+        "issue": None,
+    }
+
+    def test_list_time_entries_reads_user_name(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues/10/times",
+            json=[self._TIME_ENTRY],
+            status=200,
+        )
+        entries = gitea_adapter.list_time_entries(10)
+        assert entries[0].user == "alice"
+        assert entries[0].duration == 3600
+
+    def test_add_time_entry_reads_user_name(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/issues/10/times",
+            json=self._TIME_ENTRY,
+            status=201,
+        )
+        added = gitea_adapter.add_time_entry(10, 3600)
+        assert added.user == "alice"
+        assert added.duration == 3600
