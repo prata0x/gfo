@@ -484,20 +484,27 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             f"{self._repos_path()}/compare/{quote(base, safe='')}...{quote(head, safe='')}"
         )
         data = resp.json()
-        files = tuple(
-            CompareFile(
-                filename=f.get("filename", ""),
-                status=f.get("status", "modified"),
-                additions=f.get("additions", 0),
-                deletions=f.get("deletions", 0),
-            )
-            for f in (data.get("files") or [])
-        )
+        files: list[CompareFile] = []
+        seen: set[str] = set()
+        for commit in data.get("commits", []) or []:
+            for f in commit.get("files", []) or []:
+                name = f.get("filename") if isinstance(f, dict) else f
+                if not name or name in seen:
+                    continue
+                seen.add(name)
+                files.append(
+                    CompareFile(
+                        filename=name,
+                        status=f.get("status", "modified") if isinstance(f, dict) else "modified",
+                        additions=f.get("additions", 0) if isinstance(f, dict) else 0,
+                        deletions=f.get("deletions", 0) if isinstance(f, dict) else 0,
+                    )
+                )
         return CompareResult(
             total_commits=data.get("total_commits", 0),
             ahead_by=data.get("total_commits", 0),
             behind_by=0,
-            files=files,
+            files=tuple(files),
         )
 
     def migrate_repository(
