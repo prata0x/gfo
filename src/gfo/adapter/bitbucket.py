@@ -577,6 +577,7 @@ class BitbucketAdapter(GitServiceAdapter):
                 "COMPLETED_SUCCESSFUL": "success",
                 "COMPLETED_FAILED": "failure",
                 "COMPLETED_ERROR": "failure",
+                "COMPLETED_EXPIRED": "failure",
                 "COMPLETED_STOPPED": "cancelled",
                 "IN_PROGRESS": "running",
                 "PENDING": "pending",
