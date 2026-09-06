@@ -301,7 +301,7 @@ gfo pr close 42
 
 ### gfo pr reopen
 
-> Azure DevOps, Backlog, Bitbucket not supported
+> Bitbucket not supported
 
 ```
 gfo pr reopen NUMBER
