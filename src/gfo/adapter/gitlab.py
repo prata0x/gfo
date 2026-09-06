@@ -228,12 +228,15 @@ class GitLabAdapter(GitServiceAdapter):
         labels: list[str] | None = None,
         milestone: str | None = None,
     ) -> PullRequest:
+        # GitLab は draft ステータスをタイトルの "Draft: " プレフィックスで管理する。
+        # 未知の "draft" リクエストフィールドはサーバー側で黙って無視されるため、タイトルに前置する。
+        if draft and not title.startswith(("Draft: ", "WIP: ")):
+            title = f"Draft: {title}"
         payload: dict[str, Any] = {
             "title": title,
             "description": body,
             "target_branch": base,
             "source_branch": head,
-            "draft": draft,
         }
         if reviewers:
             payload["reviewer_ids"] = self._resolve_user_ids(reviewers)
