@@ -233,12 +233,11 @@ class BacklogAdapter(GitServiceAdapter):
                 _("Unexpected API response: missing field {error}").format(error=e)
             ) from e
 
-    @staticmethod
     @_wrap_conversion_error
-    def _to_repository(data: dict[str, Any]) -> Repository:
+    def _to_repository(self, data: dict[str, Any]) -> Repository:
         return Repository(
             name=data["name"],
-            full_name=data.get("displayName", data["name"]),
+            full_name=f"{self._project_key}/{data['name']}",
             description=data.get("description"),
             visibility="private",
             default_branch=None,

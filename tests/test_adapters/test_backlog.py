@@ -75,7 +75,6 @@ def _issue_data(*, id=1, issue_key="TEST-1", status_id=1):
 def _repo_data(*, name="test-repo"):
     return {
         "name": name,
-        "displayName": f"TEST/{name}",
         "description": "a test repo",
         "httpUrl": f"https://example.backlog.com/git/TEST/{name}.git",
     }
@@ -212,12 +211,18 @@ class TestToIssue:
 
 
 class TestToRepository:
-    def test_basic(self):
-        repo = BacklogAdapter._to_repository(_repo_data())
+    def test_basic(self, backlog_adapter):
+        repo = backlog_adapter._to_repository(_repo_data())
         assert repo.name == "test-repo"
         assert repo.full_name == "TEST/test-repo"
         assert repo.visibility == "private"
         assert "test-repo" in repo.clone_url
+
+    def test_full_name_uses_project_key_not_display_name(self, backlog_adapter):
+        data = _repo_data()
+        data["displayName"] = "DIFFERENT/test-repo"
+        repo = backlog_adapter._to_repository(data)
+        assert repo.full_name == "TEST/test-repo"
 
 
 # --- PR 系 ---
