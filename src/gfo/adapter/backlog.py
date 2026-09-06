@@ -679,7 +679,12 @@ class BacklogAdapter(GitServiceAdapter):
     @_wrap_conversion_error
     def _to_webhook(data: dict[str, Any]) -> Webhook:
         # Backlog webhook レスポンスの events 相当は activityTypeIds（数値配列）。
-        events = _activity_type_ids_to_events(data.get("activityTypeIds") or [])
+        # allEvent=True の場合は全イベント購読（activityTypeIds は空配列で返る）なので
+        # "*" をマーカーとして表示する（#766）。
+        if data.get("allEvent"):
+            events: tuple[str, ...] = ("*",)
+        else:
+            events = _activity_type_ids_to_events(data.get("activityTypeIds") or [])
         return Webhook(
             id=data["id"],
             url=(data.get("hookUrl") or ""),

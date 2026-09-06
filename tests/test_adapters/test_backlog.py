@@ -2267,6 +2267,17 @@ class TestToWebhook:
         assert hook.id == 200
         assert hook.events == ()
 
+    def test_all_event_marker(self):
+        """allEvent=True の場合は全イベント購読として "*" になる（#766）。"""
+        data = {
+            "id": 500,
+            "hookUrl": "https://example.com/hook4",
+            "activityTypeIds": [],
+            "allEvent": True,
+        }
+        hook = BacklogAdapter._to_webhook(data)
+        assert hook.events == ("*",)
+
     def test_always_active(self):
         """Backlog webhook は常に active=True になる。"""
         data = _webhook_data_bl(hook_id=300)
