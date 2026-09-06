@@ -2206,7 +2206,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return [
             TimeEntry(
                 id=t["id"],
-                user=(t.get("user") or {}).get("login") or "",
+                user=t.get("user_name") or "",
                 duration=t.get("time") or 0,
                 created_at=t.get("created") or "",
             )
@@ -2221,7 +2221,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         t = resp.json()
         return TimeEntry(
             id=t["id"],
-            user=(t.get("user") or {}).get("login") or "",
+            user=t.get("user_name") or "",
             duration=t.get("time") or 0,
             created_at=t.get("created") or "",
         )
