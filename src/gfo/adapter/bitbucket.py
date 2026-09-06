@@ -571,7 +571,7 @@ class BitbucketAdapter(GitServiceAdapter):
 
         try:
             state_obj = data.get("state") or {}
-            stage = (state_obj.get("stage") or {}).get("name", "")
+            state_name = state_obj.get("name", "")
             result = (state_obj.get("result") or {}).get("name", "")
             status_map = {
                 "COMPLETED_SUCCESSFUL": "success",
@@ -581,7 +581,7 @@ class BitbucketAdapter(GitServiceAdapter):
                 "IN_PROGRESS": "running",
                 "PENDING": "pending",
             }
-            key = f"{stage}_{result}" if result else stage
+            key = f"{state_name}_{result}" if result else state_name
             status = status_map.get(key, "pending")
             return Pipeline(
                 id=data.get("build_number") or data.get("uuid", ""),

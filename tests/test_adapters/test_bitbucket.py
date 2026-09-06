@@ -1831,6 +1831,7 @@ class TestListPipelines:
         pipelines = bitbucket_adapter.list_pipelines()
         assert len(pipelines) == 1
         assert isinstance(pipelines[0], Pipeline)
+        assert pipelines[0].status == "success"
 
 
 class TestGetPipeline:
@@ -1843,6 +1844,7 @@ class TestGetPipeline:
         )
         pipeline = bitbucket_adapter.get_pipeline(300)
         assert isinstance(pipeline, Pipeline)
+        assert pipeline.status == "success"
 
 
 class TestCancelPipeline:
@@ -1866,6 +1868,7 @@ class TestTriggerPipeline:
         )
         pipeline = bitbucket_adapter.trigger_pipeline("main")
         assert isinstance(pipeline, Pipeline)
+        assert pipeline.status == "success"
         req = mock_responses.calls[0].request
         body = json.loads(req.body)
         assert body["target"]["ref_name"] == "main"
@@ -1908,6 +1911,7 @@ class TestRetryPipeline:
         )
         pipeline = bitbucket_adapter.retry_pipeline(300)
         assert isinstance(pipeline, Pipeline)
+        assert pipeline.status == "success"
 
     def test_retry_404(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
@@ -2274,7 +2278,7 @@ class TestToPipeline:
         data = {
             "build_number": 1,
             "state": {
-                "stage": {"name": "COMPLETED"},
+                "name": "COMPLETED",
                 "result": {"name": "SUCCESSFUL"},
             },
             "target": {"ref_name": "main"},
@@ -2288,7 +2292,7 @@ class TestToPipeline:
         data = {
             "build_number": 2,
             "state": {
-                "stage": {"name": "COMPLETED"},
+                "name": "COMPLETED",
                 "result": {"name": "FAILED"},
             },
             "target": {"ref_name": "main"},
@@ -2301,14 +2305,26 @@ class TestToPipeline:
         data = {
             "build_number": 3,
             "state": {
-                "stage": {"name": "IN_PROGRESS"},
-                "result": None,
+                "name": "IN_PROGRESS",
+                "stage": {"name": "RUNNING"},
             },
             "target": {"ref_name": "feature"},
             "created_on": "2025-01-01T00:00:00Z",
         }
         pipeline = BitbucketAdapter._to_pipeline(data)
         assert pipeline.status == "running"
+
+    def test_pending(self):
+        data = {
+            "build_number": 4,
+            "state": {
+                "name": "PENDING",
+            },
+            "target": {"ref_name": "main"},
+            "created_on": "2025-01-01T00:00:00Z",
+        }
+        pipeline = BitbucketAdapter._to_pipeline(data)
+        assert pipeline.status == "pending"
 
 
 # --- Phase 2: PR operations ---
