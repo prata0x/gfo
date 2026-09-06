@@ -2301,6 +2301,19 @@ class TestToPipeline:
         pipeline = BitbucketAdapter._to_pipeline(data)
         assert pipeline.status == "failure"
 
+    def test_expired(self):
+        data = {
+            "build_number": 5,
+            "state": {
+                "name": "COMPLETED",
+                "result": {"name": "EXPIRED"},
+            },
+            "target": {"ref_name": "main"},
+            "created_on": "2025-01-01T00:00:00Z",
+        }
+        pipeline = BitbucketAdapter._to_pipeline(data)
+        assert pipeline.status == "failure"
+
     def test_in_progress(self):
         data = {
             "build_number": 3,
