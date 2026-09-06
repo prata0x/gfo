@@ -2027,7 +2027,7 @@ gfo ci workflow disable ci.yml
 
 CI アーティファクトを管理します。
 
-> **対応サービス**: GitHub, GitLab, Gitea
+> **対応サービス**: GitHub, Gitea, Forgejo
 
 ```
 gfo ci artifact list RUN_ID [--limit N]

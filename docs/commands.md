@@ -2013,7 +2013,7 @@ gfo ci workflow disable ci.yml
 
 Manage CI artifacts.
 
-> **Supported services**: GitHub, GitLab, Gitea
+> **Supported services**: GitHub, Gitea, Forgejo
 
 ```
 gfo ci artifact list RUN_ID [--limit N]
