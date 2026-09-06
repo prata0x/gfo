@@ -745,14 +745,30 @@ class GitLabAdapter(GitServiceAdapter):
     def get_latest_release(self) -> Release:
         # GitLab の GET /releases は released_at 降順でソートされるため、
         # released_at が未来日時の upcoming release が意図せず先頭に来る。
-        # クエリパラメータで upcoming を除外できないため、複数件取得して
-        # クライアント側で除外してから先頭を採用する。
-        results = paginate_page_param(
-            self._client,
-            f"{self._project_path()}/releases",
-            limit=30,
-        )
-        published = [r for r in results if not r.get("upcoming_release", False)]
+        # クエリパラメータで upcoming を除外できないため、公開済みリリースが
+        # 見つかるまでページを進めてクライアント側で除外し、先頭を採用する。
+        params: dict[str, Any] = {"per_page": 100, "page": 1}
+        published: list[dict[str, Any]] = []
+        while True:
+            resp = self._client.get(f"{self._project_path()}/releases", params=dict(params))
+            try:
+                page_data = resp.json()
+            except ValueError:
+                break
+            if not isinstance(page_data, list) or not page_data:
+                break
+            for r in page_data:
+                if not r.get("upcoming_release", False):
+                    published.append(r)
+            if published:
+                break
+            next_page = resp.headers.get("X-Next-Page", "")
+            if not next_page:
+                break
+            try:
+                params["page"] = int(next_page)
+            except ValueError:
+                break
         if not published:
             raise NotFoundError()
         return self._to_release(published[0])
