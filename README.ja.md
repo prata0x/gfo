@@ -204,7 +204,7 @@ gfo config get 'hosts."gitlab.example.com".type'
 | Issue | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | Release | ○ | ○ | × | × | × | ○ | ○ | × | ○ |
 | Release Asset | ○ | ○ | × | × | × | ○ | ○ | × | × |
-| Repo Fork | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
+| Repo Fork | ○ | ○ | ○ | × | × | ○ | ○ | ⚠ | × |
 | Repo Update | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
 | Repo Archive | ○ | ○ | × | ○ | × | ○ | ○ | × | × |
 | Repo Languages | ○ | ○ | × | × | × | ○ | ○ | × | × |
@@ -260,7 +260,9 @@ gfo config get 'hosts."gitlab.example.com".type'
 
 > ×: 非対応（`NotSupportedError` を返します）
 >
-> **Repo Fork (Gogs)**: 既知の不具合です。継承した Gitea 用エンドポイントが利用できず、`NotSupportedError` ではなく API エラーになる場合があります。
+> ⚠: 既知の不具合。通常の対応契約とは異なる動作になる場合があります。
+>
+> **Repo Fork (Gogs)**: 継承した Gitea 用エンドポイントが利用できず、`NotSupportedError` ではなく API エラーになる場合があります。
 >
 > **補足**:
 > - PR Reviewers（Bitbucket）: `list` のみ対応（`add` / `remove` は非対応）。

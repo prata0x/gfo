@@ -3,7 +3,8 @@
   "legend": {
     "full": "○ Fully supported",
     "partial": "△ Partially supported",
-    "none": "× Not supported (raises NotSupportedError)"
+    "none": "× Not supported (raises NotSupportedError)",
+    "known-issue": "⚠ Known issue; behavior may differ from the normal support contract"
   },
   "notes": {
     "Repo Fork / gogs": "Known issue: the inherited Gitea endpoint is unavailable and may return an API error instead of NotSupportedError."
@@ -83,7 +84,7 @@
       "backlog": "none",
       "gitea": "full",
       "forgejo": "full",
-      "gogs": "none",
+      "gogs": "known-issue",
       "gitbucket": "none"
     },
     "Repo Update": {
