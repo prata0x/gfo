@@ -519,6 +519,16 @@ class TestHandleMerge:
         assert data["deleted_branch"] == "feature/test"
         assert data["message"]
 
+    def test_jq_output_with_delete_branch_has_no_plaintext_leak(
+        self, sample_config, mock_adapter, capsys
+    ):
+        """--jq ではブランチ削除の追加メッセージを出力しない。"""
+        args = make_args(number=1, merge=False, squash=False, rebase=False, delete_branch=True)
+        with _patch_all(sample_config, mock_adapter):
+            pr_cmd.handle_merge(args, fmt="table", jq=".deleted_branch")
+
+        assert capsys.readouterr().out == '"feature/test"\n'
+
 
 class TestHandleClose:
     def test_calls_close_pull_request(self, sample_config, mock_adapter):

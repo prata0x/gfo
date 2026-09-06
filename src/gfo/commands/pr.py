@@ -154,8 +154,9 @@ def handle_merge(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     fields: dict[str, object] = {"number": args.number}
     if deleted_branch:
         fields["deleted_branch"] = deleted_branch
+    effective_fmt = "json" if jq else fmt
     output_result(message, result=result, fmt=fmt, jq=jq, **fields)
-    if deleted_branch and fmt != "json":
+    if deleted_branch and effective_fmt != "json":
         print(_("Deleted branch '{branch}'.").format(branch=deleted_branch))
 
 
