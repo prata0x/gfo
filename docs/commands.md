@@ -2106,7 +2106,7 @@ gfo search commits "refactor auth" --limit 20
 
 Search code in the repository.
 
-> **Supported services**: GitHub, GitLab, Azure DevOps
+> **Supported services**: GitHub, GitLab, Bitbucket, Azure DevOps
 
 ```
 gfo search code QUERY [--limit N]
