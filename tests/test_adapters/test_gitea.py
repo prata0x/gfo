@@ -3674,8 +3674,21 @@ class TestCompareGitea:
             f"{REPOS}/compare/main...feature",
             json={
                 "total_commits": 3,
-                "files": [
-                    {"filename": "a.py", "status": "modified", "additions": 10, "deletions": 2}
+                "commits": [
+                    {
+                        "sha": "abc",
+                        "files": [
+                            {"filename": "a.py"},
+                            {"filename": "b.py"},
+                        ],
+                    },
+                    {
+                        "sha": "def",
+                        "files": [
+                            {"filename": "b.py"},
+                            {"filename": "c.py"},
+                        ],
+                    },
                 ],
             },
             status=200,
@@ -3683,7 +3696,9 @@ class TestCompareGitea:
         result = gitea_adapter.compare("main", "feature")
         assert isinstance(result, CompareResult)
         assert result.total_commits == 3
-        assert len(result.files) == 1
+        assert len(result.files) == 3
+        names = sorted(f.filename for f in result.files)
+        assert names == ["a.py", "b.py", "c.py"]
 
 
 class TestGetLatestReleaseGitea:
