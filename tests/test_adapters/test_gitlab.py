@@ -1355,6 +1355,37 @@ class TestGetLatestRelease:
         with pytest.raises(NotFoundError):
             gitlab_adapter.get_latest_release()
 
+    def test_finds_published_past_upcoming_pages(self, mock_responses, gitlab_adapter):
+        """先頭ページが全件 upcoming でも、後続ページの公開済みリリースを返す。"""
+        page1 = [
+            {
+                **_release_data(tag=f"v-upcoming-{i}"),
+                "upcoming_release": True,
+                "released_at": "2099-01-01T00:00:00Z",
+            }
+            for i in range(30)
+        ]
+        page2 = [_release_data(tag="v1.0.0")]
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/releases",
+            json=page1,
+            status=200,
+            headers={"X-Next-Page": "2"},
+            match=[responses.matchers.query_param_matcher({"per_page": "100", "page": "1"})],
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/releases",
+            json=page2,
+            status=200,
+            headers={"X-Next-Page": ""},
+            match=[responses.matchers.query_param_matcher({"per_page": "100", "page": "2"})],
+        )
+        rel = gitlab_adapter.get_latest_release()
+        assert rel.tag == "v1.0.0"
+        assert rel.prerelease is False
+
 
 class TestUpdateRelease:
     def test_update(self, mock_responses, gitlab_adapter):
