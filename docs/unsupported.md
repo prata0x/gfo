@@ -39,6 +39,12 @@ API 対応サービス数が 1〜2、またはデータモデルの統一が困�
 | `issue board` | 5 | ボードの定義がサービスごとに全く異なる（後述）。gfo のスコープ外 |
 | `gist` / `snippet` | 3 (GitHub + GitLab + Bitbucket) | リポジトリ操作と独立した機能。Git Forge 操作の範囲外 |
 
+## サービス別の非対応
+
+| コマンド | 非対応サービス | 備考 |
+|---|---|---|
+| `repo fork` | Azure DevOps, Backlog, GitBucket | API に統一可能な fork 機能がない。Gogs は Gitea API を継承しているが、実 API に該当エンドポイントがなく既知の不具合（#478）がある |
+
 ---
 
 ## 現行シグネチャ制約による非対応

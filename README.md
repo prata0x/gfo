@@ -204,6 +204,7 @@ gfo config get 'hosts."gitlab.example.com".type'
 | Issue | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | Release | ○ | ○ | × | × | × | ○ | ○ | × | ○ |
 | Release Asset | ○ | ○ | × | × | × | ○ | ○ | × | × |
+| Repo Fork | ○ | ○ | ○ | × | × | ○ | ○ | × | × |
 | Repo Update | ○ | ○ | ○ | ○ | × | ○ | ○ | × | × |
 | Repo Archive | ○ | ○ | × | ○ | × | ○ | ○ | × | × |
 | Repo Languages | ○ | ○ | × | × | × | ○ | ○ | × | × |
