@@ -315,7 +315,7 @@ gfo pr close 42
 
 ### gfo pr reopen
 
-> Azure DevOps, Backlog, Bitbucket は非対応
+> Bitbucket は非対応
 
 ```
 gfo pr reopen NUMBER
