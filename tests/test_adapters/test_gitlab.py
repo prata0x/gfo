@@ -510,24 +510,52 @@ class TestCreatePullRequest:
         req_body = json.loads(mock_responses.calls[0].request.body)
         assert req_body["source_branch"] == "feature"
         assert req_body["target_branch"] == "main"
-        assert req_body["draft"] is False
+        assert "draft" not in req_body
 
     def test_create_draft(self, mock_responses, gitlab_adapter):
-        mock_responses.add(
+        def realistic_response(request: object) -> tuple[int, dict, str]:
+            sent = json.loads(request.body)
+            title = sent["title"]
+            # GitLab は未知の "draft" リクエストフィールドを無視し、タイトルの
+            # "Draft: "/"WIP: " プレフィックスのみで draft を決定する。
+            is_draft = title.startswith("Draft: ") or title.startswith("WIP: ")
+            return (
+                201,
+                {},
+                json.dumps(
+                    {
+                        "iid": 1,
+                        "title": title,
+                        "description": sent.get("description", ""),
+                        "state": "opened",
+                        "author": {"username": "author1"},
+                        "source_branch": sent["source_branch"],
+                        "target_branch": sent["target_branch"],
+                        "draft": is_draft,
+                        "web_url": "https://gitlab.com/test-owner/test-repo/-/merge_requests/1",
+                        "created_at": "2025-01-01T00:00:00Z",
+                        "updated_at": "2025-01-02T00:00:00Z",
+                    }
+                ),
+            )
+
+        mock_responses.add_callback(
             responses.POST,
             f"{PROJECT}/merge_requests",
-            json=_mr_data(draft=True),
-            status=201,
+            callback=realistic_response,
+            content_type="application/json",
         )
-        _ = gitlab_adapter.create_pull_request(
-            title="Draft",
+        pr = gitlab_adapter.create_pull_request(
+            title="Fix the bug",
             body="",
             base="main",
             head="feature",
             draft=True,
         )
         req_body = json.loads(mock_responses.calls[0].request.body)
-        assert req_body["draft"] is True
+        assert "draft" not in req_body
+        assert req_body["title"] == "Draft: Fix the bug"
+        assert pr.draft is True
 
     def test_create_with_reviewers(self, mock_responses, gitlab_adapter):
         mock_responses.add(responses.GET, f"{BASE}/users", json=[{"id": 10}], status=200)
