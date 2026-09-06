@@ -443,6 +443,27 @@ class TestProbeUnknownHost:
         assert probe_unknown_host("git.example.com") == "gitlab"
 
     @responses.activate
+    def test_generic_success_response_is_not_gitlab(self):
+        """GitLab の version 形式でない 200 応答は検出しない。"""
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v1/version",
+            status=404,
+        )
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v4/version",
+            json={"status": "ok"},
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v3/",
+            status=404,
+        )
+        assert probe_unknown_host("git.example.com") is None
+
+    @responses.activate
     def test_gitbucket_detected(self):
         responses.add(
             responses.GET,

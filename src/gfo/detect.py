@@ -291,8 +291,10 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
             allow_redirects=False,
         )
         if resp.status_code == 200:
-            return "gitlab"
-    except requests.RequestException:
+            data = resp.json()
+            if isinstance(data, dict) and isinstance(data.get("version"), str):
+                return "gitlab"
+    except (requests.RequestException, ValueError):
         pass
 
     # 3. GitBucket (v3)
