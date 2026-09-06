@@ -310,7 +310,13 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
                 isinstance(data.get(key), str) for key in ("current_user_url", "authorizations_url")
             ):
                 return "github"
-            return "gitbucket"
+            # GitBucket's v3 root (ApiEndPoint) exposes only a `rate_limit_url`
+            # field, which is absent from unrelated services that merely
+            # return 200 here. Require it before claiming the host as GitBucket
+            # so that any other service is left unexplored instead of being
+            # misclassified.
+            if isinstance(data, dict) and isinstance(data.get("rate_limit_url"), str):
+                return "gitbucket"
     except (requests.RequestException, ValueError):
         pass
 
