@@ -2120,7 +2120,7 @@ gfo search commits "refactor auth" --limit 20
 
 リポジトリ内のコードを検索します。
 
-> **対応サービス**: GitHub, GitLab, Azure DevOps
+> **対応サービス**: GitHub, GitLab, Bitbucket, Azure DevOps
 
 ```
 gfo search code QUERY [--limit N]
