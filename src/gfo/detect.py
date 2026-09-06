@@ -311,8 +311,15 @@ def probe_unknown_host(host: str, scheme: str = "https") -> str | None:
             f"{base}/api/v3/", timeout=5, verify=_verify_for_host(host), allow_redirects=False
         )
         if resp.status_code == 200:
+            # GitHub and GHES expose a hypermedia resource map at this path;
+            # GitBucket also uses the path, so status alone is not sufficient.
+            data = resp.json()
+            if isinstance(data, dict) and all(
+                isinstance(data.get(key), str) for key in ("current_user_url", "authorizations_url")
+            ):
+                return "github"
             return "gitbucket"
-    except requests.RequestException:
+    except (requests.RequestException, ValueError):
         pass
 
     return None

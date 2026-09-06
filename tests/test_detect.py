@@ -452,6 +452,30 @@ class TestProbeUnknownHost:
         assert probe_unknown_host("git.example.com") == "gitbucket"
 
     @responses.activate
+    def test_github_enterprise_detected_before_gitbucket(self):
+        """GitHub Enterprise の v3 API ルートは GitHub として検出される。"""
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v1/version",
+            status=404,
+        )
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v4/version",
+            status=404,
+        )
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v3/",
+            json={
+                "current_user_url": "https://git.example.com/api/v3/user",
+                "authorizations_url": "https://git.example.com/api/v3/authorizations",
+            },
+            status=200,
+        )
+        assert probe_unknown_host("git.example.com") == "github"
+
+    @responses.activate
     def test_all_fail_returns_none(self):
         responses.add(responses.GET, "https://git.example.com/api/v1/version", status=404)
         responses.add(responses.GET, "https://git.example.com/api/v4/version", status=404)
