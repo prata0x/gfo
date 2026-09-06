@@ -1596,6 +1596,38 @@ class TestCreateReview:
         assert review.url == azure_devops_adapter.get_web_url("pr", 1)
 
 
+class TestDismissReview:
+    def test_puts_vote_reset_only(self, mock_responses, azure_devops_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{GIT}/pullrequests/1/reviewers/55",
+            json={},
+            status=200,
+        )
+        azure_devops_adapter.dismiss_review(1, 55, message="")
+        assert len(mock_responses.calls) == 1
+        put_body = json.loads(mock_responses.calls[0].request.body)
+        assert put_body == {"vote": 0}
+
+    def test_warns_unsupported_message(self, mock_responses, azure_devops_adapter):
+        """message は Azure DevOps の投票 API に添付手段が無いため警告する。"""
+        import warnings
+
+        mock_responses.add(
+            responses.PUT,
+            f"{GIT}/pullrequests/1/reviewers/55",
+            json={},
+            status=200,
+        )
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            azure_devops_adapter.dismiss_review(1, 55, message="Author addressed the concern")
+        assert len(w) == 1
+        assert "message" in str(w[0].message)
+        put_body = json.loads(mock_responses.calls[0].request.body)
+        assert put_body == {"vote": 0}
+
+
 # --- Branch 系 ---
 
 

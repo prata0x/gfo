@@ -468,6 +468,7 @@ class AzureDevOpsAdapter(GitServiceAdapter):
         )
 
     def dismiss_review(self, number: int, review_id: int, *, message: str = "") -> None:
+        self._warn_unsupported_params("review dismiss", message=message)
         self._client.put(
             f"{self._git_path()}/pullrequests/{number}/reviewers/{review_id}",
             json={"vote": 0},
