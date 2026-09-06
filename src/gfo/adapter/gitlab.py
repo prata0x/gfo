@@ -1010,12 +1010,22 @@ class GitLabAdapter(GitServiceAdapter):
     @staticmethod
     @_wrap_conversion_error
     def _to_commit_status(data: dict[str, Any]) -> CommitStatus:
+        # GitLab の commit status エンドポイントは CI ジョブ/パイプラインの完全な
+        # 状態語彙を返すため、CommitStatus.state の 4 値契約
+        # （success/failure/pending/error）に正規化する。
         state_map = {
             "success": "success",
             "failed": "failure",
             "pending": "pending",
             "running": "pending",
             "canceled": "error",
+            "cancelled": "error",
+            "created": "pending",
+            "waiting_for_resource": "pending",
+            "preparing": "pending",
+            "scheduled": "pending",
+            "manual": "pending",
+            "skipped": "pending",
         }
         raw = data.get("status", "pending")
         return CommitStatus(
