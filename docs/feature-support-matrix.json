@@ -641,8 +641,8 @@
       "backlog": "partial",
       "gitea": "full",
       "forgejo": "full",
-      "gogs": "none",
-      "gitbucket": "none"
+      "gogs": "partial",
+      "gitbucket": "partial"
     },
     "Batch PR Create": {
       "github": "full",
