@@ -674,7 +674,7 @@ gfo issue reopen 10
 
 ### gfo issue delete
 
-> GitHub / Gogs は非対応
+> GitHub / Gogs / GitBucket は非対応
 
 ```
 gfo issue delete NUMBER [--yes]

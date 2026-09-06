@@ -660,7 +660,7 @@ gfo issue reopen 10
 
 ### gfo issue delete
 
-> GitHub / Gogs not supported
+> GitHub / Gogs / GitBucket not supported
 
 ```
 gfo issue delete NUMBER [--yes]
