@@ -478,10 +478,52 @@ class TestProbeUnknownHost:
         responses.add(
             responses.GET,
             "https://git.example.com/api/v3/",
-            json={"ok": True},
+            json={"rate_limit_url": "https://git.example.com/api/v3/rate_limit"},
             status=200,
         )
         assert probe_unknown_host("git.example.com") == "gitbucket"
+
+    @responses.activate
+    def test_unrelated_v3_body_is_not_gitbucket(self):
+        """200 を返すだけの v3 ルートは GitBucket と確定せず探索を継続する。"""
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v1/version",
+            status=404,
+        )
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v4/version",
+            status=404,
+        )
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v3/",
+            json={"status": "ok"},
+            status=200,
+        )
+        assert probe_unknown_host("git.example.com") is None
+
+    @responses.activate
+    def test_unrelated_v3_array_body_is_not_gitbucket(self):
+        """dict でない v3 応答（JSON 配列等）も GitBucket と確定しない。"""
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v1/version",
+            status=404,
+        )
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v4/version",
+            status=404,
+        )
+        responses.add(
+            responses.GET,
+            "https://git.example.com/api/v3/",
+            json=[1, 2, 3],
+            status=200,
+        )
+        assert probe_unknown_host("git.example.com") is None
 
     @responses.activate
     def test_github_enterprise_detected_before_gitbucket(self):
