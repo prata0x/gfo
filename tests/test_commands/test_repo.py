@@ -10,7 +10,7 @@ import pytest
 
 from gfo.adapter.base import CompareFile, CompareResult, Contributor, Repository
 from gfo.commands import repo as repo_cmd
-from gfo.exceptions import ConfigError
+from gfo.exceptions import AuthError, ConfigError
 from tests.test_commands.conftest import make_args
 
 
@@ -643,6 +643,29 @@ class TestHandleCreate:
 
 
 class TestHandleClone:
+    @pytest.fixture(autouse=True)
+    def no_configured_token(self):
+        with patch("gfo.commands.repo.resolve_token", side_effect=AuthError("test")):
+            yield
+
+    def test_uses_configured_token(self):
+        args = make_args(host="gitea.example.com", repo="owner/myrepo")
+        with (
+            patch(
+                "gfo.commands.repo._resolve_host_without_repo",
+                return_value=("gitea.example.com", "gitea"),
+            ),
+            patch("gfo.commands.repo.resolve_token", return_value="secret/token"),
+            patch("gfo.commands.repo.git_clone") as mock_clone,
+        ):
+            repo_cmd.handle_clone(args, fmt="table")
+
+        mock_clone.assert_called_once_with(
+            "https://gitea.example.com/owner/myrepo.git",
+            auth_header="Basic dG9rZW46c2VjcmV0L3Rva2Vu",
+            auth_host="gitea.example.com",
+        )
+
     def test_github_url(self):
         args = make_args(host="github.com", repo="owner/myrepo")
         with (

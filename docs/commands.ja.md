@@ -1021,6 +1021,8 @@ gfo repo clone REPO [--host HOST] [--project PROJECT]
 
 `--project` は Azure DevOps でプロジェクト名を指定する場合に使用します。`gfo init` で設定済みの場合は省略できます。
 
+`gfo auth login` でトークンを設定している場合は、HTTPS clone の認証に使用します。トークン未設定の場合も、公開リポジトリは通常どおり clone できます。
+
 ```bash
 gfo repo clone alice/my-project
 gfo repo clone alice/my-project --host gitea.example.com
