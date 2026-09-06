@@ -543,7 +543,12 @@ def save_project_config(config: ProjectConfig, cwd: str | None = None) -> None:
 
 
 def build_clone_url(
-    service_type: str, host: str, owner: str, name: str, *, project: str | None = None
+    service_type: str,
+    host: str,
+    owner: str,
+    name: str,
+    *,
+    project: str | None = None,
 ) -> str:
     """サービス種別・ホスト・owner/name から clone 用 HTTPS URL を構築する。"""
     if not owner or not name:
@@ -554,15 +559,27 @@ def build_clone_url(
             ).format(owner=owner, name=name)
         )
     if service_type in ("github", "bitbucket"):
-        return f"https://{host}/{owner}/{name}.git"
-    if service_type == "azure-devops":
+        url = f"https://{host}/{owner}/{name}.git"
+    elif service_type == "azure-devops":
         effective_project = project if project is not None else owner
-        return f"https://{host}/{owner}/{effective_project}/_git/{name}"
-    if service_type in ("gitlab", "gitea", "forgejo", "gogs"):
-        return f"https://{host}/{owner}/{name}.git"
-    if service_type in ("gitbucket", "backlog"):
-        return f"https://{host}/git/{owner}/{name}.git"
-    return f"https://{host}/{owner}/{name}.git"
+        url = f"https://{host}/{owner}/{effective_project}/_git/{name}"
+    elif service_type in ("gitlab", "gitea", "forgejo", "gogs"):
+        url = f"https://{host}/{owner}/{name}.git"
+    elif service_type in ("gitbucket", "backlog"):
+        url = f"https://{host}/git/{owner}/{name}.git"
+    else:
+        url = f"https://{host}/{owner}/{name}.git"
+
+    return url
+
+
+def build_clone_auth_header(service_type: str, token: str) -> str | None:
+    """サービスのトークンから Git clone 用認証情報を構築する。"""
+    if service_type == "backlog":
+        return None
+    if service_type == "bitbucket" and ":" not in token:
+        raise ConfigError(_("Bitbucket token must be in 'email:api-token' format."))
+    return token
 
 
 def build_default_api_url(

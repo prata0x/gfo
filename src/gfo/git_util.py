@@ -6,6 +6,7 @@ import os
 import re
 import subprocess  # nosec B404
 import warnings
+from typing import Any
 
 from gfo.exceptions import GitCommandError
 from gfo.i18n import _
@@ -166,11 +167,28 @@ def git_checkout_branch(branch: str, start: str = "FETCH_HEAD", cwd: str | None 
         run_git("checkout", "-b", branch, start, cwd=cwd)
 
 
-def git_clone(url: str, dest: str | None = None, cwd: str | None = None) -> None:
+def git_clone(
+    url: str,
+    dest: str | None = None,
+    cwd: str | None = None,
+    auth_header: str | None = None,
+    auth_host: str | None = None,
+) -> None:
     """git clone を実行する。timeout=600。"""
     cmd = ["git", "clone", url]
     if dest is not None:
         cmd.append(dest)
+    run_kwargs: dict[str, Any] = {}
+    if auth_header:
+        env = os.environ.copy()
+        env.update(
+            {
+                "GIT_CONFIG_COUNT": "1",
+                "GIT_CONFIG_KEY_0": f"http.https://{auth_host or ''}/.extraHeader",
+                "GIT_CONFIG_VALUE_0": f"Authorization: {auth_header}",
+            }
+        )
+        run_kwargs["env"] = env
     try:
         result = subprocess.run(  # nosec B603 B607 - git is a fixed system command
             cmd,
@@ -180,6 +198,7 @@ def git_clone(url: str, dest: str | None = None, cwd: str | None = None) -> None
             timeout=_CLONE_TIMEOUT,
             cwd=cwd,
             shell=False,
+            **run_kwargs,
         )
     except (FileNotFoundError, PermissionError) as e:
         raise GitCommandError(f"git command not found or not executable: {e}") from e

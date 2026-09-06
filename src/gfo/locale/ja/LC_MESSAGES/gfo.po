@@ -2265,6 +2265,9 @@ msgstr "Azure DevOps には組織とプロジェクトの両方が必要です�
 msgid "Bitbucket token must be in 'email:api-token' format. Run 'gfo auth login --host bitbucket.org' to reconfigure."
 msgstr "Bitbucket のトークンは 'email:api-token' 形式である必要があります。'gfo auth login --host bitbucket.org' で再設定してください。"
 
+msgid "Bitbucket token must be in 'email:api-token' format."
+msgstr "Bitbucket のトークンは 'email:api-token' 形式である必要があります。"
+
 msgid "Branch '{name}' not found after creation"
 msgstr "作成後にブランチ '{name}' が見つかりません"
 

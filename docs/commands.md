@@ -1007,6 +1007,8 @@ gfo repo clone REPO [--host HOST] [--project PROJECT]
 
 `--project` is used to specify the project name for Azure DevOps. Can be omitted if already configured via `gfo init`.
 
+When a token is configured with `gfo auth login`, it is used for HTTPS clone authentication. If no token is configured, public repositories can still be cloned normally.
+
 ```bash
 gfo repo clone alice/my-project
 gfo repo clone alice/my-project --host gitea.example.com

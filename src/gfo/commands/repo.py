@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import sys
 
 from gfo.adapter.registry import create_http_client, get_adapter_class
 from gfo.auth import resolve_token
 from gfo.commands import confirm_action, get_adapter, open_in_browser, read_token_input
 from gfo.config import (
+    build_clone_auth_header,
     build_clone_url,
     build_default_api_url,
     get_default_host,
@@ -16,7 +18,7 @@ from gfo.config import (
     resolve_project_config,
 )
 from gfo.detect import detect_service, get_known_service_type, probe_unknown_host
-from gfo.exceptions import ConfigError, DetectionError, GitCommandError
+from gfo.exceptions import AuthError, ConfigError, DetectionError, GitCommandError
 from gfo.git_util import git_clone
 from gfo.i18n import _
 from gfo.output import _sanitize_for_plain, _sanitize_for_table, output, output_result
@@ -186,8 +188,31 @@ def handle_clone(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
                 project = cfg.project_key
         except ConfigError:
             pass
+    try:
+        token = resolve_token(host, service_type)
+    except AuthError:
+        # Public repositories remain cloneable without configuring credentials.
+        token = None
     url = build_clone_url(service_type, host, owner, name, project=project)
-    git_clone(url)
+    auth_token = build_clone_auth_header(service_type, token) if token else None
+    auth_header = None
+    if auth_token:
+        if service_type == "bitbucket":
+            username, password = auth_token.split(":", 1)
+        elif service_type == "github":
+            username, password = "x-access-token", auth_token
+        elif service_type == "gitlab":
+            username, password = "oauth2", auth_token
+        elif service_type == "azure-devops":
+            username, password = "", auth_token
+        else:
+            username, password = "token", auth_token
+        credentials = f"{username}:{password}".encode()
+        auth_header = f"Basic {base64.b64encode(credentials).decode()}"
+    if auth_header:
+        git_clone(url, auth_header=auth_header, auth_host=host)
+    else:
+        git_clone(url)
 
 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
