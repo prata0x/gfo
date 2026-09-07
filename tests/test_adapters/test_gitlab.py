@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 from urllib.parse import quote
 
@@ -1217,7 +1218,7 @@ class TestCreateRelease:
         assert req_body["ref"] == "develop"
 
     def test_create_prerelease(self, mock_responses, gitlab_adapter):
-        """prerelease=True のとき upcoming_release がペイロードに含まれる。"""
+        """prerelease=True のとき released_at が未来日時で送信され、upcoming_release は送信されない。"""
         mock_responses.add(
             responses.GET,
             f"{PROJECT}",
@@ -1232,7 +1233,9 @@ class TestCreateRelease:
         )
         gitlab_adapter.create_release(tag="v1.0.0-rc1", prerelease=True)
         req_body = json.loads(mock_responses.calls[1].request.body)
-        assert req_body["upcoming_release"] is True
+        assert "upcoming_release" not in req_body
+        assert "released_at" in req_body
+        assert req_body["released_at"] > datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def test_create_with_generate_notes(self, mock_responses, gitlab_adapter):
         """generate_notes=True のとき /repository/changelog から取得したノートを description に設定する。"""
@@ -1450,7 +1453,23 @@ class TestUpdateRelease:
         )
         gitlab_adapter.update_release(tag="v1.0.0", prerelease=True)
         req_body = json.loads(mock_responses.calls[0].request.body)
-        assert req_body["upcoming_release"] is True
+        assert "upcoming_release" not in req_body
+        assert "released_at" in req_body
+        assert req_body["released_at"] > datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def test_update_clear_prerelease(self, mock_responses, gitlab_adapter):
+        """prerelease=False のとき released_at が過去日時で送信され、upcoming_release は送信されない。"""
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/releases/v1.0.0",
+            json=_release_data(),
+            status=200,
+        )
+        gitlab_adapter.update_release(tag="v1.0.0", prerelease=False)
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert "upcoming_release" not in req_body
+        assert "released_at" in req_body
+        assert req_body["released_at"] < datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def test_update_no_optional_fields(self, mock_responses, gitlab_adapter):
         mock_responses.add(

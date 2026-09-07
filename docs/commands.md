@@ -1371,6 +1371,8 @@ gfo release edit TAG [--title TITLE] [--notes NOTES] [--notes-file FILE] [--draf
 | `--tag` | New tag name (GitHub, Gitea, Forgejo) |
 | `--target` | Target branch or commit SHA (GitHub, Gitea, Forgejo) |
 
+> GitLab has no prerelease request field; `--prerelease` is implemented by setting `released_at` to a future date (an *Upcoming Release*), and `--no-prerelease` sets it to a past date. Editing prerelease status therefore changes the release's `released_at`.
+
 ```bash
 gfo release edit v1.0.0 --title "Version 1.0.0 GA"
 gfo release edit v1.0.0 --notes "Updated release notes"

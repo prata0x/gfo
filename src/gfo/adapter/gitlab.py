@@ -6,6 +6,7 @@ import base64
 import binascii
 import time
 from collections.abc import Iterable, Iterator
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any, ClassVar
 from urllib.parse import quote, urlparse, urlunparse
 
@@ -673,6 +674,11 @@ class GitLabAdapter(GitServiceAdapter):
 
     # --- Release ---
 
+    @staticmethod
+    def _gitlab_release_date(*, future: bool) -> str:
+        delta = timedelta(days=1) if future else timedelta(days=-1)
+        return (datetime.now(UTC) + delta).strftime("%Y-%m-%dT%H:%M:%SZ")
+
     def list_releases(self, *, limit: int = 30) -> list[Release]:
         results = paginate_page_param(
             self._client,
@@ -707,7 +713,9 @@ class GitLabAdapter(GitServiceAdapter):
             "description": notes,
         }
         if prerelease:
-            payload["upcoming_release"] = True
+            # GitLab has no `upcoming_release` request field; it derives the
+            # upcoming/prerelease state from a future `released_at`.
+            payload["released_at"] = self._gitlab_release_date(future=True)
         # GitLab はタグが存在しない場合 ref (ブランチ名等) が必要
         repo = self.get_repository()
         payload["ref"] = target or repo.default_branch or "main"
@@ -742,7 +750,7 @@ class GitLabAdapter(GitServiceAdapter):
         if notes is not None:
             payload["description"] = notes
         if prerelease is not None:
-            payload["upcoming_release"] = prerelease
+            payload["released_at"] = self._gitlab_release_date(future=prerelease)
         # GitLab は draft をサポートしないため無視
         resp = self._client.put(
             f"{self._project_path()}/releases/{quote(tag, safe='')}",
