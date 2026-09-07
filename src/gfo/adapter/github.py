@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 from collections.abc import Callable, Iterable, Iterator
 from typing import Any, ClassVar
 from urllib.parse import quote
@@ -1163,7 +1164,11 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         try:
             content = base64.b64decode(data["content"]).decode("utf-8")
             sha = data["sha"]
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError, ValueError, binascii.Error) as e:
+            if isinstance(e, (ValueError, binascii.Error)):
+                raise GfoError(
+                    _("The file is not valid UTF-8 text and cannot be read as text")
+                ) from e
             raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
         return content, sha
 

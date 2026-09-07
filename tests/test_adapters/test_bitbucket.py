@@ -1580,6 +1580,16 @@ class TestGetFileContent:
         assert content == "file content"
         assert sha == ""
 
+    def test_binary_raises_gfoerror(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/src/main/logo.png",
+            body=b"\x89PNG\r\n\x1a\n\xff\xfe\x00\x01",
+            status=200,
+        )
+        with pytest.raises(GfoError, match="not valid UTF-8 text"):
+            bitbucket_adapter.get_file_content("logo.png", ref="main")
+
 
 class TestCreateOrUpdateFile:
     def test_create(self, mock_responses, bitbucket_adapter):

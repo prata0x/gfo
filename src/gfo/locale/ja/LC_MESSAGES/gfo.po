@@ -2379,6 +2379,9 @@ msgstr "作成後にタグ '{name}' が見つかりません"
 msgid "Token file {path} is readable by other users (mode {mode}). Run 'chmod 600 {path}' to restrict access."
 msgstr "トークンファイル {path} は他のユーザーから読み取り可能です（mode {mode}）。'chmod 600 {path}' でアクセスを制限してください。"
 
+msgid "The file is not valid UTF-8 text and cannot be read as text"
+msgstr "このファイルは有効な UTF-8 テキストではないため、テキストとして読み取れません"
+
 msgid "Too many arguments: {args}"
 msgstr "引数が多すぎます: {args}"
 

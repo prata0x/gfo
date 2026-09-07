@@ -989,7 +989,11 @@ class BitbucketAdapter(GitServiceAdapter):
             f"{self._repos_path()}/src/{ref_part}/{quote(path, safe='/')}",
         )
         # Bitbucket src API はテキスト直接を返す
-        content = resp.text if hasattr(resp, "text") else resp.content.decode("utf-8")
+        raw = resp.content if hasattr(resp, "content") else resp.text.encode("utf-8")
+        try:
+            content = raw.decode("utf-8")
+        except (UnicodeDecodeError, ValueError) as e:
+            raise GfoError(_("The file is not valid UTF-8 text and cannot be read as text")) from e
         return content, ""
 
     def create_or_update_file(

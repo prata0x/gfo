@@ -2556,6 +2556,19 @@ class TestGetFileContent:
         content, sha = gitlab_adapter.get_file_content("README.md")
         assert content == "file content"
 
+    def test_binary_raises_gfoerror(self, mock_responses, gitlab_adapter):
+        import base64 as _b64
+
+        binary_b64 = _b64.b64encode(b"\x89PNG\r\n\x1a\n\xff\xfe\x00\x01").decode()
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/repository/files/logo.png",
+            json={"content": binary_b64, "blob_id": "sha1", "commit_id": "sha1"},
+            status=200,
+        )
+        with pytest.raises(GfoError, match="not valid UTF-8 text"):
+            gitlab_adapter.get_file_content("logo.png")
+
 
 class TestCreateOrUpdateFile:
     def test_create_new(self, mock_responses, gitlab_adapter):
