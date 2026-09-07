@@ -4605,6 +4605,17 @@ class TestTimeEntriesUserField:
         assert added.user == "alice"
         assert added.duration == 3600
 
+    def test_delete_time_entry_quotes_entry_id(self, mock_responses, gitea_adapter):
+        # entry_id は URL パスに直接結合されるため、quote されないと
+        # パストラバーサル文字を含む入力で想定外のエンドポイントへ到達する (#513)
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/issues/10/times/99%2F..%2Fx",
+            status=204,
+        )
+        gitea_adapter.delete_time_entry(10, "99/../x")
+        assert mock_responses.calls[-1].request.url.endswith("/issues/10/times/99%2F..%2Fx")
+
 
 class TestWebBaseUrlIPv6:
     """IPv6 リテラルホストのブラケット保持 (#582 / #796)。"""
