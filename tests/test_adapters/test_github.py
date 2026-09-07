@@ -4213,6 +4213,32 @@ class TestDownloadReleaseAssetPathTraversal:
         )
         assert "app.zip" in result
 
+    @responses.activate
+    def test_dot_name_rejected(self, github_adapter, tmp_path):
+        """アセット名が \".\" の場合、output_dir 自身への書き込みを防ぎ GfoError を送出する (#581)。"""
+        responses.add(
+            responses.GET,
+            f"{REPOS}/releases/assets/1",
+            json={"name": ".", "id": 1},
+        )
+        with pytest.raises(GfoError, match=r"Invalid asset name: \."):
+            github_adapter.download_release_asset(
+                tag="v1.0.0", asset_id=1, output_dir=str(tmp_path)
+            )
+
+    @responses.activate
+    def test_empty_name_rejected(self, github_adapter, tmp_path):
+        """アセット名が空文字列の場合、output_dir 自身への書き込みを防ぎ GfoError を送出する (#581)。"""
+        responses.add(
+            responses.GET,
+            f"{REPOS}/releases/assets/1",
+            json={"name": "", "id": 1},
+        )
+        with pytest.raises(GfoError, match=r"Invalid asset name: "):
+            github_adapter.download_release_asset(
+                tag="v1.0.0", asset_id=1, output_dir=str(tmp_path)
+            )
+
 
 # ── C-04: upload_release_asset が upload_url を使用する ──
 

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import argparse
 
+from gfo.adapter._helpers import _safe_join_output_path
 from gfo.commands import confirm_action, get_adapter, open_in_browser, read_file_arg
-from gfo.exceptions import ConfigError, GfoError
+from gfo.exceptions import ConfigError
 from gfo.i18n import _
 from gfo.output import output, output_result
 
@@ -162,7 +163,6 @@ def _handle_asset_upload(args: argparse.Namespace, *, fmt: str, jq: str | None =
 def _handle_asset_download(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     import fnmatch
     import os
-    from pathlib import Path
 
     adapter = get_adapter()
     output_dir = getattr(args, "dir", ".") or "."
@@ -197,10 +197,8 @@ def _handle_asset_download(args: argparse.Namespace, *, fmt: str, jq: str | None
             # （悪意ある/侵害された forge が "../.." 等を返すケース）。asset_id 経路と
             # 同様に basename + is_relative_to で output_dir 内に閉じ込める。
             asset_name = os.path.basename(a.name)
-            output_path = os.path.join(output_dir, asset_name)
-            if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
-                raise GfoError(_("Invalid asset name: {name}").format(name=a.name))
-            adapter.client.download_file(a.download_url, output_path)
+            output_path = _safe_join_output_path(output_dir, asset_name)
+            adapter.client.download_file(a.download_url, str(output_path))
             output_result(
                 _("Downloaded: {path}").format(path=output_path),
                 result="downloaded",

@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 from .base import (
     GitServiceAdapter,
     _mask_token_in_exception,
+    _safe_join_output_path,
     _web_base_from_api_url,
     _wrap_conversion_error,
 )
@@ -662,18 +663,14 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             f"{self._repos_path()}/releases/{release_id}/assets/{asset_id}"
         )
         data = meta_resp.json()
-        from pathlib import Path
-
         asset_name = os.path.basename(data.get("name") or f"asset-{asset_id}")
-        output_path = os.path.join(output_dir, asset_name)
-        if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
-            raise GfoError(_("Invalid asset name: {name}").format(name=asset_name))
+        output_path = _safe_join_output_path(output_dir, asset_name)
         url = (
             data.get("browser_download_url")
             or f"{self._client.base_url}{self._repos_path()}/releases/{release_id}/assets/{asset_id}"
         )
-        self._client.download_file(url, output_path)
-        return output_path
+        self._client.download_file(url, str(output_path))
+        return str(output_path)
 
     def delete_release_asset(self, *, tag: str, asset_id: int | str) -> None:
         resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")
