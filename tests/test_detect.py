@@ -983,3 +983,12 @@ class TestNormalizeHost:
 
     def test_trailing_slash_stripped(self):
         assert normalize_host("forgejo.example.com/") == "forgejo.example.com"
+
+    def test_ipv6_literal_bracket_preserved(self):
+        assert normalize_host("https://[::1]:3000") == "[::1]:3000"
+
+    def test_ipv6_literal_without_port(self):
+        assert normalize_host("https://[2001:db8::1]") == "[2001:db8::1]"
+
+    def test_ipv6_literal_uppercase_lowercased(self):
+        assert normalize_host("https://[2001:DB8::1]:8443") == "[2001:db8::1]:8443"

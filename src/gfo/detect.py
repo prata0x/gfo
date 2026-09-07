@@ -21,8 +21,12 @@ def normalize_host(value: str) -> str:
     if "://" in value:
         parsed = urlparse(value)
         hostname = parsed.hostname or value
+        # IPv6 リテラルは urlparse().hostname でブラケットが剥がされるため、
+        # 再構築時に host:port の区切りと混同しないようブラケットを保持する。
+        if ":" in hostname:
+            hostname = f"[{hostname}]"
         if parsed.port:
-            return f"{hostname.lower()}:{parsed.port}"
+            return f"{hostname}:{parsed.port}".lower()
         return hostname.lower()
     return value.strip().rstrip("/").lower()
 
