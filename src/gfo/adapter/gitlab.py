@@ -18,6 +18,7 @@ from gfo.i18n import _
 if TYPE_CHECKING:
     from gfo.http import HttpClient
 
+from ._helpers import _wrap_ipv6_hostname
 from .base import (
     GitServiceAdapter,
     _mask_token_in_exception,
@@ -2608,7 +2609,7 @@ class GitLabAdapter(GitServiceAdapter):
         if parsed.scheme not in ("http", "https") or parsed.password:
             return url
         username = quote(parsed.username, safe="") if parsed.username else "oauth2"
-        host = parsed.hostname or ""
+        host = _wrap_ipv6_hostname(parsed.hostname or "")
         port = f":{parsed.port}" if parsed.port else ""
         netloc = f"{username}:{quote(auth_token, safe='')}@{host}{port}"
         return urlunparse(parsed._replace(netloc=netloc))

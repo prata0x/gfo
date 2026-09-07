@@ -4235,6 +4235,14 @@ class TestCreatePushMirrorAuthToken:
         url = GitLabAdapter._embed_mirror_credentials("https://github.com/o/r.git", "t@k/en:1")
         assert url == "https://oauth2:t%40k%2Fen%3A1@github.com/o/r.git"
 
+    def test_ipv6_literal_keeps_brackets(self):
+        from gfo.adapter.gitlab import GitLabAdapter
+
+        url = GitLabAdapter._embed_mirror_credentials(
+            "https://[::1]:8080/group/repo.git", "secret-tok"
+        )
+        assert url == "https://oauth2:secret-tok@[::1]:8080/group/repo.git"
+
 
 class TestUpdateOrganization:
     def test_update_display_name(self, mock_responses, gitlab_adapter):
