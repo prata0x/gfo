@@ -1110,4 +1110,4 @@ class GitServiceAdapter(ABC):
 # 形で参照することが多いため、ここで再 export しておく。
 # `_WEB_URL_PATHS` 経由の get_web_url デフォルト実装にも依存しないよう
 # `github_like` モジュール側は base.py 完成後にロードされる順序になる。
-from gfo.adapter.github_like import GitHubLikeAdapter  # noqa: E402, F401
+from gfo.adapter.github_like import GitHubLikeAdapter  # noqa: E402

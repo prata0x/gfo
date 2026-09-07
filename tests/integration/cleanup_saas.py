@@ -12,7 +12,7 @@ from pathlib import Path
 # プロジェクトルートを sys.path に追加
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from tests.integration.conftest import create_test_adapter, get_service_config  # noqa: E402
+from tests.integration.conftest import create_test_adapter, get_service_config
 
 TEST_LABEL = "gfo-test-label"
 TEST_MILESTONE = "gfo-test-milestone"
