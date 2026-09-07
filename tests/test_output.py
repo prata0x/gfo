@@ -20,6 +20,7 @@ from gfo.exceptions import (
 )
 from gfo.output import (
     _display_width,
+    _strip_bidi_controls,
     apply_jq_filter,
     format_error_json,
     format_json,
@@ -141,6 +142,18 @@ class TestFormatTable:
         )
         assert "safe\\x00\\x07\\x1b[2K\\x7f\\x9b2Jdone" in result
         assert not any(char in result for char in "\x00\x07\x1b\x7f\x9b")
+
+    def test_bidi_control_chars_are_stripped(self):
+        """Unicode 双方向制御文字がテーブル出力から除去され視覚的スプーフィングを防ぐ。"""
+        malicious = "fix_config\u202egpj.exe\u202c_backup"  # RLO + PDF
+        result = format_table(
+            [SampleItem(1, malicious, "open", "alice")],
+            ["number", "title"],
+        )
+        data_row = result.split("\n")[2]
+        assert "\u202e" not in data_row
+        assert "\u202c" not in data_row
+        assert "fix_configgpj.exe_backup" in data_row
 
     def test_multibyte_title_width(self):
         """日本語タイトルの表示幅は文字数の2倍として計算される。"""
@@ -330,6 +343,17 @@ class TestFormatPlain:
         )
         assert result == "1\tsafe\\x00\\x07\\x1b[2K\\x7f\\x9b2Jdone"
         assert not any(char in result for char in "\x00\x07\x1b\x7f\x9b")
+
+    def test_bidi_control_chars_are_stripped(self):
+        """Unicode 双方向制御文字がプレーン出力から除去される。"""
+        malicious = "fix_config\u202egpj.exe\u202c_backup"  # RLO + PDF
+        result = format_plain(
+            [SampleItem(1, malicious, "open", "alice")],
+            ["number", "title"],
+        )
+        assert result == "1\tfix_configgpj.exe_backup"
+        assert "\u202e" not in result
+        assert "\u202c" not in result
 
     def test_none_field_shown_as_empty_in_plain(self):
         """None フィールドはプレーン形式で空文字列として出力される（"None" にならない）（R35-03）。"""
@@ -639,6 +663,31 @@ class TestApplyJqFilter:
         with patch("gfo.output.subprocess.run", return_value=mock_result):
             result = apply_jq_filter('{"a": "hello"}', ".a")
         assert result == '"hello"'
+
+
+# ── 双方向制御文字除去テスト (#574) ──
+
+
+class TestStripBidiControls:
+    def test_removes_override_and_embedding(self):
+        """U+202A-U+202E（embedding/override 系）が除去される。"""
+        text = "a\u202bb\u202c\u202dc\u202e\u202ad\u202a"
+        assert _strip_bidi_controls(text) == "abcd"
+
+    def test_removes_isolate_series(self):
+        """U+2066-U+2069（isolate 系）が除去される。"""
+        text = "x\u2066y\u2067z\u2068w\u2069"
+        assert _strip_bidi_controls(text) == "xyzw"
+
+    def test_preserves_normal_text_and_japanese(self):
+        """通常の文字や日本語はそのまま保持される。"""
+        text = "fix: 日本語タイトル (RLM is not bidi-override)"
+        assert _strip_bidi_controls(text) == text
+
+    def test_preserves_non_bidi_format_chars(self):
+        """双方向制御以外の書式文字（例: U+200B ZWSP）は除去しない。"""
+        text = "a\u200bb"
+        assert _strip_bidi_controls(text) == text
 
 
 # ── 非 ASCII 表示幅テスト (#4-C) ──
