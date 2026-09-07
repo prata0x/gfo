@@ -1145,7 +1145,7 @@ Manage repository topics.
 gfo repo topics list
 gfo repo topics add <topic>
 gfo repo topics remove <topic>
-gfo repo topics set <topic> [<topic> ...]
+gfo repo topics set [<topic> ...]
 ```
 
 ### gfo repo compare
@@ -2242,13 +2242,13 @@ gfo branch-protect view BRANCH
 ### gfo branch-protect set
 
 ```
-gfo branch-protect set BRANCH [--require-reviews N] [--require-status-checks CHECK...] [--enforce-admins | --no-enforce-admins] [--allow-force-push | --no-allow-force-push] [--allow-deletions | --no-allow-deletions]
+gfo branch-protect set BRANCH [--require-reviews N] [--require-status-checks [CHECK...]] [--enforce-admins | --no-enforce-admins] [--allow-force-push | --no-allow-force-push] [--allow-deletions | --no-allow-deletions]
 ```
 
 | Option | Description |
 |---|---|
 | `--require-reviews N` | Required number of review approvals (0 to disable) |
-| `--require-status-checks CHECK...` | Required status check names (multiple allowed) |
+| `--require-status-checks [CHECK...]` | Required status check names (multiple allowed); omit `CHECK` to clear all |
 | `--enforce-admins` / `--no-enforce-admins` | Enforce protection for admins |
 | `--allow-force-push` / `--no-allow-force-push` | Allow force push |
 | `--allow-deletions` / `--no-allow-deletions` | Allow branch deletion |

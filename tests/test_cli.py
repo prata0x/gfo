@@ -99,6 +99,18 @@ def test_require_reviews_zero_accepted_by_parser():
     assert args.require_reviews == 0
 
 
+def test_require_status_checks_empty_list_clears():
+    parser, _ = create_parser()
+    args = parser.parse_args(["branch-protect", "set", "main", "--require-status-checks"])
+    assert args.require_status_checks == []
+
+
+def test_repo_topics_set_empty_list_clears():
+    parser, _ = create_parser()
+    args = parser.parse_args(["repo", "topics", "set"])
+    assert args.topics == []
+
+
 # ── create_parser のテスト ──
 
 
