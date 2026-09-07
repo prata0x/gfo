@@ -2042,7 +2042,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 pattern=r["pattern"],
                 create_access_level="",
             )
-            for r in resp.json()
+            for r in resp.json()[: limit if limit > 0 else None]
         ]
 
     def create_tag_protection(

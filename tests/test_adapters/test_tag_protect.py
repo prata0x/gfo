@@ -50,6 +50,17 @@ class TestGitHubTagProtect:
         github_adapter.delete_tag_protection(1)
 
     @responses.activate
+    def test_list_limit(self, github_adapter):
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/test-owner/test-repo/tags/protection",
+            json=[{"id": i, "pattern": f"v{i}"} for i in range(10)],
+        )
+        tps = github_adapter.list_tag_protections(limit=3)
+        assert len(tps) == 3
+        assert [tp.id for tp in tps] == [0, 1, 2]
+
+    @responses.activate
     def test_list_empty(self, github_adapter):
         responses.add(
             responses.GET,
@@ -198,6 +209,17 @@ class TestGiteaTagProtect:
             status=204,
         )
         gitea_adapter.delete_tag_protection(1)
+
+    @responses.activate
+    def test_list_limit(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitea.example.com/api/v1/repos/test-owner/test-repo/tag_protections",
+            json=[{"id": i, "name_pattern": f"v{i}", "whitelist_teams": ""} for i in range(10)],
+        )
+        tps = gitea_adapter.list_tag_protections(limit=3)
+        assert len(tps) == 3
+        assert [tp.id for tp in tps] == [0, 1, 2]
 
     @responses.activate
     def test_list_empty(self, gitea_adapter):
