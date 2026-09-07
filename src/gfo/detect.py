@@ -62,15 +62,23 @@ class DetectResult:
 
 # ── URL パース正規表現 ──
 
+# ホスト部: IPv6 リテラル ([...]) または非ブラケット (":"/"." を含まない) のいずれか。
+# IPv6 リテラルはブラケット内部に ":" を含むため、単純な [^/:]+ だとマッチしない。
+_HOST_ATOM = r"(?:\[[^\]]+\])|[^/:]+"
+
 _HTTPS_RE = re.compile(
-    r"^https?://(?:[^\s@]+@)?(?P<host>[^/:]+)(?::(?P<port>\d+))?/(?P<path>.+?)(?:\.git)?/?$"
+    rf"^https?://(?:[^\s@]+@)?(?P<host>{_HOST_ATOM})(?::(?P<port>\d+))?/(?P<path>.+?)(?:\.git)?/?$"
 )
 
 _SSH_URL_RE = re.compile(
-    r"^ssh://(?:[^\s@]+@)?(?P<host>[^/:]+)(?::(?P<port>\d+))?/(?P<path>.+?)(?:\.git)?/?$"
+    rf"^ssh://(?:[^\s@]+@)?(?P<host>{_HOST_ATOM})(?::(?P<port>\d+))?/(?P<path>.+?)(?:\.git)?/?$"
 )
 
-_SSH_SCP_RE = re.compile(r"^(?:[^\s@]+@)?(?P<host>[^:]+):(?P<path>.+?)(?:\.git)?/?$")
+# scp 形式 (user@host:path) は "://" を含まないため、scheme:// URL が誤って
+# ここにすり抜けるのを否定先読みで防ぐ。ホスト部も IPv6 リテラルに対応。
+_SSH_SCP_RE = re.compile(
+    r"^(?!.*://)(?:[^\s@]+@)?(?P<host>(?:\[[^\]]+\])|[^:]+):(?P<path>.+?)(?:\.git)?/?$"
+)
 
 
 # ── パスパーサー正規表現 ──

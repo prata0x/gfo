@@ -263,6 +263,43 @@ class TestDetectFromUrl:
         assert r.owner == "owner"
         assert r.repo == "repo"
 
+    # IPv6 リテラルホスト (#571)
+    def test_ipv6_https_with_port(self):
+        """IPv6 リテラルホスト + ポートの HTTPS URL が正しくパースされる (#571)。"""
+        r = detect_from_url("https://[::1]:3000/owner/repo.git")
+        assert r.host == "[::1]"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+        assert r.service_type is None
+
+    def test_ipv6_https_without_port(self):
+        """ポートなし IPv6 リテラルホストの HTTPS URL (#571)。"""
+        r = detect_from_url("https://[2001:db8::1]/owner/repo.git")
+        assert r.host == "[2001:db8::1]"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+
+    def test_ipv6_ssh_url_with_port(self):
+        """IPv6 リテラルホスト + ポートの ssh:// URL (#571)。"""
+        r = detect_from_url("ssh://git@[::1]:2222/owner/repo.git")
+        assert r.host == "[::1]"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+
+    def test_ipv6_ssh_scp(self):
+        """IPv6 リテラルホストの scp 形式 URL が scp パターンに誤匹配せず正しくパースされる (#571)。"""
+        r = detect_from_url("git@[::1]:owner/repo.git")
+        assert r.host == "[::1]"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+
+    def test_ipv6_https_not_misparsed_as_scp(self):
+        """IPv6 リテラル HTTPS URL が scp パターンにすり抜けず host/owner がゴミにならない (#571)。"""
+        r = detect_from_url("https://[::1]:3000/owner/repo.git")
+        assert r.host == "[::1]"
+        assert r.owner == "owner"
+        assert r.repo == "repo"
+
 
 # ── get_known_service_type テスト ──
 
