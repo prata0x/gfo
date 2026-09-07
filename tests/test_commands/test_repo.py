@@ -1214,6 +1214,20 @@ class TestHandleLanguages:
         data = json.loads(out)
         assert data == {}
 
+    def test_json_strips_dangerous_chars(self, sample_config, capsys):
+        """#812: json 出力も双方向制御文字・C1 を除去する。"""
+        adapter = MagicMock()
+        adapter.get_languages.return_value = {"evil\u202elang\x9b": 123}
+        args = make_args()
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_languages(args, fmt="json")
+
+        out = capsys.readouterr().out
+        assert "\u202e" not in out
+        assert "\x9b" not in out
+        data = json.loads(out)
+        assert data == {"evillang": 123}
+
     @pytest.mark.parametrize(
         ("fmt", "expected"),
         [
@@ -1251,6 +1265,20 @@ class TestHandleTopics:
             repo_cmd.handle_topics(args, fmt="plain")
 
         assert capsys.readouterr().out == "python\ncli\n"
+
+    def test_list_json_strips_dangerous_chars(self, sample_config, capsys):
+        """#812: json 出力も双方向制御文字・C1 を除去する。"""
+        adapter = MagicMock()
+        adapter.list_topics.return_value = ["evil\u202etopic\x9b"]
+        args = make_args(topics_action="list")
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_topics(args, fmt="json")
+
+        out = capsys.readouterr().out
+        assert "\u202e" not in out
+        assert "\x9b" not in out
+        data = json.loads(out)
+        assert data == ["eviltopic"]
 
     @pytest.mark.parametrize("fmt", ["table", "plain"])
     @pytest.mark.parametrize("action", ["list", "add", "remove", "set"])

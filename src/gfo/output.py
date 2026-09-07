@@ -101,13 +101,14 @@ def _strip_dangerous_chars_for_json(val: str) -> str:
 def _sanitize_value_for_json(obj: Any) -> Any:
     """JSON 出力用に dict/list/str を再帰的に無害化する（その他の型はそのまま）。
 
-    HTTP レスポンス等からきたフォージ側の任意文字列値を ``json.dumps`` に渡す前に
-    通し、双方向制御文字と C1/DEL 範囲の制御文字を除去する。
+    HTTP レスポンス等からきたフォージ側の任意文字列（値だけでなく dict のキーも）
+    を ``json.dumps`` に渡す前に通し、双方向制御文字と C1/DEL 範囲の制御文字を
+    除去する。
     """
     if isinstance(obj, str):
         return _strip_dangerous_chars_for_json(obj)
     if isinstance(obj, dict):
-        return {k: _sanitize_value_for_json(v) for k, v in obj.items()}
+        return {_sanitize_value_for_json(k): _sanitize_value_for_json(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple)):
         return [_sanitize_value_for_json(v) for v in obj]
     return obj
