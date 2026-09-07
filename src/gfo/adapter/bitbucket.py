@@ -1,4 +1,4 @@
-"""Bitbucket Cloud アダプター。GitServiceAdapter の全メソッドを Bitbucket REST API v2 で実装する。"""  # noqa: E501
+"""Bitbucket Cloud アダプター。GitServiceAdapter の全メソッドを Bitbucket REST API v2 で実装する。"""
 
 from __future__ import annotations
 

@@ -323,7 +323,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     @staticmethod
     def _parse_issue_template(content: str) -> IssueTemplate:
         """GitHub Issue Template の frontmatter を簡易パースする。"""
-        import re  # noqa: PLC0415
+        import re
 
         name = title = about = ""
         labels: list[str] = []
