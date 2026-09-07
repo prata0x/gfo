@@ -627,15 +627,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return self._to_release(resp.json())
 
     def get_latest_release(self) -> Release:
-        results = paginate_link_header(
-            self._client,
-            f"{self._repos_path()}/releases",
-            limit=1,
-            per_page_key="limit",
-        )
-        if not results:
-            raise NotFoundError()
-        return self._to_release(results[0])
+        resp = self._client.get(f"{self._repos_path()}/releases/latest")
+        return self._to_release(resp.json())
 
     def list_release_assets(self, *, tag: str) -> list[ReleaseAsset]:
         resp = self._client.get(f"{self._repos_path()}/releases/tags/{quote(tag, safe='')}")

@@ -3758,9 +3758,28 @@ class TestCompareGitea:
 class TestGetLatestReleaseGitea:
     @responses.activate
     def test_get_latest(self, gitea_adapter):
-        responses.add(responses.GET, f"{REPOS}/releases", json=[_release_data()], status=200)
+        responses.add(responses.GET, f"{REPOS}/releases/latest", json=_release_data(), status=200)
         release = gitea_adapter.get_latest_release()
         assert release.tag == "v1.0.0"
+
+    @responses.activate
+    def test_none_found_raises(self, gitea_adapter):
+        responses.add(responses.GET, f"{REPOS}/releases/latest", status=404)
+        with pytest.raises(NotFoundError):
+            gitea_adapter.get_latest_release()
+
+    @responses.activate
+    def test_excludes_draft_and_prerelease(self, gitea_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/releases/latest",
+            json={**_release_data(), "tag_name": "v1.0.0", "draft": False, "prerelease": False},
+            status=200,
+        )
+        release = gitea_adapter.get_latest_release()
+        assert release.tag == "v1.0.0"
+        assert release.prerelease is False
+        assert release.draft is False
 
 
 class TestReleaseAssetsGitea:
