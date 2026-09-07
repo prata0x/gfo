@@ -74,6 +74,18 @@ class TestHandleWhoami:
         out = capsys.readouterr().out
         assert "testuser" in out
 
+    def test_whoami_json_strips_dangerous_chars(self, capsys):
+        """#812: json 出力も双方向制御文字・C1 を除去する。"""
+        with patch_adapter("gfo.commands.user") as adapter:
+            adapter.get_current_user.return_value = {"login": "evil\u202ename\x9b"}
+            args = make_args()
+            user_cmd.handle_whoami(args, fmt="json")
+        out = capsys.readouterr().out
+        assert "\u202e" not in out
+        assert "\x9b" not in out
+        data = json.loads(out)
+        assert data == {"login": "evilname"}
+
     def test_whoami_empty_dict(self, capsys):
         """空の dict でも例外なく処理される。"""
         with patch_adapter("gfo.commands.user") as adapter:

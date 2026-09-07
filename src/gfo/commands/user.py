@@ -6,7 +6,12 @@ import argparse
 import json
 
 from gfo.commands import get_adapter
-from gfo.output import _sanitize_for_plain, _sanitize_for_table, apply_jq_filter
+from gfo.output import (
+    _sanitize_for_plain,
+    _sanitize_for_table,
+    _sanitize_value_for_json,
+    apply_jq_filter,
+)
 
 
 def handle_whoami(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -14,7 +19,7 @@ def handle_whoami(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     adapter = get_adapter(require_repo=False)
     user = adapter.get_current_user()
     if fmt == "json":
-        json_str = json.dumps(user, ensure_ascii=False, indent=2)
+        json_str = json.dumps(_sanitize_value_for_json(user), ensure_ascii=False, indent=2)
         if jq is not None:
             print(apply_jq_filter(json_str, jq))
         else:

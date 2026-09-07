@@ -341,7 +341,7 @@ def handle_languages(args: argparse.Namespace, *, fmt: str, jq: str | None = Non
     """gfo repo languages のハンドラ。"""
     import json
 
-    from gfo.output import apply_jq_filter
+    from gfo.output import _sanitize_value_for_json, apply_jq_filter
 
     if jq is not None:
         fmt = "json"
@@ -349,7 +349,7 @@ def handle_languages(args: argparse.Namespace, *, fmt: str, jq: str | None = Non
     adapter = get_adapter()
     languages = adapter.get_languages()
     if fmt == "json":
-        json_str = json.dumps(languages, indent=2, ensure_ascii=False)
+        json_str = json.dumps(_sanitize_value_for_json(languages), indent=2, ensure_ascii=False)
         if jq is not None:
             print(apply_jq_filter(json_str, jq))
         else:
@@ -367,7 +367,7 @@ def handle_topics(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     """gfo repo topics のハンドラ。"""
     import json
 
-    from gfo.output import apply_jq_filter
+    from gfo.output import _sanitize_value_for_json, apply_jq_filter
 
     if jq is not None:
         fmt = "json"
@@ -389,7 +389,7 @@ def handle_topics(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
         raise ConfigError(_("Unknown topics action: {action}").format(action=action))
 
     if fmt == "json":
-        json_str = json.dumps(topics, indent=2, ensure_ascii=False)
+        json_str = json.dumps(_sanitize_value_for_json(topics), indent=2, ensure_ascii=False)
         if jq is not None:
             print(apply_jq_filter(json_str, jq))
         else:
