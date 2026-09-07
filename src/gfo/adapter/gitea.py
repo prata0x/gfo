@@ -2223,7 +2223,9 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         )
 
     def delete_time_entry(self, issue_number: int, entry_id: int | str) -> None:
-        self._client.delete(f"{self._repos_path()}/issues/{issue_number}/times/{entry_id}")
+        self._client.delete(
+            f"{self._repos_path()}/issues/{issue_number}/times/{quote(str(entry_id), safe='')}"
+        )
 
     # --- Push Mirror ---
 
