@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 import pytest
 import responses
 
-from gfo.adapter.base import Issue, PullRequest, Release, Repository
+from gfo.adapter.base import Issue, PullRequest, Release, Repository, Tag
 from gfo.adapter.gitbucket import GitBucketAdapter
 from gfo.adapter.github import GitHubAdapter
 from gfo.adapter.registry import get_adapter_class
@@ -900,3 +900,59 @@ class TestReleaseAssetOperations:
             gitbucket_adapter.update_release_asset(tag="v1.0.0", asset_id=123, name="new.zip")
         assert exc_info.value.operation == "release asset operations"
         assert len(mock_responses.calls) == 0
+
+
+class TestCreateTag:
+    """create_tag は POST /git/refs で軽量タグを作成し GET /git/refs/tags で読み戻す (#585)。"""
+
+    def test_creates_lightweight_tag_from_sha(self, mock_responses, gitbucket_adapter):
+        sha40 = "a" * 40
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/git/ref/heads/{sha40}",
+            status=404,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/git/refs",
+            json={"ref": "refs/tags/v1.0.0", "object": {"sha": sha40}},
+            status=201,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/git/refs/tags",
+            json=[{"ref": "refs/tags/v1.0.0", "object": {"sha": sha40}}],
+            status=200,
+        )
+        tag = gitbucket_adapter.create_tag(name="v1.0.0", ref=sha40)
+        assert isinstance(tag, Tag)
+        assert tag.name == "v1.0.0"
+        assert tag.sha == sha40
+        post_body = json_mod.loads(mock_responses.calls[1].request.body)
+        assert post_body["ref"] == "refs/tags/v1.0.0"
+        assert post_body["sha"] == sha40
+        assert mock_responses.calls[2].request.url.startswith(f"{REPOS}/git/refs/tags")
+
+    def test_resolves_branch_name_to_sha(self, mock_responses, gitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/git/ref/heads/main",
+            json={"object": {"sha": "resolved-sha"}},
+            status=200,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/git/refs",
+            json={"ref": "refs/tags/v2.0.0", "object": {"sha": "resolved-sha"}},
+            status=201,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/git/refs/tags",
+            json=[{"ref": "refs/tags/v2.0.0", "object": {"sha": "resolved-sha"}}],
+            status=200,
+        )
+        tag = gitbucket_adapter.create_tag(name="v2.0.0", ref="main")
+        assert tag.sha == "resolved-sha"
+        post_body = json_mod.loads(mock_responses.calls[1].request.body)
+        assert post_body["sha"] == "resolved-sha"

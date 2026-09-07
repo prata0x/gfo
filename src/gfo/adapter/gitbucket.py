@@ -204,8 +204,25 @@ class GitBucketAdapter(GitHubAdapter):
         return [self._to_ref_tag(item) for item in results]
 
     def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
-        """GitBucket は POST /git/refs 未実装のため非対応。"""
-        raise NotSupportedError("GitBucket", "tag creation via API (use git push)")
+        # GitBucket implements lightweight tag creation via POST /git/refs
+        # (annotated tags via POST /git/tags are not implemented by GitBucket).
+        self._warn_unsupported_params("tag create", message=message)
+        sha = ref
+        try:
+            resp = self._client.get(
+                f"{self._repos_path()}/git/ref/heads/{urllib.parse.quote(ref, safe='')}"
+            )
+            sha = resp.json()["object"]["sha"]
+        except NotFoundError:
+            pass
+        self._client.post(
+            f"{self._repos_path()}/git/refs",
+            json={"ref": f"refs/tags/{name}", "sha": sha},
+        )
+        for t in self.list_tags(limit=0):
+            if t.name == name:
+                return t
+        raise GfoError(_("Tag '{name}' not found after creation").format(name=name))
 
     def delete_release(self, *, tag: str) -> None:
         """GitBucket はリリースをタグ名で直接削除する（数値 ID を返さないため）。"""

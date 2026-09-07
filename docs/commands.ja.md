@@ -1641,7 +1641,7 @@ gfo branch delete feature/old-ui
 
 タグを操作します。
 
-> **対応サービス**: 全サービス（tag create は Gogs / GitBucket 非対応。tag delete は Gogs 非対応）
+> **対応サービス**: 全サービス（tag create は Gogs 非対応。tag delete は Gogs 非対応）
 
 ### gfo tag list
 
