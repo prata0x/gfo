@@ -7,7 +7,12 @@ import json
 
 from gfo.commands import confirm_action, get_adapter
 from gfo.i18n import _
-from gfo.output import _sanitize_for_plain, apply_jq_filter, output_result
+from gfo.output import (
+    _sanitize_for_plain,
+    _sanitize_value_for_json,
+    apply_jq_filter,
+    output_result,
+)
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -15,7 +20,7 @@ def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     adapter = get_adapter()
     usernames = adapter.list_collaborators(limit=args.limit)
     if fmt == "json":
-        json_str = json.dumps(usernames, ensure_ascii=False)
+        json_str = json.dumps(_sanitize_value_for_json(usernames), ensure_ascii=False)
         if jq is not None:
             print(apply_jq_filter(json_str, jq))
         else:

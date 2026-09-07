@@ -76,6 +76,18 @@ class TestHandleList:
 
         assert capsys.readouterr().out == r"safe\x00\x1b[2Kdone" + "\n"
 
+    def test_strips_dangerous_chars_in_json_output(self, capsys):
+        """#807: json 出力も双方向制御文字・C1 を除去する。"""
+        with patch_adapter("gfo.commands.collaborator") as adapter:
+            adapter.list_collaborators.return_value = ["evil\u202ename\x9b"]
+            args = make_args(limit=30)
+            collab_cmd.handle_list(args, fmt="json")
+        out = capsys.readouterr().out
+        assert "\u202e" not in out
+        assert "\x9b" not in out
+        data = json.loads(out)
+        assert data == ["evilname"]
+
 
 class TestHandleAdd:
     def test_calls_add_collaborator(self):

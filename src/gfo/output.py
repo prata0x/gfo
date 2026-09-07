@@ -85,6 +85,34 @@ def _escape_control_chars(val: str) -> str:
     )
 
 
+def _strip_dangerous_chars_for_json(val: str) -> str:
+    """JSON 値から双方向制御文字と C1/DEL 範囲の制御文字を除去する。
+
+    ``json.dumps`` は C0 制御文字 (``\\x00``-``\\x1f``) を ``\\u00XX`` にエスケープするため
+    JSON 出力経路で生のまま出力されることはないが、双方向制御文字と C1/DEL 範囲
+    (``\\x7f``-``\\x9f``) はエスケープされず、端末インジェクション / Trojan Source
+    視覚スプーフィングの元になる。table/plain 側の ``_sanitize_for_table``
+    等とは異なり、見た目のエスケープ表記化 (``\\n``→``\\\\n`` 等) は行わない。
+    """
+    result = _strip_bidi_controls(val)
+    return "".join(ch for ch in result if not (0x7F <= ord(ch) <= 0x9F))
+
+
+def _sanitize_value_for_json(obj: Any) -> Any:
+    """JSON 出力用に dict/list/str を再帰的に無害化する（その他の型はそのまま）。
+
+    HTTP レスポンス等からきたフォージ側の任意文字列値を ``json.dumps`` に渡す前に
+    通し、双方向制御文字と C1/DEL 範囲の制御文字を除去する。
+    """
+    if isinstance(obj, str):
+        return _strip_dangerous_chars_for_json(obj)
+    if isinstance(obj, dict):
+        return {k: _sanitize_value_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_value_for_json(v) for v in obj]
+    return obj
+
+
 def apply_jq_filter(json_str: str, expression: str) -> str:
     """JSON 文字列に jq 式を適用して結果を返す。
 
@@ -134,7 +162,7 @@ def format_error_json(err: GfoError) -> str:
             d["details"] = err.details
     if hasattr(err, "hint") and err.hint:
         d["hint"] = err.hint
-    return json.dumps(d, ensure_ascii=False)
+    return json.dumps(_sanitize_value_for_json(d), ensure_ascii=False)
 
 
 def output_result(
@@ -155,7 +183,10 @@ def output_result(
     if jq and fmt != "json":
         fmt = "json"
     if fmt == "json":
-        json_str = json.dumps({"result": result, **fields, "message": message}, ensure_ascii=False)
+        json_str = json.dumps(
+            _sanitize_value_for_json({"result": result, **fields, "message": message}),
+            ensure_ascii=False,
+        )
         if jq is not None:
             print(apply_jq_filter(json_str, jq))
         else:
@@ -234,7 +265,7 @@ def format_table(items: list[Any], fields: list[str]) -> str:
 
 def format_json(items: list[Any]) -> str:
     """JSON 形式にフォーマットする。"""
-    dicts = [dataclasses.asdict(item) for item in items]
+    dicts = [_sanitize_value_for_json(dataclasses.asdict(item)) for item in items]
     return json.dumps(dicts, indent=2, ensure_ascii=False, default=str)
 
 
@@ -275,7 +306,10 @@ def output_grouped(
         empty_message: 空セクション時のメッセージ (デフォルト "No results found.")
     """
     if fmt == "json" or jq is not None:
-        data = {key: [dataclasses.asdict(item) for item in items] for key, items in groups.items()}
+        data = {
+            key: [_sanitize_value_for_json(dataclasses.asdict(item)) for item in items]
+            for key, items in groups.items()
+        }
         json_str = json.dumps(data, indent=2, ensure_ascii=False, default=str)
         if jq is not None:
             print(apply_jq_filter(json_str, jq))

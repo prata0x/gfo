@@ -6,7 +6,13 @@ import argparse
 import json
 
 from gfo.commands import confirm_action, get_adapter
-from gfo.output import _sanitize_for_plain, apply_jq_filter, output, output_result
+from gfo.output import (
+    _sanitize_for_plain,
+    _sanitize_value_for_json,
+    apply_jq_filter,
+    output,
+    output_result,
+)
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -28,7 +34,7 @@ def handle_members(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
     adapter = get_adapter(require_repo=False)
     members = adapter.list_org_members(args.name, limit=args.limit)
     if fmt == "json":
-        json_str = json.dumps(members, ensure_ascii=False)
+        json_str = json.dumps(_sanitize_value_for_json(members), ensure_ascii=False)
         if jq is not None:
             print(apply_jq_filter(json_str, jq))
         else:

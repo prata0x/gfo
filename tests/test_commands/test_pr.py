@@ -820,6 +820,18 @@ class TestHandleReviewers:
         out = capsys.readouterr().out
         assert "alice" in out
 
+    def test_strips_dangerous_chars_in_json_output(self, capsys):
+        """#807: json 出力も双方向制御文字・C1 を除去する。"""
+        with patch_adapter("gfo.commands.pr") as adapter:
+            adapter.list_requested_reviewers.return_value = ["evil\u202ename\x9b"]
+            args = make_args(number=1, reviewer_action=None)
+            pr_cmd.handle_reviewers(args, fmt="json")
+        out = capsys.readouterr().out
+        assert "\u202e" not in out
+        assert "\x9b" not in out
+        data = json.loads(out)
+        assert data == ["evilname"]
+
     def test_add_action(self):
         with patch_adapter("gfo.commands.pr") as adapter:
             args = make_args(number=1, reviewer_action="add", users=["user1", "user2"])

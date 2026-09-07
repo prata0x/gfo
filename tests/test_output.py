@@ -20,6 +20,7 @@ from gfo.exceptions import (
 )
 from gfo.output import (
     _display_width,
+    _sanitize_value_for_json,
     _strip_bidi_controls,
     apply_jq_filter,
     format_error_json,
@@ -302,6 +303,30 @@ class TestFormatJson:
         data_line = result.split("\n")[2]
         assert "test" in data_line
 
+    def test_bidi_and_c1_control_chars_are_stripped(self):
+        """JSON 出力も端末インジェクション / Trojan Source を防ぐため制御文字を除去する。
+
+        #807: --format json は _sanitize_for_table/_sanitize_for_plain を経由しないため、
+        table/plain で防いだのと同じ攻撃が json 経路で成立しないよう無害化する。
+        """
+        malicious = "fix_config\u202egpj.exe\u202c_backup\x00\x07\x9b2Jdone"  # RLO+PDF, C0, C1(CSI)
+        result = format_json([SampleItem(1, malicious, "open", "alice")])
+        # json.dumps は C0 を \\u00XX にエスケープするが生文字は残らない
+        assert "\u202e" not in result
+        assert "\u202c" not in result
+        assert "\x9b" not in result  # C1 は生文字で残るはずが除去される
+        # 正常な Unicode は保持される
+        assert "gpj.exe" in result
+
+    def test_control_chars_in_nested_values_are_stripped(self):
+        """dict/list に入れ子の文字列値も再帰的に無害化される。"""
+        malicious = "evil\u202ename"
+        item = {"title": malicious, "tags": ["a\u202cb", "ok"]}
+        result = json.dumps(_sanitize_value_for_json(item), ensure_ascii=False)
+        assert "\u202e" not in result
+        assert "\u202c" not in result
+        assert "ok" in result
+
 
 class TestFormatPlain:
     def test_tab_separated(self):
@@ -567,6 +592,20 @@ class TestOutputResult:
         data = json.loads(capsys.readouterr().out)
         assert data == {"result": "aborted", "message": "Aborted."}
 
+    def test_json_strips_dangerous_chars_in_message_and_fields(self, capsys):
+        """#807: 成功メッセージ JSON も双方向制御文字・C1 を除去する。"""
+        output_result(
+            "done\u202eback",
+            result="ok",
+            fmt="json",
+            title="fix\u202egpj.exe\x9b",
+        )
+        out = capsys.readouterr().out
+        assert "\u202e" not in out
+        assert "\x9b" not in out
+        data = json.loads(out)
+        assert data["result"] == "ok"
+
 
 class TestFormatErrorJson:
     def test_basic_error(self):
@@ -640,6 +679,16 @@ class TestFormatErrorJson:
         err = GfoError("plain")
         result = json.loads(format_error_json(err))
         assert "status_code" not in result
+
+    def test_details_strips_dangerous_chars(self):
+        """#807: 4xx バリデーションエラーの details（フォージ側生成）も無害化される。"""
+        malicious = {"field": "title\u202e", "value": "x\x9by"}
+        err = ValidationError(422, "bad", details=malicious)
+        raw = format_error_json(err)
+        assert "\u202e" not in raw
+        assert "\x9b" not in raw
+        result = json.loads(raw)
+        assert result["details"]["field"] == "title"
 
 
 class TestApplyJqFilter:
