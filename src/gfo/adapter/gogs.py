@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import urllib.parse
 from collections.abc import Iterator
 from typing import Any
 from urllib.parse import quote
 
 from gfo.exceptions import NotSupportedError
 
+from ._helpers import _web_base_from_api_url
 from .gitea import GiteaAdapter
 from .models import (
     Artifact,
@@ -57,9 +57,7 @@ class GogsAdapter(GiteaAdapter):
 
     def _web_url(self) -> str:
         """Web UI のベース URL を構築する。"""
-        parsed = urllib.parse.urlparse(self._client.base_url)
-        port = f":{parsed.port}" if parsed.port is not None else ""
-        return f"{parsed.scheme}://{parsed.hostname}{port}"
+        return _web_base_from_api_url(self._client.base_url)
 
     def _pr_url(self, suffix: str = "pulls") -> str:
         owner = quote(self._owner, safe="")

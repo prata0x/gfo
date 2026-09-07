@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -399,3 +399,13 @@ class TestGogsErrorPropagation:
                 gogs_adapter.list_issues()
         # リトライ前に Retry-After 秒待機していること
         mock_sleep.assert_called_once()
+
+
+class TestWebUrlIPv6:
+    """IPv6 リテラルホストのブラケット保持 (#582 / #796)。"""
+
+    def test_web_url_keeps_brackets(self):
+        client = MagicMock()
+        client.base_url = "https://[::1]:3000/api/v1"
+        adapter = GogsAdapter(client, "acme", "widgets")
+        assert adapter._web_url() == "https://[::1]:3000"

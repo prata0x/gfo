@@ -18,7 +18,12 @@ from gfo.i18n import _
 if TYPE_CHECKING:
     from gfo.http import HttpClient
 
-from .base import GitServiceAdapter, _mask_token_in_exception, _wrap_conversion_error
+from .base import (
+    GitServiceAdapter,
+    _mask_token_in_exception,
+    _web_base_from_api_url,
+    _wrap_conversion_error,
+)
 from .models import (
     Branch,
     BranchProtection,
@@ -2165,13 +2170,7 @@ class GitLabAdapter(GitServiceAdapter):
 
     def _web_base_url(self) -> str:
         # API base_url から Web URL を導出: https://gitlab.com/api/v4 → https://gitlab.com
-        from urllib.parse import urlparse
-
-        parsed = urlparse(self._client.base_url)
-        web_base = f"{parsed.scheme}://{parsed.hostname}"
-        if parsed.port:
-            web_base = f"{web_base}:{parsed.port}"
-        return web_base
+        return _web_base_from_api_url(self._client.base_url)
 
     # --- Search ---
 
@@ -2200,12 +2199,7 @@ class GitLabAdapter(GitServiceAdapter):
             params={"scope": "blobs", "search": query},
             limit=limit,
         )
-        from urllib.parse import urlparse
-
-        parsed = urlparse(self._client.base_url)
-        web_base = f"{parsed.scheme}://{parsed.hostname}"
-        if parsed.port:
-            web_base = f"{web_base}:{parsed.port}"
+        web_base = _web_base_from_api_url(self._client.base_url)
         return [
             CodeSearchResult(
                 path=r.get("path") or r.get("filename") or "",

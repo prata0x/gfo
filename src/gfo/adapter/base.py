@@ -17,7 +17,11 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from gfo.adapter._helpers import _mask_token_in_exception, _wrap_conversion_error
+from gfo.adapter._helpers import (
+    _mask_token_in_exception,
+    _web_base_from_api_url,
+    _wrap_conversion_error,
+)
 from gfo.adapter.models import (
     Artifact,
     Branch,
@@ -112,6 +116,7 @@ __all__ = [
     "WikiRevision",
     "Workflow",
     "_mask_token_in_exception",
+    "_web_base_from_api_url",
     "_wrap_conversion_error",
 ]
 

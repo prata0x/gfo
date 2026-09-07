@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import quote
 
 import pytest
@@ -4849,3 +4849,50 @@ class TestRemoveIssueDependency:
             gitlab_adapter.remove_issue_dependency(5, 999)
         delete_calls = [c for c in mock_responses.calls if c.request.method == "DELETE"]
         assert len(delete_calls) == 0
+
+
+class TestWebBaseUrlIPv6:
+    """IPv6 リテラルホストのブラケット保持 (#582 / #796)。"""
+
+    def test_web_base_url_keeps_brackets(self):
+        client = MagicMock()
+        client.base_url = "https://[::1]:3000/api/v4"
+        adapter = GitLabAdapter(client, "acme", "widgets")
+        assert adapter._web_base_url() == "https://[::1]:3000"
+
+    def test_search_code_keeps_brackets(self, mock_responses):
+        from gfo.http import HttpClient
+
+        client = HttpClient("https://[::1]:3000/api/v4", auth_header={})
+        adapter = GitLabAdapter(client, "acme", "widgets")
+        mock_responses.add(
+            responses.GET,
+            "https://[::1]:3000/api/v4/projects/acme%2Fwidgets/search",
+            json=[],
+            status=200,
+        )
+        assert adapter.search_code("main") == []
+
+    def test_search_code_url_uses_bracketed_host(self, mock_responses):
+        from gfo.http import HttpClient
+
+        client = HttpClient("https://[::1]:3000/api/v4", auth_header={})
+        adapter = GitLabAdapter(client, "acme", "widgets")
+        mock_responses.add(
+            responses.GET,
+            "https://[::1]:3000/api/v4/projects/acme%2Fwidgets/search",
+            json=[
+                {
+                    "basename": "main",
+                    "data": "x",
+                    "path": "src/main.py",
+                    "filename": "src/main.py",
+                    "ref": "main",
+                    "startline": 1,
+                    "project_id": 1,
+                }
+            ],
+            status=200,
+        )
+        result = adapter.search_code("main")
+        assert result[0].url == "https://[::1]:3000/acme/widgets/-/blob/main/src/main.py"

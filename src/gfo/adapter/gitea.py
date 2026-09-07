@@ -17,7 +17,12 @@ from gfo.i18n import _
 if TYPE_CHECKING:
     from gfo.http import HttpClient
 
-from .base import GitServiceAdapter, _mask_token_in_exception, _wrap_conversion_error
+from .base import (
+    GitServiceAdapter,
+    _mask_token_in_exception,
+    _web_base_from_api_url,
+    _wrap_conversion_error,
+)
 from .github_like import GitHubLikeAdapter
 from .models import (
     Artifact,
@@ -1681,12 +1686,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     @_wrap_conversion_error
     def _to_organization(self, data: dict[str, Any]) -> Organization:
-        from urllib.parse import urlparse
-
         org_name = data.get("username") or data.get("login") or ""
-        parsed = urlparse(self._client.base_url)
-        port_str = f":{parsed.port}" if parsed.port else ""
-        web_base = f"{parsed.scheme}://{parsed.hostname}{port_str}"
+        web_base = _web_base_from_api_url(self._client.base_url)
         url = f"{web_base}/{org_name}" if org_name else ""
         return Organization(
             name=org_name,
@@ -1846,11 +1847,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     }
 
     def _web_base_url(self) -> str:
-        from urllib.parse import urlparse
-
-        parsed = urlparse(self._client.base_url)
-        port_str = f":{parsed.port}" if parsed.port else ""
-        return f"{parsed.scheme}://{parsed.hostname}{port_str}"
+        return _web_base_from_api_url(self._client.base_url)
 
     # --- Search ---
 
