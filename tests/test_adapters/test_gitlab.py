@@ -1386,6 +1386,36 @@ class TestGetLatestRelease:
         assert rel.tag == "v1.0.0"
         assert rel.prerelease is False
 
+    def test_bounded_when_all_upcoming(self, mock_responses, gitlab_adapter):
+        """upcoming release が際限なく続いても取得件数に上限があり、無制限に
+        HTTP リクエストを発行し続けない（#797）。"""
+        max_items = gitlab_adapter._GET_LATEST_RELEASE_MAX_ITEMS
+        per_page = 100
+        pages = max_items // per_page  # 上限ちょうどの件数; 上限到達で打ち切られる
+        for page in range(1, pages + 1):
+            mock_responses.add(
+                responses.GET,
+                f"{PROJECT}/releases",
+                json=[
+                    {
+                        **_release_data(tag=f"v-upcoming-{i}"),
+                        "upcoming_release": True,
+                        "released_at": "2099-01-01T00:00:00Z",
+                    }
+                    for i in range(per_page)
+                ],
+                status=200,
+                headers={"X-Next-Page": str(page + 1)},
+                match=[
+                    responses.matchers.query_param_matcher(
+                        {"per_page": str(per_page), "page": str(page)}
+                    )
+                ],
+            )
+        with pytest.raises(NotFoundError):
+            gitlab_adapter.get_latest_release()
+        assert len(mock_responses.calls) == max_items // per_page
+
 
 class TestUpdateRelease:
     def test_update(self, mock_responses, gitlab_adapter):

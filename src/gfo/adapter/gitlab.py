@@ -748,6 +748,10 @@ class GitLabAdapter(GitServiceAdapter):
         )
         return self._to_release(resp.json())
 
+    # 公開済みリリースを探す手書きループの安全上限（総取得件数）。
+    # 全件が upcoming release の場合に無制限にページを取得し続けるのを防ぐ。
+    _GET_LATEST_RELEASE_MAX_ITEMS = 1000
+
     def get_latest_release(self) -> Release:
         # GitLab の GET /releases は released_at 降順でソートされるため、
         # released_at が未来日時の upcoming release が意図せず先頭に来る。
@@ -755,7 +759,10 @@ class GitLabAdapter(GitServiceAdapter):
         # 見つかるまでページを進めてクライアント側で除外し、先頭を採用する。
         params: dict[str, Any] = {"per_page": 100, "page": 1}
         published: list[dict[str, Any]] = []
+        fetched = 0
         while True:
+            if fetched >= self._GET_LATEST_RELEASE_MAX_ITEMS:
+                break
             resp = self._client.get(f"{self._project_path()}/releases", params=dict(params))
             try:
                 page_data = resp.json()
@@ -763,6 +770,7 @@ class GitLabAdapter(GitServiceAdapter):
                 break
             if not isinstance(page_data, list) or not page_data:
                 break
+            fetched += len(page_data)
             for r in page_data:
                 if not r.get("upcoming_release", False):
                     published.append(r)
