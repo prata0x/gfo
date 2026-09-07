@@ -880,3 +880,13 @@ class TestCreateBranch:
         gitbucket_adapter.create_branch(name="new-branch", ref="cafe")
         post_body = json_mod.loads(mock_responses.calls[1].request.body)
         assert post_body["sha"] == "shaC0FFEE"
+
+
+class TestWebBaseUrlIPv6:
+    """IPv6 リテラルホストのブラケット保持 (#582 / #796)。"""
+
+    def test_web_base_url_keeps_brackets(self):
+        client = MagicMock()
+        client.base_url = "https://[::1]:3000/api/v3"
+        adapter = GitBucketAdapter(client, "acme", "widgets")
+        assert adapter._web_base_url() == "https://[::1]:3000"

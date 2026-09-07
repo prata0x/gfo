@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from unittest.mock import MagicMock
 
 import pytest
 import responses
@@ -4547,3 +4548,20 @@ class TestTimeEntriesUserField:
         added = gitea_adapter.add_time_entry(10, 3600)
         assert added.user == "alice"
         assert added.duration == 3600
+
+
+class TestWebBaseUrlIPv6:
+    """IPv6 リテラルホストのブラケット保持 (#582 / #796)。"""
+
+    def test_web_base_url_keeps_brackets(self):
+        client = MagicMock()
+        client.base_url = "https://[::1]:3000/api/v1"
+        adapter = GiteaAdapter(client, "acme", "widgets")
+        assert adapter._web_base_url() == "https://[::1]:3000"
+
+    def test_organization_url_keeps_brackets(self):
+        client = MagicMock()
+        client.base_url = "https://[::1]:3000/api/v1"
+        adapter = GiteaAdapter(client, "acme", "widgets")
+        org = adapter._to_organization({"username": "acme"})
+        assert org.url == "https://[::1]:3000/acme"

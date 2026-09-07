@@ -13,7 +13,7 @@ import urllib.parse
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from gfo.adapter._helpers import _wrap_conversion_error
+from gfo.adapter._helpers import _web_base_from_api_url, _wrap_conversion_error
 from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
 from gfo.i18n import _
 
@@ -69,9 +69,7 @@ class GitBucketAdapter(GitHubAdapter):
 
     def _web_base_url(self) -> str:
         """API URL から Web UI のベース URL を導出する。"""
-        parsed = urllib.parse.urlparse(self._client.base_url)
-        port_str = f":{parsed.port}" if parsed.port and parsed.port not in (80, 443) else ""
-        return f"{parsed.scheme}://{parsed.hostname}{port_str}"
+        return _web_base_from_api_url(self._client.base_url, omit_default_ports=True)
 
     # --- PR ---
 
