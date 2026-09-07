@@ -1385,6 +1385,8 @@ gfo release edit TAG [--title TITLE] [--notes NOTES] [--notes-file FILE] [--draf
 | `--tag` | 新しいタグ名（GitHub, Gitea, Forgejo） |
 | `--target` | ターゲットブランチまたはコミット SHA（GitHub, Gitea, Forgejo） |
 
+> GitLab にはプレリリース用のリクエストフィールドが存在しないため、`--prerelease` は `released_at` を未来日時に設定することで実装され（Upcoming Release）、`--no-prerelease` は過去日時に設定する。よってプレリリース状態の編集はリリースの `released_at` を変更する。
+
 ```bash
 gfo release edit v1.0.0 --title "Version 1.0.0 GA"
 gfo release edit v1.0.0 --notes "Updated release notes"
