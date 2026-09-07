@@ -526,3 +526,8 @@ class GitBucketAdapter(GitHubAdapter):
 
     def delete_release_asset(self, *, tag: str, asset_id: int | str) -> None:
         raise NotSupportedError("GitBucket", "release asset operations")
+
+    def update_release_asset(
+        self, *, tag: str, asset_id: int | str, name: str | None = None
+    ) -> ReleaseAsset:
+        raise NotSupportedError("GitBucket", "release asset operations")

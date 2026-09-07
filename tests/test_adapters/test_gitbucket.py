@@ -890,3 +890,13 @@ class TestWebBaseUrlIPv6:
         client.base_url = "https://[::1]:3000/api/v3"
         adapter = GitBucketAdapter(client, "acme", "widgets")
         assert adapter._web_base_url() == "https://[::1]:3000"
+
+
+class TestReleaseAssetOperations:
+    """GitBucket は release asset 5 メソッド全てを非対応とし、実リクエストを送らない (#741)。"""
+
+    def test_update_release_asset_raises_not_supported(self, mock_responses, gitbucket_adapter):
+        with pytest.raises(NotSupportedError) as exc_info:
+            gitbucket_adapter.update_release_asset(tag="v1.0.0", asset_id=123, name="new.zip")
+        assert exc_info.value.operation == "release asset operations"
+        assert len(mock_responses.calls) == 0
