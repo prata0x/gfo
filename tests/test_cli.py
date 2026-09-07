@@ -87,6 +87,18 @@ def test_non_negative_int_float_string_raises():
         _non_negative_int("1.5")
 
 
+def test_require_reviews_negative_rejected_by_parser():
+    parser, _ = create_parser()
+    with pytest.raises(ConfigError, match="--require-reviews: -5 is not a non-negative integer"):
+        parser.parse_args(["branch-protect", "set", "main", "--require-reviews", "-5"])
+
+
+def test_require_reviews_zero_accepted_by_parser():
+    parser, _ = create_parser()
+    args = parser.parse_args(["branch-protect", "set", "main", "--require-reviews", "0"])
+    assert args.require_reviews == 0
+
+
 # ── create_parser のテスト ──
 
 
