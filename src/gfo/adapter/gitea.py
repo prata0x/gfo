@@ -1877,7 +1877,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return [self._to_wiki_page_data(r) for r in results]
 
     def get_wiki_page(self, page_id: int | str) -> WikiPage:
-        resp = self._client.get(f"{self._repos_path()}/wiki/page/{quote(str(page_id), safe='')}")
+        # page_id は list_wiki_pages が返す sub_url（サーバー側で既に URL エンコード済み）なので再 quote しない
+        resp = self._client.get(f"{self._repos_path()}/wiki/page/{page_id}")
         return self._to_wiki_page_data(resp.json())
 
     def create_wiki_page(self, *, title: str, content: str) -> WikiPage:
@@ -1898,8 +1899,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         title: str | None = None,
         content: str | None = None,
     ) -> WikiPage:
-        # まず現在のページを取得してタイトルを継承
-        resp = self._client.get(f"{self._repos_path()}/wiki/page/{quote(str(page_id), safe='')}")
+        # まず現在のページを取得してタイトルを継承（page_id は sub_url なので再 quote しない）
+        resp = self._client.get(f"{self._repos_path()}/wiki/page/{page_id}")
         current = resp.json()
         current_title = title if title is not None else current.get("title", "")
         if content is not None:
@@ -1911,7 +1912,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             "content_base64": current_content_b64,
         }
         resp = self._client.patch(
-            f"{self._repos_path()}/wiki/page/{quote(str(page_id), safe='')}",
+            f"{self._repos_path()}/wiki/page/{page_id}",
             json=payload,
         )
         # PATCH レスポンスの content がリクエスト値と一致しない場合（Gitea 1.22 バグ）はリクエスト値で上書き
@@ -1923,7 +1924,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         return result
 
     def delete_wiki_page(self, page_id: int | str) -> None:
-        self._client.delete(f"{self._repos_path()}/wiki/page/{quote(str(page_id), safe='')}")
+        # page_id は sub_url なので再 quote しない
+        self._client.delete(f"{self._repos_path()}/wiki/page/{page_id}")
 
     @staticmethod
     @_wrap_conversion_error

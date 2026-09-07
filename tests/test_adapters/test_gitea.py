@@ -3158,6 +3158,24 @@ class TestGetWikiPage:
         assert isinstance(page, WikiPage)
         assert page.title == "Home"
 
+    def test_get_does_not_double_encode_sub_url(self, mock_responses, gitea_adapter):
+        # list_wiki_pages が返す sub_url はサーバー側で既に URL エンコード済み
+        # ("My Page" -> "My+Page")。これを再 quote すると "My%2BPage" になるので禁止。
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/wiki/page/My+Page",
+            json={
+                "title": "My Page",
+                "content": "body",
+                "html_url": "",
+                "last_commit": {"id": "abc"},
+            },
+            status=200,
+        )
+        page = gitea_adapter.get_wiki_page("My+Page")
+        assert page.title == "My Page"
+        assert mock_responses.calls[0].request.url == f"{REPOS}/wiki/page/My+Page"
+
 
 class TestCreateWikiPage:
     def test_create(self, mock_responses, gitea_adapter):
@@ -3201,6 +3219,33 @@ class TestUpdateWikiPage:
         page = gitea_adapter.update_wiki_page("Home", title="Home", content="new content")
         assert isinstance(page, WikiPage)
 
+    def test_update_does_not_double_encode_sub_url(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/wiki/page/My+Page",
+            json={
+                "title": "My Page",
+                "content": "old",
+                "html_url": "",
+                "last_commit": {"id": "abc"},
+            },
+            status=200,
+        )
+        mock_responses.add(
+            responses.PATCH,
+            f"{REPOS}/wiki/page/My+Page",
+            json={
+                "title": "My Page",
+                "content": "new content",
+                "html_url": "",
+                "last_commit": {"id": "def"},
+            },
+            status=200,
+        )
+        gitea_adapter.update_wiki_page("My+Page", title="My Page", content="new content")
+        assert mock_responses.calls[0].request.url == f"{REPOS}/wiki/page/My+Page"
+        assert mock_responses.calls[1].request.url == f"{REPOS}/wiki/page/My+Page"
+
 
 class TestDeleteWikiPage:
     def test_delete(self, mock_responses, gitea_adapter):
@@ -3211,6 +3256,15 @@ class TestDeleteWikiPage:
         )
         gitea_adapter.delete_wiki_page("Home")
         assert mock_responses.calls[0].request.method == "DELETE"
+
+    def test_delete_does_not_double_encode_sub_url(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{REPOS}/wiki/page/My+Page",
+            status=204,
+        )
+        gitea_adapter.delete_wiki_page("My+Page")
+        assert mock_responses.calls[0].request.url == f"{REPOS}/wiki/page/My+Page"
 
 
 class TestListWikiRevisions:
