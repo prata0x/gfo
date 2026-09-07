@@ -1627,7 +1627,7 @@ gfo branch delete feature/old-ui
 
 Operate tags.
 
-> **Supported services**: All services (tag create: Gogs / GitBucket not supported. tag delete: Gogs not supported)
+> **Supported services**: All services (tag create: Gogs not supported. tag delete: Gogs not supported)
 
 ### gfo tag list
 
