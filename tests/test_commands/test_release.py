@@ -763,6 +763,29 @@ class TestHandleAsset:
             str(tmp_path / self.asset.name),
         )
 
+    def test_asset_download_pattern_dot_name_rejected(self, sample_config, tmp_path):
+        """--pattern 経路で asset 名が \".\" の場合、output_dir 自身への書き込みを防ぐ (#581)。"""
+        dot_asset = ReleaseAsset(
+            id=1,
+            name=".",
+            size=1024,
+            download_url="https://example.com/dot",
+            created_at="2024-01-01T00:00:00Z",
+        )
+        self.adapter.list_release_assets.return_value = [dot_asset]
+        args = make_args(
+            asset_action="download",
+            tag="v1.0.0",
+            asset_id=None,
+            pattern="*",
+            dir=str(tmp_path),
+        )
+        with pytest.raises(GfoError, match=r"Invalid asset name: \."):
+            with _patch_all(sample_config, self.adapter):
+                release_cmd.handle_asset(args, fmt="json")
+
+        self.adapter.client.download_file.assert_not_called()
+
     def test_asset_download_no_match_raises(self, sample_config):
         self.adapter.list_release_assets.return_value = [self.asset]
         args = make_args(

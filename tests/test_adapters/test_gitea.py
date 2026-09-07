@@ -3990,6 +3990,22 @@ class TestDownloadReleaseAssetPathTraversal:
         assert os.path.basename(result) == "malicious.bin"
         assert os.path.dirname(os.path.realpath(result)) == os.path.realpath(str(tmp_path))
 
+    @responses.activate
+    def test_dot_name_rejected(self, gitea_adapter, tmp_path):
+        """アセット名が \".\" の場合、output_dir 自身への書き込みを防ぎ GfoError を送出する (#581)。"""
+        responses.add(
+            responses.GET,
+            f"{REPOS}/releases/tags/v1.0.0",
+            json={"id": 1, "tag_name": "v1.0.0"},
+        )
+        responses.add(
+            responses.GET,
+            f"{REPOS}/releases/1/assets/1",
+            json={"name": ".", "id": 1},
+        )
+        with pytest.raises(GfoError, match=r"Invalid asset name: \."):
+            gitea_adapter.download_release_asset(tag="v1.0.0", asset_id=1, output_dir=str(tmp_path))
+
 
 class TestUpdateOrganization:
     def test_update_display_name(self, mock_responses, gitea_adapter):

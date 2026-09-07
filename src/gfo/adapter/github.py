@@ -14,7 +14,12 @@ from gfo.exceptions import GfoError, HttpError, NotFoundError
 from gfo.http import paginate_link_header
 from gfo.i18n import _
 
-from .base import GitServiceAdapter, _mask_token_in_exception, _wrap_conversion_error
+from .base import (
+    GitServiceAdapter,
+    _mask_token_in_exception,
+    _safe_join_output_path,
+    _wrap_conversion_error,
+)
 from .github_like import GitHubLikeAdapter
 from .models import (
     Artifact,
@@ -642,16 +647,13 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def download_release_asset(self, *, tag: str, asset_id: int | str, output_dir: str) -> str:
         import os
-        from pathlib import Path
 
         meta_resp = self._client.get(f"{self._repos_path()}/releases/assets/{asset_id}")
         asset_name = os.path.basename(meta_resp.json().get("name", f"asset-{asset_id}"))
-        output_path = os.path.join(output_dir, asset_name)
-        if not Path(output_path).resolve().is_relative_to(Path(output_dir).resolve()):
-            raise GfoError(_("Invalid asset name: {name}").format(name=asset_name))
+        output_path = _safe_join_output_path(output_dir, asset_name)
         url = f"{self._client.base_url}{self._repos_path()}/releases/assets/{asset_id}"
-        self._client.download_file(url, output_path, headers={"Accept": "application/octet-stream"})
-        return output_path
+        self._client.download_file(url, str(output_path))
+        return str(output_path)
 
     def delete_release_asset(self, *, tag: str, asset_id: int | str) -> None:
         self._client.delete(f"{self._repos_path()}/releases/assets/{asset_id}")

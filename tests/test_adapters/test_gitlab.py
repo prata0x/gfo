@@ -4099,6 +4099,19 @@ class TestDownloadReleaseAssetPathTraversal:
         assert os.path.basename(result) == "malicious.bin"
         assert os.path.dirname(os.path.realpath(result)) == os.path.realpath(str(tmp_path))
 
+    @responses.activate
+    def test_dot_name_rejected(self, gitlab_adapter, tmp_path):
+        """アセット名が \".\" の場合、output_dir 自身への書き込みを防ぎ GfoError を送出する (#581)。"""
+        responses.add(
+            responses.GET,
+            f"{PROJECT}/releases/v1.0.0/assets/links/1",
+            json={"name": ".", "id": 1, "direct_asset_url": "https://example.com/file"},
+        )
+        with pytest.raises(GfoError, match=r"Invalid asset name: \."):
+            gitlab_adapter.download_release_asset(
+                tag="v1.0.0", asset_id=1, output_dir=str(tmp_path)
+            )
+
 
 # ── C-03: migrate_repository トークンマスク ──
 
