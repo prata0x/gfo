@@ -1509,7 +1509,10 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     bp_set = bp_sub.add_parser("set", help=_("Set branch protection rule"))
     bp_set.add_argument("branch", help=_("Branch name"))
     bp_set.add_argument(
-        "--require-reviews", type=int, dest="require_reviews", help=_("Required review count")
+        "--require-reviews",
+        type=_non_negative_int,
+        dest="require_reviews",
+        help=_("Required review count"),
     )
     bp_set.add_argument(
         "--require-status-checks",
