@@ -1159,7 +1159,7 @@ gfo repo languages
 gfo repo topics list
 gfo repo topics add <topic>
 gfo repo topics remove <topic>
-gfo repo topics set <topic> [<topic> ...]
+gfo repo topics set [<topic> ...]
 ```
 
 ### gfo repo compare
@@ -2256,13 +2256,13 @@ gfo branch-protect view BRANCH
 ### gfo branch-protect set
 
 ```
-gfo branch-protect set BRANCH [--require-reviews N] [--require-status-checks CHECK...] [--enforce-admins | --no-enforce-admins] [--allow-force-push | --no-allow-force-push] [--allow-deletions | --no-allow-deletions]
+gfo branch-protect set BRANCH [--require-reviews N] [--require-status-checks [CHECK...]] [--enforce-admins | --no-enforce-admins] [--allow-force-push | --no-allow-force-push] [--allow-deletions | --no-allow-deletions]
 ```
 
 | オプション | 説明 |
 |---|---|
 | `--require-reviews N` | 必要なレビュー承認数（0 で無効） |
-| `--require-status-checks CHECK...` | 必須ステータスチェック名（複数指定可） |
+| `--require-status-checks [CHECK...]` | 必須ステータスチェック名（複数指定可）。`CHECK` を省略すると全解除 |
 | `--enforce-admins` / `--no-enforce-admins` | 管理者にも保護を適用するか |
 | `--allow-force-push` / `--no-allow-force-push` | 強制プッシュを許可するか |
 | `--allow-deletions` / `--no-allow-deletions` | ブランチ削除を許可するか |

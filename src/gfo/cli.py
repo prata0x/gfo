@@ -721,7 +721,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     repo_topics_remove = repo_topics_sub.add_parser("remove", help=_("Remove topic"))
     repo_topics_remove.add_argument("topic", help=_("Topic name"))
     repo_topics_set = repo_topics_sub.add_parser("set", help=_("Set topics"))
-    repo_topics_set.add_argument("topics", nargs="+", help=_("Topic names"))
+    repo_topics_set.add_argument("topics", nargs="*", help=_("Topic names (omit to clear all)"))
 
     # gfo repo compare
     repo_compare = repo_sub.add_parser("compare", help=_("Compare branches or commits"))
@@ -1516,9 +1516,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     )
     bp_set.add_argument(
         "--require-status-checks",
-        nargs="+",
+        nargs="*",
         dest="require_status_checks",
-        help=_("Required status checks"),
+        help=_("Required status checks (omit the value to clear all)"),
     )
     bp_set.add_argument(
         "--enforce-admins", action="store_true", default=None, help=_("Enforce rules for admins")

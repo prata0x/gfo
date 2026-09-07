@@ -1328,6 +1328,15 @@ class TestHandleTopics:
 
         adapter.set_topics.assert_called_once_with(["a", "b"])
 
+    def test_set_empty_clears(self, sample_config, capsys):
+        adapter = MagicMock()
+        adapter.set_topics.return_value = []
+        args = make_args(topics_action="set", topics=[])
+        with patch("gfo.commands.repo.get_adapter", return_value=adapter):
+            repo_cmd.handle_topics(args, fmt="json")
+
+        adapter.set_topics.assert_called_once_with([])
+
     def test_no_action_raises(self, sample_config):
         args = make_args(topics_action=None)
         with patch("gfo.commands.repo.get_adapter", return_value=MagicMock()):

@@ -1241,6 +1241,9 @@ msgstr "必要レビュー数"
 msgid "Required status checks"
 msgstr "必須ステータスチェック"
 
+msgid "Required status checks (omit the value to clear all)"
+msgstr "必須ステータスチェック（値を省略すると全解除）"
+
 msgid "Resource number"
 msgstr "リソース番号"
 
@@ -1339,6 +1342,9 @@ msgstr "トピック名"
 
 msgid "Topic names"
 msgstr "トピック名"
+
+msgid "Topic names (omit to clear all)"
+msgstr "トピック名（省略すると全解除）"
 
 msgid "Unmark as draft"
 msgstr "下書きを解除する"

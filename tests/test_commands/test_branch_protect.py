@@ -96,6 +96,27 @@ class TestHandleSet:
             allow_deletions=None,
         )
 
+    def test_calls_set_empty_status_checks_clears(self, capsys):
+        with patch_adapter("gfo.commands.branch_protect") as adapter:
+            adapter.set_branch_protection.return_value = SAMPLE_BP
+            args = make_args(
+                branch="main",
+                require_reviews=None,
+                require_status_checks=[],
+                enforce_admins=None,
+                allow_force_push=None,
+                allow_deletions=None,
+            )
+            bp_cmd.handle_set(args, fmt="table")
+        adapter.set_branch_protection.assert_called_once_with(
+            "main",
+            require_reviews=None,
+            require_status_checks=[],
+            enforce_admins=None,
+            allow_force_push=None,
+            allow_deletions=None,
+        )
+
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.branch_protect") as adapter:
             adapter.set_branch_protection.side_effect = HttpError(403, "Forbidden")
