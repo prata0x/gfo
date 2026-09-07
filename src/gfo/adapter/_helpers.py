@@ -52,6 +52,18 @@ def _mask_token_in_exception(exc: BaseException, token: str | None) -> None:
         exc.args = new_args
 
 
+def _wrap_ipv6_hostname(hostname: str) -> str:
+    """IPv6 リテラルホスト名をブラケットで囲む。
+
+    ``urlparse(...).hostname`` は IPv6 リテラルの ``[...]`` ブラケットを剥がすため、
+    そのまま ``host:port`` を再構築すると ``::1:3000`` のようにホスト部とポート区切りが
+    区別できなくなる (#582 / #796 / #802)。``:`` を含むホスト名のみブラケットで囲む。
+    """
+    if ":" in hostname:
+        return f"[{hostname}]"
+    return hostname
+
+
 def _web_base_from_api_url(base_url: str, *, omit_default_ports: bool = False) -> str:
     """API base_url から Web UI ベース URL を構築する。
 
@@ -64,9 +76,7 @@ def _web_base_from_api_url(base_url: str, *, omit_default_ports: bool = False) -
     (GitBucket の既存挙動を維持するため)。
     """
     parsed = urlparse(base_url)
-    hostname = parsed.hostname or ""
-    if ":" in hostname:
-        hostname = f"[{hostname}]"
+    hostname = _wrap_ipv6_hostname(parsed.hostname or "")
     port = parsed.port
     if omit_default_ports and port in (80, 443):
         port_str = ""
