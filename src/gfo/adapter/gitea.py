@@ -1794,7 +1794,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 pattern=r.get("name_pattern") or "",
                 create_access_level=r.get("whitelist_teams") or "",
             )
-            for r in (resp.json() or [])
+            for r in (resp.json() or [])[: limit if limit > 0 else None]
         ]
 
     def create_tag_protection(
