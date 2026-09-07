@@ -10,7 +10,13 @@ from gfo._context import cli_remote
 from gfo.commands import get_adapter, open_in_browser, read_file_arg
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
-from gfo.output import _sanitize_for_plain, apply_jq_filter, output, output_result
+from gfo.output import (
+    _sanitize_for_plain,
+    _sanitize_value_for_json,
+    apply_jq_filter,
+    output,
+    output_result,
+)
 
 
 def handle_list(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -300,7 +306,7 @@ def handle_reviewers(args: argparse.Namespace, *, fmt: str, jq: str | None = Non
         # collaborator / org members 同様、apply_jq_filter を直接適用する。
         reviewers = adapter.list_requested_reviewers(args.number)
         if fmt == "json":
-            json_str = json.dumps(reviewers, ensure_ascii=False)
+            json_str = json.dumps(_sanitize_value_for_json(reviewers), ensure_ascii=False)
             if jq is not None:
                 print(apply_jq_filter(json_str, jq))
             else:
