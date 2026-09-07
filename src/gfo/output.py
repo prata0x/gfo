@@ -46,15 +46,34 @@ def _field_str(val: Any, *, escape_separators: bool = False) -> str:
     return result
 
 
+_BIDI_CONTROL_CATEGORIES = frozenset(
+    {"LRE", "RLE", "LRO", "RLO", "PDF", "LRI", "RLI", "FSI", "PDI"}
+)
+
+
+def _strip_bidi_controls(val: str) -> str:
+    """Unicode 双方向制御文字を除去して視覚的スプーフィング（Trojan Source）を防ぐ。
+
+    U+202A-U+202E（embedding / override 系）と U+2066-U+2069（isolate 系）は
+    C0/C1 制御文字ではないため ``_escape_control_chars`` では除去されない別系統の
+    攻撃手法であり、出力に残るとテキストの視覚的順序を改変できる。
+    """
+    return "".join(
+        ch for ch in val if unicodedata.bidirectional(ch) not in _BIDI_CONTROL_CATEGORIES
+    )
+
+
 def _sanitize_for_table(val: str) -> str:
     """テーブル表示用に改行・タブをエスケープする。"""
     result = val.replace("\n", "\\n").replace("\r", "\\r").replace("\t", " ")
+    result = _strip_bidi_controls(result)
     return _escape_control_chars(result)
 
 
 def _sanitize_for_plain(val: str) -> str:
     """プレーン形式用に改行・タブをエスケープする（1アイテム=1行を保証する）。"""
     result = val.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+    result = _strip_bidi_controls(result)
     return _escape_control_chars(result)
 
 
