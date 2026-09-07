@@ -114,9 +114,9 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             params["head"] = head
         if milestone:
             params["milestones"] = milestone
-        # state="merged" は API では closed として取得し、後段で merged のみ抽出する。
-        # limit 件分の closed PR を取ると merged 抽出後に limit 未満になるため、全件取得 → フィルタ → limit。
-        fetch_limit = 0 if state == "merged" else limit
+        # state="merged"/"closed" は API では closed として取得し、後段で merged/closed のみ抽出する。
+        # limit 件分の closed PR を取ると抽出後に limit 未満になるため、全件取得 → フィルタ → limit。
+        fetch_limit = 0 if state in ("merged", "closed") else limit
         results = paginate_link_header(
             self._client,
             f"{self._repos_path()}/pulls",
@@ -127,6 +127,10 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         prs = [self._to_pull_request(r) for r in results]
         if state == "merged":
             prs = [pr for pr in prs if pr.state == "merged"]
+            if limit > 0:
+                prs = prs[:limit]
+        elif state == "closed":
+            prs = [pr for pr in prs if pr.state == "closed"]
             if limit > 0:
                 prs = prs[:limit]
         return prs

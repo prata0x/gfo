@@ -558,6 +558,46 @@ class TestListPullRequests:
         assert len(prs) == 2
         assert {pr.number for pr in prs} == {1, 4}
 
+    def test_closed_excludes_merged(self, mock_responses, gitea_adapter):
+        """state="closed" は merged 済み PR を含めず純粋な closed のみ返すこと。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[
+                _pr_data(number=1, state="closed", merged_at="2025-01-03T00:00:00Z"),
+                _pr_data(number=2, state="closed"),
+            ],
+            status=200,
+        )
+        prs = gitea_adapter.list_pull_requests(state="closed")
+        assert len(prs) == 1
+        assert prs[0].number == 2
+
+    def test_closed_fetches_all_pages_to_meet_limit(self, mock_responses, gitea_adapter):
+        """state="closed" は merged を除外した上で limit を満たすため全件取得すること。"""
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[
+                _pr_data(number=1, state="closed", merged_at="2025-01-03T00:00:00Z"),
+                _pr_data(number=2, state="closed"),
+            ],
+            status=200,
+            headers={"Link": f'<{REPOS}/pulls?page=2>; rel="next"'},
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pulls",
+            json=[
+                _pr_data(number=3, state="closed", merged_at="2025-01-04T00:00:00Z"),
+                _pr_data(number=4, state="closed"),
+            ],
+            status=200,
+        )
+        prs = gitea_adapter.list_pull_requests(state="closed", limit=2)
+        assert len(prs) == 2
+        assert {pr.number for pr in prs} == {2, 4}
+
     def test_pagination_uses_limit_param(self, mock_responses, gitea_adapter):
         mock_responses.add(
             responses.GET,
