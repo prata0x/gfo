@@ -1116,7 +1116,17 @@ class TestCreateRepository:
         assert req_body["visibility"] == "public"
 
     def test_create_org_repo(self, mock_responses, gitlab_adapter):
-        """組織（グループ）リポジトリを作成する。"""
+        """組織（グループ）リポジトリを作成する。
+
+        GitLab の Create project は namespace_path を無視するため、organization は
+        グループ ID（namespace_id）に解決して送る必要がある。
+        """
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/groups/my-group",
+            json={"id": 42},
+            status=200,
+        )
         mock_responses.add(
             responses.POST,
             f"{BASE}/projects",
@@ -1126,8 +1136,10 @@ class TestCreateRepository:
         gitlab_adapter.create_repository(
             name="new-repo", visibility="private", organization="my-group"
         )
-        req_body = json.loads(mock_responses.calls[0].request.body)
-        assert req_body["namespace_path"] == "my-group"
+        assert len(mock_responses.calls) == 2
+        req_body = json.loads(mock_responses.calls[1].request.body)
+        assert req_body["namespace_id"] == 42
+        assert "namespace_path" not in req_body
 
     def test_create_internal_repo(self, mock_responses, gitlab_adapter):
         """internal visibility のリポジトリを作成する。"""
@@ -4070,7 +4082,16 @@ class TestMigrateRepository:
 
     @responses.activate
     def test_migrate_org_repo(self, gitlab_adapter):
-        """組織（グループ）にリポジトリを migrate する。"""
+        """組織（グループ）にリポジトリを migrate する。
+
+        Create project の organization はグループ ID（namespace_id）に解決して送る。
+        """
+        responses.add(
+            responses.GET,
+            f"{BASE}/groups/my-group",
+            json={"id": 42},
+            status=200,
+        )
         responses.add(
             responses.POST,
             f"{BASE}/projects",
@@ -4085,8 +4106,10 @@ class TestMigrateRepository:
         assert repo.name == "migrated"
         import json as json_mod
 
-        body = json_mod.loads(responses.calls[0].request.body)
-        assert body["namespace_path"] == "my-group"
+        assert len(responses.calls) == 2
+        body = json_mod.loads(responses.calls[1].request.body)
+        assert body["namespace_id"] == 42
+        assert "namespace_path" not in body
 
 
 # ── C-01: download_release_asset パストラバーサル防止 ──
