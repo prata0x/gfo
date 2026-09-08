@@ -5043,3 +5043,19 @@ class TestSecretVariableVisibilityWarning:
         with warnings.catch_warnings():
             warnings.simplefilter("error")
             gitlab_adapter.set_variable("MY_VAR", "v")
+
+
+class TestTagProtectionEditUnsupported:
+    """GitLab は tag-protect edit を未対応とする (#600)。
+
+    GitLabAdapter は update_tag_protection を実装せず基底の NotSupportedError に
+    委ねるため、docs/commands.md の「tag-protect edit 対応サービス」に GitLab を
+    含めてはならない。
+    """
+
+    def test_gitlab_tag_protect_edit_unsupported(self, gitlab_adapter):
+        with pytest.raises(NotSupportedError, match="tag-protect edit"):
+            gitlab_adapter.update_tag_protection(1, pattern="v*")
+
+    def test_gitlab_tag_protect_create_supported(self, gitlab_adapter):
+        assert hasattr(gitlab_adapter, "create_tag_protection")
