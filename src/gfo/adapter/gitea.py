@@ -1047,6 +1047,12 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             f"{self._web_base_url()}/{self._owner}/{self._repo}/src/branch/{quote(name, safe='/')}"
         )
 
+    def _tag_web_url(self, name: str) -> str:
+        # Gitea / Forgejo / Gogs 系のタグ Web パス。tags API はブラウザで開ける
+        # html_url を返さないため、web_base_url からタグページ URL を組み立てる。
+        # ブランチと同様に quote する（/ は階層区切りとして維持）。
+        return f"{self._web_base_url()}/{self._owner}/{self._repo}/src/tag/{quote(name, safe='/')}"
+
     def get_branch(self, name: str) -> Branch:
         resp = self._client.get(f"{self._repos_path()}/branches/{quote(name, safe='')}")
         return self._to_branch(resp.json(), self._branch_web_url(name))
@@ -1074,7 +1080,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
 
     def get_tag(self, name: str) -> Tag:
         resp = self._client.get(f"{self._repos_path()}/tags/{quote(name, safe='')}")
-        return self._to_tag(resp.json())
+        return self._to_tag(resp.json(), self._tag_web_url(name))
 
     def list_tags(self, *, limit: int = 30) -> list[Tag]:
         results = paginate_link_header(
@@ -1083,14 +1089,14 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             limit=limit,
             per_page_key="limit",
         )
-        return [self._to_tag(r) for r in results]
+        return [self._to_tag(r, self._tag_web_url(r["name"])) for r in results]
 
     def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
         payload: dict[str, Any] = {"tag_name": name, "target": ref}
         if message:
             payload["message"] = message
         resp = self._client.post(f"{self._repos_path()}/tags", json=payload)
-        return self._to_tag(resp.json())
+        return self._to_tag(resp.json(), self._tag_web_url(name))
 
     def delete_tag(self, *, name: str) -> None:
         self._client.delete(f"{self._repos_path()}/tags/{quote(name, safe='')}")

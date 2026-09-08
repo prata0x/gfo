@@ -188,14 +188,14 @@ class GitHubLikeAdapter(ABC):  # noqa: B024 - 抽象メソッドを持たない�
 
     @staticmethod
     @_wrap_conversion_error
-    def _to_tag(data: dict[str, Any]) -> Tag:
+    def _to_tag(data: dict[str, Any], default_url: str = "") -> Tag:
         commit = data.get("commit") or {}
         sha = commit.get("sha") or ""
         return Tag(
             name=data["name"],
             sha=sha,
             message="",
-            url=data.get("zipball_url") or "",
+            url=data.get("html_url") or default_url,
         )
 
     @staticmethod
