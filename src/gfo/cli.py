@@ -2051,14 +2051,22 @@ def _pre_parse_resolve_format(argv: list[str] | None) -> str:
 
 _GLOBAL_FLAGS = {"--format", "--jq", "--remote", "--repo", "-R", "--account"}
 
-# auth/init は独自の --account を持つためホイスト対象から除外
-_ACCOUNT_CONFLICT_COMMANDS = {"auth", "init"}
+# ローカルの --account を持つ auth サブサブコマンド（トップレベル, サブサブコマンド）。
+# init はトップレベルで --account を持つ。auth は login/logout のみがサブサブコマンド
+# 単位で --account を持つ。それ以外（auth status/switch/token 等）はローカル --account を
+# 持たないため、サブコマンド前の --account はトップレベルの global_account として扱う。
+_ACCOUNT_LOCAL_COMMANDS = {
+    ("auth", "login"),
+    ("auth", "logout"),
+}
 
 
-def _hoist_global_flags(argv: list[str]) -> list[str]:
-    """グローバルオプションをサブコマンドの前に移動して argparse が認識できるようにする。"""
-    # サブコマンドを特定（値付きフラグの値をスキップしつつ最初の非フラグ引数を探す）
+def _command_has_local_account(argv: list[str]) -> bool:
+    """argv から (トップレベルサブコマンド, サブサブコマンド) を特定し、
+    '--account' をローカルで解釈するコマンドかを返す。
+    """
     subcommand = None
+    subsub = None
     skip_next = False
     for arg in argv:
         if skip_next:
@@ -2069,11 +2077,22 @@ def _hoist_global_flags(argv: list[str]) -> list[str]:
             continue
         if arg.startswith("-"):
             continue
-        subcommand = arg
+        if subcommand is None:
+            subcommand = arg
+            continue
+        subsub = arg
         break
+    if subcommand == "init":
+        return True
+    return (subcommand, subsub) in _ACCOUNT_LOCAL_COMMANDS
+
+
+def _hoist_global_flags(argv: list[str]) -> list[str]:
+    """グローバルオプションをサブコマンドの前に移動して argparse が認識できるようにする。"""
+    local_account = _command_has_local_account(argv)
 
     flags = _GLOBAL_FLAGS
-    if subcommand in _ACCOUNT_CONFLICT_COMMANDS:
+    if local_account:
         flags = flags - {"--account"}
 
     hoisted: list[str] = []
@@ -2091,8 +2110,13 @@ def _hoist_global_flags(argv: list[str]) -> list[str]:
             rest.append(arg)
             i += 1
 
-    if subcommand in _ACCOUNT_CONFLICT_COMMANDS:
-        rest = _relocate_account_flags(rest, subcommand)
+    if local_account:
+        # subcommand は argv 先頭の非フラグトークン（トップレベルサブコマンド）。
+        subcommand = next(
+            (a for a in argv if not a.startswith("-") and a not in _GLOBAL_FLAGS),
+            None,
+        )
+        rest = _relocate_account_flags(rest, subcommand or "")
     return hoisted + rest
 
 

@@ -1838,6 +1838,32 @@ def test_hoist_global_flags_account_before_subcommand_for_init():
     assert ns.account == "foo"
 
 
+def test_hoist_global_flags_account_before_auth_status_hoisted_as_global():
+    """#843: auth status（ローカル --account なし）の前の --account は global_account として解釈。
+
+    #576 の修正前は正常終了していたが、修正後は非ローカル auth サブコマンドにも一律で
+    再配置が適用され ``unrecognized arguments`` でクラッシュしていた。
+    """
+    for argv in [
+        ["--account", "foo", "auth", "status"],
+        ["--account", "foo", "auth", "switch", "work"],
+        ["--account", "foo", "auth", "token"],
+    ]:
+        result = _hoist_global_flags(argv)
+        parser, _ = create_parser()
+        ns = parser.parse_args(result)
+        assert ns.global_account == "foo"
+
+
+def test_hoist_global_flags_account_equals_before_auth_status_hoisted_as_global():
+    """#843: --account=val 形式でも非ローカル auth サブコマンドではホイストされる。"""
+    result = _hoist_global_flags(["--account=foo", "auth", "status"])
+    assert result == ["--account=foo", "auth", "status"]
+    parser, _ = create_parser()
+    ns = parser.parse_args(result)
+    assert ns.global_account == "foo"
+
+
 def test_hoist_main_format_after_subcommand():
     """main() が --format をサブコマンド後に配置しても正しく解析する。"""
     handler = MagicMock()
