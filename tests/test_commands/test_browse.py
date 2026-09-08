@@ -7,7 +7,8 @@ from unittest.mock import patch
 import pytest
 
 from gfo.commands import browse as browse_cmd
-from gfo.exceptions import HttpError
+from gfo.commands import open_url_in_browser
+from gfo.exceptions import GfoError, HttpError
 from tests.test_commands.conftest import make_args, patch_adapter
 
 
@@ -116,4 +117,37 @@ class TestHandleBrowse:
                 browse_cmd.handle_browse(args, fmt="table")
         # issue=0 は None ではないので issue として扱われる
         adapter.get_web_url.assert_called_once_with("issue", 0)
+        mock_open.assert_not_called()
+
+
+class TestOpenUrlInBrowser:
+    """open_url_in_browser の URL 検証 (#563)。"""
+
+    def test_opens_valid_https_url(self):
+        with patch("webbrowser.open") as mock_open:
+            open_url_in_browser("https://github.com/owner/repo/pull/1")
+        mock_open.assert_called_once_with("https://github.com/owner/repo/pull/1")
+
+    def test_empty_url_raises(self):
+        with patch("webbrowser.open") as mock_open:
+            with pytest.raises(GfoError, match="not available"):
+                open_url_in_browser("")
+        mock_open.assert_not_called()
+
+    def test_missing_url_raises(self):
+        with patch("webbrowser.open") as mock_open:
+            with pytest.raises(GfoError, match="not available"):
+                open_url_in_browser(None)
+        mock_open.assert_not_called()
+
+    def test_non_http_scheme_raises(self):
+        with patch("webbrowser.open") as mock_open:
+            with pytest.raises(GfoError, match="invalid"):
+                open_url_in_browser("ftp://github.com/owner/repo")
+        mock_open.assert_not_called()
+
+    def test_relative_url_raises(self):
+        with patch("webbrowser.open") as mock_open:
+            with pytest.raises(GfoError, match="invalid"):
+                open_url_in_browser("/owner/repo/pull/1")
         mock_open.assert_not_called()

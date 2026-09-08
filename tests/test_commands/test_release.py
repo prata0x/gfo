@@ -887,6 +887,7 @@ class TestHandleListWeb:
     def setup_method(self):
         self.release = _make_release()
         self.adapter = _make_adapter(self.release)
+        self.adapter.get_web_url.return_value = "https://github.com/owner/repo/releases"
 
     def test_opens_browser(self, sample_config):
         args = make_args(limit=30, web=True)
@@ -998,6 +999,7 @@ class TestHandleViewWeb:
     def setup_method(self):
         self.release = _make_release()
         self.adapter = _make_adapter(self.release)
+        self.adapter.get_web_url.return_value = "https://github.com/owner/repo/releases/tag/v1.0.0"
 
     def test_opens_browser_with_tag(self, sample_config):
         args = make_args(tag="v1.0.0", latest=False, web=True)

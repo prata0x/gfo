@@ -5,7 +5,13 @@ from __future__ import annotations
 import argparse
 
 from gfo.adapter._helpers import _safe_join_output_path
-from gfo.commands import confirm_action, get_adapter, open_in_browser, read_file_arg
+from gfo.commands import (
+    confirm_action,
+    get_adapter,
+    open_in_browser,
+    open_url_in_browser,
+    read_file_arg,
+)
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
 from gfo.output import output, output_result
@@ -55,9 +61,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     )
     output(release, fmt=fmt, jq=jq)
     if getattr(args, "web", False):
-        import webbrowser
-
-        webbrowser.open(release.url)
+        open_url_in_browser(release.url)
 
 
 def handle_delete(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

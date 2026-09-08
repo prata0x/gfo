@@ -7,7 +7,12 @@ import json
 
 import gfo.git_util
 from gfo._context import cli_remote
-from gfo.commands import get_adapter, open_in_browser, read_file_arg
+from gfo.commands import (
+    get_adapter,
+    open_in_browser,
+    open_url_in_browser,
+    read_file_arg,
+)
 from gfo.exceptions import ConfigError
 from gfo.i18n import _
 from gfo.output import (
@@ -90,9 +95,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     )
     output(pr, fmt=fmt, jq=jq)
     if getattr(args, "web", False):
-        import webbrowser
-
-        webbrowser.open(pr.url)
+        open_url_in_browser(pr.url)
 
 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:

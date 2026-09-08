@@ -855,6 +855,7 @@ class TestHandleListWeb:
         self.config = _make_config()
         self.issue = _make_issue()
         self.adapter = _make_adapter(self.issue)
+        self.adapter.get_web_url.return_value = "https://github.com/owner/repo/issues"
 
     def test_opens_browser(self):
         args = make_args(state="open", assignee=None, label=None, limit=30, web=True)
@@ -881,6 +882,7 @@ class TestHandleViewWeb:
         self.config = _make_config()
         self.issue = _make_issue()
         self.adapter = _make_adapter(self.issue)
+        self.adapter.get_web_url.return_value = "https://github.com/owner/repo/issues/7"
 
     def test_opens_browser(self):
         args = make_args(number=7, web=True)

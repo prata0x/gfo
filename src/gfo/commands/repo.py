@@ -8,7 +8,13 @@ import sys
 
 from gfo.adapter.registry import create_http_client, get_adapter_class
 from gfo.auth import resolve_token
-from gfo.commands import confirm_action, get_adapter, open_in_browser, read_token_input
+from gfo.commands import (
+    confirm_action,
+    get_adapter,
+    open_in_browser,
+    open_url_in_browser,
+    read_token_input,
+)
 from gfo.config import (
     build_clone_auth_header,
     build_clone_url,
@@ -226,10 +232,8 @@ def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     if getattr(args, "web", False):
         adapter = get_adapter()
         if owner and name:
-            import webbrowser
-
             repo = adapter.get_repository(owner, name)
-            webbrowser.open(repo.url)
+            open_url_in_browser(repo.url)
         else:
             open_in_browser(adapter, "repo")
         return

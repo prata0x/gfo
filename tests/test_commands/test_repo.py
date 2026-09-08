@@ -1679,6 +1679,7 @@ class TestHandleTransfer:
 class TestHandleViewWeb:
     def test_opens_browser(self, sample_config, mock_adapter):
         args = make_args(repo=None, web=True)
+        mock_adapter.get_web_url.return_value = "https://github.com/owner/repo"
         with (
             _patch_all(sample_config, mock_adapter),
             patch("webbrowser.open") as mock_open,
@@ -1689,6 +1690,7 @@ class TestHandleViewWeb:
 
     def test_does_not_call_api(self, sample_config, mock_adapter):
         args = make_args(repo=None, web=True)
+        mock_adapter.get_web_url.return_value = "https://github.com/owner/repo"
         with (
             _patch_all(sample_config, mock_adapter),
             patch("webbrowser.open"),
@@ -1699,6 +1701,9 @@ class TestHandleViewWeb:
     def test_opens_browser_with_repo_arg(self, sample_config, mock_adapter):
         """--web + repo arg で指定リポジトリの URL を開く（#7）。"""
         args = make_args(repo="other-owner/other-repo", web=True)
+        repo_mock = MagicMock()
+        repo_mock.url = "https://github.com/other-owner/other-repo"
+        mock_adapter.get_repository.return_value = repo_mock
         with (
             _patch_all(sample_config, mock_adapter),
             patch("webbrowser.open") as mock_open,

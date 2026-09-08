@@ -948,6 +948,7 @@ def test_pr_list_config_error(capsys):
 class TestHandleListWeb:
     def test_opens_browser(self, sample_config, mock_adapter):
         args = make_args(state="open", limit=30, web=True)
+        mock_adapter.get_web_url.return_value = "https://github.com/test-owner/test-repo/pulls"
         with (
             _patch_all(sample_config, mock_adapter),
             patch("webbrowser.open") as mock_open,
@@ -958,6 +959,7 @@ class TestHandleListWeb:
 
     def test_does_not_call_api(self, sample_config, mock_adapter):
         args = make_args(state="open", limit=30, web=True)
+        mock_adapter.get_web_url.return_value = "https://github.com/test-owner/test-repo/pulls"
         with (
             _patch_all(sample_config, mock_adapter),
             patch("webbrowser.open"),
@@ -969,6 +971,7 @@ class TestHandleListWeb:
 class TestHandleViewWeb:
     def test_opens_browser(self, sample_config, mock_adapter):
         args = make_args(number=42, web=True)
+        mock_adapter.get_web_url.return_value = "https://github.com/test-owner/test-repo/pull/42"
         with (
             _patch_all(sample_config, mock_adapter),
             patch("webbrowser.open") as mock_open,
@@ -979,6 +982,7 @@ class TestHandleViewWeb:
 
     def test_does_not_call_api(self, sample_config, mock_adapter):
         args = make_args(number=42, web=True)
+        mock_adapter.get_web_url.return_value = "https://github.com/test-owner/test-repo/pull/42"
         with (
             _patch_all(sample_config, mock_adapter),
             patch("webbrowser.open"),
@@ -993,6 +997,7 @@ class TestWebWithJsonFormat:
     def test_list_web_json_opens_browser_no_json_output(self, sample_config, mock_adapter, capsys):
         """--web 時は fmt="json" でもブラウザを開き、JSON 出力しない。"""
         args = make_args(state="open", limit=30, web=True)
+        mock_adapter.get_web_url.return_value = "https://github.com/test-owner/test-repo/pulls"
         with (
             _patch_all(sample_config, mock_adapter),
             patch("webbrowser.open") as mock_open,
@@ -1006,6 +1011,7 @@ class TestWebWithJsonFormat:
     def test_view_web_json_opens_browser_no_json_output(self, sample_config, mock_adapter, capsys):
         """--web + fmt="json" で PR view もブラウザ表示のみ。"""
         args = make_args(number=42, web=True)
+        mock_adapter.get_web_url.return_value = "https://github.com/test-owner/test-repo/pull/42"
         with (
             _patch_all(sample_config, mock_adapter),
             patch("webbrowser.open") as mock_open,
@@ -1374,6 +1380,28 @@ class TestHandleCreateWeb:
         ):
             pr_cmd.handle_create(args, fmt="table")
         mock_adapter.create_pull_request.assert_not_called()
+        mock_open.assert_not_called()
+
+    def test_empty_url_raises(self, sample_config, mock_adapter):
+        """作成結果の web URL が空の場合は GfoError を投げる (#563)。"""
+        import dataclasses
+
+        args = make_args(
+            head="feature/test",
+            base="main",
+            title="My PR",
+            body="",
+            draft=False,
+            web=True,
+        )
+        with (
+            _patch_all(sample_config, mock_adapter),
+            patch("webbrowser.open") as mock_open,
+        ):
+            pr = mock_adapter.create_pull_request.return_value
+            mock_adapter.create_pull_request.return_value = dataclasses.replace(pr, url="")
+            with pytest.raises(GfoError, match="not available"):
+                pr_cmd.handle_create(args, fmt="table")
         mock_open.assert_not_called()
 
 
