@@ -1121,7 +1121,11 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     webhook_edit = webhook_sub.add_parser("edit", help=_("Edit webhook"))
     webhook_edit.add_argument("id", type=int, help=_("Webhook ID"))
     webhook_edit.add_argument("--url", help=_("Webhook URL"))
-    webhook_edit.add_argument("--event", action="append", help=_("Event type"))
+    webhook_edit.add_argument(
+        "--event",
+        nargs="*",
+        help=_("Event type (repeatable; pass with no value to clear all events)"),
+    )
     webhook_edit.add_argument("--secret", help=_("Webhook secret"))
     webhook_edit_active = webhook_edit.add_mutually_exclusive_group()
     webhook_edit_active.add_argument(

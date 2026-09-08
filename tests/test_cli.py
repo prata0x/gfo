@@ -333,6 +333,21 @@ def test_parser_repo_create_public():
     assert args.visibility == "public"
 
 
+def test_parser_webhook_edit_event_nargs():
+    parser, _ = create_parser()
+    # 未指定では None（イベント変更なし）
+    assert parser.parse_args(["webhook", "edit", "5"]).event is None
+    # --event のみでは空リスト（全イベント解除 / Backlog の全イベント購読）
+    assert parser.parse_args(["webhook", "edit", "5", "--event"]).event == []
+    # --event に複数値を続けて書ける
+    assert parser.parse_args(["webhook", "edit", "5", "--event", "push", "pull_request"]).event == [
+        "push",
+        "pull_request",
+    ]
+    # --event の直後に別オプションが来ても空リストを作れる
+    assert parser.parse_args(["webhook", "edit", "5", "--event", "--inactive"]).event == []
+
+
 def test_parser_repo_create_internal():
     parser, _ = create_parser()
     args = parser.parse_args(["repo", "create", "my-org/my-repo", "--internal"])

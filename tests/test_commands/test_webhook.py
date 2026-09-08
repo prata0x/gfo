@@ -121,6 +121,20 @@ class TestHandleEdit:
             active=None,
         )
 
+    def test_clear_events_passes_empty_list(self):
+        """--event だけで events=[] を update_webhook に渡す（Backlog の全イベント購読等）。"""
+        with patch_adapter("gfo.commands.webhook") as adapter:
+            adapter.update_webhook.return_value = SAMPLE_WEBHOOK
+            args = make_args(id=1, url=None, event=[], secret=None, active=None)
+            webhook_cmd.handle_edit(args, fmt="table")
+        adapter.update_webhook.assert_called_once_with(
+            1,
+            url=None,
+            events=[],
+            secret=None,
+            active=None,
+        )
+
     def test_activate(self):
         with patch_adapter("gfo.commands.webhook") as adapter:
             adapter.update_webhook.return_value = SAMPLE_WEBHOOK
