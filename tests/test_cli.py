@@ -105,6 +105,61 @@ def test_require_status_checks_empty_list_clears():
     assert args.require_status_checks == []
 
 
+def test_require_status_checks_appends_on_repeat():
+    parser, _ = create_parser()
+    args = parser.parse_args(
+        [
+            "branch-protect",
+            "set",
+            "main",
+            "--require-status-checks",
+            "ci",
+            "--require-status-checks",
+            "lint",
+        ]
+    )
+    assert args.require_status_checks == ["ci", "lint"]
+
+
+def test_require_status_checks_append_then_clear():
+    parser, _ = create_parser()
+    args = parser.parse_args(
+        [
+            "branch-protect",
+            "set",
+            "main",
+            "--require-status-checks",
+            "ci",
+            "--require-status-checks",
+        ]
+    )
+    assert args.require_status_checks == []
+
+
+def test_require_status_checks_omitted_is_none():
+    parser, _ = create_parser()
+    args = parser.parse_args(["branch-protect", "set", "main"])
+    assert args.require_status_checks is None
+
+
+def test_webhook_edit_event_appends_on_repeat():
+    parser, _ = create_parser()
+    args = parser.parse_args(["webhook", "edit", "5", "--event", "push", "--event", "pull_request"])
+    assert args.event == ["push", "pull_request"]
+
+
+def test_webhook_edit_event_empty_list_clears():
+    parser, _ = create_parser()
+    args = parser.parse_args(["webhook", "edit", "5", "--event"])
+    assert args.event == []
+
+
+def test_webhook_edit_event_omitted_is_none():
+    parser, _ = create_parser()
+    args = parser.parse_args(["webhook", "edit", "5"])
+    assert args.event is None
+
+
 def test_repo_topics_set_empty_list_clears():
     parser, _ = create_parser()
     args = parser.parse_args(["repo", "topics", "set"])
