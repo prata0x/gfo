@@ -81,6 +81,34 @@ def _non_negative_int(value: str) -> int:
     return ivalue
 
 
+class _AppendOrClearAction(argparse.Action):
+    """Repeatable flag that appends values but clears to [] when given no value.
+
+    Behaves like ``action="append"`` across multiple invocations
+    (``--event push --event pull_request`` → ``["push", "pull_request"]``),
+    while a value-less single invocation (``--event``) means "clear all"
+    and yields an empty list ``[]``. When the flag is omitted entirely, the
+    destination stays ``None`` so callers can distinguish "leave unchanged"
+    from "clear".
+    """
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: object,
+        option_string: str | None = None,
+    ) -> None:
+        current = getattr(namespace, self.dest, None)
+        if current is None:
+            current = []
+        if values:
+            current.extend(values)  # type: ignore[arg-type]
+        else:
+            current = []
+        setattr(namespace, self.dest, current)
+
+
 class _GfoArgumentParser(argparse.ArgumentParser):
     """argparse のエラーを ConfigError に変換するサブクラス。"""
 
@@ -1123,7 +1151,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     webhook_edit.add_argument("--url", help=_("Webhook URL"))
     webhook_edit.add_argument(
         "--event",
+        action=_AppendOrClearAction,
         nargs="*",
+        default=None,
         help=_("Event type (repeatable; pass with no value to clear all events)"),
     )
     webhook_edit.add_argument("--secret", help=_("Webhook secret"))
@@ -1520,7 +1550,9 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     )
     bp_set.add_argument(
         "--require-status-checks",
+        action=_AppendOrClearAction,
         nargs="*",
+        default=None,
         dest="require_status_checks",
         help=_("Required status checks (omit the value to clear all)"),
     )
