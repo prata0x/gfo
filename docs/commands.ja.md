@@ -662,7 +662,7 @@ gfo issue close 10
 
 ### gfo issue reopen
 
-> Bitbucket, GitBucket, Backlog は非対応
+> GitBucket は非対応
 
 ```
 gfo issue reopen NUMBER

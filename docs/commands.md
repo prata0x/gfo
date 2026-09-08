@@ -648,7 +648,7 @@ gfo issue close 10
 
 ### gfo issue reopen
 
-> Bitbucket, GitBucket, Backlog not supported
+> GitBucket not supported
 
 ```
 gfo issue reopen NUMBER
