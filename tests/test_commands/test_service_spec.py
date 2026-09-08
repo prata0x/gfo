@@ -405,3 +405,28 @@ class TestGitLabSubgroup:
     def test_single_segment_still_fails(self):
         with pytest.raises(ConfigError):
             parse_service_spec("gitlab:onlyone")
+
+
+# ── #502: service_type の大文字小文字正規化 ──
+
+
+class TestServiceTypeCaseInsensitive:
+    def test_uppercase_brand_saas(self):
+        result = parse_service_spec("GitHub:owner/repo")
+        assert result.service_type == "github"
+        assert result.host == "github.com"
+
+    def test_mixed_case_self_hosted(self):
+        result = parse_service_spec("Gitea:gitea.example.com:owner/repo")
+        assert result.service_type == "gitea"
+        assert result.host == "gitea.example.com"
+
+    def test_uppercase_azure_devops(self):
+        result = parse_service_spec("Azure-DevOps:org/project/repo")
+        assert result.service_type == "azure-devops"
+        assert result.owner == "org"
+        assert result.repo == "repo"
+
+    def test_wrong_case_unknown_still_rejected(self):
+        with pytest.raises(ConfigError):
+            parse_service_spec("NotAService:owner/repo")

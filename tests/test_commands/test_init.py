@@ -355,6 +355,28 @@ class TestHandleNonInteractive:
         assert saved.owner == "owner"
         assert saved.repo == "repo"
 
+    def test_uppercase_type_normalized(self):
+        """#502: --type GitHub のように大文字表記でも小文字に正規化して保存する。"""
+        args = make_args(
+            non_interactive=True,
+            type="GitHub",
+            host="github.com",
+            api_url=None,
+            project_key=None,
+        )
+
+        with (
+            patch(
+                "gfo.commands.init.get_remote_url", return_value="https://github.com/owner/repo.git"
+            ),
+            patch("gfo.commands.init.save_project_config") as mock_save,
+        ):
+            init_cmd.handle(args, fmt="table")
+
+        mock_save.assert_called_once()
+        saved: ProjectConfig = mock_save.call_args[0][0]
+        assert saved.service_type == "github"
+
     def test_non_interactive_json_output(self, capsys):
         """fmt="json" で result / service_type / host / message を含む構造化 JSON を出力する。"""
         args = make_args(

@@ -49,6 +49,7 @@ def _handle_non_interactive(args: argparse.Namespace, *, fmt: str, jq: str | Non
 
     if not service_type:
         raise ConfigError(_("--type is required in non-interactive mode."))
+    service_type = service_type.lower()
     if service_type not in _VALID_SERVICE_TYPES:
         valid = ", ".join(sorted(_VALID_SERVICE_TYPES))
         raise ConfigError(
@@ -161,7 +162,7 @@ def _handle_interactive(args: argparse.Namespace, *, fmt: str, jq: str | None = 
                 ) from e
     else:
         # 手動入力
-        service_type = input(_("Service type (github/gitlab/bitbucket/...): ")).strip()
+        service_type = input(_("Service type (github/gitlab/bitbucket/...): ")).strip().lower()
         if not service_type:
             raise ConfigError(_("service_type cannot be empty."))
         if service_type not in _VALID_SERVICE_TYPES:
