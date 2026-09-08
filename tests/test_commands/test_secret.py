@@ -8,7 +8,7 @@ import pytest
 
 from gfo.adapter.base import Secret
 from gfo.commands import secret as secret_cmd
-from gfo.exceptions import GfoError, HttpError
+from gfo.exceptions import ConfigError, HttpError
 from tests.test_commands.conftest import make_args, patch_adapter
 
 SAMPLE_SECRET = Secret(name="MY_SECRET", created_at="2024-01-01", updated_at="2024-01-02")
@@ -66,7 +66,7 @@ class TestHandleSet:
         monkeypatch.delenv("NONEXISTENT_VAR", raising=False)
         with patch_adapter("gfo.commands.secret"):
             args = make_args(name="MY_SECRET", value=None, env_var="NONEXISTENT_VAR", file=None)
-            with pytest.raises(GfoError, match="not set"):
+            with pytest.raises(ConfigError, match="not set"):
                 secret_cmd.handle_set(args, fmt="table")
 
     def test_set_from_file(self, tmp_path):
@@ -98,14 +98,14 @@ class TestHandleSet:
             args = make_args(
                 name="MY_SECRET", value=None, env_var=None, file="/nonexistent/path/secret.txt"
             )
-            with pytest.raises(GfoError, match="File not found"):
+            with pytest.raises(ConfigError, match="File not found"):
                 secret_cmd.handle_set(args, fmt="table")
 
     def test_set_no_source_raises_gfo_error(self):
         """value/env_var/file いずれも None の場合 GfoError。"""
         with patch_adapter("gfo.commands.secret"):
             args = make_args(name="MY_SECRET", value=None, env_var=None, file=None)
-            with pytest.raises(GfoError, match="Specify --value, --env-var, or --file"):
+            with pytest.raises(ConfigError, match="Specify --value, --env-var, or --file"):
                 secret_cmd.handle_set(args, fmt="table")
 
     def test_error_propagation(self):

@@ -6,7 +6,7 @@ import argparse
 import os
 
 from gfo.commands import confirm_action, get_adapter, read_file_arg
-from gfo.exceptions import GfoError
+from gfo.exceptions import ConfigError
 from gfo.i18n import _
 from gfo.output import output, output_result
 
@@ -27,13 +27,13 @@ def handle_set(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
     elif args.env_var is not None:
         env_val = os.environ.get(args.env_var)
         if env_val is None:
-            raise GfoError(
+            raise ConfigError(
                 _("Environment variable '{env_var}' is not set.").format(env_var=args.env_var)
             )
         value = env_val
     else:
         if args.file is None:
-            raise GfoError(_("Specify --value, --env-var, or --file."))
+            raise ConfigError(_("Specify --value, --env-var, or --file."))
         value = read_file_arg(args.file).strip()
     scope = getattr(args, "org", None)
     secret = adapter.set_secret(

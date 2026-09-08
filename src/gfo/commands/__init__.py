@@ -301,7 +301,7 @@ def read_file_arg(path: str) -> str:
     """ファイルパスまたは '-'(stdin) からテキストを読み込む。"""
     import sys
 
-    from gfo.exceptions import GfoError
+    from gfo.exceptions import ConfigError
     from gfo.i18n import _
 
     if path == "-":
@@ -310,6 +310,6 @@ def read_file_arg(path: str) -> str:
         with open(path) as f:
             return f.read()
     except FileNotFoundError as e:
-        raise GfoError(_("File not found: {file}").format(file=path)) from e
+        raise ConfigError(_("File not found: {file}").format(file=path)) from e
     except PermissionError as e:
-        raise GfoError(_("Permission denied: {file}").format(file=path)) from e
+        raise ConfigError(_("Permission denied: {file}").format(file=path)) from e
