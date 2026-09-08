@@ -495,9 +495,17 @@ class GitLabAdapter(GitServiceAdapter):
         if auto_init:
             payload["initialize_with_readme"] = True
         if organization is not None:
-            payload["namespace_path"] = organization
+            payload["namespace_id"] = self._resolve_namespace_id(organization)
         resp = self._client.post("/projects", json=payload)
         return self._to_repository(resp.json())
+
+    def _resolve_namespace_id(self, organization: str) -> int:
+        # GitLab の Create project エンドポイントは namespace_path を認識せず、
+        # グループ/サブグループ配置は namespace_id（整数）のみを受け付ける。
+        # organization はグループパス（文字列）で渡ってくるため、Groups API で
+        # グループ ID に解決してから送る。
+        resp = self._client.get(f"/groups/{quote(organization, safe='')}")
+        return int(resp.json()["id"])
 
     def get_repository(self, owner: str | None = None, name: str | None = None) -> Repository:
         o = owner if owner is not None else self._owner
@@ -653,7 +661,7 @@ class GitLabAdapter(GitServiceAdapter):
         if mirror:
             payload["mirror"] = True
         if organization is not None:
-            payload["namespace_path"] = organization
+            payload["namespace_id"] = self._resolve_namespace_id(organization)
         if auth_token:
             payload["import_url"] = clone_url.replace("://", f"://oauth2:{auth_token}@")
         # auth_token は import_url に embed されるため、サーバー応答エラー本文や
