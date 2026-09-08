@@ -2495,7 +2495,6 @@ gfo variable set NAME --value VALUE [--masked] [--org ORG] [--visibility all|pri
 | `--masked` | Set as masked variable (GitLab only) |
 | `--org ORG` | Organization scope |
 | `--visibility {all,private,selected}` | Visibility for org scope (GitHub only; default: `all`) |
-| `--org ORG` | Organization scope |
 
 ```bash
 gfo variable set NODE_ENV --value "production"
