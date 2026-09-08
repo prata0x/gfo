@@ -243,6 +243,22 @@ def test_get_host_config_uppercase_host_normalized():
         assert result == {"type": "gitlab"}
 
 
+def test_get_host_config_uppercase_type_normalized():
+    """#502: hosts.<host>.type が大文字で書かれていても小文字に正規化して返す。"""
+    cfg = {"hosts": {"github.example.com": {"type": "GitHub"}}}
+    with patch("gfo.config.load_user_config", return_value=cfg):
+        result = get_host_config("github.example.com")
+        assert result == {"type": "github"}
+
+
+def test_get_host_config_normalized_type_does_not_mutate_source():
+    """正規化は読み込んだ設定を破壊しない。"""
+    cfg = {"hosts": {"github.example.com": {"type": "GitHub"}}}
+    with patch("gfo.config.load_user_config", return_value=cfg):
+        _ = get_host_config("github.example.com")
+    assert cfg["hosts"]["github.example.com"]["type"] == "GitHub"
+
+
 # ── get_hosts_config ──
 
 
@@ -260,6 +276,22 @@ def test_get_hosts_config():
         assert result == {
             "gitlab.example.com": "gitlab",
             "gitea.local": "gitea",
+        }
+
+
+def test_get_hosts_config_normalizes_type_case():
+    """#502: 保存された type の大文字小文字を小文字に正規化する。"""
+    cfg = {
+        "hosts": {
+            "github.example.com": {"type": "GitHub"},
+            "gitlab.example.com": {"type": "GitLab"},
+        }
+    }
+    with patch("gfo.config.load_user_config", return_value=cfg):
+        result = get_hosts_config()
+        assert result == {
+            "github.example.com": "github",
+            "gitlab.example.com": "gitlab",
         }
 
 

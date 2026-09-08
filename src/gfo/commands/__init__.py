@@ -153,7 +153,7 @@ def parse_service_spec(spec: str) -> ServiceSpec:
             ).format(spec=spec)
         )
 
-    service_type = parts[0]
+    service_type = parts[0].lower()
 
     if len(parts) == 2:
         # service:owner_repo_part

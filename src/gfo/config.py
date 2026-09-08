@@ -150,7 +150,12 @@ def get_host_config(host: str) -> dict[str, Any] | None:
     result = hosts.get(lower)
     if result is None and lower != host:
         result = hosts.get(host)
-    return result if isinstance(result, dict) else None
+    if not isinstance(result, dict):
+        return None
+    normalized = dict(result)
+    if isinstance(normalized.get("type"), str):
+        normalized["type"] = normalized["type"].lower()
+    return normalized
 
 
 def get_hosts_config() -> dict[str, str]:
@@ -163,7 +168,7 @@ def get_hosts_config() -> dict[str, str]:
     result: dict[str, str] = {}
     for host_name, host_cfg in hosts.items():
         if isinstance(host_cfg, dict) and isinstance(host_cfg.get("type"), str):
-            result[host_name.lower()] = host_cfg["type"]
+            result[host_name.lower()] = host_cfg["type"].lower()
     return result
 
 
