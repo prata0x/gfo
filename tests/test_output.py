@@ -12,6 +12,7 @@ import pytest
 from gfo.adapter.models import CompareFile, CompareResult
 from gfo.exceptions import (
     AuthError,
+    ConfigError,
     GfoError,
     HttpError,
     NotSupportedError,
@@ -702,8 +703,20 @@ class TestApplyJqFilter:
             "gfo.output.subprocess.run",
             side_effect=subprocess.CalledProcessError(1, "jq", stderr="parse error"),
         ):
-            with pytest.raises(GfoError, match="jq filter error"):
+            with pytest.raises(ConfigError, match="jq filter error"):
                 apply_jq_filter("{}", ".invalid??")
+
+    def test_jq_error_exit_code(self):
+        from gfo.exceptions import ExitCode
+
+        with patch(
+            "gfo.output.subprocess.run",
+            side_effect=subprocess.CalledProcessError(1, "jq", stderr="parse error"),
+        ):
+            with pytest.raises(ConfigError) as exc_info:
+                apply_jq_filter("{}", ".invalid??")
+        assert exc_info.value.exit_code == ExitCode.CONFIG
+        assert exc_info.value.error_code == "config_error"
 
     def test_jq_success(self):
         mock_result = subprocess.CompletedProcess(

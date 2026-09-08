@@ -8,7 +8,7 @@ import subprocess  # nosec B404 - jq is a fixed, well-known command
 import unicodedata
 from typing import Any
 
-from gfo.exceptions import GfoError, HttpError
+from gfo.exceptions import ConfigError, GfoError, HttpError
 from gfo.i18n import _
 
 
@@ -125,7 +125,8 @@ def apply_jq_filter(json_str: str, expression: str) -> str:
         jq 適用後の文字列
 
     Raises:
-        GfoError: jq コマンドが見つからない場合、または jq がエラーを返した場合
+        GfoError: jq コマンドが見つからない場合、または jq がタイムアウトした場合
+        ConfigError: ユーザーが指定した jq 式が不正な構文の場合
     """
     try:
         # jq の `recurse` 等で無限生成式を書かれてもプロセスが固まらないよう
@@ -146,7 +147,7 @@ def apply_jq_filter(json_str: str, expression: str) -> str:
     except subprocess.TimeoutExpired as e:
         raise GfoError(_("jq filter timed out after 60 seconds.")) from e
     except subprocess.CalledProcessError as e:
-        raise GfoError(_("jq filter error: {error}").format(error=e.stderr.strip())) from e
+        raise ConfigError(_("jq filter error: {error}").format(error=e.stderr.strip())) from e
 
 
 def format_error_json(err: GfoError) -> str:
