@@ -1778,6 +1778,38 @@ def test_hoist_global_flags_skips_eq_flag_value_for_subcommand_detection():
     assert result == ["--format=json", "auth", "login", "--account", "work"]
 
 
+def test_hoist_global_flags_account_before_subcommand_for_auth():
+    """#576: auth の前に置いた --account もローカルの account に解釈される。"""
+    result = _hoist_global_flags(["--account", "bar", "auth", "login", "--token-stdin"])
+    assert result == ["auth", "login", "--token-stdin", "--account", "bar"]
+    parser, _ = create_parser()
+    ns = parser.parse_args(result)
+    assert ns.global_account is None
+    assert ns.account == "bar"
+
+
+def test_hoist_global_flags_account_equals_before_subcommand_for_auth():
+    """#576: --account=val 形式でもサブコマンド前配置がローカルに解釈される。"""
+    result = _hoist_global_flags(["--account=bar", "auth", "logout", "--host", "github.com"])
+    assert result == ["auth", "logout", "--host", "github.com", "--account=bar"]
+    parser, _ = create_parser()
+    ns = parser.parse_args(result)
+    assert ns.global_account is None
+    assert ns.account == "bar"
+
+
+def test_hoist_global_flags_account_before_subcommand_for_init():
+    """#576: init の前に置いた --account もローカルの account に解釈される。"""
+    result = _hoist_global_flags(
+        ["--account", "foo", "init", "--non-interactive", "--type", "github"]
+    )
+    assert result == ["init", "--non-interactive", "--type", "github", "--account", "foo"]
+    parser, _ = create_parser()
+    ns = parser.parse_args(result)
+    assert ns.global_account is None
+    assert ns.account == "foo"
+
+
 def test_hoist_main_format_after_subcommand():
     """main() が --format をサブコマンド後に配置しても正しく解析する。"""
     handler = MagicMock()
