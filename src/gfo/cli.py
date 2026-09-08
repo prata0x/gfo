@@ -2176,10 +2176,11 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         jq_expr = args.jq
-        if jq_expr is not None and not jq_expr:
-            print(_("Error: --jq expression must not be empty."), file=sys.stderr)
-            return 1
         resolved_fmt = _resolve_format(args.format, jq_expr)
+        if jq_expr is not None and not jq_expr:
+            empty_jq_err = GfoError(_("Error: --jq expression must not be empty."))
+            print(format_error_json(empty_jq_err), file=sys.stderr)
+            return empty_jq_err.exit_code
 
         key = (args.command, getattr(args, "subcommand", None))
 
