@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from unittest.mock import MagicMock
+from urllib.parse import quote
 
 import pytest
 import responses
@@ -4578,6 +4579,37 @@ class TestPackagesGitea:
         )
         gitea_adapter.delete_package("container", "mypkg", "1.0")
         assert mock_responses.calls[0].request.method == "DELETE"
+
+    def test_get_package_quotes_reserved_chars_in_type(self, mock_responses, gitea_adapter):
+        """package_type に URL 予約文字が含まれても quote() でエンコードされる (#498)。"""
+        dangerous = "generic?extra=1"
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/packages/test-owner/{quote(dangerous, safe='')}/mypkg/1.0",
+            json={
+                "name": "mypkg",
+                "type": "generic?extra=1",
+                "version": "1.0",
+                "html_url": "x",
+                "created_at": "2025-01-01T00:00:00Z",
+            },
+            status=200,
+        )
+        p = gitea_adapter.get_package(dangerous, "mypkg", version="1.0")
+        assert p.name == "mypkg"
+        assert "?extra=1" not in mock_responses.calls[0].request.url
+
+    def test_delete_package_quotes_reserved_chars_in_type(self, mock_responses, gitea_adapter):
+        """package_type にパストラバーサル文字が含まれても quote() でエンコードされる (#498)。"""
+        dangerous = "generic/../../admin"
+        mock_responses.add(
+            responses.DELETE,
+            f"{BASE}/packages/test-owner/{quote(dangerous, safe='')}/mypkg/1.0",
+            status=204,
+        )
+        gitea_adapter.delete_package(dangerous, "mypkg", "1.0")
+        assert "/admin/" not in mock_responses.calls[0].request.url
+        assert "../" not in mock_responses.calls[0].request.url
 
 
 class TestReleaseAssetsUploadDownloadGitea:
