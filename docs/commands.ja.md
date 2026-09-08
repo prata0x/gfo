@@ -1808,14 +1808,15 @@ gfo webhook edit ID [--url URL] [--event EVENT ...] [--secret SECRET] [--active 
 | オプション | 説明 |
 |---|---|
 | `--url` | Webhook URL |
-| `--event` | イベントタイプ（繰り返し可） |
+| `--event` | イベントタイプ（繰り返し可；値を省略すると全イベントを解除） |
 | `--secret` | Webhook シークレット |
 | `--active` | Webhook を有効化 |
 | `--inactive` | Webhook を無効化 |
 
 ```bash
 gfo webhook edit 5 --url https://example.com/new-hook
-gfo webhook edit 5 --event push --event pull_request
+gfo webhook edit 5 --event push pull_request
+gfo webhook edit 5 --event
 gfo webhook edit 5 --inactive
 ```
 

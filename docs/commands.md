@@ -1794,14 +1794,15 @@ gfo webhook edit ID [--url URL] [--event EVENT ...] [--secret SECRET] [--active 
 | Option | Description |
 |---|---|
 | `--url` | Webhook URL |
-| `--event` | Event type (repeatable) |
+| `--event` | Event type (repeatable; `--event` with no value clears all events) |
 | `--secret` | Webhook secret |
 | `--active` | Activate webhook |
 | `--inactive` | Deactivate webhook |
 
 ```bash
 gfo webhook edit 5 --url https://example.com/new-hook
-gfo webhook edit 5 --event push --event pull_request
+gfo webhook edit 5 --event push pull_request
+gfo webhook edit 5 --event
 gfo webhook edit 5 --inactive
 ```
 

@@ -1079,6 +1079,9 @@ msgstr "環境変数名"
 msgid "Event type"
 msgstr "イベント種別"
 
+msgid "Event type (repeatable; pass with no value to clear all events)"
+msgstr "イベント種別（繰り返し可；値を省略すると全イベントを解除）"
+
 msgid "File path"
 msgstr "ファイルパス"
 
