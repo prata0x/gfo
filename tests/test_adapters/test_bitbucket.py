@@ -2113,9 +2113,12 @@ class TestSearchCode:
                             "path": "src/main.py",
                             "type": "commit_file",
                             "links": {
+                                "html": {
+                                    "href": "https://bitbucket.org/test-workspace/test-repo/src/main/src/main.py"
+                                },
                                 "self": {
                                     "href": "https://api.bitbucket.org/2.0/repositories/test-workspace/test-repo/src/main/src/main.py"
-                                }
+                                },
                             },
                         },
                         "content_matches": [
@@ -2142,6 +2145,9 @@ class TestSearchCode:
         assert isinstance(result[0], CodeSearchResult)
         assert result[0].path == "src/main.py"
         assert result[0].matched_text == "def main():"
+        assert result[0].url == (
+            "https://bitbucket.org/test-workspace/test-repo/src/main/src/main.py"
+        )
 
     def test_search_code_empty(self, mock_responses, bitbucket_adapter):
         mock_responses.add(
@@ -2349,7 +2355,30 @@ class TestToPipeline:
         pipeline = BitbucketAdapter._to_pipeline(data)
         assert pipeline.status == "pending"
 
-    def test_url_from_object_links_self(self):
+    def test_url_prefers_html_link(self):
+        data = {
+            "build_number": 42,
+            "uuid": "{a3c4e02c-c002-4791-95da-1f744eaa3daa}",
+            "state": {
+                "name": "COMPLETED",
+                "result": {"name": "SUCCESSFUL"},
+            },
+            "target": {"ref_name": "main"},
+            "created_on": "2026-01-01T00:00:00Z",
+            "links": {
+                "html": {"href": "https://bitbucket.org/ws/repo/pipelines/results/{a3c4e02c}"},
+                "self": {
+                    "href": "https://api.bitbucket.org/2.0/repositories/ws/repo/pipelines/{a3c4e02c}"
+                },
+                "steps": {
+                    "href": "https://api.bitbucket.org/2.0/repositories/ws/repo/pipelines/{a3c4e02c}/steps"
+                },
+            },
+        }
+        pipeline = BitbucketAdapter._to_pipeline(data)
+        assert pipeline.url == "https://bitbucket.org/ws/repo/pipelines/results/{a3c4e02c}"
+
+    def test_url_falls_back_to_self_link(self):
         data = {
             "build_number": 42,
             "uuid": "{a3c4e02c-c002-4791-95da-1f744eaa3daa}",
@@ -2362,9 +2391,6 @@ class TestToPipeline:
             "links": {
                 "self": {
                     "href": "https://api.bitbucket.org/2.0/repositories/ws/repo/pipelines/{a3c4e02c}"
-                },
-                "steps": {
-                    "href": "https://api.bitbucket.org/2.0/repositories/ws/repo/pipelines/{a3c4e02c}/steps"
                 },
             },
         }

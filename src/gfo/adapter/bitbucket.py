@@ -588,7 +588,11 @@ class BitbucketAdapter(GitServiceAdapter):
                 id=data.get("build_number") or data.get("uuid", ""),
                 status=status,
                 ref=(data.get("target") or {}).get("ref_name") or "",
-                url=(data.get("links") or {}).get("self", {}).get("href", ""),
+                url=(
+                    (data.get("links") or {}).get("html")
+                    or (data.get("links") or {}).get("self")
+                    or {}
+                ).get("href", ""),
                 created_at=data.get("created_on") or "",
             )
         except (KeyError, TypeError, AttributeError, IndexError) as e:
@@ -1653,7 +1657,11 @@ class BitbucketAdapter(GitServiceAdapter):
                 CodeSearchResult(
                     path=path,
                     repository=f"{self._owner}/{self._repo}",
-                    url=((file_info.get("links") or {}).get("self") or {}).get("href", ""),
+                    url=(
+                        (file_info.get("links") or {}).get("html")
+                        or (file_info.get("links") or {}).get("self")
+                        or {}
+                    ).get("href", ""),
                     matched_text=matched,
                 )
             )
