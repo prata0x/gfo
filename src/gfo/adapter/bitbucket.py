@@ -588,9 +588,7 @@ class BitbucketAdapter(GitServiceAdapter):
                 id=data.get("build_number") or data.get("uuid", ""),
                 status=status,
                 ref=(data.get("target") or {}).get("ref_name") or "",
-                url=(data.get("links") or {}).get("self", [{}])[0].get("href")
-                if isinstance((data.get("links") or {}).get("self"), list)
-                else "",
+                url=(data.get("links") or {}).get("self", {}).get("href", ""),
                 created_at=data.get("created_on") or "",
             )
         except (KeyError, TypeError, AttributeError, IndexError) as e:
