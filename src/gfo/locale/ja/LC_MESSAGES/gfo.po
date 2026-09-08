@@ -2596,3 +2596,9 @@ msgstr "{service} は webhook edit での active をサポートしていませ�
 
 msgid "gfo.type={saved_type!r} but URL suggests {suggested!r}; using git config value."
 msgstr "gfo.type={saved_type!r} ですが URL は {suggested!r} を示唆しています。git config の値を使用します。"
+
+msgid "Web URL is not available for this resource; cannot open in browser."
+msgstr "このリソースの Web URL は取得できないため、ブラウザで開けません。"
+
+msgid "Web URL is invalid and cannot be opened: {url}"
+msgstr "無効な Web URL のため開けません: {url}"

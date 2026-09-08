@@ -353,6 +353,7 @@ class TestHandleListWeb:
     def setup_method(self):
         self.milestone = _make_milestone()
         self.adapter = _make_adapter(self.milestone)
+        self.adapter.get_web_url.return_value = "https://github.com/owner/repo/milestones"
 
     def test_opens_browser(self, sample_config):
         args = make_args(web=True)
@@ -378,6 +379,7 @@ class TestHandleViewWeb:
     def setup_method(self):
         self.milestone = _make_milestone()
         self.adapter = _make_adapter(self.milestone)
+        self.adapter.get_web_url.return_value = "https://github.com/owner/repo/milestones/3"
 
     def test_opens_browser(self, sample_config):
         args = make_args(number=3, web=True)

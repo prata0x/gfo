@@ -279,6 +279,27 @@ def create_adapter_from_spec(spec: ServiceSpec) -> GitServiceAdapter:
     return adapter_cls(client, spec.owner, spec.repo, **kwargs)
 
 
+def open_url_in_browser(url: str) -> None:
+    """URL を検証して Web ブラウザで開く。
+
+    ``--web`` フラグ処理に使う。サーバー応答の ``html_url`` / ``webUrl`` 等が
+    空・欠落・あるいは http(s) 以外の値だった場合にサイレントに何も起きないのを
+    防ぐため、開く前に検証する (#563)。
+    """
+    import webbrowser
+    from urllib.parse import urlparse
+
+    from gfo.exceptions import GfoError
+    from gfo.i18n import _
+
+    if not url or not isinstance(url, str):
+        raise GfoError(_("Web URL is not available for this resource; cannot open in browser."))
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise GfoError(_("Web URL is invalid and cannot be opened: {url}").format(url=url))
+    webbrowser.open(url)
+
+
 def open_in_browser(
     adapter: GitServiceAdapter, resource: str, number: int | str | None = None
 ) -> None:
@@ -288,13 +309,11 @@ def open_in_browser(
     集約することで、各コマンドで `import webbrowser; webbrowser.open(...)` を
     繰り返さないようにする。
     """
-    import webbrowser
-
     if number is None:
         url = adapter.get_web_url(resource)
     else:
         url = adapter.get_web_url(resource, number)
-    webbrowser.open(url)
+    open_url_in_browser(url)
 
 
 def read_file_arg(path: str) -> str:

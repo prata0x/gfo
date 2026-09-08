@@ -13,6 +13,7 @@ from gfo.commands import (
     get_adapter,
     get_adapter_with_config,
     open_in_browser,
+    open_url_in_browser,
     parse_service_spec,
     read_file_arg,
 )
@@ -104,9 +105,7 @@ def handle_create(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     )
     output(issue, fmt=fmt, jq=jq)
     if getattr(args, "web", False):
-        import webbrowser
-
-        webbrowser.open(issue.url)
+        open_url_in_browser(issue.url)
 
 
 def handle_view(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
