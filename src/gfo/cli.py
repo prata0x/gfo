@@ -2086,7 +2086,42 @@ def _hoist_global_flags(argv: list[str]) -> list[str]:
         else:
             rest.append(arg)
             i += 1
+
+    if subcommand in _ACCOUNT_CONFLICT_COMMANDS:
+        rest = _relocate_account_flags(rest, subcommand)
     return hoisted + rest
+
+
+def _relocate_account_flags(rest: list[str], subcommand: str) -> list[str]:
+    """auth/init はローカルの --account のみを持つ。
+
+    サブコマンドの前に置かれた ``--account`` はトップレベルパーサーに
+    ``global_account`` として消費され、ローカルの ``account`` がデフォルト値のまま
+    になる（#576）。これを防ぐため、ローカル側で解釈されるよう ``--account``
+    トークンをサブコマンド直後に移動する。
+    """
+    relocated: list[str] = []
+    kept: list[str] = []
+    j = 0
+    while j < len(rest):
+        a = rest[j]
+        if a == "--account":
+            relocated.append(a)
+            if j + 1 < len(rest):
+                relocated.append(rest[j + 1])
+                j += 2
+                continue
+            j += 1
+            continue
+        if a.startswith("--account="):
+            relocated.append(a)
+            j += 1
+            continue
+        kept.append(a)
+        j += 1
+    if not relocated:
+        return rest
+    return kept + relocated
 
 
 def main(argv: list[str] | None = None) -> int:
