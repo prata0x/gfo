@@ -2825,3 +2825,58 @@ class TestSetVariableDoesNotDowngradeSecret:
         )
         with pytest.raises(NotFoundError):
             bitbucket_adapter.delete_secret("PLAIN")
+
+
+class TestSecretVariableVisibilityWarning:
+    """GitLab/Gitea 以外は --visibility を未対応として警告すべき (#823)。"""
+
+    _VARS = f"{REPOS}/pipelines_config/variables/"
+
+    def test_set_variable_warns_on_visibility(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            self._VARS,
+            json={"values": [{"key": "MY_VAR", "uuid": "{var-uuid}", "secured": False}]},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{self._VARS}%7Bvar-uuid%7D",
+            json={"key": "MY_VAR", "value": "v", "secured": False},
+            status=200,
+        )
+        with pytest.warns(UserWarning, match="does not support visibility"):
+            bitbucket_adapter.set_variable("MY_VAR", "v", visibility="selected")
+
+    def test_set_secret_warns_on_visibility(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            self._VARS,
+            json={"values": [{"key": "MY_SECRET", "uuid": "{secret-uuid}", "secured": True}]},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{self._VARS}%7Bsecret-uuid%7D",
+            json={"key": "MY_SECRET", "value": "v", "secured": True},
+            status=200,
+        )
+        with pytest.warns(UserWarning, match="does not support visibility"):
+            bitbucket_adapter.set_secret("MY_SECRET", "v", visibility="selected")
+
+    def test_set_variable_no_warning_without_visibility(self, mock_responses, bitbucket_adapter):
+        mock_responses.add(
+            responses.GET,
+            self._VARS,
+            json={"values": [{"key": "MY_VAR", "uuid": "{var-uuid}", "secured": False}]},
+            status=200,
+        )
+        mock_responses.add(
+            responses.PUT,
+            f"{self._VARS}%7Bvar-uuid%7D",
+            json={"key": "MY_VAR", "value": "v", "secured": False},
+            status=200,
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            bitbucket_adapter.set_variable("MY_VAR", "v")

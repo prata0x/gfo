@@ -4989,3 +4989,57 @@ class TestWebBaseUrlIPv6:
         )
         result = adapter.search_code("main")
         assert result[0].url == "https://[::1]:3000/acme/widgets/-/blob/main/src/main.py"
+
+
+class TestSecretVariableVisibilityWarning:
+    """GitLab/Gitea 以外は --visibility を未対応として警告すべき (#823)。"""
+
+    def test_set_variable_warns_on_visibility(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/variables/MY_VAR",
+            status=404,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/variables",
+            json={"key": "MY_VAR", "value": "v", "masked": False},
+            status=201,
+        )
+
+        with pytest.warns(UserWarning, match="does not support visibility"):
+            gitlab_adapter.set_variable("MY_VAR", "v", visibility="selected")
+
+    def test_set_secret_warns_on_visibility(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/variables/MY_SECRET",
+            status=404,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/variables",
+            json={"key": "MY_SECRET", "value": "v", "masked": True},
+            status=201,
+        )
+
+        with pytest.warns(UserWarning, match="does not support visibility"):
+            gitlab_adapter.set_secret("MY_SECRET", "v", visibility="selected")
+
+    def test_set_variable_no_warning_without_visibility(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/variables/MY_VAR",
+            status=404,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/variables",
+            json={"key": "MY_VAR", "value": "v", "masked": False},
+            status=201,
+        )
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            gitlab_adapter.set_variable("MY_VAR", "v")

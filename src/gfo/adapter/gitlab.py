@@ -1889,6 +1889,7 @@ class GitLabAdapter(GitServiceAdapter):
     def set_secret(
         self, name: str, value: str, *, scope: str | None = None, visibility: str | None = None
     ) -> Secret:
+        self._warn_unsupported_params("secret set", visibility=visibility)
         var = self.set_variable(name, value, scope=scope, masked=True)
         return Secret(name=var.name, created_at=var.created_at, updated_at=var.updated_at)
 
@@ -1919,6 +1920,7 @@ class GitLabAdapter(GitServiceAdapter):
         masked: bool = False,
         visibility: str | None = None,
     ) -> Variable:
+        self._warn_unsupported_params("variable set", visibility=visibility)
         base = self._variables_base_path(scope)
         try:
             resp = self._client.get(f"{base}/{quote(name, safe='')}")
