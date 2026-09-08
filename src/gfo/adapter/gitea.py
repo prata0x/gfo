@@ -1491,6 +1491,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def set_secret(
         self, name: str, value: str, *, scope: str | None = None, visibility: str | None = None
     ) -> Secret:
+        self._warn_unsupported_params("secret set", visibility=visibility)
         base = self._secrets_base_path(scope)
         self._client.put(
             f"{base}/{quote(name, safe='')}",
@@ -1536,6 +1537,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         masked: bool = False,
         visibility: str | None = None,
     ) -> Variable:
+        self._warn_unsupported_params("variable set", visibility=visibility)
 
         base = self._variables_base_path(scope)
         try:

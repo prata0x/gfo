@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import warnings
 from unittest.mock import MagicMock
 
 import pytest
@@ -4722,3 +4723,48 @@ class TestWebBaseUrlIPv6:
         adapter = GiteaAdapter(client, "acme", "widgets")
         org = adapter._to_organization({"username": "acme"})
         assert org.url == "https://[::1]:3000/acme"
+
+
+class TestSecretVariableVisibilityWarning:
+    """GitLab/Gitea 以外は --visibility を未対応として警告すべき (#823)。"""
+
+    def test_set_secret_warns_on_visibility(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}/actions/secrets/MY_SECRET",
+            json={"data": "v"},
+            status=201,
+        )
+        with pytest.warns(UserWarning, match="does not support visibility"):
+            gitea_adapter.set_secret("MY_SECRET", "v", visibility="selected")
+
+    def test_set_variable_warns_on_visibility(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/variables/MY_VAR",
+            status=404,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/actions/variables",
+            json={"name": "MY_VAR", "value": "v"},
+            status=201,
+        )
+        with pytest.warns(UserWarning, match="does not support visibility"):
+            gitea_adapter.set_variable("MY_VAR", "v", visibility="selected")
+
+    def test_set_variable_no_warning_without_visibility(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/actions/variables/MY_VAR",
+            status=404,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{REPOS}/actions/variables",
+            json={"name": "MY_VAR", "value": "v"},
+            status=201,
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            gitea_adapter.set_variable("MY_VAR", "v")
