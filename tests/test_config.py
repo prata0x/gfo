@@ -465,6 +465,27 @@ def test_resolve_with_git_config():
         assert cfg.repo == "repo"
 
 
+def test_resolve_git_config_type_case_insensitive():
+    """git config の gfo.type が大文字混在でも正規化される (#835)。"""
+    git_cfg = {
+        "gfo.type": "GitHub",
+        "gfo.host": "github.com",
+        "gfo.api-url": "https://api.github.com",
+        "gfo.organization": None,
+        "gfo.project-key": None,
+    }
+    with (
+        patch("gfo.git_util.git_config_get", side_effect=_mock_git_config(git_cfg)),
+        patch(
+            "gfo.git_util.get_remote_url",
+            return_value="https://github.com/owner/repo.git",
+        ),
+    ):
+        cfg = resolve_project_config()
+        assert cfg.service_type == "github"
+        assert cfg.host == "github.com"
+
+
 def test_resolve_with_detect():
     """git config に設定がなく、detect_service で解決する場合。"""
     from gfo.detect import DetectResult

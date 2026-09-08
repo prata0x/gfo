@@ -387,6 +387,8 @@ def detect_service(cwd: str | None = None) -> DetectResult:
         # --remote も --repo も未指定時
         # 1. git config ショートカット（saved_type / saved_host: git config に保存済みの値）
         saved_type = git_config_get("gfo.type", cwd=cwd)
+        if saved_type:
+            saved_type = saved_type.lower()
         saved_host = git_config_get("gfo.host", cwd=cwd)
         if saved_type and saved_host:
             try:
