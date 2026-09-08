@@ -2449,7 +2449,7 @@ gfo secret list [--limit N] [--org ORG]
 ### gfo secret set
 
 ```
-gfo secret set NAME {--value VALUE | --env-var ENV_VAR | --file FILE} [--org ORG]
+gfo secret set NAME {--value VALUE | --env-var ENV_VAR | --file FILE} [--org ORG] [--visibility all|private|selected]
 ```
 
 | オプション | 説明 |
@@ -2458,6 +2458,7 @@ gfo secret set NAME {--value VALUE | --env-var ENV_VAR | --file FILE} [--org ORG
 | `--env-var ENV_VAR` | 環境変数から値を取得する |
 | `--file FILE` | ファイルから値を取得する |
 | `--org ORG` | 組織スコープ |
+| `--visibility {all,private,selected}` | 組織スコープの可視性（GitHub のみ有効；既定: `all`） |
 
 ```bash
 gfo secret set API_KEY --value "sk-xxxx"
@@ -2499,14 +2500,15 @@ gfo variable list [--limit N] [--org ORG]
 ### gfo variable set
 
 ```
-gfo variable set NAME --value VALUE [--masked] [--org ORG]
+gfo variable set NAME --value VALUE [--masked] [--org ORG] [--visibility all|private|selected]
 ```
 
 | オプション | 説明 |
 |---|---|
-| `--value VALUE` | 変数の値（必須） |
+| `--value VALUE` | 変数値（必須） |
 | `--masked` | GitLab の masked 変数として設定する（GitLab のみ有効） |
 | `--org ORG` | 組織スコープ |
+| `--visibility {all,private,selected}` | 組織スコープの可視性（GitHub のみ有効；既定: `all`） |
 
 ```bash
 gfo variable set NODE_ENV --value "production"

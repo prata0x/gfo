@@ -36,7 +36,9 @@ def handle_set(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
             raise GfoError(_("Specify --value, --env-var, or --file."))
         value = read_file_arg(args.file).strip()
     scope = getattr(args, "org", None)
-    secret = adapter.set_secret(args.name, value, scope=scope)
+    secret = adapter.set_secret(
+        args.name, value, scope=scope, visibility=getattr(args, "visibility", None)
+    )
     output(secret, fmt=fmt, jq=jq)
 
 

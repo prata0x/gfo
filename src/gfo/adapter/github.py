@@ -1657,14 +1657,27 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             for d in results
         ]
 
-    def set_secret(self, name: str, value: str, *, scope: str | None = None) -> Secret:
+    def set_secret(
+        self,
+        name: str,
+        value: str,
+        *,
+        scope: str | None = None,
+        visibility: str | None = None,
+    ) -> Secret:
         base = self._secrets_base_path(scope)
         resp = self._client.get(f"{base}/public-key")
         pub_key_data = resp.json()
         encrypted = self._encrypt_secret(pub_key_data["key"], value)
+        payload: dict[str, Any] = {
+            "encrypted_value": encrypted,
+            "key_id": pub_key_data["key_id"],
+        }
+        if scope:
+            payload["visibility"] = visibility or "all"
         self._client.put(
             f"{base}/{quote(name, safe='')}",
-            json={"encrypted_value": encrypted, "key_id": pub_key_data["key_id"]},
+            json=payload,
         )
         resp = self._client.get(f"{base}/{quote(name, safe='')}")
         data = resp.json()
@@ -1730,20 +1743,29 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         ]
 
     def set_variable(
-        self, name: str, value: str, *, scope: str | None = None, masked: bool = False
+        self,
+        name: str,
+        value: str,
+        *,
+        scope: str | None = None,
+        masked: bool = False,
+        visibility: str | None = None,
     ) -> Variable:
 
         base = self._variables_base_path(scope)
+        org_payload: dict[str, Any] = {}
+        if scope:
+            org_payload["visibility"] = visibility or "all"
         try:
             self._client.get(f"{base}/{quote(name, safe='')}")
             self._client.patch(
                 f"{base}/{quote(name, safe='')}",
-                json={"name": name, "value": value},
+                json={"name": name, "value": value, **org_payload},
             )
         except NotFoundError:
             self._client.post(
                 base,
-                json={"name": name, "value": value},
+                json={"name": name, "value": value, **org_payload},
             )
         return Variable(name=name, value=value, created_at="", updated_at="")
 

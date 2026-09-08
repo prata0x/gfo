@@ -1482,7 +1482,9 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
             for d in results
         ]
 
-    def set_secret(self, name: str, value: str, *, scope: str | None = None) -> Secret:
+    def set_secret(
+        self, name: str, value: str, *, scope: str | None = None, visibility: str | None = None
+    ) -> Secret:
         base = self._secrets_base_path(scope)
         self._client.put(
             f"{base}/{quote(name, safe='')}",
@@ -1520,7 +1522,13 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         ]
 
     def set_variable(
-        self, name: str, value: str, *, scope: str | None = None, masked: bool = False
+        self,
+        name: str,
+        value: str,
+        *,
+        scope: str | None = None,
+        masked: bool = False,
+        visibility: str | None = None,
     ) -> Variable:
 
         base = self._variables_base_path(scope)

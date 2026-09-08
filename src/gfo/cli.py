@@ -1702,6 +1702,11 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     secret_set = secret_sub.add_parser("set", help=_("Set secret"))
     secret_set.add_argument("name", help=_("Secret name"))
     secret_set.add_argument("--org", help=_("Organization scope"))
+    secret_set.add_argument(
+        "--visibility",
+        choices=["all", "private", "selected"],
+        help=_("Visibility for organization scope (GitHub only; default: all)"),
+    )
     _secret_value_group = secret_set.add_mutually_exclusive_group(required=True)
     _secret_value_group.add_argument("--value", help=_("Secret value"))
     _secret_value_group.add_argument(
@@ -1734,6 +1739,11 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     variable_set.add_argument("--value", required=True, help=_("Value"))
     variable_set.add_argument("--masked", action="store_true", help=_("Mask variable in logs"))
     variable_set.add_argument("--org", help=_("Organization scope"))
+    variable_set.add_argument(
+        "--visibility",
+        choices=["all", "private", "selected"],
+        help=_("Visibility for organization scope (GitHub only; default: all)"),
+    )
     variable_get = variable_sub.add_parser("get", help=_("Get variable"))
     variable_get.add_argument("name", help=_("Variable name"))
     variable_get.add_argument("--org", help=_("Organization scope"))

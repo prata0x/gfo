@@ -2435,7 +2435,7 @@ gfo secret list [--limit N] [--org ORG]
 ### gfo secret set
 
 ```
-gfo secret set NAME {--value VALUE | --env-var ENV_VAR | --file FILE} [--org ORG]
+gfo secret set NAME {--value VALUE | --env-var ENV_VAR | --file FILE} [--org ORG] [--visibility all|private|selected]
 ```
 
 | Option | Description |
@@ -2444,6 +2444,7 @@ gfo secret set NAME {--value VALUE | --env-var ENV_VAR | --file FILE} [--org ORG
 | `--env-var ENV_VAR` | Read value from environment variable |
 | `--file FILE` | Read value from file |
 | `--org ORG` | Organization scope |
+| `--visibility {all,private,selected}` | Visibility for org scope (GitHub only; default: `all`) |
 
 ```bash
 gfo secret set API_KEY --value "sk-xxxx"
@@ -2485,13 +2486,15 @@ gfo variable list [--limit N] [--org ORG]
 ### gfo variable set
 
 ```
-gfo variable set NAME --value VALUE [--masked] [--org ORG]
+gfo variable set NAME --value VALUE [--masked] [--org ORG] [--visibility all|private|selected]
 ```
 
 | Option | Description |
 |---|---|
 | `--value VALUE` | Variable value (required) |
 | `--masked` | Set as masked variable (GitLab only) |
+| `--org ORG` | Organization scope |
+| `--visibility {all,private,selected}` | Visibility for org scope (GitHub only; default: `all`) |
 | `--org ORG` | Organization scope |
 
 ```bash

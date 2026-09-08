@@ -48,7 +48,9 @@ class TestHandleSet:
             adapter.set_secret.return_value = SAMPLE_SECRET
             args = make_args(name="MY_SECRET", value="secret", env_var=None, file=None)
             secret_cmd.handle_set(args, fmt="table")
-        adapter.set_secret.assert_called_once_with("MY_SECRET", "secret", scope=None)
+        adapter.set_secret.assert_called_once_with(
+            "MY_SECRET", "secret", scope=None, visibility=None
+        )
 
     def test_set_from_env_var(self, monkeypatch):
         monkeypatch.setenv("MY_ENV", "envvalue")
@@ -56,7 +58,9 @@ class TestHandleSet:
             adapter.set_secret.return_value = SAMPLE_SECRET
             args = make_args(name="MY_SECRET", value=None, env_var="MY_ENV", file=None)
             secret_cmd.handle_set(args, fmt="table")
-        adapter.set_secret.assert_called_once_with("MY_SECRET", "envvalue", scope=None)
+        adapter.set_secret.assert_called_once_with(
+            "MY_SECRET", "envvalue", scope=None, visibility=None
+        )
 
     def test_set_from_env_var_missing(self, monkeypatch):
         monkeypatch.delenv("NONEXISTENT_VAR", raising=False)
@@ -72,7 +76,9 @@ class TestHandleSet:
             adapter.set_secret.return_value = SAMPLE_SECRET
             args = make_args(name="MY_SECRET", value=None, env_var=None, file=str(f))
             secret_cmd.handle_set(args, fmt="table")
-        adapter.set_secret.assert_called_once_with("MY_SECRET", "filevalue", scope=None)
+        adapter.set_secret.assert_called_once_with(
+            "MY_SECRET", "filevalue", scope=None, visibility=None
+        )
 
     def test_set_from_file_strips_trailing_newline(self, tmp_path):
         """ファイル内容の末尾改行が strip される。"""
@@ -82,7 +88,9 @@ class TestHandleSet:
             adapter.set_secret.return_value = SAMPLE_SECRET
             args = make_args(name="MY_SECRET", value=None, env_var=None, file=str(f))
             secret_cmd.handle_set(args, fmt="table")
-        adapter.set_secret.assert_called_once_with("MY_SECRET", "filevalue", scope=None)
+        adapter.set_secret.assert_called_once_with(
+            "MY_SECRET", "filevalue", scope=None, visibility=None
+        )
 
     def test_set_from_file_not_found(self):
         """存在しないファイルを指定した場合 GfoError。"""
@@ -149,7 +157,9 @@ class TestOrgScope:
                 name="ORG_SECRET", value="secret", env_var=None, file=None, org="my-org"
             )
             secret_cmd.handle_set(args, fmt="table")
-        adapter.set_secret.assert_called_once_with("ORG_SECRET", "secret", scope="my-org")
+        adapter.set_secret.assert_called_once_with(
+            "ORG_SECRET", "secret", scope="my-org", visibility=None
+        )
 
     def test_delete_org_secret(self):
         with patch_adapter("gfo.commands.secret") as adapter:

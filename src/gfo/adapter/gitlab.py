@@ -1878,7 +1878,9 @@ class GitLabAdapter(GitServiceAdapter):
             masked = masked[:limit]
         return [Secret(name=d["key"], created_at="", updated_at="") for d in masked]
 
-    def set_secret(self, name: str, value: str, *, scope: str | None = None) -> Secret:
+    def set_secret(
+        self, name: str, value: str, *, scope: str | None = None, visibility: str | None = None
+    ) -> Secret:
         var = self.set_variable(name, value, scope=scope, masked=True)
         return Secret(name=var.name, created_at=var.created_at, updated_at=var.updated_at)
 
@@ -1901,7 +1903,13 @@ class GitLabAdapter(GitServiceAdapter):
         ]
 
     def set_variable(
-        self, name: str, value: str, *, scope: str | None = None, masked: bool = False
+        self,
+        name: str,
+        value: str,
+        *,
+        scope: str | None = None,
+        masked: bool = False,
+        visibility: str | None = None,
     ) -> Variable:
         base = self._variables_base_path(scope)
         try:
