@@ -37,6 +37,8 @@ def run_git(*args: str, cwd: str | None = None) -> str:
         raise GitCommandError(f"git command not found or not executable: {e}") from e
     except subprocess.TimeoutExpired as e:
         raise GitCommandError(f"git command timed out after {_DEFAULT_TIMEOUT}s") from e
+    except UnicodeDecodeError as e:
+        raise GitCommandError(f"git command output could not be decoded as UTF-8: {e}") from e
     if result.returncode != 0:
         stderr_text = result.stderr.strip()
         stderr_lower = stderr_text.lower()

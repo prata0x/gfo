@@ -85,6 +85,13 @@ class TestRunGit:
         with pytest.raises(GitCommandError, match="timed out"):
             git_util.run_git("status")
 
+    @patch("gfo.git_util.subprocess.run")
+    def test_unicode_decode_error_raises_git_command_error(self, mock_run):
+        """git 出力の非 UTF-8 デコード失敗 (UnicodeDecodeError) → GitCommandError。"""
+        mock_run.side_effect = UnicodeDecodeError("utf-8", b"\xff\xfe", 0, 2, "invalid start byte")
+        with pytest.raises(GitCommandError, match="could not be decoded as UTF-8"):
+            git_util.run_git("log", "-1", "--format=%s")
+
 
 class TestListRemotes:
     @patch("gfo.git_util.subprocess.run")
