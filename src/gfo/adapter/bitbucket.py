@@ -1233,7 +1233,9 @@ class BitbucketAdapter(GitServiceAdapter):
             secured = secured[:limit]
         return [Secret(name=d["key"], created_at="", updated_at="") for d in secured]
 
-    def set_secret(self, name: str, value: str, *, scope: str | None = None) -> Secret:
+    def set_secret(
+        self, name: str, value: str, *, scope: str | None = None, visibility: str | None = None
+    ) -> Secret:
         self._warn_unsupported_params("secret set", scope=scope)
         try:
             uuid = self._find_pipeline_variable_uuid(name, secured=True)
@@ -1316,7 +1318,13 @@ class BitbucketAdapter(GitServiceAdapter):
         ]
 
     def set_variable(
-        self, name: str, value: str, *, scope: str | None = None, masked: bool = False
+        self,
+        name: str,
+        value: str,
+        *,
+        scope: str | None = None,
+        masked: bool = False,
+        visibility: str | None = None,
     ) -> Variable:
         self._warn_unsupported_params("variable set", scope=scope)
         try:

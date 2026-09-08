@@ -324,7 +324,9 @@ class GitBucketAdapter(GitHubAdapter):
     def list_secrets(self, *, scope: str | None = None, limit: int = 30) -> list[Secret]:
         raise NotSupportedError("GitBucket", "secret operations")
 
-    def set_secret(self, name: str, value: str, *, scope: str | None = None) -> Secret:
+    def set_secret(
+        self, name: str, value: str, *, scope: str | None = None, visibility: str | None = None
+    ) -> Secret:
         raise NotSupportedError("GitBucket", "secret operations")
 
     def delete_secret(self, name: str, *, scope: str | None = None) -> None:
@@ -334,7 +336,13 @@ class GitBucketAdapter(GitHubAdapter):
         raise NotSupportedError("GitBucket", "variable operations")
 
     def set_variable(
-        self, name: str, value: str, *, scope: str | None = None, masked: bool = False
+        self,
+        name: str,
+        value: str,
+        *,
+        scope: str | None = None,
+        masked: bool = False,
+        visibility: str | None = None,
     ) -> Variable:
         raise NotSupportedError("GitBucket", "variable operations")
 

@@ -2114,6 +2114,9 @@ msgstr "デプロイキーの詳細"
 msgid "View tag details"
 msgstr "タグの詳細"
 
+msgid "Visibility for organization scope (GitHub only; default: all)"
+msgstr "組織スコープの可視性（GitHub のみ有効；既定: all）"
+
 msgid "Warning: could not create label '{name}' on target."
 msgstr "警告: 移行先にラベル '{name}' を作成できませんでした。"
 

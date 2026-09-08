@@ -49,7 +49,9 @@ class TestHandleSet:
             adapter.set_variable.return_value = SAMPLE_VAR
             args = make_args(name="MY_VAR", value="val", masked=False)
             variable_cmd.handle_set(args, fmt="table")
-        adapter.set_variable.assert_called_once_with("MY_VAR", "val", scope=None, masked=False)
+        adapter.set_variable.assert_called_once_with(
+            "MY_VAR", "val", scope=None, masked=False, visibility=None
+        )
 
     def test_error_propagation(self):
         with patch_adapter("gfo.commands.variable") as adapter:
@@ -137,7 +139,9 @@ class TestOrgScope:
             adapter.set_variable.return_value = SAMPLE_VAR
             args = make_args(name="ORG_VAR", value="val", masked=False, org="my-org")
             variable_cmd.handle_set(args, fmt="table")
-        adapter.set_variable.assert_called_once_with("ORG_VAR", "val", scope="my-org", masked=False)
+        adapter.set_variable.assert_called_once_with(
+            "ORG_VAR", "val", scope="my-org", masked=False, visibility=None
+        )
 
     def test_delete_org_variable(self):
         with patch_adapter("gfo.commands.variable") as adapter:

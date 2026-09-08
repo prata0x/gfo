@@ -791,7 +791,14 @@ class GitServiceAdapter(ABC):
     def list_secrets(self, *, scope: str | None = None, limit: int = 30) -> list[Secret]:
         raise NotSupportedError(self.service_name, "secret list")
 
-    def set_secret(self, name: str, value: str, *, scope: str | None = None) -> Secret:
+    def set_secret(
+        self,
+        name: str,
+        value: str,
+        *,
+        scope: str | None = None,
+        visibility: str | None = None,
+    ) -> Secret:
         raise NotSupportedError(self.service_name, "secret set")
 
     def delete_secret(self, name: str, *, scope: str | None = None) -> None:
@@ -802,7 +809,13 @@ class GitServiceAdapter(ABC):
         raise NotSupportedError(self.service_name, "variable list")
 
     def set_variable(
-        self, name: str, value: str, *, scope: str | None = None, masked: bool = False
+        self,
+        name: str,
+        value: str,
+        *,
+        scope: str | None = None,
+        masked: bool = False,
+        visibility: str | None = None,
     ) -> Variable:
         raise NotSupportedError(self.service_name, "variable set")
 

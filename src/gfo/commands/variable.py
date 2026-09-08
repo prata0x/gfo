@@ -22,7 +22,11 @@ def handle_set(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> 
     adapter = get_adapter()
     scope = getattr(args, "org", None)
     variable = adapter.set_variable(
-        args.name, args.value, scope=scope, masked=getattr(args, "masked", False)
+        args.name,
+        args.value,
+        scope=scope,
+        masked=getattr(args, "masked", False),
+        visibility=getattr(args, "visibility", None),
     )
     output(variable, fmt=fmt, jq=jq)
 

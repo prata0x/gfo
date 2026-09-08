@@ -4814,6 +4814,78 @@ class TestOrgSecrets:
         )
         github_adapter.delete_secret("ORG_SECRET", scope="test-org")
 
+    @responses.activate
+    def test_set_org_secret_sends_visibility_default_all(self, github_adapter):
+        github_adapter._encrypt_secret = staticmethod(lambda pub_key, value: "encrypted-stub")
+        responses.add(
+            responses.GET,
+            f"{BASE}/orgs/test-org/actions/secrets/public-key",
+            json={"key": "MC4CAQAwBQYDK2VuBCIEIA==", "key_id": "1"},
+            status=200,
+        )
+        responses.add(
+            responses.PUT,
+            f"{BASE}/orgs/test-org/actions/secrets/MY_SECRET",
+            status=204,
+        )
+        responses.add(
+            responses.GET,
+            f"{BASE}/orgs/test-org/actions/secrets/MY_SECRET",
+            json={"name": "MY_SECRET", "created_at": "", "updated_at": ""},
+            status=200,
+        )
+        github_adapter.set_secret("MY_SECRET", "sekrit", scope="test-org")
+        body = json.loads(responses.calls[1].request.body)
+        assert body["visibility"] == "all"
+
+    @responses.activate
+    def test_set_org_secret_sends_given_visibility(self, github_adapter):
+        github_adapter._encrypt_secret = staticmethod(lambda pub_key, value: "encrypted-stub")
+        responses.add(
+            responses.GET,
+            f"{BASE}/orgs/test-org/actions/secrets/public-key",
+            json={"key": "MC4CAQAwBQYDK2VuBCIEIA==", "key_id": "1"},
+            status=200,
+        )
+        responses.add(
+            responses.PUT,
+            f"{BASE}/orgs/test-org/actions/secrets/MY_SECRET",
+            status=204,
+        )
+        responses.add(
+            responses.GET,
+            f"{BASE}/orgs/test-org/actions/secrets/MY_SECRET",
+            json={"name": "MY_SECRET", "created_at": "", "updated_at": ""},
+            status=200,
+        )
+        github_adapter.set_secret("MY_SECRET", "sekrit", scope="test-org", visibility="private")
+        body = json.loads(responses.calls[1].request.body)
+        assert body["visibility"] == "private"
+
+    @responses.activate
+    def test_set_repo_secret_omits_visibility(self, github_adapter):
+        github_adapter._encrypt_secret = staticmethod(lambda pub_key, value: "encrypted-stub")
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/secrets/public-key",
+            json={"key": "MC4CAQAwBQYDK2VuBCIEIA==", "key_id": "1"},
+            status=200,
+        )
+        responses.add(
+            responses.PUT,
+            f"{REPOS}/actions/secrets/MY_SECRET",
+            status=204,
+        )
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/secrets/MY_SECRET",
+            json={"name": "MY_SECRET", "created_at": "", "updated_at": ""},
+            status=200,
+        )
+        github_adapter.set_secret("MY_SECRET", "sekrit")
+        body = json.loads(responses.calls[1].request.body)
+        assert "visibility" not in body
+
 
 class TestOrgVariables:
     @responses.activate
@@ -4840,6 +4912,74 @@ class TestOrgVariables:
             status=204,
         )
         github_adapter.delete_variable("ORG_VAR", scope="test-org")
+
+    @responses.activate
+    def test_set_org_variable_create_sends_visibility(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{BASE}/orgs/test-org/actions/variables/MY_VAR",
+            status=404,
+            json={"message": "Not Found"},
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE}/orgs/test-org/actions/variables",
+            status=201,
+        )
+        github_adapter.set_variable("MY_VAR", "value1", scope="test-org")
+        body = json.loads(responses.calls[1].request.body)
+        assert body["visibility"] == "all"
+
+    @responses.activate
+    def test_set_org_variable_create_sends_given_visibility(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{BASE}/orgs/test-org/actions/variables/MY_VAR",
+            status=404,
+            json={"message": "Not Found"},
+        )
+        responses.add(
+            responses.POST,
+            f"{BASE}/orgs/test-org/actions/variables",
+            status=201,
+        )
+        github_adapter.set_variable("MY_VAR", "value1", scope="test-org", visibility="selected")
+        body = json.loads(responses.calls[1].request.body)
+        assert body["visibility"] == "selected"
+
+    @responses.activate
+    def test_set_org_variable_update_sends_visibility(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{BASE}/orgs/test-org/actions/variables/MY_VAR",
+            json={"name": "MY_VAR", "value": "old", "created_at": "", "updated_at": ""},
+            status=200,
+        )
+        responses.add(
+            responses.PATCH,
+            f"{BASE}/orgs/test-org/actions/variables/MY_VAR",
+            status=200,
+        )
+        github_adapter.set_variable("MY_VAR", "value1", scope="test-org")
+        body = json.loads(responses.calls[1].request.body)
+        assert body["visibility"] == "all"
+
+    @responses.activate
+    def test_set_repo_variable_omits_visibility(self, github_adapter):
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/variables/MY_VAR",
+            status=404,
+            json={"message": "Not Found"},
+        )
+        responses.add(
+            responses.POST,
+            f"{REPOS}/actions/variables",
+            status=201,
+        )
+        github_adapter.set_variable("MY_VAR", "value1")
+        body = json.loads(responses.calls[1].request.body)
+        assert "visibility" not in body
 
 
 class TestClientFilterLimit:
