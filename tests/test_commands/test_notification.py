@@ -8,7 +8,7 @@ import pytest
 
 from gfo.adapter.base import Notification
 from gfo.commands import notification as notif_cmd
-from gfo.exceptions import GfoError, HttpError
+from gfo.exceptions import ConfigError, HttpError
 from tests.test_commands.conftest import make_args, patch_adapter
 
 SAMPLE_NOTIF = Notification(
@@ -95,13 +95,13 @@ class TestHandleRead:
     def test_error_both_id_and_all(self):
         with patch_adapter("gfo.commands.notification"):
             args = make_args(id="1", mark_all=True)
-            with pytest.raises(GfoError, match="Cannot specify both"):
+            with pytest.raises(ConfigError, match="Cannot specify both"):
                 notif_cmd.handle_read(args, fmt="table")
 
     def test_error_neither_id_nor_all(self):
         with patch_adapter("gfo.commands.notification"):
             args = make_args(id=None, mark_all=False)
-            with pytest.raises(GfoError, match="Specify a notification"):
+            with pytest.raises(ConfigError, match="Specify a notification"):
                 notif_cmd.handle_read(args, fmt="table")
 
     def test_error_propagation(self):

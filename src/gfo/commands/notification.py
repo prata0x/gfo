@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 
 from gfo.commands import get_adapter
-from gfo.exceptions import GfoError
+from gfo.exceptions import ConfigError
 from gfo.i18n import _
 from gfo.output import output, output_result
 
@@ -29,9 +29,9 @@ def handle_read(args: argparse.Namespace, *, fmt: str, jq: str | None = None) ->
     """gfo notification read のハンドラ。"""
     adapter = get_adapter(require_repo=False)
     if args.mark_all and args.id is not None:
-        raise GfoError(_("Cannot specify both ID and --all."))
+        raise ConfigError(_("Cannot specify both ID and --all."))
     if not args.mark_all and args.id is None:
-        raise GfoError(_("Specify a notification ID or --all."))
+        raise ConfigError(_("Specify a notification ID or --all."))
     if args.mark_all:
         adapter.mark_all_notifications_read()
         output_result(
