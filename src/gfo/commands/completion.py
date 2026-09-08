@@ -53,7 +53,12 @@ def _generate_bash(commands: dict[str, list[str]]) -> str:
         "        cword=$COMP_CWORD\n"
         "    }\n"
         "\n"
-        '    local global_opts="--format --jq --version --remote --repo --account"\n'
+        '    local global_opts="--format --jq --version --remote --repo -R --account"\n'
+        "\n"
+        '    if [[ "$prev" == "--format" ]]; then\n'
+        '        COMPREPLY=($(compgen -W "table json plain" -- "$cur"))\n'
+        "        return\n"
+        "    fi\n"
         "\n"
         "    if [[ $cword -eq 1 ]]; then\n"
         f'        COMPREPLY=($(compgen -W "{cmd_list} $global_opts" -- "$cur"))\n'
@@ -109,6 +114,7 @@ def _generate_zsh(commands: dict[str, list[str]]) -> str:
         "        '--version[Show version]' \\\n"
         "        '--remote[Git remote]:remote:' \\\n"
         "        '--repo[Target repository]:repo:' \\\n"
+        "        '-R[Target repository]:repo:' \\\n"
         "        '--account[Account name]:account:' \\\n"
         "        '1:command:->command' \\\n"
         "        '*::arg:->args'\n"
@@ -144,6 +150,7 @@ def _generate_fish(commands: dict[str, list[str]]) -> str:
         'complete -c gfo -l version -d "Show version"',
         'complete -c gfo -l remote -x -d "Git remote"',
         'complete -c gfo -l repo -x -d "Target repository"',
+        'complete -c gfo -s R -x -d "Target repository"',
         'complete -c gfo -l account -x -d "Account name"',
         "",
         "# Commands",
