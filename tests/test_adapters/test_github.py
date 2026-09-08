@@ -232,6 +232,31 @@ class TestToPipeline:
         assert pl.status == "pending"
 
 
+class TestToTag:
+    def test_url_uses_web_page_not_zipball(self, github_adapter):
+        # tags API は html_url を返さないため web_base_url から組み立てた
+        # タグページ URL を使う（zipball/tarball のダウンロードリンクではない）。
+        data = {
+            "name": "v0.1",
+            "commit": {"sha": "abc123"},
+            "zipball_url": "https://github.com/test-owner/test-repo/zipball/v0.1",
+            "tarball_url": "https://github.com/test-owner/test-repo/tarball/v0.1",
+        }
+        tag = GitHubAdapter._to_tag(data, github_adapter._tag_web_url("v0.1"))
+        assert tag.url == "https://github.com/test-owner/test-repo/tree/v0.1"
+
+    def test_url_falls_back_to_default_url(self):
+        data = {"name": "v0.1", "commit": {"sha": "abc123"}}
+        tag = GitHubAdapter._to_tag(data, default_url="https://example.com/t")
+        assert tag.url == "https://example.com/t"
+
+    def test_tag_web_url_keeps_slash(self, github_adapter):
+        assert (
+            github_adapter._tag_web_url("feature/foo")
+            == "https://github.com/test-owner/test-repo/tree/feature/foo"
+        )
+
+
 # --- PR 系 ---
 
 

@@ -1048,6 +1048,12 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         # / を含む場合に正しいページへ到達するよう quote する（/ は階層区切りとして維持）。
         return f"{self._web_base_url()}/{self._owner}/{self._repo}/tree/{quote(name, safe='/')}"
 
+    def _tag_web_url(self, name: str) -> str:
+        # GitHub / GitBucket 系のタグ Web パス。tags 一覧 API はブラウザで開ける
+        # html_url を返さないため、web_base_url からタグページ URL を組み立てる。
+        # ブランチと同様に quote する（/ は階層区切りとして維持）。
+        return f"{self._web_base_url()}/{self._owner}/{self._repo}/tree/{quote(name, safe='/')}"
+
     def get_branch(self, name: str) -> Branch:
         resp = self._client.get(f"{self._repos_path()}/branches/{quote(name, safe='')}")
         return self._to_branch(resp.json(), self._branch_web_url(name))
@@ -1092,7 +1098,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         )
         for t in results:
             if t.get("name") == name:
-                return self._to_tag(t)
+                return self._to_tag(t, self._tag_web_url(name))
 
         raise NotFoundError(detail=f"Tag '{name}' not found")
 
@@ -1102,7 +1108,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             f"{self._repos_path()}/tags",
             limit=limit,
         )
-        return [self._to_tag(r) for r in results]
+        return [self._to_tag(r, self._tag_web_url(r["name"])) for r in results]
 
     def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
         # Resolve ref as a branch name first; all-hex branch names are valid.
@@ -1123,7 +1129,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         )
         for t in results:
             if t.get("name") == name:
-                return self._to_tag(t)
+                return self._to_tag(t, self._tag_web_url(name))
 
         raise GfoError(_("Tag '{name}' not found after creation").format(name=name))
 

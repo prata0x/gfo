@@ -419,6 +419,23 @@ class TestToTag:
         # _to_tag は message フィールドを使わず常に "" を設定する
         assert tag.message == ""
 
+    def test_url_uses_web_page_not_zipball(self, gitea_adapter):
+        # tags API は html_url を返さないため web_base_url から組み立てた
+        # タグページ URL を使う（zipball/tarball のダウンロードリンクではない）。
+        tag = GiteaAdapter._to_tag(_tag_data(), gitea_adapter._tag_web_url("v1.0.0"))
+        assert tag.url == "https://gitea.example.com/test-owner/test-repo/src/tag/v1.0.0"
+
+    def test_url_falls_back_to_default_url(self):
+        # html_url が無いレスポンスでも default_url が使われる
+        tag = GiteaAdapter._to_tag(_tag_data(), default_url="https://example.com/t")
+        assert tag.url == "https://example.com/t"
+
+    def test_tag_web_url_keeps_slash(self, gitea_adapter):
+        assert (
+            gitea_adapter._tag_web_url("feature/foo")
+            == "https://gitea.example.com/test-owner/test-repo/src/tag/feature/foo"
+        )
+
 
 class TestToCommitStatus:
     def test_basic(self):
