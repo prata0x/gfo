@@ -651,6 +651,18 @@ class TestDetectService:
         r = detect_service()
         assert r.service_type == "gitea"
 
+    @patch("gfo.detect.get_remote_url", return_value="https://github.com/o/r.git")
+    @patch("gfo.detect.git_config_get")
+    def test_git_config_shortcut_case_insensitive(self, mock_config_get, mock_remote):
+        """gfo.type が大文字混在でも正規化される (#835)。"""
+
+        def config_side(key, cwd=None):
+            return {"gfo.type": "GitHub", "gfo.host": "github.com"}.get(key)
+
+        mock_config_get.side_effect = config_side
+        r = detect_service()
+        assert r.service_type == "github"
+
     @patch("gfo.detect.get_remote_url")
     @patch("gfo.detect.git_config_get")
     def test_saved_config_fallback_without_remote(self, mock_config_get, mock_remote):

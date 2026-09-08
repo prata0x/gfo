@@ -437,6 +437,8 @@ def resolve_project_config(cwd: str | None = None, *, require_repo: bool = True)
 
     # 1-2. git config から service_type / host を取得（saved_type / saved_host: git config 保存値）
     saved_type = gfo.git_util.git_config_get("gfo.type", cwd=cwd)
+    if saved_type:
+        saved_type = saved_type.lower()
     saved_host = gfo.git_util.git_config_get("gfo.host", cwd=cwd)
 
     # 3. git config で両方設定済みの場合は remote URL から owner/repo を検出
