@@ -2169,7 +2169,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         if version:
             resp = self._client.get(
                 f"/packages/{quote(self._owner, safe='')}"
-                f"/{package_type}/{quote(name, safe='')}/{quote(version, safe='')}"
+                f"/{quote(package_type, safe='')}/{quote(name, safe='')}/{quote(version, safe='')}"
             )
             p = resp.json()
             return Package(
@@ -2203,7 +2203,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
     def delete_package(self, package_type: str, name: str, version: str) -> None:
         self._client.delete(
             f"/packages/{quote(self._owner, safe='')}"
-            f"/{package_type}/{quote(name, safe='')}/{quote(version, safe='')}"
+            f"/{quote(package_type, safe='')}/{quote(name, safe='')}/{quote(version, safe='')}"
         )
 
     # --- Time Tracking ---
