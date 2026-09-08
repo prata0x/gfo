@@ -87,6 +87,32 @@ class TestHandleCompletion:
         assert "--repo" in captured.out
 
 
+class TestGlobalFlagDrift:
+    """#587: cli.py のグローバルフラグ(-R 等)が補完から漏れていないこと。"""
+
+    def test_short_r_in_all_shells(self, capsys):
+        """-R (--repo の短縮形) が 3 シェル全ての補完に出る。
+
+        bash/zsh はリテラル '-R' を、fish は短フラグ登録 '-s R' を出力する
+        (いずれも `gfo -R <TAB>` で補完される)。
+        """
+        for shell in ("bash", "zsh", "fish"):
+            args = make_args(shell=shell)
+            completion.handle_completion(args, fmt="table")
+            captured = capsys.readouterr()
+            if shell == "fish":
+                assert "-s R" in captured.out, "fish completion missing -R (short flag)"
+            else:
+                assert "-R" in captured.out, f"{shell} completion missing -R"
+
+    def test_bash_format_value_completion(self, capsys):
+        """bash でも --format の値補完(table json plain)が出る。"""
+        args = make_args(shell="bash")
+        completion.handle_completion(args, fmt="table")
+        captured = capsys.readouterr()
+        assert "table json plain" in captured.out
+
+
 class TestGetCommandsAndSubcommands:
     """_get_commands_and_subcommands のテスト。"""
 
