@@ -2764,7 +2764,7 @@ gfo tag-protect list [--limit N]
 
 Edit tag protection rule.
 
-> **Supported services**: GitLab, Gitea, Forgejo
+> **Supported services**: Gitea, Forgejo
 
 ```
 gfo tag-protect edit ID [--pattern PATTERN] [--access-level LEVEL]

@@ -2778,7 +2778,7 @@ gfo tag-protect list [--limit N]
 
 タグ保護ルールを編集します。
 
-> **対応サービス**: GitLab, Gitea, Forgejo
+> **対応サービス**: Gitea, Forgejo
 
 ```
 gfo tag-protect edit ID [--pattern PATTERN] [--access-level LEVEL]
