@@ -2349,6 +2349,43 @@ class TestToPipeline:
         pipeline = BitbucketAdapter._to_pipeline(data)
         assert pipeline.status == "pending"
 
+    def test_url_from_object_links_self(self):
+        data = {
+            "build_number": 42,
+            "uuid": "{a3c4e02c-c002-4791-95da-1f744eaa3daa}",
+            "state": {
+                "name": "COMPLETED",
+                "result": {"name": "SUCCESSFUL"},
+            },
+            "target": {"ref_name": "main"},
+            "created_on": "2026-01-01T00:00:00Z",
+            "links": {
+                "self": {
+                    "href": "https://api.bitbucket.org/2.0/repositories/ws/repo/pipelines/{a3c4e02c}"
+                },
+                "steps": {
+                    "href": "https://api.bitbucket.org/2.0/repositories/ws/repo/pipelines/{a3c4e02c}/steps"
+                },
+            },
+        }
+        pipeline = BitbucketAdapter._to_pipeline(data)
+        assert pipeline.url == (
+            "https://api.bitbucket.org/2.0/repositories/ws/repo/pipelines/{a3c4e02c}"
+        )
+
+    def test_url_empty_when_links_absent(self):
+        data = {
+            "build_number": 7,
+            "state": {
+                "name": "COMPLETED",
+                "result": {"name": "SUCCESSFUL"},
+            },
+            "target": {"ref_name": "main"},
+            "created_on": "2026-01-01T00:00:00Z",
+        }
+        pipeline = BitbucketAdapter._to_pipeline(data)
+        assert pipeline.url == ""
+
 
 # --- Phase 2: PR operations ---
 
