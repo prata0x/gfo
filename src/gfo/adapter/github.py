@@ -247,13 +247,11 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             params["creator"] = author
         if milestone is not None:
             params["milestone"] = self._resolve_milestone_id_by_title(milestone)
-        needs_client_filter = bool(search)
-        fetch_limit = 0 if needs_client_filter else limit
         results = paginate_link_header(
             self._client,
             f"{self._repos_path()}/issues",
             params=params,
-            limit=fetch_limit,
+            limit=0,
         )
         items = [r for r in results if "pull_request" not in r]
         if search:
@@ -264,7 +262,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
                 if search_lower in (r.get("title") or "").lower()
                 or search_lower in (r.get("body") or "").lower()
             ]
-        if needs_client_filter and limit > 0:
+        if limit > 0:
             items = items[:limit]
         return [self._to_issue(r) for r in items]
 

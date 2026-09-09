@@ -797,6 +797,34 @@ class TestListIssues:
         assert len(issues) == 1
         assert issues[0].number == 1
 
+    def test_limit_applied_after_pr_filter(self, mock_responses, github_adapter):
+        """--limit は PR 除外後に適用される（#560）。
+
+        GitHub の /issues は issue/PR 混在レスポンスを返す。最初のウィンドウが
+        PR で埋まっていると、フェッチ前に limit を適用すると実 issue 数が過少になる。
+        """
+        page1 = [
+            *[_issue_data(number=n) for n in range(1, 11)],
+            *[_issue_data(number=n, has_pr=True) for n in range(101, 121)],
+        ]
+        page2 = [_issue_data(number=n) for n in range(11, 36)]
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues?state=open&per_page=100",
+            json=page1,
+            headers={"Link": (f'<{REPOS}/issues?state=open&per_page=100&page=2>; rel="next"')},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/issues?state=open&per_page=100&page=2",
+            json=page2,
+            status=200,
+        )
+        issues = github_adapter.list_issues(limit=30)
+        assert len(issues) == 30
+        assert sorted(i.number for i in issues) == list(range(1, 31))
+
 
 class TestCreateIssue:
     def test_create(self, mock_responses, github_adapter):
