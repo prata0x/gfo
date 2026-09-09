@@ -1754,6 +1754,9 @@ msgstr "ログアウトするホスト"
 msgid "Initialize with README"
 msgstr "README で初期化する"
 
+msgid "Invalid --numbers value: {value}"
+msgstr "--numbers の値が不正です: {value}"
+
 msgid "Invalid JSON in --data: {err}"
 msgstr "--data の JSON が不正です: {err}"
 
