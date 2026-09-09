@@ -415,7 +415,7 @@ def _parse_compare_spec(spec: str) -> tuple[str, str]:
 def handle_contributors(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
     """gfo repo contributors のハンドラ。"""
     adapter = get_adapter()
-    contributors = adapter.list_contributors(limit=args.limit)
+    contributors = adapter.list_contributors(limit=args.limit, include_anonymous=args.anon)
     output(contributors, fmt=fmt, fields=["username", "name", "email", "commits"], jq=jq)
 
 

@@ -406,7 +406,9 @@ class GitServiceAdapter(ABC):
             return self.set_topics(topics)
         return topics
 
-    def list_contributors(self, *, limit: int = 30) -> list[Contributor]:
+    def list_contributors(
+        self, *, limit: int = 30, include_anonymous: bool = False
+    ) -> list[Contributor]:
         raise NotSupportedError(self.service_name, "repo contributors")
 
     def compare(self, base: str, head: str) -> CompareResult:

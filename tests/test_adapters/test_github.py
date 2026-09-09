@@ -3453,6 +3453,42 @@ class TestListContributors:
         contributors = github_adapter.list_contributors()
         assert contributors == []
 
+    def test_default_excludes_anonymous(self, mock_responses, github_adapter):
+        # GitHub omits anonymous contributors unless anon=1 is sent.
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/contributors",
+            json=[{"login": "alice", "contributions": 100}],
+            status=200,
+            match=[responses.matchers.query_param_matcher({}, strict_match=False)],
+        )
+        contributors = github_adapter.list_contributors()
+        assert len(contributors) == 1
+        assert contributors[0].username == "alice"
+
+    def test_include_anonymous_sends_param_and_populates(self, mock_responses, github_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/contributors",
+            json=[
+                {"login": "alice", "contributions": 100},
+                {
+                    "name": "Unknown Author",
+                    "email": "author@example.com",
+                    "contributions": 900,
+                },
+            ],
+            status=200,
+            match=[responses.matchers.query_param_matcher({"anon": "1"}, strict_match=False)],
+        )
+        contributors = github_adapter.list_contributors(include_anonymous=True)
+        assert len(contributors) == 2
+        anon = contributors[1]
+        assert anon.username is None
+        assert anon.name == "Unknown Author"
+        assert anon.email == "author@example.com"
+        assert anon.commits == 900
+
 
 class TestCompare:
     @responses.activate

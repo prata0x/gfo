@@ -727,6 +727,11 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
         default=30,
         help=_("Maximum number of results (0 for unlimited)"),
     )
+    repo_contributors.add_argument(
+        "--anon",
+        action="store_true",
+        help=_("Include anonymous (unlinked) contributors (sends anon=1)"),
+    )
 
     # gfo repo archive
     repo_archive = repo_sub.add_parser("archive", help=_("Archive repository"))

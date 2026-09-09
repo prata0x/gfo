@@ -1151,6 +1151,9 @@ msgstr "ログ内で変数をマスクする"
 msgid "Maximum number of results (0 for unlimited)"
 msgstr "最大取得件数（0 で無制限）"
 
+msgid "Include anonymous (unlinked) contributors (sends anon=1)"
+msgstr "匿名（アカウント未紐付け）のコントリビューターも含める（anon=1 を送信）"
+
 msgid "Merge method"
 msgstr "マージ方法"
 

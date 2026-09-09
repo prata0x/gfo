@@ -118,15 +118,23 @@ class TestHandleContributors:
         adapter = MagicMock()
         adapter.list_contributors.return_value = self.contributors
         with _patch_all(sample_config, adapter):
-            args = make_args(limit=30)
+            args = make_args(limit=30, anon=False)
             repo_cmd.handle_contributors(args, fmt="table")
-        adapter.list_contributors.assert_called_once_with(limit=30)
+        adapter.list_contributors.assert_called_once_with(limit=30, include_anonymous=False)
+
+    def test_passes_include_anonymous(self, sample_config):
+        adapter = MagicMock()
+        adapter.list_contributors.return_value = self.contributors
+        with _patch_all(sample_config, adapter):
+            args = make_args(limit=30, anon=True)
+            repo_cmd.handle_contributors(args, fmt="table")
+        adapter.list_contributors.assert_called_once_with(limit=30, include_anonymous=True)
 
     def test_json_format(self, sample_config, capsys):
         adapter = MagicMock()
         adapter.list_contributors.return_value = self.contributors
         with _patch_all(sample_config, adapter):
-            args = make_args(limit=30)
+            args = make_args(limit=30, anon=False)
             repo_cmd.handle_contributors(args, fmt="json")
         data = json.loads(capsys.readouterr().out)
         assert len(data) == 2
@@ -137,7 +145,7 @@ class TestHandleContributors:
         adapter = MagicMock()
         adapter.list_contributors.return_value = self.contributors
         with _patch_all(sample_config, adapter):
-            args = make_args(limit=30)
+            args = make_args(limit=30, anon=False)
             repo_cmd.handle_contributors(args, fmt="table")
         out = capsys.readouterr().out
         assert "alice" in out
@@ -148,7 +156,7 @@ class TestHandleContributors:
         adapter = MagicMock()
         adapter.list_contributors.return_value = []
         with _patch_all(sample_config, adapter):
-            args = make_args(limit=30)
+            args = make_args(limit=30, anon=False)
             repo_cmd.handle_contributors(args, fmt="json")
         data = json.loads(capsys.readouterr().out)
         assert data == []
