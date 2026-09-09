@@ -458,7 +458,9 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.delete(f"{self._repos_path()}/topics/{quote(topic, safe='')}")
         return self.list_topics()
 
-    def list_contributors(self, *, limit: int = 30) -> list[Contributor]:
+    def list_contributors(
+        self, *, limit: int = 30, include_anonymous: bool = False
+    ) -> list[Contributor]:
         # Gitea / Forgejo は /repos/{owner}/{repo}/contributors を未実装
         # エンドポイントが追加された場合に備えて試行し、404 のみ NotSupportedError。
         # 認証エラー・5xx・ネットワーク断は本来の例外として伝播させる（誤って

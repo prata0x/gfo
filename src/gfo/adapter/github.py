@@ -484,15 +484,23 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         resp = self._client.put(f"{self._repos_path()}/topics", json={"names": topics})
         return list(resp.json().get("names", []))
 
-    def list_contributors(self, *, limit: int = 30) -> list[Contributor]:
+    def list_contributors(
+        self, *, limit: int = 30, include_anonymous: bool = False
+    ) -> list[Contributor]:
+        params: dict[str, str] = {}
+        if include_anonymous:
+            params["anon"] = "1"
         results = paginate_link_header(
-            self._client, f"{self._repos_path()}/contributors", limit=limit
+            self._client,
+            f"{self._repos_path()}/contributors",
+            limit=limit,
+            params=params,
         )
         return [
             Contributor(
                 username=r.get("login"),
-                name=None,
-                email=None,
+                name=r.get("name"),
+                email=r.get("email"),
                 commits=r.get("contributions", 0),
             )
             for r in results

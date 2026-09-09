@@ -578,7 +578,9 @@ class GitLabAdapter(GitServiceAdapter):
         resp = self._client.put(self._project_path(), json={"topics": topics})
         return list(resp.json().get("topics", []))
 
-    def list_contributors(self, *, limit: int = 30) -> list[Contributor]:
+    def list_contributors(
+        self, *, limit: int = 30, include_anonymous: bool = False
+    ) -> list[Contributor]:
         results = paginate_page_param(
             self._client,
             f"{self._project_path()}/repository/contributors",

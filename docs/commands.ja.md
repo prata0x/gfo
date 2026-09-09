@@ -1103,12 +1103,13 @@ gfo repo edit --allow-squash-merge --no-allow-merge-commit --delete-branch-on-me
 > **対応サービス**: GitHub, GitLab, Gitea, Forgejo
 
 ```
-gfo repo contributors [--limit N]
+gfo repo contributors [--limit N] [--anon]
 ```
 
 ```bash
 gfo repo contributors
 gfo repo contributors --limit 10
+gfo repo contributors --anon
 ```
 
 ### gfo repo archive
