@@ -2067,7 +2067,7 @@ def _pre_parse_format(argv: list[str] | None) -> str | None:
     ``--format`` 等と一致しても実際のグローバルフラグとして誤判定されない。
     """
     args = argv if argv is not None else sys.argv[1:]
-    value_map = _build_option_value_map()
+    value_map = _value_map_for(args)
     i = 0
     while i < len(args):
         arg = args[i]
@@ -2119,20 +2119,24 @@ _ACCOUNT_LOCAL_COMMANDS = {
     ("auth", "logout"),
 }
 
-# オプション文字列 -> "always"/"optional"/"never"
+# サブコマンドパス(("pr", "merge") 等) -> オプション文字列 -> "always"/"optional"/"never"
 #   always   : 次のトークンを値として消費する(store, nargs>=1 等)
 #   optional : 次のトークンがオプション風(--xxx)でなければ値として消費する(nargs="?")
 #   never    : 値を消費しない(store_true 等)
 # グローバルフラグ(--format 等)は専用分岐で処理するため含めない。
-_OPTION_VALUE_MODE: dict[str, str] | None = None
+# 単一のフラットな写像にすると、同じオプション文字列がサブコマンドごとに異なる nargs で
+# 定義されている場合に競合し誤分類になる(例: pr merge の -m=store_true と pr list の
+# -m=--milestone の値あり)。そのためサブコマンド文脈ごとに写像を分ける。
+_OPTION_VALUE_MODE: dict[tuple[str, ...], dict[str, str]] | None = None
 
 
-def _build_option_value_map() -> dict[str, str]:
-    """argparse パーサツリーを走査し、値を消費するオプション文字列の写像を構築する。
+def _build_option_value_map() -> dict[tuple[str, ...], dict[str, str]]:
+    """argparse パーサツリーをサブコマンド文脈ごとに走査し、値を消費するオプション文字列の
+    写像を構築する。
 
     ローカルオプションの値トークンがたまたまグローバルフラグ名(--format 等)と一致しても、
-    グローバルフラグとして誤認識されないよう、値の所有権を追跡するために使う。結果は
-    モジュールレベルでキャッシュされる。
+    グローバルフラグとして誤認識されないよう、値の所有権をサブコマンド単位で追跡するために
+    使う。結果はモジュールレベルでキャッシュされる。
     """
     global _OPTION_VALUE_MODE
     if _OPTION_VALUE_MODE is not None:
@@ -2148,30 +2152,31 @@ def _build_option_value_map() -> dict[str, str]:
             return "optional"
         return "always"
 
-    result: dict[str, str] = {}
+    result: dict[tuple[str, ...], dict[str, str]] = {}
 
-    def walk(parser: argparse.ArgumentParser) -> None:
+    def walk(parser: argparse.ArgumentParser, path: tuple[str, ...]) -> None:
+        bucket = result.setdefault(path, {})
         for action in parser._actions:
             if isinstance(action, argparse._SubParsersAction):
-                for sub in action.choices.values():
-                    walk(sub)
+                for name, sub in action.choices.items():
+                    walk(sub, (*path, name))
                 continue
             for opt in action.option_strings:
                 if opt in _GLOBAL_FLAGS:
                     continue
-                result[opt] = classify(action)
+                bucket[opt] = classify(action)
 
-    walk(create_parser()[0])
+    walk(create_parser()[0], ())
     _OPTION_VALUE_MODE = result
     return result
 
 
-def _command_has_local_account(argv: list[str]) -> bool:
-    """argv から (トップレベルサブコマンド, サブサブコマンド) を特定し、
-    '--account' をローカルで解釈するコマンドかを返す。
+def _resolve_subcommand_path(argv: list[str]) -> tuple[str, ...]:
+    """argv から (トップレベルサブコマンド, サブサブコマンド) のタプルを特定する。
+
+    グローバルフラグとその値トークンはスキップする。特定できない場合は空タプルを返す。
     """
-    subcommand = None
-    subsub = None
+    parts: list[str] = []
     skip_next = False
     for arg in argv:
         if skip_next:
@@ -2182,14 +2187,36 @@ def _command_has_local_account(argv: list[str]) -> bool:
             continue
         if arg.startswith("-"):
             continue
-        if subcommand is None:
-            subcommand = arg
-            continue
-        subsub = arg
-        break
-    if subcommand == "init":
+        if len(parts) < 2:
+            parts.append(arg)
+        if len(parts) >= 2:
+            break
+    return tuple(parts)
+
+
+def _value_map_for(argv: list[str]) -> dict[str, str]:
+    """argv のサブコマンド文脈に対応するオプション値写像を返す。
+
+    最長一致でパスを探し、該当パスが無い場合はより短い接頭辞、最終的にルート(())へ
+    フォールバックする。該当する写像が存在しない場合は空の写像を返す。
+    """
+    path = _resolve_subcommand_path(argv)
+    maps = _build_option_value_map()
+    for i in range(len(path), -1, -1):
+        key = path[:i]
+        if key in maps:
+            return maps[key]
+    return {}
+
+
+def _command_has_local_account(argv: list[str]) -> bool:
+    """argv から (トップレベルサブコマンド, サブサブコマンド) を特定し、
+    '--account' をローカルで解釈するコマンドかを返す。
+    """
+    path = _resolve_subcommand_path(argv)
+    if path and path[0] == "init":
         return True
-    return (subcommand, subsub) in _ACCOUNT_LOCAL_COMMANDS
+    return tuple(path[:2]) in _ACCOUNT_LOCAL_COMMANDS
 
 
 def _hoist_global_flags(argv: list[str]) -> list[str]:
@@ -2202,7 +2229,7 @@ def _hoist_global_flags(argv: list[str]) -> list[str]:
 
     hoisted: list[str] = []
     rest: list[str] = []
-    value_map = _build_option_value_map()
+    value_map = _value_map_for(argv)
     i = 0
     while i < len(argv):
         arg = argv[i]
