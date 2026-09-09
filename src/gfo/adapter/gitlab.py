@@ -581,6 +581,8 @@ class GitLabAdapter(GitServiceAdapter):
     def list_contributors(
         self, *, limit: int = 30, include_anonymous: bool = False
     ) -> list[Contributor]:
+        if include_anonymous:
+            self._warn_unsupported_params("repo contributors", include_anonymous=include_anonymous)
         results = paginate_page_param(
             self._client,
             f"{self._project_path()}/repository/contributors",

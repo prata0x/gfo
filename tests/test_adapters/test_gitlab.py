@@ -3882,6 +3882,17 @@ class TestListContributorsGitLab:
         contributors = gitlab_adapter.list_contributors()
         assert contributors == []
 
+    def test_include_anonymous_warns(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/repository/contributors",
+            json=[{"name": "Alice", "email": "a@ex.com", "commits": 50}],
+            status=200,
+        )
+        with pytest.warns(UserWarning, match="does not support include_anonymous"):
+            contributors = gitlab_adapter.list_contributors(include_anonymous=True)
+        assert len(contributors) == 1
+
 
 class TestCompareGitLab:
     @responses.activate
