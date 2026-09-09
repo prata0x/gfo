@@ -2234,7 +2234,7 @@ def main(argv: list[str] | None = None) -> int:
         jq_expr = args.jq
         resolved_fmt = _resolve_format(args.format, jq_expr)
         if jq_expr is not None and not jq_expr:
-            empty_jq_err = GfoError(_("Error: --jq expression must not be empty."))
+            empty_jq_err = ConfigError(_("Error: --jq expression must not be empty."))
             print(format_error_json(empty_jq_err), file=sys.stderr)
             return empty_jq_err.exit_code
 
