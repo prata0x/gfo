@@ -850,6 +850,67 @@ class TestMigrateOneIssue:
         src.list_comments.assert_called_once_with("issue", 1, limit=0)
 
 
+class TestHandleMigrate:
+    def _patch_specs(self, src_adapter, dst_adapter):
+        """parse_service_spec / create_adapter_from_spec をダミーに差し替える。"""
+        spec = MagicMock()
+        spec.service_type = "github"
+        spec.owner = "owner"
+        spec.repo = "repo"
+        return patch.multiple(
+            issue_cmd,
+            parse_service_spec=lambda raw: spec,
+            create_adapter_from_spec=lambda s: src_adapter if s is spec else dst_adapter,
+            _sync_labels=lambda *_a, **_k: set(),
+            output=lambda *_a, **_k: None,
+        )
+
+    def test_invalid_numbers_raises_config_error(self):
+        """空トークンはスキップされるが、非数値トークンは ValueError ではなく ConfigError になる。"""
+        src = MagicMock()
+        dst = MagicMock()
+        args = make_args(
+            from_spec="github:owner/src",
+            to_spec="github:owner/dst",
+            number=None,
+            numbers="1,2,",
+            migrate_all=False,
+        )
+        with self._patch_specs(src, dst):
+            # 末尾カンマは空トークンとしてスキップされ、例外は起きない
+            issue_cmd.handle_migrate(args, fmt="table")
+        assert src.get_issue.call_count == 2
+
+    def test_non_numeric_numbers_raises_config_error(self):
+        src = MagicMock()
+        dst = MagicMock()
+        args = make_args(
+            from_spec="github:owner/src",
+            to_spec="github:owner/dst",
+            number=None,
+            numbers="1,abc,3",
+            migrate_all=False,
+        )
+        with self._patch_specs(src, dst):
+            with pytest.raises(ConfigError, match="Invalid --numbers value"):
+                issue_cmd.handle_migrate(args, fmt="table")
+
+    def test_valid_numbers_parsed(self):
+        """正しい --numbers は各 Issue を移行する（_migrate_one_issue が呼ばれる）。"""
+        src = MagicMock()
+        dst = MagicMock()
+        args = make_args(
+            from_spec="github:owner/src",
+            to_spec="github:owner/dst",
+            number=None,
+            numbers="1, 2 , 3",
+            migrate_all=False,
+        )
+        with self._patch_specs(src, dst):
+            issue_cmd.handle_migrate(args, fmt="table")
+        assert src.get_issue.call_count == 3
+
+
 class TestHandleListWeb:
     def setup_method(self):
         self.config = _make_config()

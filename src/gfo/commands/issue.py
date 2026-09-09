@@ -545,7 +545,15 @@ def handle_migrate(args: argparse.Namespace, *, fmt: str, jq: str | None = None)
     if getattr(args, "number", None) is not None:
         numbers = [args.number]
     elif getattr(args, "numbers", None) is not None:
-        numbers = [int(n) for n in args.numbers.split(",")]
+        numbers = []
+        for n in args.numbers.split(","):
+            n = n.strip()
+            if not n:
+                continue
+            try:
+                numbers.append(int(n))
+            except ValueError:
+                raise ConfigError(_("Invalid --numbers value: {value}").format(value=n)) from None
     elif getattr(args, "migrate_all", False):
         numbers = [i.number for i in src_adapter.list_issues(state="all", limit=0)]
     else:
