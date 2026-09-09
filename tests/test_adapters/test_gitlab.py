@@ -5129,3 +5129,85 @@ class TestTagProtectionAccessLevelMapping:
         )
         protections = gitlab_adapter.list_tag_protections()
         assert protections[0].create_access_level == "50"
+
+
+class TestSetBranchProtectionUnsupportedParams:
+    def test_unsupported_params_warn(self, mock_responses, gitlab_adapter):
+        """require_status_checks/enforce_admins/allow_deletions は警告付きで無視される (#537)。"""
+        import warnings
+
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/protected_branches/main",
+            json={"message": "404 Not Found"},
+            status=404,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/protected_branches",
+            json={"name": "main", "allow_force_push": False, "required_approvals": 2},
+            status=201,
+        )
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            gitlab_adapter.set_branch_protection(
+                "main",
+                require_reviews=2,
+                require_status_checks=["ci/build"],
+                enforce_admins=True,
+                allow_force_push=False,
+                allow_deletions=False,
+            )
+            messages = " ".join(str(x.message) for x in w)
+            assert "require_status_checks" in messages
+            assert "enforce_admins" in messages
+            assert "allow_deletions" in messages
+
+    def test_unsupported_params_not_in_body(self, mock_responses, gitlab_adapter):
+        """警告対象の 3 パラメータは POST ボディに含まれない (#537)。"""
+        import json
+
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/protected_branches/main",
+            json={"message": "404 Not Found"},
+            status=404,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/protected_branches",
+            json={"name": "main", "allow_force_push": False, "required_approvals": 2},
+            status=201,
+        )
+        gitlab_adapter.set_branch_protection(
+            "main",
+            require_reviews=2,
+            require_status_checks=["ci/build"],
+            enforce_admins=True,
+            allow_force_push=False,
+            allow_deletions=False,
+        )
+        body = json.loads(mock_responses.calls[1].request.body)
+        assert "require_status_checks" not in body
+        assert "enforce_admins" not in body
+        assert "allow_deletions" not in body
+
+    def test_no_warning_when_unsupported_omitted(self, mock_responses, gitlab_adapter):
+        """未対応パラメータを指定しない場合は警告しない (#537)。"""
+        import warnings
+
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/protected_branches/main",
+            json={"message": "404 Not Found"},
+            status=404,
+        )
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/protected_branches",
+            json={"name": "main", "allow_force_push": False, "required_approvals": 2},
+            status=201,
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            gitlab_adapter.set_branch_protection("main", require_reviews=2, allow_force_push=False)

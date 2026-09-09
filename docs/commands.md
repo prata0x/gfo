@@ -2228,6 +2228,8 @@ Manage branch protection rules.
 > **Supported services**: GitHub, GitLab, Bitbucket, Gitea, Forgejo
 >
 > **Note**: Bitbucket only supports force-push and deletion control. Review requirements (`--require-reviews`), status checks (`--require-status-checks`), and admin enforcement (`--enforce-admins`) are not supported.
+>
+> **Note**: GitLab only supports force-push control and review requirements (`--require-reviews`). Status checks (`--require-status-checks`), admin enforcement (`--enforce-admins`), and deletion control (`--allow-deletions`/`--no-allow-deletions`) are not supported and are ignored with a warning.
 
 ### gfo branch-protect list
 

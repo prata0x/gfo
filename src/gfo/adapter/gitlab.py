@@ -2014,6 +2014,12 @@ class GitLabAdapter(GitServiceAdapter):
         allow_force_push: bool | None = None,
         allow_deletions: bool | None = None,
     ) -> BranchProtection:
+        if require_status_checks is not None:
+            self._warn_unsupported_params("branch-protect set", require_status_checks=True)
+        if enforce_admins is not None:
+            self._warn_unsupported_params("branch-protect set", enforce_admins=True)
+        if allow_deletions is not None:
+            self._warn_unsupported_params("branch-protect set", allow_deletions=True)
         payload: dict[str, Any] = {"name": branch}
         if allow_force_push is not None:
             payload["allow_force_push"] = allow_force_push
