@@ -1978,7 +1978,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         )
         return [
             Reaction(
-                id=r.get("id") or 0,
+                id=r.get("id") or "",
                 content=r.get("content") or "",
                 user=(r.get("user") or {}).get("login") or "",
                 created_at=r.get("created_at") or "",
@@ -1993,7 +1993,7 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         )
         r = resp.json()
         return Reaction(
-            id=r.get("id") or 0,
+            id=r.get("id") or "",
             content=r.get("content") or "",
             user=(r.get("user") or {}).get("login") or "",
             created_at=r.get("created_at") or "",

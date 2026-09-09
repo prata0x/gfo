@@ -4811,3 +4811,47 @@ class TestSecretVariableVisibilityWarning:
         with warnings.catch_warnings():
             warnings.simplefilter("error")
             gitea_adapter.set_variable("MY_VAR", "v")
+
+
+# --- Issue Reaction（Gitea は reaction に id フィールドを返さない）---
+
+
+class TestIssueReactions:
+    @responses.activate
+    def test_list_issue_reactions_no_fabricated_id(self, gitea_adapter):
+        """Gitea の reactions レスポンスには id が無いので空文字になる（#590）。"""
+        responses.add(
+            responses.GET,
+            f"{REPOS}/issues/7/reactions",
+            json=[
+                {"user": {"login": "alice"}, "content": "+1", "created_at": "2024-01-01T00:00:00Z"},
+                {
+                    "user": {"login": "bob"},
+                    "content": "laugh",
+                    "created_at": "2024-01-02T00:00:00Z",
+                },
+            ],
+            status=200,
+        )
+        reactions = gitea_adapter.list_issue_reactions(7)
+        assert [r.id for r in reactions] == ["", ""]
+        assert [r.user for r in reactions] == ["alice", "bob"]
+        assert [r.content for r in reactions] == ["+1", "laugh"]
+
+    @responses.activate
+    def test_add_issue_reaction_no_fabricated_id(self, gitea_adapter):
+        """add 時も Gitea は id を返さないので空文字になる（#590）。"""
+        responses.add(
+            responses.POST,
+            f"{REPOS}/issues/7/reactions",
+            json={
+                "user": {"login": "alice"},
+                "content": "+1",
+                "created_at": "2024-01-01T00:00:00Z",
+            },
+            status=201,
+        )
+        reaction = gitea_adapter.add_issue_reaction(7, "+1")
+        assert reaction.id == ""
+        assert reaction.user == "alice"
+        assert reaction.content == "+1"
