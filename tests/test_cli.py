@@ -1943,6 +1943,39 @@ def test_pre_parse_format_ignores_local_option_value_collision():
     assert _pre_parse_format(["pr", "create", "--title", "foo", "--format", "json"]) == "json"
 
 
+def test_hoist_global_flags_store_true_short_after_global():
+    """#866: ``pr merge`` の ``-m``/``--merge``(値なし store_true) は後置のグローバルフラグ
+    (``--repo``) を値として奪わず、正しくホイストして parse できる。"""
+    result = _hoist_global_flags(["pr", "merge", "42", "-m", "--repo", "owner/repo"])
+    assert result == ["--repo", "owner/repo", "pr", "merge", "42", "-m"]
+    parser, _ = create_parser()
+    ns = parser.parse_args(result)
+    assert ns.global_repo == "owner/repo"
+
+
+def test_hoist_global_flags_squash_short_after_global():
+    """#866: ``-s``/``--squash``(値なし) でも後置の ``--repo`` をホイストする。"""
+    result = _hoist_global_flags(["pr", "merge", "42", "-s", "--repo", "owner/repo"])
+    assert result == ["--repo", "owner/repo", "pr", "merge", "42", "-s"]
+    parser, _ = create_parser()
+    ns = parser.parse_args(result)
+    assert ns.global_repo == "owner/repo"
+
+
+def test_hoist_global_flags_value_short_owns_value_after_global():
+    """#866: ``pr list`` の ``-m``/``--milestone``(値あり) の値は従来通り所有し、
+    値がグローバルフラグ名でも誤認識しない(#577 維持)。"""
+    result = _hoist_global_flags(["pr", "list", "--milestone", "--repo", "--format", "json"])
+    assert "--repo" not in result[:2]
+    assert result[:2] == ["--format", "json"]
+
+
+def test_pre_parse_format_ignores_store_true_short():
+    """#866: ``-m``(store_true) は値を消費しないため、次トークンを ``--format`` と誤判定しない。"""
+    assert _pre_parse_format(["pr", "merge", "42", "-m", "--repo", "o/r"]) is None
+    assert _pre_parse_format(["pr", "merge", "42", "-m", "--format", "json"]) == "json"
+
+
 def test_hoist_main_format_after_subcommand():
     """main() が --format をサブコマンド後に配置しても正しく解析する。"""
     handler = MagicMock()
