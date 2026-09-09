@@ -1590,6 +1590,7 @@ class BitbucketAdapter(GitServiceAdapter):
         self._client.delete(f"/users/{quote(self._current_user_uuid(), safe='')}/gpg-keys/{key_id}")
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_gpg_key(data: dict[str, Any]) -> GpgKey:
         return GpgKey(
             id=data.get("fingerprint") or data.get("id") or "",

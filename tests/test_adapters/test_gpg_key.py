@@ -7,7 +7,7 @@ import json
 import pytest
 import responses
 
-from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError
+from gfo.exceptions import AuthenticationError, GfoError, NotFoundError, NotSupportedError
 
 # --- ヘルパー ---
 
@@ -291,6 +291,32 @@ class TestBitbucketGpgKey:
         )
         with pytest.raises(AuthenticationError):
             bitbucket_adapter.delete_gpg_key(key_id="AABBCCDD")
+
+    @responses.activate
+    def test_get_malformed_response_wrapped(self, bitbucket_adapter):
+        """#486: レスポンス形状異常（dict ではなく list）は GfoError にラップされる。"""
+        self._mock_current_user()
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/gpg-keys/1",
+            json=[{"unexpected": "shape"}],
+            status=200,
+        )
+        with pytest.raises(GfoError):
+            bitbucket_adapter.get_gpg_key(1)
+
+    @responses.activate
+    def test_list_malformed_element_wrapped(self, bitbucket_adapter):
+        """#486: values 内の要素が非 dict の場合も GfoError にラップされる。"""
+        self._mock_current_user()
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/users/%7Bmy-uuid%7D/gpg-keys",
+            json={"values": [[{"unexpected": "shape"}]], "pagelen": 10},
+            status=200,
+        )
+        with pytest.raises(GfoError):
+            bitbucket_adapter.list_gpg_keys()
 
 
 # --- Gitea ---
