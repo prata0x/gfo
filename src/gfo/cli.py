@@ -2277,7 +2277,16 @@ def main(argv: list[str] | None = None) -> int:
             print(_("Aborted by user."), file=sys.stderr)
             return 130
         except BrokenPipeError:
-            # `gfo ... | head` のように下流が閉じた場合は静かに終了する
+            # `gfo ... | head` のように下流が閉じた場合は静かに終了する。
+            # CPython は SIGPIPE を無視するため、main() が return した後もインタプリタの
+            # シャットダウン時に sys.stdout を再 flush しようとし、再び BrokenPipeError が
+            # 送出されて「Exception ignored」が stderr に出て終了コードも 0 にならない。
+            # これを防ぐため、捕捉時に stdout の fd を os.devnull へ差し替える（Python 公式推奨）。
+            try:
+                sys.stdout.buffer.flush()
+            except BrokenPipeError:
+                devnull = os.open(os.devnull, os.O_WRONLY)
+                os.dup2(devnull, sys.stdout.fileno())
             return 0
         except Exception as err:  # pragma: no cover
             print(_("Unexpected error: {err}").format(err=err), file=sys.stderr)
