@@ -1881,6 +1881,7 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
         self._client.delete(f"{self._repos_path()}/branches/{quote(branch, safe='')}/protection")
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_branch_protection(branch: str, data: dict[str, Any]) -> BranchProtection:
         reviews_obj = data.get("required_pull_request_reviews") or {}
         checks_obj = data.get("required_status_checks") or {}

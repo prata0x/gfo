@@ -1992,6 +1992,7 @@ class GitLabAdapter(GitServiceAdapter):
         self._client.delete(f"{self._project_path()}/protected_branches/{quote(branch, safe='')}")
 
     @staticmethod
+    @_wrap_conversion_error
     def _to_branch_protection(data: dict[str, Any]) -> BranchProtection:
         return BranchProtection(
             branch=data.get("name") or "",
