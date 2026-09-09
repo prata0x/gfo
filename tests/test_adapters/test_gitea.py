@@ -3662,6 +3662,17 @@ class TestListContributorsGitea:
         with pytest.raises(ServerError):
             gitea_adapter.list_contributors()
 
+    def test_include_anonymous_warns(self, mock_responses, gitea_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/contributors",
+            json=[{"login": "alice", "contributions": 100}],
+            status=200,
+        )
+        with pytest.warns(UserWarning, match="does not support include_anonymous"):
+            contributors = gitea_adapter.list_contributors(include_anonymous=True)
+        assert len(contributors) == 1
+
 
 class TestArchiveRepositoryGitea:
     @responses.activate

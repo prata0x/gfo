@@ -465,6 +465,8 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         # エンドポイントが追加された場合に備えて試行し、404 のみ NotSupportedError。
         # 認証エラー・5xx・ネットワーク断は本来の例外として伝播させる（誤って
         # 「機能未対応」と報告すると問題の切り分けができなくなるため）。
+        if include_anonymous:
+            self._warn_unsupported_params("repo contributors", include_anonymous=include_anonymous)
 
         try:
             results = paginate_link_header(
