@@ -1342,29 +1342,33 @@ def test_main_not_supported_error_text_format_prints_default_hint_without_web_ur
 
 
 def test_main_empty_jq_json_format_emits_json_error(capsys):
-    """--format json 指定時、--jq '' は構造化 JSON エラーを stderr に出す（#493）。"""
+    """--format json 指定時、--jq '' は構造化 JSON エラーを stderr に出す（#493/#849）。
+
+    CLI 入力バリデーション失敗は ConfigError（error_code="config_error", exit 6）に分類される。
+    """
 
     result = main(["--format", "json", "pr", "list", "--jq", ""])
-    assert result == 1
+    assert result == 6
     captured = capsys.readouterr()
     parsed = json.loads(captured.err)
-    assert parsed["error"] == "general_error"
+    assert parsed["error"] == "config_error"
     assert "must not be empty" in parsed["message"]
     assert captured.out == ""
 
 
 def test_main_empty_jq_resolves_format_and_emits_json_error(capsys):
-    """--jq '' は --format 判定を経由し、--jq 指定で強制される json 形式でエラーを出す（#493）。
+    """--jq '' は --format 判定を経由し、--jq 指定で強制される json 形式でエラーを出す（#493/#849）。
 
     --jq は出力を json に強制するため、明示的な --format table でもプレーンテキストに
-    フォールバックせず構造化 JSON エラーを stderr に出す。
+    フォールバックせず構造化 JSON エラーを stderr に出す。入力バリデーション失敗は
+    ConfigError（exit 6）として分類される。
     """
 
     result = main(["--format", "table", "pr", "list", "--jq", ""])
-    assert result == 1
+    assert result == 6
     captured = capsys.readouterr()
     parsed = json.loads(captured.err)
-    assert parsed["error"] == "general_error"
+    assert parsed["error"] == "config_error"
     assert "must not be empty" in parsed["message"]
     assert captured.out == ""
 
