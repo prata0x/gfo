@@ -69,6 +69,44 @@ from .models import (
 )
 from .registry import register
 
+# GitLab の protected_tags API は create_access_level を整数で受け取る
+# (0=No access, 30=Developer, 40=Maintainer)。CLI は人 readable な名前も受け付けるため、
+# 送信時に名前→整数へ、受信時に整数→名前へ変換して表示を一致させる。
+_TAG_PROTECT_ACCESS_LEVELS: dict[str, int] = {
+    "no access": 0,
+    "no-access": 0,
+    "developer": 30,
+    "maintainer": 40,
+}
+_TAG_PROTECT_ACCESS_LEVEL_NAMES: dict[int, str] = {
+    0: "no access",
+    30: "developer",
+    40: "maintainer",
+}
+
+
+def _normalize_tag_access_level(value: str) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        pass
+    key = str(value).strip().lower()
+    if key in _TAG_PROTECT_ACCESS_LEVELS:
+        return _TAG_PROTECT_ACCESS_LEVELS[key]
+    raise GfoError(
+        _(
+            "Invalid GitLab tag protection access level '{value}'. "
+            "Valid values: maintainer (40), developer (30), no access (0)."
+        ).format(value=value)
+    )
+
+
+def _tag_protection_access_level(raw: dict[str, Any]) -> str:
+    level = (raw.get("create_access_levels") or [{}])[0].get("access_level", "")
+    if isinstance(level, int) and level in _TAG_PROTECT_ACCESS_LEVEL_NAMES:
+        return _TAG_PROTECT_ACCESS_LEVEL_NAMES[level]
+    return str(level)
+
 
 @register("gitlab")
 class GitLabAdapter(GitServiceAdapter):
@@ -2168,9 +2206,7 @@ class GitLabAdapter(GitServiceAdapter):
             TagProtection(
                 id=r["name"],
                 pattern=r["name"],
-                create_access_level=str(
-                    (r.get("create_access_levels") or [{}])[0].get("access_level", "")
-                ),
+                create_access_level=_tag_protection_access_level(r),
             )
             for r in results
         ]
@@ -2180,15 +2216,13 @@ class GitLabAdapter(GitServiceAdapter):
     ) -> TagProtection:
         payload: dict[str, Any] = {"name": pattern}
         if create_access_level is not None:
-            payload["create_access_level"] = create_access_level
+            payload["create_access_level"] = _normalize_tag_access_level(create_access_level)
         resp = self._client.post(f"{self._project_path()}/protected_tags", json=payload)
         data = resp.json()
         return TagProtection(
             id=data["name"],
             pattern=data["name"],
-            create_access_level=str(
-                (data.get("create_access_levels") or [{}])[0].get("access_level", "")
-            ),
+            create_access_level=_tag_protection_access_level(data),
         )
 
     def delete_tag_protection(self, protection_id: int | str) -> None:

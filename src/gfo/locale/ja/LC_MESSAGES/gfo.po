@@ -2316,6 +2316,9 @@ msgstr "GitBucket: 予期しないレスポンス型: {type}"
 msgid "GitLab user(s) not found: {users}"
 msgstr "GitLab ユーザーが見つかりません: {users}"
 
+msgid "Invalid GitLab tag protection access level '{value}'. Valid values: maintainer (40), developer (30), no access (0)."
+msgstr "GitLab のタグ保護アクセスレベル '{value}' が無効です。指定可能な値: maintainer (40)、developer (30)、no access (0)。"
+
 msgid "Header '{key}' cannot be set via --header (managed by gfo). Use gfo auth / config options instead."
 msgstr "ヘッダー '{key}' は --header では設定できません（gfo が管理します）。gfo auth / config のオプションを使用してください。"
 
