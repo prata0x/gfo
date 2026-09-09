@@ -400,7 +400,13 @@ def detect_service(cwd: str | None = None) -> DetectResult:
                 # status 等は host のみあれば成立し、owner/repo を要求するコマンドは別途
                 # ConfigError になる）。
                 return DetectResult(service_type=saved_type, host=saved_host, owner="", repo="")
-            result = detect_from_url(remote_url)
+            try:
+                result = detect_from_url(remote_url)
+            except DetectionError:
+                # remote は存在するがローカルパス等パース不能な URL の場合でも、git config に
+                # 保存済みの saved_type/host だけで auth 系コマンドが動くようにフォールバックする
+                # （issue #522）。
+                return DetectResult(service_type=saved_type, host=saved_host, owner="", repo="")
             # URL パース結果と git config 設定が食い違う場合に警告
             if result.service_type is not None and result.service_type != saved_type:
                 warnings.warn(

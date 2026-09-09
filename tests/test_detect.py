@@ -681,6 +681,22 @@ class TestDetectService:
         assert r.owner == ""
         assert r.repo == ""
 
+    @patch("gfo.detect.get_remote_url", return_value="/tmp/some/local/bare/repo.git")
+    @patch("gfo.detect.git_config_get")
+    def test_saved_config_fallback_unparseable_remote(self, mock_config_get, mock_remote):
+        """gfo init 済み（saved_type/host あり）で remote URL がパース不能（ローカルパス等）
+        な場合、DetectionError を伝播させず saved 値だけで DetectResult を返す（#522）。"""
+
+        def config_side(key, cwd=None):
+            return {"gfo.type": "gitea", "gfo.host": "git.example.com"}.get(key)
+
+        mock_config_get.side_effect = config_side
+        r = detect_service()
+        assert r.service_type == "gitea"
+        assert r.host == "git.example.com"
+        assert r.owner == ""
+        assert r.repo == ""
+
     @patch("gfo.detect.get_remote_url", return_value="https://github.com/owner/repo.git")
     @patch("gfo.detect.git_config_get", return_value=None)
     def test_known_host(self, mock_config_get, mock_remote):
