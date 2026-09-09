@@ -1081,6 +1081,25 @@ class TestUpdateRepository:
         messages = [str(x.message) for x in w]
         assert any("default_branch" in m for m in messages)
 
+    def test_archived_raises_not_supported(self, mock_responses, bitbucket_adapter):
+        """archived は Bitbucket API 経由で変更できないため、NotSupportedError を送出し PUT は行わない。"""
+        for archived in (False, True):
+            with pytest.raises(NotSupportedError):
+                bitbucket_adapter.update_repository(archived=archived)
+        assert len(mock_responses.calls) == 0
+
+    def test_no_archived_arg_does_not_raise(self, mock_responses, bitbucket_adapter):
+        """archived を指定しない通常の更新は従来通り動作する。"""
+        mock_responses.add(
+            responses.PUT,
+            f"{REPOS}",
+            json=_repo_data(),
+            status=200,
+        )
+        bitbucket_adapter.update_repository(name="new-name")
+        req_body = json.loads(mock_responses.calls[0].request.body)
+        assert req_body == {"name": "new-name"}
+
 
 class TestDeleteRepository:
     def test_delete(self, mock_responses, bitbucket_adapter):

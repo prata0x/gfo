@@ -401,10 +401,11 @@ class BitbucketAdapter(GitServiceAdapter):
         allow_rebase_merge: bool | None = None,
         delete_branch_on_merge: bool | None = None,
     ) -> Repository:
+        if archived is not None:
+            raise NotSupportedError(self.service_name, "repo archive/unarchive")
         self._warn_unsupported_params(
             "repo update",
             default_branch=default_branch,
-            archived=archived,
             allow_merge_commit=allow_merge_commit,
             allow_squash_merge=allow_squash_merge,
             allow_rebase_merge=allow_rebase_merge,
@@ -417,7 +418,7 @@ class BitbucketAdapter(GitServiceAdapter):
             payload["description"] = description
         if private is not None:
             payload["is_private"] = private
-        # Bitbucket doesn't support changing default_branch or archived via API
+        # Bitbucket doesn't support changing default_branch via API
         resp = self._client.put(self._repos_path(), json=payload)
         return self._to_repository(resp.json())
 
