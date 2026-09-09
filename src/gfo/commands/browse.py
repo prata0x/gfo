@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import argparse
-import webbrowser
 
-from gfo.commands import get_adapter
+from gfo.commands import get_adapter, open_url_in_browser
 
 
 def handle_browse(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -> None:
@@ -24,4 +23,4 @@ def handle_browse(args: argparse.Namespace, *, fmt: str, jq: str | None = None) 
     if getattr(args, "print", False):
         print(url)
     else:
-        webbrowser.open(url)
+        open_url_in_browser(url)
