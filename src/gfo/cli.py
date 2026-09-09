@@ -2061,15 +2061,37 @@ def _resolve_format(args_format: str | None, jq_expr: str | None) -> str:
 
 
 def _pre_parse_format(argv: list[str] | None) -> str | None:
-    """parse_args 前に --format を簡易判定する（argparse エラーの JSON 構造化用）。"""
+    """parse_args 前に --format を簡易判定する（argparse エラーの JSON 構造化用）。
+
+    ローカルオプションの値トークンは所有権を追跡してスキップするため、値が偶然
+    ``--format`` 等と一致しても実際のグローバルフラグとして誤判定されない。
+    """
     args = argv if argv is not None else sys.argv[1:]
-    for i, arg in enumerate(args):
-        if arg == "--format" and i + 1 < len(args):
-            return args[i + 1]
-        if arg.startswith("--format="):
-            return arg.split("=", 1)[1]
-        if arg == "--jq":
-            return "json"
+    value_map = _build_option_value_map()
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        matched_global = next(
+            (f for f in _GLOBAL_FLAGS if arg == f or arg.startswith(f + "=")), None
+        )
+        if matched_global is not None:
+            if arg.startswith("--format="):
+                return arg.split("=", 1)[1]
+            if arg == "--format" and i + 1 < len(args):
+                return args[i + 1]
+            if arg == "--jq":
+                return "json"
+            i += 2 if (arg == matched_global and i + 1 < len(args)) else 1
+            continue
+        if arg in value_map:
+            mode = value_map[arg]
+            if mode == "always":
+                i += 2 if i + 1 < len(args) else 1
+                continue
+            if mode == "optional" and i + 1 < len(args) and not args[i + 1].startswith("-"):
+                i += 2
+                continue
+        i += 1
     return None
 
 
@@ -2096,6 +2118,52 @@ _ACCOUNT_LOCAL_COMMANDS = {
     ("auth", "login"),
     ("auth", "logout"),
 }
+
+# オプション文字列 -> "always"/"optional"/"never"
+#   always   : 次のトークンを値として消費する(store, nargs>=1 等)
+#   optional : 次のトークンがオプション風(--xxx)でなければ値として消費する(nargs="?")
+#   never    : 値を消費しない(store_true 等)
+# グローバルフラグ(--format 等)は専用分岐で処理するため含めない。
+_OPTION_VALUE_MODE: dict[str, str] | None = None
+
+
+def _build_option_value_map() -> dict[str, str]:
+    """argparse パーサツリーを走査し、値を消費するオプション文字列の写像を構築する。
+
+    ローカルオプションの値トークンがたまたまグローバルフラグ名(--format 等)と一致しても、
+    グローバルフラグとして誤認識されないよう、値の所有権を追跡するために使う。結果は
+    モジュールレベルでキャッシュされる。
+    """
+    global _OPTION_VALUE_MODE
+    if _OPTION_VALUE_MODE is not None:
+        return _OPTION_VALUE_MODE
+
+    def classify(action: argparse.Action) -> str:
+        nargs = getattr(action, "nargs", None)
+        if nargs == 0:
+            return "never"
+        if nargs is None:
+            return "always"
+        if nargs == "?":
+            return "optional"
+        return "always"
+
+    result: dict[str, str] = {}
+
+    def walk(parser: argparse.ArgumentParser) -> None:
+        for action in parser._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                for sub in action.choices.values():
+                    walk(sub)
+                continue
+            for opt in action.option_strings:
+                if opt in _GLOBAL_FLAGS:
+                    continue
+                result[opt] = classify(action)
+
+    walk(create_parser()[0])
+    _OPTION_VALUE_MODE = result
+    return result
 
 
 def _command_has_local_account(argv: list[str]) -> bool:
@@ -2134,6 +2202,7 @@ def _hoist_global_flags(argv: list[str]) -> list[str]:
 
     hoisted: list[str] = []
     rest: list[str] = []
+    value_map = _build_option_value_map()
     i = 0
     while i < len(argv):
         arg = argv[i]
@@ -2143,6 +2212,22 @@ def _hoist_global_flags(argv: list[str]) -> list[str]:
         elif any(arg.startswith(f + "=") for f in flags):
             hoisted.append(arg)
             i += 1
+        elif arg in value_map:
+            # 値を持つローカルオプション: 次トークンはその値として所有し、独立評価しない。
+            # これにより値が偶然グローバルフラグ名(--format 等)と一致しても誤認識されない。
+            mode = value_map[arg]
+            rest.append(arg)
+            if i + 1 < len(argv):
+                if mode == "always":
+                    rest.append(argv[i + 1])
+                    i += 2
+                elif mode == "optional" and not argv[i + 1].startswith("-"):
+                    rest.append(argv[i + 1])
+                    i += 2
+                else:
+                    i += 1
+            else:
+                i += 1
         else:
             rest.append(arg)
             i += 1
