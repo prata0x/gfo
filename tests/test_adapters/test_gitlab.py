@@ -5070,3 +5070,62 @@ class TestTagProtectionEditUnsupported:
 
     def test_gitlab_tag_protect_create_supported(self, gitlab_adapter):
         assert hasattr(gitlab_adapter, "create_tag_protection")
+
+
+class TestTagProtectionAccessLevelMapping:
+    """GitLab tag protection は create_access_level を整数で送受信する (#533)。
+
+    GitLab の protected_tags API は create_access_level を整数(0/30/40)で期待するが、
+    gfo はこれまで名前(maintainer 等)をそのまま文字列で送っていた。送信時に名前→整数、
+    受信時に整数→名前へ変換する。
+    """
+
+    def test_create_sends_integer_for_name(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/protected_tags",
+            json={"name": "release-*", "create_access_levels": [{"access_level": 40}]},
+            status=201,
+        )
+        protection = gitlab_adapter.create_tag_protection(
+            "release-*", create_access_level="maintainer"
+        )
+        body = json.loads(mock_responses.calls[0].request.body)
+        assert body["create_access_level"] == 40
+        assert protection.create_access_level == "maintainer"
+
+    def test_create_sends_integer_for_numeric_string(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.POST,
+            f"{PROJECT}/protected_tags",
+            json={"name": "release-*", "create_access_levels": [{"access_level": 30}]},
+            status=201,
+        )
+        protection = gitlab_adapter.create_tag_protection("release-*", create_access_level="30")
+        body = json.loads(mock_responses.calls[0].request.body)
+        assert body["create_access_level"] == 30
+        assert protection.create_access_level == "developer"
+
+    def test_create_invalid_name_raises(self, gitlab_adapter):
+        with pytest.raises(GfoError, match="access level"):
+            gitlab_adapter.create_tag_protection("release-*", create_access_level="sudo")
+
+    def test_list_maps_integer_back_to_name(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/protected_tags",
+            json=[{"name": "v*", "create_access_levels": [{"access_level": 40}]}],
+            status=200,
+        )
+        protections = gitlab_adapter.list_tag_protections()
+        assert protections[0].create_access_level == "maintainer"
+
+    def test_list_unknown_level_passthrough(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{PROJECT}/protected_tags",
+            json=[{"name": "v*", "create_access_levels": [{"access_level": 50}]}],
+            status=200,
+        )
+        protections = gitlab_adapter.list_tag_protections()
+        assert protections[0].create_access_level == "50"

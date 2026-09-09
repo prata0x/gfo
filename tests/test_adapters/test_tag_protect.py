@@ -110,7 +110,7 @@ class TestGitLabTagProtect:
         assert len(tps) == 1
         assert tps[0].id == "v*"
         assert tps[0].pattern == "v*"
-        assert tps[0].create_access_level == "40"
+        assert tps[0].create_access_level == "maintainer"
 
     @responses.activate
     def test_create(self, gitlab_adapter):
@@ -125,10 +125,10 @@ class TestGitLabTagProtect:
         )
         tp = gitlab_adapter.create_tag_protection("release-*", create_access_level="30")
         assert tp.pattern == "release-*"
-        assert tp.create_access_level == "30"
+        assert tp.create_access_level == "developer"
         req_body = json.loads(responses.calls[0].request.body)
         assert req_body["name"] == "release-*"
-        assert req_body["create_access_level"] == "30"
+        assert req_body["create_access_level"] == 30
 
     @responses.activate
     def test_delete(self, gitlab_adapter):
