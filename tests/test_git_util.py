@@ -364,6 +364,29 @@ class TestGitCheckoutBranch:
             git_util.git_checkout_branch("pr-42")
         assert mock_run.call_count == 2
 
+    @patch("gfo.git_util.subprocess.run")
+    def test_switch_conflict_raises_not_creates(self, mock_run):
+        """既存ブランチへのスイッチが衝突で失敗した場合は新規作成パスに落ちず再送出する（#507）。
+
+        rev-parse が成功（ブランチ既存）した後、checkout {branch} が作業ツリーの
+        未コミット変更との衝突で失敗しても、そのエラーをそのまま伝播させる。
+        旧実装はこの失敗を「ブランチ不在」と誤認し checkout -b を試み、
+        "a branch named '...' already exists" という誤ったエラーに置き換わっていた。
+        """
+        mock_run.side_effect = [
+            _mock_result(stdout="abc123\n"),  # rev-parse --verify 成功（既存）
+            _mock_result(stdout="main\n"),  # rev-parse --abbrev-ref HEAD（別ブランチ）
+            _mock_result(
+                stderr="error: Your local changes would be overwritten by checkout",
+                returncode=1,
+            ),  # checkout {branch} 失敗（作業ツリー衝突）
+        ]
+        with pytest.raises(GitCommandError):
+            git_util.git_checkout_branch("pr-42")
+        # rev-parse 成功 → checkout -b は呼ばれない（誤って作成パスに落ちない）
+        assert mock_run.call_count == 3
+        assert mock_run.call_args_list[2].args[0] == ["git", "checkout", "pr-42"]
+
 
 class TestGitCheckoutNewBranch:
     @patch("gfo.git_util.subprocess.run")
