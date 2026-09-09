@@ -569,13 +569,14 @@ class GogsAdapter(GiteaAdapter):
         allow_rebase_merge: bool | None = None,
         delete_branch_on_merge: bool | None = None,
     ) -> Repository:
+        if archived is not None:
+            raise NotSupportedError(self.service_name, "repo archive/unarchive")
         self._warn_unsupported_params(
             "repo update",
             name=name is not None,
             description=description is not None,
             private=private is not None,
             default_branch=default_branch is not None,
-            archived=archived is not None,
             allow_merge_commit=allow_merge_commit is not None,
             allow_squash_merge=allow_squash_merge is not None,
             allow_rebase_merge=allow_rebase_merge is not None,

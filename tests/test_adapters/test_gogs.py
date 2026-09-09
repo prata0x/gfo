@@ -310,6 +310,14 @@ class TestDeleteInheritance:
         with pytest.warns(UserWarning):
             gogs_adapter.update_repository(private=False)
 
+    def test_update_repository_archived_not_supported(self, gogs_adapter):
+        with pytest.raises(NotSupportedError):
+            gogs_adapter.update_repository(archived=False)
+
+    def test_update_repository_archived_true_not_supported(self, gogs_adapter):
+        with pytest.raises(NotSupportedError):
+            gogs_adapter.update_repository(archived=True)
+
 
 class TestSyncFork:
     def test_raises_not_supported(self, gogs_adapter):
