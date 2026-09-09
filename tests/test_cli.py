@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -2013,3 +2015,35 @@ def test_pr_merge_method_flags_are_the_documented_exception():
     assert short_to_long["-m"] == "--merge"
     assert short_to_long["-s"] == "--squash"
     assert short_to_long["-r"] == "--rebase"
+
+
+def test_main_broken_pipe_exits_cleanly():
+    """`gfo pr diff 1 | head` のように下流が閉じた場合、終了コード 0 で stderr に
+    Python 内部の「Exception ignored / BrokenPipeError」が出ない（#575）。"""
+
+    script = (
+        "import sys\n"
+        "import gfo.commands.pr as pr_mod\n"
+        "from gfo import cli\n"
+        "\n"
+        "class _FakeAdapter:\n"
+        "    def get_pull_request_diff(self, number):\n"
+        "        for i in range(100000):\n"
+        "            yield ('diff --git a/file%d.py b/file%d.py\\n+line %d\\n' % (i, i, i)).encode()\n"
+        "\n"
+        "pr_mod.get_adapter = lambda: _FakeAdapter()\n"
+        "sys.exit(cli.main(['pr', 'diff', '1']))\n"
+    )
+    proc = subprocess.Popen(
+        [sys.executable, "-c", script],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    proc.stdout.read(50)
+    proc.stdout.close()
+    stderr = proc.stderr.read()
+    proc.stderr.close()
+    rc = proc.wait()
+    assert rc == 0
+    assert b"BrokenPipeError" not in stderr
+    assert b"Exception ignored" not in stderr
