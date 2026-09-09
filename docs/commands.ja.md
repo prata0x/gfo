@@ -2242,6 +2242,8 @@ gfo browse --pr 42 --print     # URL を表示するだけ（ブラウザは開�
 > **対応サービス**: GitHub, GitLab, Bitbucket, Gitea, Forgejo
 >
 > **注意**: Bitbucket は強制プッシュと削除の制御のみ対応。レビュー要件（`--require-reviews`）、ステータスチェック（`--require-status-checks`）、管理者への適用（`--enforce-admins`）は非対応。
+>
+> **注意**: GitLab は強制プッシュの制御とレビュー要件（`--require-reviews`）のみ対応。ステータスチェック（`--require-status-checks`）、管理者への適用（`--enforce-admins`）、削除制御（`--allow-deletions`/`--no-allow-deletions`）は非対応で、警告付きで無視される。
 
 ### gfo branch-protect list
 
