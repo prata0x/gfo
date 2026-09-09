@@ -1122,6 +1122,26 @@ def test_set_config_value_single_part_key():
         set_config_value("output", "json")
 
 
+def test_set_config_value_unquoted_dotted_host_errors(tmp_path):
+    """#552: クォート無しのドット付きホスト名は誤ネストせず ConfigError になる。"""
+    d = tmp_path / "gfo_config"
+    d.mkdir()
+    with patch("gfo.config.get_config_dir", return_value=d):
+        with pytest.raises(ConfigError, match="must quote the host"):
+            set_config_value("hosts.gitlab.example.com.type", "gitlab")
+        # 誤ったネスト先に書き込まれていないことを確認
+        assert (d / "config.toml").exists() is False
+
+
+def test_set_config_value_quoted_dotted_host_ok(tmp_path):
+    """クォート付きドット付きホスト名は正しくホストキー配下に書かれる。"""
+    d = tmp_path / "gfo_config"
+    d.mkdir()
+    with patch("gfo.config.get_config_dir", return_value=d):
+        set_config_value('hosts."gitlab.example.com".type', "gitlab")
+        assert get_config_value('hosts."gitlab.example.com".type') == "gitlab"
+
+
 def test_set_config_value_conflict_with_scalar(tmp_path):
     """スカラー値の上にテーブルを作れない → ConfigError。"""
     d = tmp_path / "gfo_config"

@@ -251,6 +251,16 @@ def set_config_value(key: str, value: str) -> None:
             _("Key must have at least two parts (e.g. defaults.output), got: {key}").format(key=key)
         )
 
+    # hosts.<host>.<field> は常に 3 パート。クォート無しでドット付きホスト名を渡すと
+    # ホスト名が複数セグメントに分割され、誤ったネスト先に無警告で書き込まれる（#552）。
+    if parts[0] == "hosts" and len(parts) > 3:
+        raise ConfigError(
+            _(
+                "Host keys with a dotted host name must quote the host, "
+                "e.g. 'hosts.\"gitlab.example.com\".type'."
+            )
+        )
+
     # api_url を設定するキーの場合、平文 http:// を拒否する（PAT 漏えい防止）。
     if parts[-1] == "api_url":
         validate_api_url(value)
