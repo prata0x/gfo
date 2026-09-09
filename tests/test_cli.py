@@ -1925,6 +1925,24 @@ def test_hoist_global_flags_account_equals_before_auth_status_hoisted_as_global(
     assert ns.global_account == "foo"
 
 
+def test_hoist_global_flags_local_option_value_not_hoisted():
+    """#577: ローカルオプションの値が偶然グローバルフラグ名と一致しても誤認識しない。
+
+    ``--title "--repo"`` の ``--repo`` はグローバルフラグではなくタイトル文字列として
+    扱われ、その次のトークン(``desc``)をグローバルフラグの値として奪ってはならない。
+    """
+    result = _hoist_global_flags(["pr", "create", "--title", "--repo", "--body", "desc"])
+    # グローバルフラグは一切ホイストされず、--title/--body とその値が一体化して残る。
+    assert result == ["pr", "create", "--title", "--repo", "--body", "desc"]
+    assert "--repo" not in result[:2]
+
+
+def test_pre_parse_format_ignores_local_option_value_collision():
+    """#577: ローカルオプションの値が ``--format`` と一致しても実フラグと誤判定しない。"""
+    assert _pre_parse_format(["pr", "create", "--title", "--format", "--repo", "o/r"]) is None
+    assert _pre_parse_format(["pr", "create", "--title", "foo", "--format", "json"]) == "json"
+
+
 def test_hoist_main_format_after_subcommand():
     """main() が --format をサブコマンド後に配置しても正しく解析する。"""
     handler = MagicMock()
