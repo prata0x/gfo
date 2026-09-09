@@ -7,7 +7,13 @@ import json
 import pytest
 import responses
 
-from gfo.exceptions import AuthenticationError, NotFoundError, NotSupportedError, ServerError
+from gfo.exceptions import (
+    AuthenticationError,
+    GfoError,
+    NotFoundError,
+    NotSupportedError,
+    ServerError,
+)
 
 # --- GitHub ---
 
@@ -141,6 +147,16 @@ class TestGitHubBranchProtect:
         with pytest.raises(AuthenticationError):
             github_adapter.remove_branch_protection("main")
 
+    @responses.activate
+    def test_get_malformed_response_wrapped(self, github_adapter):
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/test-owner/test-repo/branches/main/protection",
+            json={"required_pull_request_reviews": "unexpected-string-not-a-dict"},
+        )
+        with pytest.raises(GfoError):
+            github_adapter.get_branch_protection("main")
+
 
 # --- GitLab ---
 
@@ -231,6 +247,16 @@ class TestGitLabBranchProtect:
             status=404,
         )
         with pytest.raises(NotFoundError):
+            gitlab_adapter.get_branch_protection("main")
+
+    @responses.activate
+    def test_get_malformed_response_wrapped(self, gitlab_adapter):
+        responses.add(
+            responses.GET,
+            "https://gitlab.com/api/v4/projects/test-owner%2Ftest-repo/protected_branches/main",
+            json="not-a-dict",
+        )
+        with pytest.raises(GfoError):
             gitlab_adapter.get_branch_protection("main")
 
     @responses.activate
