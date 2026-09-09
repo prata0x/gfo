@@ -2224,6 +2224,9 @@ msgstr "リポジトリ形式が不正です。owner と name は両方必須で
 msgid "Key must have at least two parts (e.g. defaults.output), got: {key}"
 msgstr "キーは 2 つ以上のパーツが必要です（例: defaults.output）: {key}"
 
+msgid "Host keys with a dotted host name must quote the host, e.g. 'hosts.\"gitlab.example.com\".type'."
+msgstr "ドットを含むホスト名のホストキーはホストを引用符で囲む必要があります（例: 'hosts.\"gitlab.example.com\".type'）。"
+
 msgid "Key must not be empty."
 msgstr "キーは空にできません。"
 
