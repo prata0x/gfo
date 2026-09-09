@@ -119,6 +119,27 @@ class TestHandleBrowse:
         adapter.get_web_url.assert_called_once_with("issue", 0)
         mock_open.assert_not_called()
 
+    def test_empty_url_raises(self):
+        """get_web_url が空文字列を返す場合、#563 と同様に GfoError を送出し
+        webbrowser.open を呼ばない (#848: 検証漏れの修正)。"""
+        with patch_adapter("gfo.commands.browse") as adapter:
+            adapter.get_web_url.return_value = ""
+            args = make_args(pr=None, issue=None, settings=False, **{"print": False})
+            with patch("webbrowser.open") as mock_open:
+                with pytest.raises(GfoError, match="not available"):
+                    browse_cmd.handle_browse(args, fmt="table")
+        mock_open.assert_not_called()
+
+    def test_non_http_scheme_url_raises(self):
+        """get_web_url が非 http(s) の URL を返す場合も GfoError を送出する (#848)。"""
+        with patch_adapter("gfo.commands.browse") as adapter:
+            adapter.get_web_url.return_value = "ftp://github.com/owner/repo"
+            args = make_args(pr=None, issue=None, settings=False, **{"print": False})
+            with patch("webbrowser.open") as mock_open:
+                with pytest.raises(GfoError, match="invalid"):
+                    browse_cmd.handle_browse(args, fmt="table")
+        mock_open.assert_not_called()
+
 
 class TestOpenUrlInBrowser:
     """open_url_in_browser の URL 検証 (#563)。"""
