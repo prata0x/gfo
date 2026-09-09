@@ -20,6 +20,7 @@ from gfo.cli import (
     _pre_parse_format,
     _pre_parse_resolve_format,
     _resolve_format,
+    _resolve_subcommand_path,
     create_parser,
     main,
 )
@@ -1985,6 +1986,53 @@ def test_hoist_main_format_after_subcommand():
     handler.assert_called_once()
     _, kwargs = handler.call_args
     assert kwargs["fmt"] == "json"
+
+
+def test_resolve_subcommand_path_resolves_grandchild():
+    """#871: 孫サブコマンド（3階層目）のパスを解決できる。"""
+    assert _resolve_subcommand_path(
+        ["batch", "pr", "create", "--repos", "a,b", "--title", "t"]
+    ) == ("batch", "pr", "create")
+    assert _resolve_subcommand_path(["pr", "comment", "create", "--pr", "5", "--body", "b"]) == (
+        "pr",
+        "comment",
+        "create",
+    )
+
+
+def test_hoist_global_flags_grandchild_local_option_value_not_hoisted():
+    """#871: 孫サブコマンドでも、ローカルオプションの値が偶然グローバルフラグ名と一致しても
+    誤認識しない（#577/#866 が2階層コマンドで保証している内容の孫サブコマンドへの拡張）。
+
+    ``--body "--repo"`` の ``--repo`` はグローバルフラグではなく本文文字列として扱われ、
+    その次のトークンをグローバルフラグの値として奪ってはならない。
+    """
+    result = _hoist_global_flags(
+        ["pr", "comment", "create", "--pr", "5", "--body", "--repo", "--format", "json"]
+    )
+    # グローバルフラグ(--format json)は先頭へホイストされ、--body/--repo は一体化して残る。
+    assert result[:2] == ["--format", "json"]
+    assert "--repo" not in result[:2]
+
+
+def test_hoist_global_flags_grandchild_repo_value_owned():
+    """#871: 孫サブコマンドで --title の値が --repo と一致しても --repo としてホイストされない。"""
+    result = _hoist_global_flags(
+        ["batch", "pr", "create", "--repos", "a,b", "--title", "--repo", "--head", "fix"]
+    )
+    # --repo は --title の値として一体化し、グローバルフラグとしては一切ホイストされない。
+    assert "--repo" not in result[:2]
+    assert result == [
+        "batch",
+        "pr",
+        "create",
+        "--repos",
+        "a,b",
+        "--title",
+        "--repo",
+        "--head",
+        "fix",
+    ]
 
 
 # ── 短縮フラグの一意性ガードテスト（#70） ──

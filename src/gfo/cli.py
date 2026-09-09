@@ -2172,11 +2172,16 @@ def _build_option_value_map() -> dict[tuple[str, ...], dict[str, str]]:
 
 
 def _resolve_subcommand_path(argv: list[str]) -> tuple[str, ...]:
-    """argv から (トップレベルサブコマンド, サブサブコマンド) のタプルを特定する。
+    """argv から (トップレベルサブコマンド, サブサブコマンド, ...) のタプルを特定する。
 
+    孫サブコマンド（3階層目以降）も正しく解決するため、``_build_option_value_map()``
+    が構築済みのパス集合（``maps.keys()``）を使って、実在する最長のサブコマンドパスに
+    至るまで貪欲に非フラグトークンを消費する。葉（subparsers を持たない末端）に達すると
+    それ以上の延長は ``maps`` に存在しないため、値トークンによる誤延長は自然に止まる。
     グローバルフラグとその値トークンはスキップする。特定できない場合は空タプルを返す。
     """
-    parts: list[str] = []
+    maps = _build_option_value_map()
+    path: tuple[str, ...] = ()
     skip_next = False
     for arg in argv:
         if skip_next:
@@ -2187,11 +2192,9 @@ def _resolve_subcommand_path(argv: list[str]) -> tuple[str, ...]:
             continue
         if arg.startswith("-"):
             continue
-        if len(parts) < 2:
-            parts.append(arg)
-        if len(parts) >= 2:
-            break
-    return tuple(parts)
+        if (*path, arg) in maps:
+            path = (*path, arg)
+    return path
 
 
 def _value_map_for(argv: list[str]) -> dict[str, str]:
