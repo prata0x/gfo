@@ -450,7 +450,12 @@ class HttpClient:
         output_dir = os.path.dirname(os.path.abspath(output_path)) or "."
         fd, tmp_path = tempfile.mkstemp(dir=output_dir, prefix=".gfo-download-")
         try:
-            with os.fdopen(fd, "wb") as f:
+            try:
+                f = os.fdopen(fd, "wb")
+            except BaseException:
+                os.close(fd)
+                raise
+            with f:
                 for chunk in self.request_stream(
                     "GET", url, headers=headers, timeout=timeout, chunk_size=65536
                 ):

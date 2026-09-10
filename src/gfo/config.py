@@ -332,7 +332,12 @@ def _save_config(cfg: dict[str, Any]) -> None:
     try:
         fd, tmp_path = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp", prefix=".config_")
         try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
+            try:
+                f = os.fdopen(fd, "w", encoding="utf-8")
+            except BaseException:
+                os.close(fd)
+                raise
+            with f:
                 _write_toml(f, cfg)
             # mkstemp は 0600 で作成するため、既存ファイルの上書きならその権限を
             # 引き継ぎ、新規作成なら open() 相当 (umask 適用後の 0666) に戻す

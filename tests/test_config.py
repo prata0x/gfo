@@ -1460,3 +1460,33 @@ def test_set_config_unicode_value(tmp_path):
     with patch("gfo.config.get_config_dir", return_value=d):
         set_config_value("defaults.output", "テーブル")
         assert get_config_value("defaults.output") == "テーブル"
+
+
+# ── fd leak on os.fdopen failure (#521) ──
+
+
+def test_save_config_closes_fd_on_fdopen_failure(tmp_path, monkeypatch):
+    """os.fdopen() が失敗しても mkstemp の fd が確実に close される（#521）。"""
+    import errno
+
+    config_file = tmp_path / "config.toml"
+    monkeypatch.setattr("gfo.config.get_config_path", lambda: config_file)
+
+    captured: dict[str, int] = {}
+
+    def _boom(fd, *args, **kwargs):
+        captured["fd"] = fd
+        raise OSError("simulated os.fdopen failure")
+
+    monkeypatch.setattr(os, "fdopen", _boom)
+
+    from gfo.config import _save_config
+
+    with pytest.raises(ConfigError):
+        _save_config({"defaults": {"output": "json"}})
+
+    assert "fd" in captured
+    fd = captured["fd"]
+    with pytest.raises(OSError) as exc:
+        os.fstat(fd)
+    assert exc.value.errno == errno.EBADF
