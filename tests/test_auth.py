@@ -262,6 +262,27 @@ def test_resolve_token_unknown_account_error_message(tmp_path, monkeypatch):
         cli_account.reset(token)
 
 
+def test_resolve_token_reserved_default_account_raises(tmp_path, monkeypatch):
+    """--account _default は予約キーとして扱い、アカウント名文字列をトークンとして返さない（#508）。"""
+    from gfo._context import cli_account
+
+    creds = tmp_path / "credentials.toml"
+    creds.write_text(
+        '[tokens."github.com"]\n_default = "work"\nwork = "ghp_realtoken123"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GFO_TOKEN", raising=False)
+
+    token = cli_account.set("_default")
+    try:
+        with pytest.raises(ConfigError, match="reserved key"):
+            resolve_token("github.com", "github")
+    finally:
+        cli_account.reset(token)
+
+
 # ── save_token ──
 
 

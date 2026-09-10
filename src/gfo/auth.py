@@ -372,6 +372,10 @@ def _resolve_account_name(host: str, host_accounts: dict[str, str]) -> str:
     # 1. ContextVar
     cv = cli_account.get()
     if cv is not None:
+        if cv == "_default":
+            raise ConfigError(
+                _("'_default' is a reserved key and cannot be used as an account name.")
+            )
         return cv
 
     # 2. git config
