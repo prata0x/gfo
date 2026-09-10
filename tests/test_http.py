@@ -1866,3 +1866,39 @@ class TestRetryAfterEdgeCases:
         assert HttpClient._parse_retry_after("301") == _MAX_RETRY_AFTER
         assert HttpClient._parse_retry_after("300") == 300
         assert HttpClient._parse_retry_after("299") == 299
+
+
+class TestDownloadFileFdLeak:
+    """download_file は os.fdopen() 失敗時に fd を leak しない（#521）。"""
+
+    @responses.activate
+    def test_closes_fd_on_fdopen_failure(self, tmp_path, monkeypatch):
+        import errno
+        import os
+
+        responses.add(
+            responses.GET,
+            f"{BASE}/file.bin",
+            body=b"X" * 16,
+            status=200,
+        )
+        captured: dict[str, int] = {}
+
+        def _boom(fd, *args, **kwargs):
+            captured["fd"] = fd
+            raise OSError("simulated os.fdopen failure")
+
+        monkeypatch.setattr(os, "fdopen", _boom)
+
+        c = HttpClient(BASE)
+        out = tmp_path / "x.bin"
+        with pytest.raises(OSError):
+            c.download_file(f"{BASE}/file.bin", str(out))
+
+        assert "fd" in captured
+        fd = captured["fd"]
+        with pytest.raises(OSError) as exc:
+            os.fstat(fd)
+        assert exc.value.errno == errno.EBADF
+        # 部分的な一時ファイルも残らない
+        assert list(tmp_path.iterdir()) == []

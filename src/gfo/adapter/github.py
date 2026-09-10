@@ -1558,7 +1558,12 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
             output_dir_abs = os.path.dirname(os.path.abspath(output_path)) or "."
             fd, tmp_path = tempfile.mkstemp(dir=output_dir_abs, prefix=".gfo-download-")
             try:
-                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                try:
+                    f = os.fdopen(fd, "w", encoding="utf-8")
+                except BaseException:
+                    os.close(fd)
+                    raise
+                with f:
                     f.write(resp.text)
                 # mkstemp は 0600 で作成するため、既存ファイルの上書きならその権限を引き継ぎ、
                 # 新規作成なら open() 相当 (umask 適用後の 0666) に戻す

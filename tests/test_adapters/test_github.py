@@ -4852,6 +4852,39 @@ class TestDownloadRunLogs:
         expected_mode = 0o666 & ~current_umask
         assert (out.stat().st_mode & 0o777) == expected_mode
 
+    @responses.activate
+    def test_download_job_logs_closes_fd_on_fdopen_failure(
+        self, github_adapter, tmp_path, monkeypatch
+    ):
+        """download_run_logs は os.fdopen() 失敗時に fd を leak しない（#521）。"""
+        import errno
+        import os
+
+        responses.add(
+            responses.GET,
+            f"{REPOS}/actions/jobs/42/logs",
+            body="log line 1\nlog line 2",
+            status=200,
+        )
+        captured: dict[str, int] = {}
+
+        def _boom(fd, *args, **kwargs):
+            captured["fd"] = fd
+            raise OSError("simulated os.fdopen failure")
+
+        monkeypatch.setattr(os, "fdopen", _boom)
+
+        with pytest.raises(OSError):
+            github_adapter.download_run_logs(300, job_id=42, output_dir=str(tmp_path))
+
+        assert "fd" in captured
+        fd = captured["fd"]
+        with pytest.raises(OSError) as exc:
+            os.fstat(fd)
+        assert exc.value.errno == errno.EBADF
+        # 部分的な一時ファイルは削除される
+        assert list(tmp_path.iterdir()) == []
+
 
 class TestIssueSubscribe:
     @responses.activate
