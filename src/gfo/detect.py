@@ -236,12 +236,25 @@ def _is_private_host(host: str) -> bool:
 
     if not host:
         return False
-    # ホスト名から : ポート分離
-    h = host.split(":", 1)[0]
+    # ブラケット付き IPv6 リテラルはコロンをポート区切りにしない。
+    if host.startswith("["):
+        end = host.find("]")
+        if end < 0:
+            return True
+        h = host[1:end]
+    else:
+        # ホスト名から : ポート分離
+        h = host.split(":", 1)[0]
     try:
-        ip_str = socket.gethostbyname(h)
-        ip = ipaddress.ip_address(ip_str)
-    except (OSError, ValueError):
+        ip = ipaddress.ip_address(h)
+    except ValueError:
+        try:
+            ip_str = socket.gethostbyname(h)
+            ip = ipaddress.ip_address(ip_str)
+        except (OSError, ValueError):
+            # DNS 失敗・無効 IP は「不明」だがプローブは拒否側 (True) に倒す。
+            return True
+    except OSError:
         # DNS 失敗・無効 IP は「不明」だがプローブは拒否側 (True) に倒す。
         return True
     return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
