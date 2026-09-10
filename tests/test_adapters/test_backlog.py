@@ -1979,6 +1979,20 @@ class TestListCollaborators:
         # BacklogAdapter._collaborators は userId フィールドを返す
         assert 1 in collabs or "1" in collabs
 
+    def test_non_dict_element_raises_gfo_error(self, mock_responses, backlog_adapter):
+        # 非 dict 要素（文字列など）を含む不正レスポンスは AttributeError を
+        # 未処理で漏らさず、GfoError に変換されること
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/users",
+            json=[{"userId": 1, "name": "user1"}, "unexpected"],
+            status=200,
+        )
+        from gfo.exceptions import GfoError
+
+        with pytest.raises(GfoError):
+            backlog_adapter.list_collaborators()
+
 
 class TestAddCollaborator:
     def test_add(self, mock_responses, backlog_adapter):

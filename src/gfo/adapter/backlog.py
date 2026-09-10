@@ -963,7 +963,7 @@ class BacklogAdapter(GitServiceAdapter):
                 return [
                     u["userId"] for u in users[: limit if limit > 0 else None] if u.get("userId")
                 ]
-            except (KeyError, TypeError) as e:
+            except (KeyError, TypeError, AttributeError) as e:
                 raise GfoError(_("Unexpected API response: {error}").format(error=e)) from e
         return []
 
