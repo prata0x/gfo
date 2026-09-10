@@ -998,13 +998,13 @@ gfo repo create NAME (--private | --public | --internal) [--description DESC] [-
 
 `NAME` は `org/repo` 形式で組織配下にリポジトリを作成できます。`repo` のみの場合は個人リポジトリを作成します。
 
-`--internal` は組織リポジトリ（`org/repo` 形式）でのみ使用できます。
+`--internal` は組織リポジトリ（`org/repo` 形式）でのみ使用できます。ただし GitHub の create-repository API は `internal` 可視性をサポートしておらず（`public`/`private` のみ）、GitHub では `--private`/`--public` を使用してください。Gitea・Forgejo・GitLab・GitBucket は `--internal` を受け付けます。
 
 ```bash
 gfo repo create my-new-repo --private --description "My project"
 gfo repo create my-new-repo --public --host gitea.example.com
 gfo repo create my-org/my-repo --private
-gfo repo create my-org/my-repo --internal
+gfo repo create my-org/my-repo --internal   # Gitea/Forgejo/GitLab/GitBucket のみ
 ```
 
 > **注意**: Azure DevOps と Backlog は事前に `gfo init` で設定が必要です。

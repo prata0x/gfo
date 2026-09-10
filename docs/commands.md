@@ -984,13 +984,13 @@ gfo repo create NAME (--private | --public | --internal) [--description DESC] [-
 
 `NAME` accepts `org/repo` format to create a repository under an organization. If only `repo` is given, a personal repository is created.
 
-`--internal` is only available for organization repositories (`org/repo` format).
+`--internal` is only available for organization repositories (`org/repo` format). GitHub does not support the `internal` visibility in its create-repository API (it only accepts `public` or `private`); use `--private`/`--public` on GitHub. Gitea, Forgejo, GitLab, and GitBucket accept `--internal`.
 
 ```bash
 gfo repo create my-new-repo --private --description "My project"
 gfo repo create my-new-repo --public --host gitea.example.com
 gfo repo create my-org/my-repo --private
-gfo repo create my-org/my-repo --internal
+gfo repo create my-org/my-repo --internal   # Gitea/Forgejo/GitLab/GitBucket only
 ```
 
 > **Note**: Azure DevOps and Backlog require `gfo init` configuration beforehand.
