@@ -480,6 +480,51 @@ def test_save_token_windows_icacls_oserror_ignored(tmp_path, monkeypatch):
     assert tokens["github.com"]["default"] == "ghp_test"
 
 
+def test_save_token_windows_icacls_passes_timeout(tmp_path, monkeypatch):
+    """Windows icacls 呼び出しに有限の timeout が渡される（ハング防止）。"""
+    config_dir = tmp_path / "config"
+    monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml")
+    monkeypatch.setattr("gfo.auth.sys.platform", "win32")
+
+    kwargs_captured: dict = {}
+
+    def mock_run(cmd, **kwargs):
+        kwargs_captured.update(kwargs)
+        return type("CP", (), {"returncode": 0})()
+
+    monkeypatch.setattr("gfo.auth.subprocess.run", mock_run)
+    monkeypatch.setattr("gfo.auth.getpass.getuser", lambda: "testuser")
+
+    save_token("github.com", "ghp_test")
+
+    assert "timeout" in kwargs_captured
+    assert kwargs_captured["timeout"] == 30
+
+
+def test_save_token_windows_icacls_timeout_ignored(tmp_path, monkeypatch):
+    """Windows icacls が TimeoutExpired を投げても伝播せずトークンは保存される。"""
+    import subprocess
+
+    config_dir = tmp_path / "config"
+    monkeypatch.setattr("gfo.auth.get_config_dir", lambda: config_dir)
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: config_dir / "credentials.toml")
+    monkeypatch.setattr("gfo.auth.sys.platform", "win32")
+
+    def mock_run_raises(cmd, **kwargs):
+        raise subprocess.TimeoutExpired(cmd, kwargs.get("timeout", 30))
+
+    monkeypatch.setattr("gfo.auth.subprocess.run", mock_run_raises)
+    monkeypatch.setattr("gfo.auth.getpass.getuser", lambda: "testuser")
+
+    # TimeoutExpired が伝播せず、トークンは保存される
+    save_token("github.com", "ghp_test")
+
+    assert (config_dir / "credentials.toml").exists()
+    tokens = _load_raw_tokens(config_dir / "credentials.toml")
+    assert tokens["github.com"]["default"] == "ghp_test"
+
+
 # ── load_tokens ──
 
 

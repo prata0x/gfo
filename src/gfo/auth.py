@@ -312,6 +312,7 @@ def _set_credentials_permissions(path: Path) -> None:
                 ],
                 capture_output=True,
                 check=False,
+                timeout=30,
             )
             if result.returncode != 0:
                 warnings.warn(
@@ -321,7 +322,7 @@ def _set_credentials_permissions(path: Path) -> None:
                     ).format(code=result.returncode),
                     stacklevel=2,
                 )
-        except OSError:
+        except (OSError, subprocess.TimeoutExpired):
             warnings.warn(
                 _(
                     "Could not set file permissions on credentials file "
