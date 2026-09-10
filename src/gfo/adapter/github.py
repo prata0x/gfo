@@ -10,7 +10,7 @@ from urllib.parse import quote
 
 import requests
 
-from gfo.exceptions import GfoError, HttpError, NotFoundError
+from gfo.exceptions import GfoError, HttpError, NotFoundError, NotSupportedError
 from gfo.http import paginate_link_header
 from gfo.i18n import _
 
@@ -411,6 +411,12 @@ class GitHubAdapter(GitHubLikeAdapter, GitServiceAdapter):
     ) -> Repository:
         payload: dict[str, Any] = {"name": name, "description": description}
         if visibility == "internal":
+            if self.service_name == "GitHub":
+                raise NotSupportedError(
+                    self.service_name,
+                    "internal repository visibility is not supported by the create-repository "
+                    "API; use --private or --public instead",
+                )
             payload["visibility"] = "internal"
         else:
             payload["private"] = visibility == "private"

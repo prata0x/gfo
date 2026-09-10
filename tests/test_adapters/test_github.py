@@ -978,25 +978,38 @@ class TestCreateRepository:
         assert req_body["name"] == "new-repo"
         assert req_body["private"] is True
 
-    def test_create_internal_org_repo(self, mock_responses, github_adapter):
-        """組織で internal visibility のリポジトリを作成する。"""
+    def test_create_internal_org_repo_unsupported(self, github_adapter):
+        """GitHub は create-repository API で internal visibility をサポートしない。"""
+        import pytest
+
+        from gfo.exceptions import NotSupportedError
+
+        with pytest.raises(NotSupportedError):
+            github_adapter.create_repository(
+                name="internal-repo", visibility="internal", organization="my-org"
+            )
+
+    def test_create_public_org_repo(self, mock_responses, github_adapter):
+        """組織で public visibility のリポジトリを作成する。"""
         mock_responses.add(
             responses.POST,
             "https://api.github.com/orgs/my-org/repos",
             json=_repo_data(
-                name="internal-repo",
-                full_name="my-org/internal-repo",
+                name="public-repo",
+                full_name="my-org/public-repo",
                 private=False,
-                visibility="internal",
+                visibility="public",
             ),
             status=201,
         )
         repo = github_adapter.create_repository(
-            name="internal-repo", visibility="internal", organization="my-org"
+            name="public-repo", visibility="public", organization="my-org"
         )
-        assert repo.visibility == "internal"
+        assert repo.visibility == "public"
         req_body = json.loads(mock_responses.calls[0].request.body)
-        assert req_body["visibility"] == "internal"
+        assert req_body["name"] == "public-repo"
+        assert "visibility" not in req_body
+        assert req_body["private"] is False
 
 
 class TestGetRepository:
