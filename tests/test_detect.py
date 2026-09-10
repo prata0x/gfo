@@ -328,6 +328,7 @@ class TestProbeUnknownHostPrivateIp:
         from gfo.detect import _is_private_host
 
         assert _is_private_host("[2001:4860:4860::8888]") is False
+        assert _is_private_host("[2001:4860:4860::8888]:8443") is False
 
     def test_private_ipv6_literal_rejected(self):
         """プライベート IPv6 リテラルはブラケット付きでも拒否する。"""
