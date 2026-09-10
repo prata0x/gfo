@@ -323,6 +323,18 @@ class TestGetKnownServiceType:
 class TestProbeUnknownHostPrivateIp:
     """probe_unknown_host はプライベート IP への SSRF プローブを拒否する。"""
 
+    def test_public_ipv6_literal_allowed(self):
+        """公開 IPv6 リテラルはブラケットを除去して公開ホストと判定する。"""
+        from gfo.detect import _is_private_host
+
+        assert _is_private_host("[2001:4860:4860::8888]") is False
+
+    def test_private_ipv6_literal_rejected(self):
+        """プライベート IPv6 リテラルはブラケット付きでも拒否する。"""
+        from gfo.detect import _is_private_host
+
+        assert _is_private_host("[::1]:8443") is True
+
     def test_loopback_rejected(self, monkeypatch):
         """127.0.0.1 / localhost は既定で拒否される。"""
         monkeypatch.delenv("GFO_ALLOW_PRIVATE_HOSTS", raising=False)
