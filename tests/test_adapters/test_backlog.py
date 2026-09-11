@@ -932,6 +932,31 @@ class TestCreateIssue:
         with pytest.raises(GfoError, match="priorities"):
             backlog_adapter.create_issue(title="Issue")
 
+    def test_create_non_dict_priority_item_raises_gfo_error(self, mock_responses, backlog_adapter):
+        """priorities に dict 以外のアイテムがあるとき GfoError。"""
+        from gfo.exceptions import GfoError
+
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST",
+            json={"id": 100, "projectKey": "TEST"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/issueTypes",
+            json=[{"id": 2, "name": "Task"}],
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/priorities",
+            json=[{"id": 1, "name": "Low"}, "unexpected"],
+            status=200,
+        )
+        with pytest.raises(GfoError, match="priorities"):
+            backlog_adapter.create_issue(title="Issue")
+
     def test_create_with_assignee(self, mock_responses, backlog_adapter):
         """assignee を渡すと assigneeUserId がペイロードに含まれる。"""
         mock_responses.add(

@@ -451,7 +451,7 @@ class BacklogAdapter(GitServiceAdapter):
                     ),
                     priorities[0]["id"] if priorities else None,
                 )
-            except (KeyError, TypeError) as e:
+            except (KeyError, TypeError, AttributeError) as e:
                 raise GfoError(
                     _("Unexpected API response from {endpoint} endpoint: {error}").format(
                         endpoint="priorities", error=e
