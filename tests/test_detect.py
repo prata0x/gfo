@@ -169,6 +169,24 @@ class TestDetectFromUrl:
         assert r.owner == "owner"
         assert r.repo == "repo"
 
+    def test_unknown_host_https_with_port(self):
+        r = detect_from_url("https://gitea.example.com:3000/owner/repo.git")
+        assert r.host == "gitea.example.com:3000"
+
+    def test_unknown_host_http_with_port(self):
+        r = detect_from_url("http://gitea.example.com:3000/owner/repo.git")
+        assert r.host == "gitea.example.com:3000"
+
+    def test_known_host_with_port(self):
+        r = detect_from_url("https://github.com:8443/owner/repo.git")
+        assert r.host == "github.com:8443"
+        assert r.service_type == "github"
+
+    def test_azure_host_with_port(self):
+        r = detect_from_url("https://dev.azure.com:8443/org/project/_git/repo")
+        assert r.host == "dev.azure.com:8443"
+        assert r.service_type == "azure-devops"
+
     # .git サフィックスなし
     def test_gitlab_no_git_suffix(self):
         r = detect_from_url("https://gitlab.com/owner/repo")
@@ -267,7 +285,7 @@ class TestDetectFromUrl:
     def test_ipv6_https_with_port(self):
         """IPv6 リテラルホスト + ポートの HTTPS URL が正しくパースされる (#571)。"""
         r = detect_from_url("https://[::1]:3000/owner/repo.git")
-        assert r.host == "[::1]"
+        assert r.host == "[::1]:3000"
         assert r.owner == "owner"
         assert r.repo == "repo"
         assert r.service_type is None
@@ -296,7 +314,7 @@ class TestDetectFromUrl:
     def test_ipv6_https_not_misparsed_as_scp(self):
         """IPv6 リテラル HTTPS URL が scp パターンにすり抜けず host/owner がゴミにならない (#571)。"""
         r = detect_from_url("https://[::1]:3000/owner/repo.git")
-        assert r.host == "[::1]"
+        assert r.host == "[::1]:3000"
         assert r.owner == "owner"
         assert r.repo == "repo"
 
