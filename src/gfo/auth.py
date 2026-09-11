@@ -54,6 +54,10 @@ def resolve_token(host: str, service_type: str) -> str:
     host_accounts = tokens.get(host)
     if host_accounts:
         account_name = _resolve_account_name(host, host_accounts)
+        if account_name == "_default":
+            raise ConfigError(
+                _("'_default' is a reserved key and cannot be used as an account name.")
+            )
         token_val = host_accounts.get(account_name, "")
         if token_val and token_val.strip():
             return token_val

@@ -205,6 +205,26 @@ def test_resolve_token_config_toml_account(tmp_path, monkeypatch):
     assert resolve_token("github.com", "github") == "tok-bot"
 
 
+@pytest.mark.parametrize("source", ["git_config", "config_toml"])
+def test_resolve_token_rejects_reserved_default_from_config(tmp_path, monkeypatch, source):
+    """設定経由で予約キー _default をアカウント名に指定できない。"""
+    creds = tmp_path / "credentials.toml"
+    creds.write_text(
+        '[tokens."github.com"]\n_default = "work"\nwork = "tok-work"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("gfo.auth.get_credentials_path", lambda: creds)
+    if source == "git_config":
+        monkeypatch.setattr("gfo.git_util.git_config_get", lambda key, cwd=None: "_default")
+        monkeypatch.setattr("gfo.config.get_host_config", lambda host: None)
+    else:
+        monkeypatch.setattr("gfo.git_util.git_config_get", lambda key, cwd=None: None)
+        monkeypatch.setattr("gfo.config.get_host_config", lambda host: {"account": "_default"})
+
+    with pytest.raises(ConfigError, match="reserved key"):
+        resolve_token("github.com", "github")
+
+
 def test_resolve_token_default_key_account(tmp_path, monkeypatch):
     """_default キーでアカウントを解決する。"""
     creds = tmp_path / "credentials.toml"
