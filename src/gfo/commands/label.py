@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import sys
 from dataclasses import dataclass
 
 from gfo.commands import confirm_action, get_adapter
@@ -152,7 +153,13 @@ def handle_clone(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
                     continue
                 results.append(LabelCloneResult(name=lb.name, status="created"))
     finally:
-        output(results, fmt=fmt, fields=["name", "status", "error"], jq=jq)
+        active_error, active_traceback = sys.exc_info()[1:]
+        try:
+            output(results, fmt=fmt, fields=["name", "status", "error"], jq=jq)
+        except BaseException:
+            if active_error is not None:
+                raise active_error.with_traceback(active_traceback) from None
+            raise
 
     failed = sum(1 for r in results if r.status == "failed")
     if failed:

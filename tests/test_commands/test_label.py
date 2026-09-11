@@ -588,6 +588,41 @@ class TestHandleClone:
             jq=None,
         )
 
+    def test_clone_preserves_non_gfo_error_if_output_fails(self, sample_config):
+        """出力自体が失敗しても、ループの元の例外を伝播する。"""
+        from gfo.config import ProjectConfig
+
+        mock_cfg = ProjectConfig(
+            service_type="github",
+            host="github.com",
+            api_url="https://api.github.com",
+            owner="src-owner",
+            repo="src-repo",
+        )
+        source_adapter = MagicMock()
+        source_adapter.list_labels.return_value = [
+            _make_label(),
+            Label(name="wontfix", color="#ffffff", description=None),
+        ]
+        dest_adapter = MagicMock()
+        dest_adapter.list_labels.return_value = []
+        dest_adapter.create_label.side_effect = [None, TypeError("unexpected")]
+
+        mock_adapter_cls = MagicMock(return_value=source_adapter)
+
+        with (
+            patch("gfo.commands.label.get_adapter", return_value=dest_adapter),
+            patch("gfo.config.resolve_project_config", return_value=mock_cfg),
+            patch("gfo.auth.resolve_token", return_value="test-token"),
+            patch("gfo.config.build_default_api_url", return_value="https://api.github.com"),
+            patch("gfo.adapter.registry.create_http_client"),
+            patch("gfo.adapter.registry.get_adapter_class", return_value=mock_adapter_cls),
+            patch("gfo.commands.label.output", side_effect=RuntimeError("output failed")),
+        ):
+            args = make_args(source="src-owner/src-repo", overwrite=False)
+            with pytest.raises(TypeError, match="unexpected"):
+                label_cmd.handle_clone(args, fmt="table")
+
     def test_clone_empty_source(self, sample_config, capsys):
         """ソースが0件の場合 created=0。"""
         from gfo.config import ProjectConfig
