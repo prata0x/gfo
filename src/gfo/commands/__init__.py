@@ -142,7 +142,7 @@ def parse_service_spec(spec: str) -> ServiceSpec:
     from gfo.exceptions import ConfigError
     from gfo.i18n import _
 
-    _SELFHOSTED_SERVICES = {"gitea", "forgejo", "gogs", "gitbucket"}
+    _SELFHOSTED_SERVICES = {"gitea", "forgejo", "gogs", "gitbucket", "backlog"}
 
     parts = spec.split(":", maxsplit=2)
 
