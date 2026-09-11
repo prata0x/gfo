@@ -1367,6 +1367,69 @@ class TestErrorHandling:
         with pytest.raises(GfoError):
             backlog_adapter.get_pull_request(1)
 
+    def test_non_dict_list_elements_raise_gfo_error(self, mock_responses, backlog_adapter):
+        """一覧レスポンスの非 dict 要素を生の AttributeError にしない。"""
+        mock_responses.add(responses.GET, PR_PATH, json=["unexpected"], status=200)
+        with pytest.raises(GfoError, match="Unexpected API response"):
+            backlog_adapter.list_pull_requests()
+
+    def test_non_dict_issue_elements_raise_gfo_error(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST",
+            json={"id": 123, "projectKey": "TEST"},
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/statuses",
+            json=[{"id": 1, "name": "Open"}, {"id": 4, "name": "Closed"}],
+            status=200,
+        )
+        mock_responses.add(responses.GET, ISSUES_PATH, json=["unexpected"], status=200)
+        with pytest.raises(GfoError, match="Unexpected API response"):
+            backlog_adapter.list_issues()
+
+    @pytest.mark.parametrize(
+        ("method", "path"),
+        [
+            ("get_branch", f"{REPO_PATH}/branches"),
+            ("get_tag", f"{REPO_PATH}/tags"),
+        ],
+    )
+    def test_non_dict_branch_or_tag_elements_raise_gfo_error(
+        self, mock_responses, backlog_adapter, method, path
+    ):
+        mock_responses.add(responses.GET, path, json=["unexpected"], status=200)
+        with pytest.raises(GfoError, match="Unexpected API response"):
+            getattr(backlog_adapter, method)("main")
+
+    def test_non_dict_repository_elements_raise_gfo_error(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/git/repositories",
+            json=["unexpected"],
+            status=200,
+        )
+        with pytest.raises(GfoError, match="Unexpected API response"):
+            backlog_adapter.search_repositories("test")
+
+    def test_non_dict_search_issue_elements_raise_gfo_error(self, mock_responses, backlog_adapter):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST",
+            json={"id": 123, "projectKey": "TEST"},
+            status=200,
+        )
+        mock_responses.add(responses.GET, ISSUES_PATH, json=["unexpected"], status=200)
+        with pytest.raises(GfoError, match="Unexpected API response"):
+            backlog_adapter.search_issues("test")
+
+    def test_non_dict_wiki_elements_raise_gfo_error(self, mock_responses, backlog_adapter):
+        mock_responses.add(responses.GET, f"{BASE}/wikis", json=["unexpected"], status=200)
+        with pytest.raises(GfoError, match="Unexpected API response"):
+            backlog_adapter.list_wiki_pages()
+
     def test_malformed_issue_raises_gfo_error(self, mock_responses, backlog_adapter):
         """_to_issue で必須フィールド欠落 → GfoError。"""
         from gfo.exceptions import GfoError

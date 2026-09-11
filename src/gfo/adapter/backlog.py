@@ -86,6 +86,16 @@ def _activity_type_ids_to_events(ids: list[int]) -> tuple[str, ...]:
     return tuple(events)
 
 
+def _require_dict(data: object, endpoint: str) -> dict[str, Any]:
+    if not isinstance(data, dict):
+        raise GfoError(
+            _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                endpoint=endpoint, error=type(data)
+            )
+        )
+    return data
+
+
 @register("backlog")
 class BacklogAdapter(GitServiceAdapter):
     service_name = "Backlog"
@@ -287,7 +297,9 @@ class BacklogAdapter(GitServiceAdapter):
             merged_id = self._resolve_merged_status_id()
         results = paginate_offset(self._client, self._pr_path(), params=params, limit=limit)
         return [
-            self._to_pull_request(r, merged_id, self.get_web_url("pr", r.get("number")))
+            self._to_pull_request(
+                r, merged_id, self.get_web_url("pr", _require_dict(r, "pullRequests").get("number"))
+            )
             for r in results
         ]
 
@@ -394,7 +406,14 @@ class BacklogAdapter(GitServiceAdapter):
             params["keyword"] = label
         results = paginate_offset(self._client, "/issues", params=params, limit=limit)
         return [
-            self._to_issue(r, self.get_web_url("issue", r.get("issueKey", r.get("id"))))
+            self._to_issue(
+                r,
+                self.get_web_url(
+                    "issue",
+                    _require_dict(r, "issues").get("issueKey")
+                    or _require_dict(r, "issues").get("id"),
+                ),
+            )
             for r in results
         ]
 
@@ -830,6 +849,7 @@ class BacklogAdapter(GitServiceAdapter):
             limit=0,
         )
         for r in results:
+            r = _require_dict(r, "branches")
             if r.get("name") == name:
                 return self._to_branch(r, self._branch_web_url(name))
 
@@ -865,6 +885,7 @@ class BacklogAdapter(GitServiceAdapter):
             limit=0,
         )
         for r in results:
+            r = _require_dict(r, "tags")
             if r.get("name") == name:
                 return self._to_tag(r, self._tag_web_url(name))
 
@@ -1048,7 +1069,11 @@ class BacklogAdapter(GitServiceAdapter):
             f"/projects/{self._project_key}/git/repositories",
             limit=0,
         )
-        filtered = [r for r in results if query.lower() in r.get("name", "").lower()]
+        filtered = [
+            r
+            for r in results
+            if query.lower() in _require_dict(r, "repositories").get("name", "").lower()
+        ]
         return [self._to_repository(r) for r in filtered[: limit if limit > 0 else None]]
 
     def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:
@@ -1060,7 +1085,14 @@ class BacklogAdapter(GitServiceAdapter):
             limit=limit,
         )
         return [
-            self._to_issue(r, self.get_web_url("issue", r.get("issueKey", r.get("id"))))
+            self._to_issue(
+                r,
+                self.get_web_url(
+                    "issue",
+                    _require_dict(r, "issues").get("issueKey")
+                    or _require_dict(r, "issues").get("id"),
+                ),
+            )
             for r in results
         ]
 
@@ -1071,7 +1103,7 @@ class BacklogAdapter(GitServiceAdapter):
         pages = resp.json()
         if isinstance(pages, list):
             return [
-                self._to_wiki_page(p, self._wiki_web_url(p.get("id", "")))
+                self._to_wiki_page(p, self._wiki_web_url(_require_dict(p, "wikis").get("id", "")))
                 for p in pages[: limit if limit > 0 else None]
             ]
         return []
