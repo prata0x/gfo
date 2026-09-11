@@ -53,7 +53,12 @@ paths:
 
 ## 非対応機能
 
-`NotSupportedError` でオーバーライド: `releases`, `labels`, `milestones`, コメント更新/削除
+`NotSupportedError` でオーバーライド: `releases`, `labels`, `milestones`
+
+## コメント更新/削除
+
+`update_comment`/`delete_comment` は issue/PR 番号（`number`）が URL に必須（`comment_id` 単体では対象を特定できない）。
+`number` 未指定時は `ConfigError`（#197）。
 
 ## Deploy Key
 

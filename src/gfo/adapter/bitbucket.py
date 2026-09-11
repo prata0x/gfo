@@ -9,7 +9,7 @@ from urllib.parse import quote
 
 import requests
 
-from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
+from gfo.exceptions import ConfigError, GfoError, NotFoundError, NotSupportedError
 from gfo.http import paginate_response_body
 from gfo.i18n import _
 
@@ -620,17 +620,34 @@ class BitbucketAdapter(GitServiceAdapter):
         resp = self._client.post(path, json=payload)
         return self._to_comment(resp.json())
 
-    def update_comment(self, resource: str, comment_id: int, *, body: str) -> Comment:
-        # Bitbucket issue/PR comment update には issue_number/PR_number が URL に必要だが
-        # このシグネチャでは持てないため NSE
-        raise NotSupportedError(
-            self.service_name, "comment update (requires issue/PR number in URL)"
-        )
+    def _require_comment_number(self, number: int | None) -> int:
+        if number is None:
+            raise ConfigError(
+                _(
+                    "--number (issue/PR number) is required to edit or delete a comment on {service}"
+                ).format(service=self.service_name)
+            )
+        return number
 
-    def delete_comment(self, resource: str, comment_id: int) -> None:
-        raise NotSupportedError(
-            self.service_name, "comment delete (requires issue/PR number in URL)"
-        )
+    def update_comment(
+        self, resource: str, comment_id: int, *, body: str, number: int | None = None
+    ) -> Comment:
+        number = self._require_comment_number(number)
+        if resource == "pr":
+            path = f"{self._repos_path()}/pullrequests/{number}/comments/{comment_id}"
+        else:
+            path = f"{self._repos_path()}/issues/{number}/comments/{comment_id}"
+        payload = {"content": {"raw": body}}
+        resp = self._client.put(path, json=payload)
+        return self._to_comment(resp.json())
+
+    def delete_comment(self, resource: str, comment_id: int, *, number: int | None = None) -> None:
+        number = self._require_comment_number(number)
+        if resource == "pr":
+            path = f"{self._repos_path()}/pullrequests/{number}/comments/{comment_id}"
+        else:
+            path = f"{self._repos_path()}/issues/{number}/comments/{comment_id}"
+        self._client.delete(path)
 
     # --- PR update ---
 

@@ -23,7 +23,9 @@ def _dispatch(args: argparse.Namespace, resource: str, *, fmt: str, jq: str | No
         comment = adapter.create_comment(resource, args.number, body=args.body)
         output(comment, fmt=fmt, jq=jq)
     elif action == "edit":
-        comment = adapter.update_comment(resource, args.comment_id, body=args.body)
+        comment = adapter.update_comment(
+            resource, args.comment_id, body=args.body, number=args.number
+        )
         output(comment, fmt=fmt, jq=jq)
     elif action == "delete":
         if not confirm_action(
@@ -35,7 +37,7 @@ def _dispatch(args: argparse.Namespace, resource: str, *, fmt: str, jq: str | No
             jq=jq,
         ):
             return
-        adapter.delete_comment(resource, args.comment_id)
+        adapter.delete_comment(resource, args.comment_id, number=args.number)
         output_result(
             _("Deleted comment '{comment_id}'.").format(comment_id=args.comment_id),
             result="deleted",

@@ -2614,3 +2614,15 @@ msgstr "このリソースの Web URL は取得できないため、ブラウザ
 
 msgid "Web URL is invalid and cannot be opened: {url}"
 msgstr "無効な Web URL のため開けません: {url}"
+
+msgid "--number (issue/PR number) is required to edit or delete a comment on {service}"
+msgstr "{service} でコメントを編集/削除するには --number（issue/PR番号）が必要です"
+
+msgid "--number (issue/MR number) is required to edit or delete a comment on {service}"
+msgstr "{service} でコメントを編集/削除するには --number（issue/MR番号）が必要です"
+
+msgid "PR number (required by some services: e.g. Backlog, GitLab, Bitbucket)"
+msgstr "PR番号（一部のサービス（Backlog、GitLab、Bitbucket 等）で必須）"
+
+msgid "Issue number (required by some services: e.g. Backlog, GitLab, Bitbucket)"
+msgstr "Issue番号（一部のサービス（Backlog、GitLab、Bitbucket 等）で必須）"

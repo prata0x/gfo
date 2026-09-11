@@ -553,10 +553,12 @@ class GitServiceAdapter(ABC):
     @abstractmethod
     def create_comment(self, resource: str, number: int, *, body: str) -> Comment: ...
 
-    def update_comment(self, resource: str, comment_id: int, *, body: str) -> Comment:
+    def update_comment(
+        self, resource: str, comment_id: int, *, body: str, number: int | None = None
+    ) -> Comment:
         raise NotSupportedError(self.service_name, "comment update")
 
-    def delete_comment(self, resource: str, comment_id: int) -> None:
+    def delete_comment(self, resource: str, comment_id: int, *, number: int | None = None) -> None:
         raise NotSupportedError(self.service_name, "comment delete")
 
     # --- PR update ---

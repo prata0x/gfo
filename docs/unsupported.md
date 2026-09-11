@@ -44,6 +44,7 @@ API 対応サービス数が 1〜2、またはデータモデルの統一が困�
 | コマンド | 非対応サービス | 備考 |
 |---|---|---|
 | `repo fork` | Azure DevOps, Backlog, GitBucket | API に統一可能な fork 機能がない。Gogs は Gitea API を継承しているが、実 API に該当エンドポイントがなく既知の不具合（#478）がある |
+| `pr comment delete` | Backlog | Backlog API に Delete Pull Request Comment 相当のエンドポイントが存在しない（Update Pull Request Comment はあるが Delete は無い）。`--number` を渡しても解決しない構造的な非対応（issue コメント削除・PR コメント更新は `--number` 指定で対応済み） |
 
 ---
 
@@ -55,7 +56,7 @@ API 自体は対応しているが、gfo の現行コマンド/アダプター�
 
 | 機能 | 非対応サービス | 理由 |
 |---|---|---|
-| `comment update` / `comment delete` | GitLab, Bitbucket, Azure DevOps | `update_comment(resource, comment_id, *, body)` / `delete_comment(resource, comment_id)` は issue/PR 番号を受け取らない。これら3サービスの実 API はコメント更新・削除に issue/PR 番号（または thread ID）が URL 上で必須なため、`comment_id` 単体では対象を特定できず `NotSupportedError` になる。GitHub/Gitea 系・Backlog は `comment_id` のみで API を叩けるため対応済み |
+| `comment update` / `comment delete` | Azure DevOps | Azure DevOps のコメント更新・削除は PR/work item 番号だけでなく thread ID も URL に必須で、`--number`（issue/PR 番号）だけでは対象を特定できない。GitHub/Gitea 系は `comment_id` 単体で完結するため元々対応済み。Backlog/GitLab/Bitbucket は issue/PR 番号のみで特定できるため `--number` 引数を追加して対応した（#197。Backlog の PR コメント削除のみ別の理由で非対応、上表参照） |
 
 ---
 

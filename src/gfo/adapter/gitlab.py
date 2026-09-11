@@ -12,7 +12,7 @@ from urllib.parse import quote, urlparse, urlunparse
 
 import requests
 
-from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
+from gfo.exceptions import ConfigError, GfoError, NotFoundError, NotSupportedError
 from gfo.http import paginate_page_param
 from gfo.i18n import _
 
@@ -1213,15 +1213,33 @@ class GitLabAdapter(GitServiceAdapter):
         resp = self._client.post(path, json={"body": body})
         return self._to_comment(resp.json())
 
-    def update_comment(self, resource: str, comment_id: int, *, body: str) -> Comment:
-        raise NotSupportedError(
-            self.service_name, "comment update (GitLab requires issue/MR number)"
-        )
+    def _require_comment_number(self, number: int | None) -> int:
+        if number is None:
+            raise ConfigError(
+                _(
+                    "--number (issue/MR number) is required to edit or delete a comment on {service}"
+                ).format(service=self.service_name)
+            )
+        return number
 
-    def delete_comment(self, resource: str, comment_id: int) -> None:
-        raise NotSupportedError(
-            self.service_name, "comment delete (GitLab requires issue/MR number)"
-        )
+    def update_comment(
+        self, resource: str, comment_id: int, *, body: str, number: int | None = None
+    ) -> Comment:
+        number = self._require_comment_number(number)
+        if resource == "pr":
+            path = f"{self._project_path()}/merge_requests/{number}/notes/{comment_id}"
+        else:
+            path = f"{self._project_path()}/issues/{number}/notes/{comment_id}"
+        resp = self._client.put(path, json={"body": body})
+        return self._to_comment(resp.json())
+
+    def delete_comment(self, resource: str, comment_id: int, *, number: int | None = None) -> None:
+        number = self._require_comment_number(number)
+        if resource == "pr":
+            path = f"{self._project_path()}/merge_requests/{number}/notes/{comment_id}"
+        else:
+            path = f"{self._project_path()}/issues/{number}/notes/{comment_id}"
+        self._client.delete(path)
 
     # --- PR update ---
 
