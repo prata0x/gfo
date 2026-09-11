@@ -119,20 +119,28 @@ def _parse_url(remote_url: str) -> tuple[str, str]:
     for pattern in (_HTTPS_RE, _SSH_URL_RE, _SSH_SCP_RE):
         m = pattern.match(remote_url)
         if m:
-            return m.group("host"), m.group("path")
+            host = m.group("host")
+            port = m.groupdict().get("port")
+            if pattern is _HTTPS_RE and port:
+                host = f"{host}:{port}"
+            return host, m.group("path")
     raise DetectionError(_("Cannot parse URL: {url}").format(url=_mask_credentials(remote_url)))
 
 
 def detect_from_url(remote_url: str) -> DetectResult:
     """remote URL をパースし、ホスト・owner・repo を抽出する。"""
     host, path = _parse_url(remote_url)
+    service_host = host
+    if not host.startswith("[") and ":" in host:
+        service_host = host.rsplit(":", 1)[0]
 
     # Backlog SSH 特殊処理: *.git.backlog.{com,jp} → *.backlog.{com,jp}
     is_backlog = False
     for suffix in (".backlog.com", ".backlog.jp"):
         git_suffix = ".git" + suffix
-        if host.endswith(git_suffix):
-            host = host.replace(".git" + suffix, suffix)
+        if service_host.endswith(git_suffix):
+            service_host = service_host.replace(git_suffix, suffix)
+            host = host.replace(git_suffix, suffix)
             path = path.lstrip("/")
             is_backlog = True
             break
@@ -140,7 +148,7 @@ def detect_from_url(remote_url: str) -> DetectResult:
     # Backlog サフィックスマッチ (HTTPS)
     if not is_backlog:
         for suffix in (".backlog.com", ".backlog.jp"):
-            if host.endswith(suffix):
+            if service_host.endswith(suffix):
                 is_backlog = True
                 break
 
@@ -171,10 +179,10 @@ def detect_from_url(remote_url: str) -> DetectResult:
         )
 
     # 既知ホストテーブル照合
-    service_type = _KNOWN_HOSTS.get(host.lower())
+    service_type = _KNOWN_HOSTS.get(service_host.lower())
 
     # *.visualstudio.com → azure-devops
-    if service_type is None and host.endswith(".visualstudio.com"):
+    if service_type is None and service_host.endswith(".visualstudio.com"):
         service_type = "azure-devops"
 
     # Azure DevOps パス処理
@@ -183,8 +191,8 @@ def detect_from_url(remote_url: str) -> DetectResult:
         if m:
             org = m.group("org") or ""
             # legacy *.visualstudio.com: org はホストのサブドメイン部分
-            if host.endswith(".visualstudio.com") or not org:
-                org = host.split(".")[0]
+            if service_host.endswith(".visualstudio.com") or not org:
+                org = service_host.split(".")[0]
             return DetectResult(
                 service_type="azure-devops",
                 host=host,
