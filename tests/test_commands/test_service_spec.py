@@ -210,7 +210,7 @@ class TestParseErrors:
 
     def test_backlog_without_host(self):
         """Backlog はデフォルトホストがないため host 必須。"""
-        with pytest.raises(ConfigError):
+        with pytest.raises(ConfigError, match="Self-hosted service 'backlog' requires a host"):
             parse_service_spec("backlog:PROJECT/repo")
 
 
