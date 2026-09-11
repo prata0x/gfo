@@ -547,6 +547,47 @@ class TestHandleClone:
             with pytest.raises(TypeError, match="unexpected"):
                 label_cmd.handle_clone(args, fmt="table")
 
+    def test_clone_outputs_completed_results_before_non_gfo_error(self, sample_config):
+        """途中で非 GfoError が発生しても、それまでの結果を出力する。"""
+        from gfo.config import ProjectConfig
+
+        mock_cfg = ProjectConfig(
+            service_type="github",
+            host="github.com",
+            api_url="https://api.github.com",
+            owner="src-owner",
+            repo="src-repo",
+        )
+        label_a = _make_label()
+        label_b = Label(name="wontfix", color="#ffffff", description=None)
+        source_adapter = MagicMock()
+        source_adapter.list_labels.return_value = [label_a, label_b]
+        dest_adapter = MagicMock()
+        dest_adapter.list_labels.return_value = []
+        dest_adapter.create_label.side_effect = [None, TypeError("unexpected")]
+
+        mock_adapter_cls = MagicMock(return_value=source_adapter)
+
+        with (
+            patch("gfo.commands.label.get_adapter", return_value=dest_adapter),
+            patch("gfo.config.resolve_project_config", return_value=mock_cfg),
+            patch("gfo.auth.resolve_token", return_value="test-token"),
+            patch("gfo.config.build_default_api_url", return_value="https://api.github.com"),
+            patch("gfo.adapter.registry.create_http_client"),
+            patch("gfo.adapter.registry.get_adapter_class", return_value=mock_adapter_cls),
+            patch("gfo.commands.label.output") as output_mock,
+        ):
+            args = make_args(source="src-owner/src-repo", overwrite=False)
+            with pytest.raises(TypeError, match="unexpected"):
+                label_cmd.handle_clone(args, fmt="table")
+
+        output_mock.assert_called_once_with(
+            [label_cmd.LabelCloneResult(name="bug", status="created")],
+            fmt="table",
+            fields=["name", "status", "error"],
+            jq=None,
+        )
+
     def test_clone_empty_source(self, sample_config, capsys):
         """ソースが0件の場合 created=0。"""
         from gfo.config import ProjectConfig
