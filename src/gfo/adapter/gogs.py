@@ -298,10 +298,12 @@ class GogsAdapter(GiteaAdapter):
 
     # --- Comment（更新・削除は非対応）---
 
-    def update_comment(self, resource: str, comment_id: int, *, body: str) -> Comment:
+    def update_comment(
+        self, resource: str, comment_id: int, *, body: str, number: int | None = None
+    ) -> Comment:
         raise NotSupportedError("Gogs", "comment update")
 
-    def delete_comment(self, resource: str, comment_id: int) -> None:
+    def delete_comment(self, resource: str, comment_id: int, *, number: int | None = None) -> None:
         raise NotSupportedError("Gogs", "comment delete")
 
     # --- Review（PR 非対応のため）---

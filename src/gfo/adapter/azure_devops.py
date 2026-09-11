@@ -1024,13 +1024,16 @@ class AzureDevOpsAdapter(GitServiceAdapter):
             )
             return self._to_comment(resp.json())
 
-    def update_comment(self, resource: str, comment_id: int, *, body: str) -> Comment:
-        # Azure DevOps のコメント更新は thread_id と comment_id の両方が必要で、comment_id のみでは不可
+    def update_comment(
+        self, resource: str, comment_id: int, *, body: str, number: int | None = None
+    ) -> Comment:
+        # Azure DevOps のコメント更新は thread_id と comment_id の両方が必要で、
+        # number（PR/work item 番号）だけでは不可
         raise NotSupportedError(
             self.service_name, "comment update (requires thread ID for PR comments)"
         )
 
-    def delete_comment(self, resource: str, comment_id: int) -> None:
+    def delete_comment(self, resource: str, comment_id: int, *, number: int | None = None) -> None:
         raise NotSupportedError(
             self.service_name, "comment delete (requires thread ID for PR comments)"
         )

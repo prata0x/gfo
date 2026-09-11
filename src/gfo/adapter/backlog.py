@@ -6,7 +6,7 @@ import urllib.parse
 import warnings
 from typing import TYPE_CHECKING, Any
 
-from gfo.exceptions import GfoError, NotFoundError, NotSupportedError
+from gfo.exceptions import ConfigError, GfoError, NotFoundError, NotSupportedError
 from gfo.i18n import _
 
 if TYPE_CHECKING:
@@ -751,24 +751,32 @@ class BacklogAdapter(GitServiceAdapter):
         resp = self._client.post(path, json={"content": body})
         return self._to_comment(resp.json())
 
-    def update_comment(self, resource: str, comment_id: int, *, body: str) -> Comment:
+    def _require_comment_number(self, number: int | None) -> int:
+        if number is None:
+            raise ConfigError(
+                _(
+                    "--number (issue/PR number) is required to edit or delete a comment on {service}"
+                ).format(service=self.service_name)
+            )
+        return number
+
+    def update_comment(
+        self, resource: str, comment_id: int, *, body: str, number: int | None = None
+    ) -> Comment:
+        number = self._require_comment_number(number)
         if resource == "pr":
-            resp = self._client.patch(
-                f"{self._pr_path()}/comments/{comment_id}",
-                json={"content": body},
-            )
+            path = f"{self._pr_path()}/{number}/comments/{comment_id}"
         else:
-            resp = self._client.patch(
-                f"/issues/comments/{comment_id}",
-                json={"content": body},
-            )
+            path = f"/issues/{self._project_key}-{number}/comments/{comment_id}"
+        resp = self._client.patch(path, json={"content": body})
         return self._to_comment(resp.json())
 
-    def delete_comment(self, resource: str, comment_id: int) -> None:
+    def delete_comment(self, resource: str, comment_id: int, *, number: int | None = None) -> None:
         if resource == "pr":
-            self._client.delete(f"{self._pr_path()}/comments/{comment_id}")
-        else:
-            self._client.delete(f"/issues/comments/{comment_id}")
+            # Backlog API に Delete Pull Request Comment 相当のエンドポイントが存在しない
+            raise NotSupportedError(self.service_name, "pr comment delete")
+        number = self._require_comment_number(number)
+        self._client.delete(f"/issues/{self._project_key}-{number}/comments/{comment_id}")
 
     # --- PR update ---
 

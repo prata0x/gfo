@@ -33,6 +33,13 @@ paths:
 - **issueTypeId**: `/projects/{projectKey}/issueTypes` の先頭要素を使用。空なら `GfoError`
 - **priorityId**: `/priorities` から `"中"` or `"normal"` を含む要素を優先、なければ先頭要素
 
+## コメント更新/削除
+
+- **`update_comment`/`delete_comment`**: issue/PR 番号（`number`）が URL（`issueIdOrKey`/PR番号セグメント）に必須。
+  `number` 未指定時は `ConfigError`（#197）
+- **PR コメント削除は非対応**: Backlog API に Delete Pull Request Comment 相当のエンドポイントが存在しないため、
+  `number` の有無に関わらず常に `NotSupportedError`（issue コメント削除・PR コメント更新は `number` があれば動作する）
+
 ## Webhook
 
 - **events フィールド**: Backlog の実際のパラメータ名/レスポンスフィールドは `activityTypeIds`（数値配列。固定の Activity Type ID 体系）であり、`events`/`type` という形式のフィールドは存在しない。gfo の汎用イベント名（`events: list[str]`）と `activityTypeIds` の相互変換は `_events_to_activity_type_ids()`/`_activity_type_ids_to_events()`（`_ACTIVITY_TYPE_IDS` マッピング）で行う

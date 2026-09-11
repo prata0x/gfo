@@ -566,19 +566,20 @@ gfo pr unsubscribe 42
 
 PR のコメントを管理します。
 
-> **対応サービス**: 全サービス（edit / delete は GitHub, Backlog, Gitea, Forgejo, GitBucket のみ）
+> **対応サービス**: 全サービス（edit / delete は GitHub, Gitea, Forgejo, GitBucket。`--number` 指定で edit / delete: Backlog, GitLab, Bitbucket）。Backlog の PR コメント削除は Backlog API に該当エンドポイントが無く、`--number` を渡しても非対応
 
 ```
 gfo pr comment list NUMBER [--limit N]
 gfo pr comment create NUMBER --body BODY
-gfo pr comment edit COMMENT_ID --body BODY
-gfo pr comment delete COMMENT_ID [--yes]
+gfo pr comment edit COMMENT_ID --body BODY [--number NUMBER]
+gfo pr comment delete COMMENT_ID [--number NUMBER] [--yes]
 ```
 
 ```bash
 gfo pr comment list 42
 gfo pr comment create 42 --body "LGTM!"
 gfo pr comment edit 12345 --body "Updated comment"
+gfo pr comment edit 12345 --body "Updated comment" --number 42   # Backlog/GitLab/Bitbucket では必須
 gfo pr comment delete 12345
 ```
 
@@ -805,19 +806,20 @@ gfo issue edit 10 --add-label bug --remove-label wontfix --milestone v2.0
 
 Issue のコメントを管理します。
 
-> **対応サービス**: 全サービス（edit / delete は GitHub, Backlog, Gitea, Forgejo, GitBucket のみ）
+> **対応サービス**: 全サービス（edit / delete は GitHub, Gitea, Forgejo, GitBucket。`--number` 指定で edit / delete: Backlog, GitLab, Bitbucket）
 
 ```
 gfo issue comment list NUMBER [--limit N]
 gfo issue comment create NUMBER --body BODY
-gfo issue comment edit COMMENT_ID --body BODY
-gfo issue comment delete COMMENT_ID [--yes]
+gfo issue comment edit COMMENT_ID --body BODY [--number NUMBER]
+gfo issue comment delete COMMENT_ID [--number NUMBER] [--yes]
 ```
 
 ```bash
 gfo issue comment list 10
 gfo issue comment create 10 --body "v1.2.3 で再現しました"
 gfo issue comment edit 12345 --body "Updated comment"
+gfo issue comment edit 12345 --body "Updated comment" --number 10   # Backlog/GitLab/Bitbucket では必須
 gfo issue comment delete 12345
 ```
 

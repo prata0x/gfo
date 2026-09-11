@@ -490,11 +490,21 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     pr_comment_edit = pr_comment_sub.add_parser("edit", help=_("Edit comment"))
     pr_comment_edit.add_argument("comment_id", type=int, help=_("Comment ID"))
     pr_comment_edit.add_argument("--body", "-b", required=True, help=_("Body"))
+    pr_comment_edit.add_argument(
+        "--number",
+        type=int,
+        help=_("PR number (required by some services: e.g. Backlog, GitLab, Bitbucket)"),
+    )
     pr_comment_delete = pr_comment_sub.add_parser("delete", help=_("Delete comment"))
     pr_comment_delete.add_argument(
         "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
     )
     pr_comment_delete.add_argument("comment_id", type=int, help=_("Comment ID"))
+    pr_comment_delete.add_argument(
+        "--number",
+        type=int,
+        help=_("PR number (required by some services: e.g. Backlog, GitLab, Bitbucket)"),
+    )
 
     # gfo issue → サブサブコマンド
     issue_parser = subparser_map["issue"] = subparsers.add_parser("issue", help=_("Manage issues"))
@@ -1024,11 +1034,21 @@ def create_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Argumen
     issue_comment_edit = issue_comment_sub.add_parser("edit", help=_("Edit comment"))
     issue_comment_edit.add_argument("comment_id", type=int, help=_("Comment ID"))
     issue_comment_edit.add_argument("--body", "-b", required=True, help=_("Body"))
+    issue_comment_edit.add_argument(
+        "--number",
+        type=int,
+        help=_("Issue number (required by some services: e.g. Backlog, GitLab, Bitbucket)"),
+    )
     issue_comment_delete = issue_comment_sub.add_parser("delete", help=_("Delete comment"))
     issue_comment_delete.add_argument(
         "--yes", "-y", action="store_true", help=_("Skip confirmation prompt")
     )
     issue_comment_delete.add_argument("comment_id", type=int, help=_("Comment ID"))
+    issue_comment_delete.add_argument(
+        "--number",
+        type=int,
+        help=_("Issue number (required by some services: e.g. Backlog, GitLab, Bitbucket)"),
+    )
 
     # gfo repo fork（既存 repo に追加）
     repo_fork = repo_sub.add_parser("fork", help=_("Fork repository"))

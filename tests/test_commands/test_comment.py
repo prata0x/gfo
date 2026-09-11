@@ -54,29 +54,42 @@ class TestHandlePrComment:
     def test_edit_calls_update_comment(self):
         with patch_adapter("gfo.commands.comment") as adapter:
             adapter.update_comment.return_value = SAMPLE_COMMENT
-            args = make_args(comment_action="edit", comment_id=42, body="Updated")
+            args = make_args(comment_action="edit", comment_id=42, body="Updated", number=None)
             comment_cmd.handle_pr_comment(args, fmt="table")
-        adapter.update_comment.assert_called_once_with("pr", 42, body="Updated")
+        adapter.update_comment.assert_called_once_with("pr", 42, body="Updated", number=None)
+
+    def test_edit_passes_number_through(self):
+        with patch_adapter("gfo.commands.comment") as adapter:
+            adapter.update_comment.return_value = SAMPLE_COMMENT
+            args = make_args(comment_action="edit", comment_id=42, body="Updated", number=7)
+            comment_cmd.handle_pr_comment(args, fmt="table")
+        adapter.update_comment.assert_called_once_with("pr", 42, body="Updated", number=7)
 
     def test_delete_calls_delete_comment(self):
         with patch_adapter("gfo.commands.comment") as adapter:
-            args = make_args(comment_action="delete", comment_id=42, yes=True)
+            args = make_args(comment_action="delete", comment_id=42, yes=True, number=None)
             comment_cmd.handle_pr_comment(args, fmt="table")
-        adapter.delete_comment.assert_called_once_with("pr", 42)
+        adapter.delete_comment.assert_called_once_with("pr", 42, number=None)
+
+    def test_delete_passes_number_through(self):
+        with patch_adapter("gfo.commands.comment") as adapter:
+            args = make_args(comment_action="delete", comment_id=42, yes=True, number=7)
+            comment_cmd.handle_pr_comment(args, fmt="table")
+        adapter.delete_comment.assert_called_once_with("pr", 42, number=7)
 
     def test_delete_prints_success_message(self, capsys):
         with patch_adapter("gfo.commands.comment") as adapter:
-            args = make_args(comment_action="delete", comment_id=42, yes=True)
+            args = make_args(comment_action="delete", comment_id=42, yes=True, number=None)
             comment_cmd.handle_pr_comment(args, fmt="table")
-        adapter.delete_comment.assert_called_once_with("pr", 42)
+        adapter.delete_comment.assert_called_once_with("pr", 42, number=None)
         out = capsys.readouterr().out
         assert "42" in out
 
     def test_delete_json_format(self, capsys):
         with patch_adapter("gfo.commands.comment") as adapter:
-            args = make_args(comment_action="delete", comment_id=42, yes=True)
+            args = make_args(comment_action="delete", comment_id=42, yes=True, number=None)
             comment_cmd.handle_pr_comment(args, fmt="json")
-        adapter.delete_comment.assert_called_once_with("pr", 42)
+        adapter.delete_comment.assert_called_once_with("pr", 42, number=None)
         data = json.loads(capsys.readouterr().out)
         assert data["result"] == "deleted"
         assert data["comment_id"] == 42
@@ -124,15 +137,28 @@ class TestHandleIssueComment:
     def test_edit_calls_update_comment(self):
         with patch_adapter("gfo.commands.comment") as adapter:
             adapter.update_comment.return_value = SAMPLE_COMMENT
-            args = make_args(comment_action="edit", comment_id=10, body="Fixed")
+            args = make_args(comment_action="edit", comment_id=10, body="Fixed", number=None)
             comment_cmd.handle_issue_comment(args, fmt="table")
-        adapter.update_comment.assert_called_once_with("issue", 10, body="Fixed")
+        adapter.update_comment.assert_called_once_with("issue", 10, body="Fixed", number=None)
+
+    def test_edit_passes_number_through(self):
+        with patch_adapter("gfo.commands.comment") as adapter:
+            adapter.update_comment.return_value = SAMPLE_COMMENT
+            args = make_args(comment_action="edit", comment_id=10, body="Fixed", number=5)
+            comment_cmd.handle_issue_comment(args, fmt="table")
+        adapter.update_comment.assert_called_once_with("issue", 10, body="Fixed", number=5)
 
     def test_delete_calls_delete_comment(self):
         with patch_adapter("gfo.commands.comment") as adapter:
-            args = make_args(comment_action="delete", comment_id=10, yes=True)
+            args = make_args(comment_action="delete", comment_id=10, yes=True, number=None)
             comment_cmd.handle_issue_comment(args, fmt="table")
-        adapter.delete_comment.assert_called_once_with("issue", 10)
+        adapter.delete_comment.assert_called_once_with("issue", 10, number=None)
+
+    def test_delete_passes_number_through(self):
+        with patch_adapter("gfo.commands.comment") as adapter:
+            args = make_args(comment_action="delete", comment_id=10, yes=True, number=5)
+            comment_cmd.handle_issue_comment(args, fmt="table")
+        adapter.delete_comment.assert_called_once_with("issue", 10, number=5)
 
     def test_no_action_raises(self):
         args = make_args(comment_action=None)

@@ -827,14 +827,16 @@ class GiteaAdapter(GitHubLikeAdapter, GitServiceAdapter):
         )
         return self._to_comment(resp.json())
 
-    def update_comment(self, resource: str, comment_id: int, *, body: str) -> Comment:
+    def update_comment(
+        self, resource: str, comment_id: int, *, body: str, number: int | None = None
+    ) -> Comment:
         resp = self._client.patch(
             f"{self._repos_path()}/issues/comments/{comment_id}",
             json={"body": body},
         )
         return self._to_comment(resp.json())
 
-    def delete_comment(self, resource: str, comment_id: int) -> None:
+    def delete_comment(self, resource: str, comment_id: int, *, number: int | None = None) -> None:
         self._client.delete(f"{self._repos_path()}/issues/comments/{comment_id}")
 
     # --- PR update ---

@@ -22,6 +22,7 @@ from gfo.adapter.base import (
 from gfo.adapter.registry import get_adapter_class
 from gfo.exceptions import (
     AuthenticationError,
+    ConfigError,
     GfoError,
     NotFoundError,
     NotSupportedError,
@@ -1603,42 +1604,46 @@ class TestUpdateComment:
     def test_update_pr(self, mock_responses, backlog_adapter):
         mock_responses.add(
             responses.PATCH,
-            f"{PR_PATH}/comments/10",
+            f"{PR_PATH}/1/comments/10",
             json=_comment_data_bl(),
             status=200,
         )
-        comment = backlog_adapter.update_comment("pr", 10, body="Updated")
+        comment = backlog_adapter.update_comment("pr", 10, body="Updated", number=1)
         assert isinstance(comment, Comment)
 
     def test_update_issue(self, mock_responses, backlog_adapter):
         mock_responses.add(
             responses.PATCH,
-            f"{BASE}/issues/comments/10",
+            f"{BASE}/issues/TEST-5/comments/10",
             json=_comment_data_bl(),
             status=200,
         )
-        comment = backlog_adapter.update_comment("issue", 10, body="Updated")
+        comment = backlog_adapter.update_comment("issue", 10, body="Updated", number=5)
         assert isinstance(comment, Comment)
+
+    def test_update_requires_number(self, backlog_adapter):
+        with pytest.raises(ConfigError):
+            backlog_adapter.update_comment("issue", 10, body="Updated")
 
 
 class TestDeleteComment:
-    def test_delete_pr(self, mock_responses, backlog_adapter):
-        mock_responses.add(
-            responses.DELETE,
-            f"{PR_PATH}/comments/10",
-            json=_comment_data_bl(),
-            status=200,
-        )
-        backlog_adapter.delete_comment("pr", 10)
+    def test_delete_pr_not_supported(self, backlog_adapter):
+        # Backlog API に Delete Pull Request Comment 相当のエンドポイントが存在しない
+        with pytest.raises(NotSupportedError):
+            backlog_adapter.delete_comment("pr", 10, number=1)
 
     def test_delete_issue(self, mock_responses, backlog_adapter):
         mock_responses.add(
             responses.DELETE,
-            f"{BASE}/issues/comments/10",
+            f"{BASE}/issues/TEST-5/comments/10",
             json=_comment_data_bl(),
             status=200,
         )
-        backlog_adapter.delete_comment("issue", 10)
+        backlog_adapter.delete_comment("issue", 10, number=5)
+
+    def test_delete_issue_requires_number(self, backlog_adapter):
+        with pytest.raises(ConfigError):
+            backlog_adapter.delete_comment("issue", 10)
 
 
 # --- PR Update / Issue Update ---

@@ -34,6 +34,7 @@ from gfo.adapter.gitlab import GitLabAdapter
 from gfo.adapter.registry import get_adapter_class
 from gfo.exceptions import (
     AuthenticationError,
+    ConfigError,
     GfoError,
     NotFoundError,
     NotSupportedError,
@@ -2124,16 +2125,52 @@ class TestCreateComment:
         assert isinstance(comment, Comment)
 
 
-class TestUpdateCommentNotSupported:
-    def test_raises(self, gitlab_adapter):
-        with pytest.raises(NotSupportedError):
+class TestUpdateComment:
+    def test_requires_number(self, gitlab_adapter):
+        with pytest.raises(ConfigError):
             gitlab_adapter.update_comment("pr", 10, body="Updated")
 
+    def test_update_issue(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/issues/1/notes/10",
+            json=_comment_data(),
+            status=200,
+        )
+        comment = gitlab_adapter.update_comment("issue", 10, body="Updated", number=1)
+        assert isinstance(comment, Comment)
 
-class TestDeleteCommentNotSupported:
-    def test_raises(self, gitlab_adapter):
-        with pytest.raises(NotSupportedError):
+    def test_update_pr(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.PUT,
+            f"{PROJECT}/merge_requests/1/notes/10",
+            json=_comment_data(),
+            status=200,
+        )
+        comment = gitlab_adapter.update_comment("pr", 10, body="Updated", number=1)
+        assert isinstance(comment, Comment)
+
+
+class TestDeleteComment:
+    def test_requires_number(self, gitlab_adapter):
+        with pytest.raises(ConfigError):
             gitlab_adapter.delete_comment("pr", 10)
+
+    def test_delete_issue(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/issues/1/notes/10",
+            status=204,
+        )
+        gitlab_adapter.delete_comment("issue", 10, number=1)
+
+    def test_delete_pr(self, mock_responses, gitlab_adapter):
+        mock_responses.add(
+            responses.DELETE,
+            f"{PROJECT}/merge_requests/1/notes/10",
+            status=204,
+        )
+        gitlab_adapter.delete_comment("pr", 10, number=1)
 
 
 # --- PR Update / Issue Update ---

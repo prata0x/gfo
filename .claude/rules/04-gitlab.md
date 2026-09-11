@@ -29,3 +29,5 @@ paths:
   - 過去バグ（#230）: `waiting_for_resource`（`resource_group` 使用時）・`preparing`・`scheduled`（delayed job）が `status_map` に無く、生値のまま漏れていた。いずれも `"pending"` へ正規化して解決
 - **`remove_issue_dependency`**: GitLab の Issue Links API は削除に内部の `issue_link_id` が必要で `depends_on`（対象 issue の iid）から直接指定できないため、一覧取得 → `iid` 一致検索 → 一致したリンクを DELETE、という手順を踏む。一致するリンクが1件も見つからなかった場合は `NotFoundError` を送出すること（黙って正常終了しない）
   - 過去バグ（#218）: 一致が見つからない場合のフォールバックが無く、`for` ループを抜けて暗黙に `None` を返して正常終了していた。CLI 層（`handle_depends`）は戻り値を確認せず常に成功メッセージを出すため、既に存在しない依存関係を指定しても「削除しました」と表示されていた。Azure DevOps にも同じバグクラスがあり #242 で追跡中
+- **`update_comment`/`delete_comment`**: issue/MR 番号（`number`）が URL（`/issues/:iid/notes/:id` または `/merge_requests/:iid/notes/:id`）に必須。
+  `number` 未指定時は `ConfigError`（#197）
