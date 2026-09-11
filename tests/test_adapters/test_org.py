@@ -456,6 +456,28 @@ class TestAzureDevOpsOrg:
         assert orgs[0].name == "MyProject"
 
     @responses.activate
+    def test_list_unlimited_does_not_send_zero_top(self, azure_devops_adapter):
+        responses.add(
+            responses.GET,
+            "https://dev.azure.com/test-org/_apis/projects",
+            json={
+                "value": [{"name": f"Project{i}"} for i in range(100)],
+                "count": 100,
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://dev.azure.com/test-org/_apis/projects",
+            json={"value": [{"name": "Project100"}], "count": 1},
+        )
+
+        orgs = azure_devops_adapter.list_organizations(limit=0)
+
+        assert len(orgs) == 101
+        assert [call.request.params["$skip"] for call in responses.calls] == ["0", "100"]
+        assert all(call.request.params["$top"] == "100" for call in responses.calls)
+
+    @responses.activate
     def test_view(self, azure_devops_adapter):
         responses.add(
             responses.GET,
