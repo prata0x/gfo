@@ -1582,9 +1582,12 @@ class AzureDevOpsAdapter(GitServiceAdapter):
 
     def list_organizations(self, *, limit: int = 30) -> list[Organization]:
         url = self._org_api_url("/projects")
-        resp = self._client.get_absolute(url, params={"$top": str(limit), "api-version": "7.1"})
-        data = resp.json()
-        results = data.get("value", [])
+        results = paginate_top_skip(
+            self._client,
+            url,
+            params={"api-version": "7.1"},
+            limit=limit,
+        )
         return [self._to_organization(d) for d in results]
 
     def get_organization(self, name: str) -> Organization:

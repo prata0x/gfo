@@ -908,7 +908,8 @@ def paginate_top_skip(
 
     while True:
         params["$skip"] = skip
-        resp = client.get(path, params=params)
+        get = client.get_absolute if path.startswith(("http://", "https://")) else client.get
+        resp = get(path, params=params)
         try:
             body = resp.json()
         except ValueError:
