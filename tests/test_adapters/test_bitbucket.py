@@ -2517,25 +2517,43 @@ class TestListPullRequestChecksBitbucket:
             json=pr,
             status=200,
         )
-        statuses = [
+        first_page = [
             {
                 "key": f"ci/check-{i}",
                 "state": "SUCCESSFUL",
                 "url": "",
                 "created_on": "2025-01-01T00:00:00Z",
             }
-            for i in range(31)
+            for i in range(30)
         ]
         mock_responses.add(
             responses.GET,
             f"{REPOS}/commit/abc123/statuses",
-            json={"values": statuses},
+            json={
+                "values": first_page,
+                "next": f"{REPOS}/commit/abc123/statuses?page=2",
+            },
+            status=200,
+        )
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/commit/abc123/statuses?page=2",
+            json={
+                "values": [
+                    {
+                        "key": "ci/check-30",
+                        "state": "SUCCESSFUL",
+                        "url": "",
+                        "created_on": "2025-01-01T00:00:00Z",
+                    }
+                ]
+            },
             status=200,
         )
 
         checks = bitbucket_adapter.list_pull_request_checks(1)
 
-        assert len(checks) == len(statuses)
+        assert len(checks) == 31
 
 
 class TestListPullRequestFilesBitbucket:
