@@ -825,24 +825,12 @@ class TestGetLatestRelease:
 
 
 class TestUpdateRepository:
-    """update_repository は未対応パラメータを警告し、対応分だけ super に委譲する。"""
+    """GitBucket はリポジトリ編集 API を提供しない。"""
 
-    def test_supported_params_delegated(self, mock_responses, gitbucket_adapter):
-        mock_responses.add(responses.PATCH, REPOS, json=_repo_data(), status=200)
-        repo = gitbucket_adapter.update_repository(description="new desc", private=True)
-        assert isinstance(repo, Repository)
-        req_body = json_mod.loads(mock_responses.calls[0].request.body)
-        assert req_body["description"] == "new desc"
-        assert req_body["private"] is True
-
-    def test_unsupported_param_warns_and_dropped(self, mock_responses, gitbucket_adapter):
-        mock_responses.add(responses.PATCH, REPOS, json=_repo_data(), status=200)
-        with pytest.warns(UserWarning, match="archived"):
-            gitbucket_adapter.update_repository(description="d", archived=True)
-        req_body = json_mod.loads(mock_responses.calls[0].request.body)
-        # 警告したパラメータは super に渡らない（payload に含まれない）。
-        assert "archived" not in req_body
-        assert req_body["description"] == "d"
+    def test_not_supported_without_request(self, mock_responses, gitbucket_adapter):
+        with pytest.raises(NotSupportedError, match="GitBucket.*repo edit"):
+            gitbucket_adapter.update_repository(description="new desc", private=True)
+        assert not mock_responses.calls
 
 
 class TestMigrateRepository:
