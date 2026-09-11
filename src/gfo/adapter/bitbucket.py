@@ -743,6 +743,7 @@ class BitbucketAdapter(GitServiceAdapter):
         statuses = paginate_response_body(
             self._client,
             f"{self._repos_path()}/commit/{commit_hash}/statuses",
+            limit=0,
         )
         status_map = {
             "SUCCESSFUL": "success",

@@ -2506,6 +2506,37 @@ class TestListPullRequestChecksBitbucket:
         assert checks[0].name == "ci/build"
         assert checks[0].status == "success"
 
+    def test_list_checks_returns_more_than_default_page_size(
+        self, mock_responses, bitbucket_adapter
+    ):
+        pr = _pr_data()
+        pr["source"]["commit"] = {"hash": "abc123"}
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/pullrequests/1",
+            json=pr,
+            status=200,
+        )
+        statuses = [
+            {
+                "key": f"ci/check-{i}",
+                "state": "SUCCESSFUL",
+                "url": "",
+                "created_on": "2025-01-01T00:00:00Z",
+            }
+            for i in range(31)
+        ]
+        mock_responses.add(
+            responses.GET,
+            f"{REPOS}/commit/abc123/statuses",
+            json={"values": statuses},
+            status=200,
+        )
+
+        checks = bitbucket_adapter.list_pull_request_checks(1)
+
+        assert len(checks) == len(statuses)
+
 
 class TestListPullRequestFilesBitbucket:
     def test_list_files(self, mock_responses, bitbucket_adapter):
