@@ -465,7 +465,7 @@ class GitBucketAdapter(GitHubAdapter):
     def get_deploy_key(self, key_id: int) -> DeployKey:
         raise NotSupportedError("GitBucket", "deploy key operations")
 
-    # --- Repo update/archive（GitBucket は GitHub 互換度が限定的）---
+    # --- Repo update/archive（GitBucket はリポジトリ編集 API 未実装）---
 
     def update_repository(
         self,
@@ -480,17 +480,7 @@ class GitBucketAdapter(GitHubAdapter):
         allow_rebase_merge: bool | None = None,
         delete_branch_on_merge: bool | None = None,
     ) -> Repository:
-        self._warn_unsupported_params(
-            "repo update",
-            archived=archived,
-            allow_merge_commit=allow_merge_commit,
-            allow_squash_merge=allow_squash_merge,
-            allow_rebase_merge=allow_rebase_merge,
-            delete_branch_on_merge=delete_branch_on_merge,
-        )
-        return super().update_repository(
-            name=name, description=description, private=private, default_branch=default_branch
-        )
+        raise NotSupportedError("GitBucket", "repo edit")
 
     def archive_repository(self) -> None:
         raise NotSupportedError("GitBucket", "repo archive")
