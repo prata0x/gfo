@@ -1404,6 +1404,34 @@ class TestErrorHandling:
         with pytest.raises(GfoError, match="Unexpected API response"):
             getattr(backlog_adapter, method)("main")
 
+    @pytest.mark.parametrize(
+        ("method", "path"),
+        [
+            ("list_branches", f"{REPO_PATH}/branches"),
+            ("list_tags", f"{REPO_PATH}/tags"),
+        ],
+    )
+    def test_non_dict_list_branch_or_tag_elements_raise_gfo_error(
+        self, mock_responses, backlog_adapter, method, path
+    ):
+        mock_responses.add(responses.GET, path, json=["unexpected"], status=200)
+        with pytest.raises(GfoError, match="Unexpected API response"):
+            getattr(backlog_adapter, method)()
+
+    @pytest.mark.parametrize(
+        ("method", "path"),
+        [
+            ("list_branches", f"{REPO_PATH}/branches"),
+            ("list_tags", f"{REPO_PATH}/tags"),
+        ],
+    )
+    def test_missing_list_branch_or_tag_name_raises_gfo_error(
+        self, mock_responses, backlog_adapter, method, path
+    ):
+        mock_responses.add(responses.GET, path, json=[{}], status=200)
+        with pytest.raises(GfoError, match="Unexpected API response"):
+            getattr(backlog_adapter, method)()
+
     def test_non_dict_repository_elements_raise_gfo_error(self, mock_responses, backlog_adapter):
         mock_responses.add(
             responses.GET,

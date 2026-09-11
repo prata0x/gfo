@@ -96,6 +96,17 @@ def _require_dict(data: object, endpoint: str) -> dict[str, Any]:
     return data
 
 
+def _require_name(data: object, endpoint: str) -> str:
+    name = _require_dict(data, endpoint).get("name")
+    if not isinstance(name, str):
+        raise GfoError(
+            _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                endpoint=endpoint, error="missing name"
+            )
+        )
+    return name
+
+
 @register("backlog")
 class BacklogAdapter(GitServiceAdapter):
     service_name = "Backlog"
@@ -861,7 +872,9 @@ class BacklogAdapter(GitServiceAdapter):
             f"/projects/{self._project_key}/git/repositories/{urllib.parse.quote(self._repo, safe='')}/branches",
             limit=limit,
         )
-        return [self._to_branch(r, self._branch_web_url(r["name"])) for r in results]
+        return [
+            self._to_branch(r, self._branch_web_url(_require_name(r, "branches"))) for r in results
+        ]
 
     def create_branch(self, *, name: str, ref: str) -> Branch:
         resp = self._client.post(
@@ -897,7 +910,7 @@ class BacklogAdapter(GitServiceAdapter):
             f"/projects/{self._project_key}/git/repositories/{urllib.parse.quote(self._repo, safe='')}/tags",
             limit=limit,
         )
-        return [self._to_tag(r, self._tag_web_url(r["name"])) for r in results]
+        return [self._to_tag(r, self._tag_web_url(_require_name(r, "tags"))) for r in results]
 
     def create_tag(self, *, name: str, ref: str, message: str = "") -> Tag:
         payload: dict[str, Any] = {"name": name, "startPoint": ref}
