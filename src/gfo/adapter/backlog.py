@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from gfo.http import HttpClient
 from gfo.http import paginate_offset
 
-from .base import GitServiceAdapter, _wrap_conversion_error
+from .base import GitServiceAdapter, _require_dict, _require_name, _wrap_conversion_error
 from .models import (
     Branch,
     Comment,
@@ -84,27 +84,6 @@ def _activity_type_ids_to_events(ids: list[int]) -> tuple[str, ...]:
         if name not in events:
             events.append(name)
     return tuple(events)
-
-
-def _require_dict(data: object, endpoint: str) -> dict[str, Any]:
-    if not isinstance(data, dict):
-        raise GfoError(
-            _("Unexpected API response from {endpoint} endpoint: {error}").format(
-                endpoint=endpoint, error=type(data)
-            )
-        )
-    return data
-
-
-def _require_name(data: object, endpoint: str) -> str:
-    name = _require_dict(data, endpoint).get("name")
-    if not isinstance(name, str):
-        raise GfoError(
-            _("Unexpected API response from {endpoint} endpoint: {error}").format(
-                endpoint=endpoint, error="missing name"
-            )
-        )
-    return name
 
 
 @register("backlog")

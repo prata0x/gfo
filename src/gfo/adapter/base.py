@@ -19,6 +19,8 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from gfo.adapter._helpers import (
     _mask_token_in_exception,
+    _require_dict,
+    _require_name,
     _safe_join_output_path,
     _web_base_from_api_url,
     _wrap_conversion_error,
@@ -117,6 +119,8 @@ __all__ = [
     "WikiRevision",
     "Workflow",
     "_mask_token_in_exception",
+    "_require_dict",
+    "_require_name",
     "_safe_join_output_path",
     "_web_base_from_api_url",
     "_wrap_conversion_error",

@@ -10,7 +10,7 @@ import functools
 import os
 from collections.abc import Callable
 from pathlib import Path
-from typing import TypeVar
+from typing import Any, TypeVar
 from urllib.parse import urlparse
 
 from gfo.exceptions import GfoError
@@ -38,6 +38,27 @@ def _wrap_conversion_error(func: _F) -> _F:
             ) from e
 
     return wrapper  # type: ignore[return-value]
+
+
+def _require_dict(data: object, endpoint: str) -> dict[str, Any]:
+    if not isinstance(data, dict):
+        raise GfoError(
+            _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                endpoint=endpoint, error=type(data)
+            )
+        )
+    return data
+
+
+def _require_name(data: object, endpoint: str) -> str:
+    name = _require_dict(data, endpoint).get("name")
+    if not isinstance(name, str):
+        raise GfoError(
+            _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                endpoint=endpoint, error="missing name"
+            )
+        )
+    return name
 
 
 def _mask_token_in_exception(exc: BaseException, token: str | None) -> None:
