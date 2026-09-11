@@ -132,26 +132,27 @@ def handle_clone(args: argparse.Namespace, *, fmt: str, jq: str | None = None) -
     existing = {lb.name for lb in adapter.list_labels()}
     overwrite = getattr(args, "overwrite", False)
     results: list[LabelCloneResult] = []
-    for lb in source_labels:
-        if lb.name in existing and not overwrite:
-            results.append(LabelCloneResult(name=lb.name, status="skipped"))
-            continue
-        if lb.name in existing and overwrite:
-            try:
-                adapter.update_label(name=lb.name, color=lb.color, description=lb.description)
-            except GfoError as e:
-                results.append(LabelCloneResult(name=lb.name, status="failed", error=str(e)))
+    try:
+        for lb in source_labels:
+            if lb.name in existing and not overwrite:
+                results.append(LabelCloneResult(name=lb.name, status="skipped"))
                 continue
-            results.append(LabelCloneResult(name=lb.name, status="updated"))
-        else:
-            try:
-                adapter.create_label(name=lb.name, color=lb.color, description=lb.description)
-            except GfoError as e:
-                results.append(LabelCloneResult(name=lb.name, status="failed", error=str(e)))
-                continue
-            results.append(LabelCloneResult(name=lb.name, status="created"))
-
-    output(results, fmt=fmt, fields=["name", "status", "error"], jq=jq)
+            if lb.name in existing and overwrite:
+                try:
+                    adapter.update_label(name=lb.name, color=lb.color, description=lb.description)
+                except GfoError as e:
+                    results.append(LabelCloneResult(name=lb.name, status="failed", error=str(e)))
+                    continue
+                results.append(LabelCloneResult(name=lb.name, status="updated"))
+            else:
+                try:
+                    adapter.create_label(name=lb.name, color=lb.color, description=lb.description)
+                except GfoError as e:
+                    results.append(LabelCloneResult(name=lb.name, status="failed", error=str(e)))
+                    continue
+                results.append(LabelCloneResult(name=lb.name, status="created"))
+    finally:
+        output(results, fmt=fmt, fields=["name", "status", "error"], jq=jq)
 
     failed = sum(1 for r in results if r.status == "failed")
     if failed:
