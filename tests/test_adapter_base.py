@@ -13,9 +13,26 @@ from gfo.adapter.base import (
     PullRequest,
     Release,
     Repository,
+    _require_dict,
+    _require_name,
 )
-from gfo.exceptions import NotSupportedError
+from gfo.exceptions import GfoError, NotSupportedError
 from tests.conftest import StubAdapter
+
+
+class TestResponseHelpers:
+    @pytest.mark.parametrize("value", [None, "invalid", ["invalid"]])
+    def test_require_dict_rejects_non_dict(self, value):
+        with pytest.raises(GfoError):
+            _require_dict(value, "items")
+
+    @pytest.mark.parametrize("value", [None, "invalid", {"name": 1}])
+    def test_require_name_rejects_missing_or_invalid_name(self, value):
+        with pytest.raises(GfoError):
+            _require_name(value, "items")
+
+    def test_require_name_returns_name(self):
+        assert _require_name({"name": "repo"}, "items") == "repo"
 
 
 class TestDataclassesFrozen:
