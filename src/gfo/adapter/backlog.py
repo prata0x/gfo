@@ -96,6 +96,17 @@ def _require_dict(data: object, endpoint: str) -> dict[str, Any]:
     return data
 
 
+def _require_name(data: object, endpoint: str) -> str:
+    name = _require_dict(data, endpoint).get("name")
+    if not isinstance(name, str):
+        raise GfoError(
+            _("Unexpected API response from {endpoint} endpoint: {error}").format(
+                endpoint=endpoint, error="missing name"
+            )
+        )
+    return name
+
+
 @register("backlog")
 class BacklogAdapter(GitServiceAdapter):
     service_name = "Backlog"
@@ -1069,11 +1080,7 @@ class BacklogAdapter(GitServiceAdapter):
             f"/projects/{self._project_key}/git/repositories",
             limit=0,
         )
-        filtered = [
-            r
-            for r in results
-            if query.lower() in _require_dict(r, "repositories").get("name", "").lower()
-        ]
+        filtered = [r for r in results if query.lower() in _require_name(r, "repositories").lower()]
         return [self._to_repository(r) for r in filtered[: limit if limit > 0 else None]]
 
     def search_issues(self, query: str, *, limit: int = 30) -> list[Issue]:

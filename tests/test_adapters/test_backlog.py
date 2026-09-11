@@ -1414,6 +1414,19 @@ class TestErrorHandling:
         with pytest.raises(GfoError, match="Unexpected API response"):
             backlog_adapter.search_repositories("test")
 
+    @pytest.mark.parametrize("name", [None, 42])
+    def test_non_string_repository_name_raises_gfo_error(
+        self, mock_responses, backlog_adapter, name
+    ):
+        mock_responses.add(
+            responses.GET,
+            f"{BASE}/projects/TEST/git/repositories",
+            json=[{"name": name}],
+            status=200,
+        )
+        with pytest.raises(GfoError, match="Unexpected API response"):
+            backlog_adapter.search_repositories("test")
+
     def test_non_dict_search_issue_elements_raise_gfo_error(self, mock_responses, backlog_adapter):
         mock_responses.add(
             responses.GET,
