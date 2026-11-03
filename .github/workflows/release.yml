@@ -9,7 +9,7 @@
 # 認証 (PyPI Trusted Publishing / OIDC):
 #   API トークンを secret に保持せず、publish job の id-token: write で発行した OIDC トークンを
 #   PyPI 側の Trusted Publisher 設定 (repo + このファイル名 release.yml + environment "pypi") と
-#   突き合わせて公開する。長命トークンが存在しないため漏洩面が無い (CLAUDE.md の供給網方針に合致)。
+#   突き合わせて公開する。長命トークンが存在しないため漏洩面が無い (AGENTS.md の供給網方針に合致)。
 #   事前に PyPI 側で当該設定を一度登録しておく必要がある (README / 設定手順参照)。
 #
 # job 分割の意図 (権限最小化):

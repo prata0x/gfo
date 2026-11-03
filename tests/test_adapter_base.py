@@ -36,7 +36,7 @@ class TestResponseHelpers:
 
 
 class TestDataclassesFrozen:
-    """主要データクラスは frozen=True（.claude/rules/02-adapter-common.md の規約）。
+    """主要データクラスは frozen=True（src/gfo/adapter/AGENTS.md の規約）。
 
     各データクラスで個別に書いていた test_frozen を 1 表に集約。
     """

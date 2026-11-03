@@ -4,7 +4,7 @@
 文字列リテラルを直接 message に渡す raise を検出する。正しい形は
 `raise ConfigError(_("No tokens configured for host: {host}").format(host=host))`。
 `warnings.warn("literal")` も同様に検出する（warnings.warn() はユーザーに直接表示される
-点で例外メッセージと同じ「ユーザー向けメッセージ」であり、.claude/rules/01-exceptions.md
+点で例外メッセージと同じ「ユーザー向けメッセージ」であり、src/gfo/AGENTS.md
 の対象に含まれる）。
 
 対象は src/gfo 配下の全モジュール（adapter/ と commands/ を含む）。
@@ -94,7 +94,7 @@ def test_user_facing_error_messages_are_translated(path: Path):
     assert not violations, (
         f"{path.relative_to(_SRC_DIR)}:{violations} — user-facing exception/warning raised with a "
         "string literal that does not go through _(). Wrap the message in _() and add a ja "
-        "translation to gfo.po (see .claude/rules/01-exceptions.md)."
+        "translation to gfo.po (see src/gfo/AGENTS.md)."
     )
 
 

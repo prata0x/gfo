@@ -23,13 +23,13 @@ allowed-tools: AskUserQuestion, Bash, Read, Edit, Write, Glob, Grep
 ローカルから手動公開するのではなく、**PR フローで bump を main に入れ、main のマージコミットにタグを打ち、その
 タグ push が `.github/workflows/release.yml` を起動して PyPI へ自動公開する**、という end-to-end のリリースを行う。
 
-CLAUDE.md の規律（main へ直接 push しない / 赤い CI をマージしない / タグは不変）を厳守する。
+AGENTS.md の規律（main へ直接 push しない / 赤い CI をマージしない / タグは不変）を厳守する。
 
 ## 言語方針
 
 - ユーザー向け出力（AskUserQuestion・進捗・最終報告）は会話の言語（既定は日本語）に合わせる。
 - コミット / PR タイトル・本文 / タグメッセージは、リポジトリの規約（Conventional Commits・日本語 subject、
-  直近 `git log` と CLAUDE.md から推定）に従う。
+  直近 `git log` と AGENTS.md から推定）に従う。
 
 ## Preflight（前提チェック）
 
