@@ -79,7 +79,7 @@ uv run pre-commit install            # hooks run through uv run
 GitHub enforces the rulesets: `main-protection` on `main`, `release-tags` on release tags.
 
 - Never commit or push to `main` directly, and never force-push it. Cut a feature branch (`git switch -c <kebab>`), commit, push, `gh pr create --base main`, and self-merge with `gh pr merge --merge` once CI is green (squash is disabled).
-- Never merge red CI. Read the actual `gh pr checks` output before merging, and do not pipe `gh pr checks --watch` into another command.
+- Never merge red CI. Before merging, list the workflow runs on the PR head with `gh run list --commit "$(gh pr view <PR> --json headRefOid --jq .headRefOid)" --limit 100 --json databaseId,workflowName,status,conclusion` and merge only when the latest run of each workflow is `completed` with conclusion `success`; right after a push, wait until every workflow the PR triggers appears (a workflow whose `paths` or `branches` filter does not match the PR never runs). Wait with `gh run watch <databaseId> --exit-status`, and do not pipe it into another command. Do not use `gh pr checks`: fine-grained tokens cannot read check runs.
 - File an issue before starting on a problem you found. The backlog lives in GitHub Issues (`gh`), not in notes, TODO comments or handoff documents.
 - Stage files explicitly by path. Before committing, run `~/.local/bin/ai-agent-security-check --staged`, and `~/.local/bin/ai-agent-comment-check --staged` when code comments changed.
 - Conventional Commits: header about 72 characters at most; scopes such as `cli, adapter, github, gitlab, pr, issue, release, http, config, auth, ci, deps, docs`.
