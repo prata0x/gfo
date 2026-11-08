@@ -140,10 +140,12 @@ EOF
 ### 6. CI green を待ってマージ
 
 ```bash
-gh pr checks <pr-number> --watch
+sha=$(gh pr view <pr-number> --json headRefOid --jq .headRefOid)
+gh run list --commit "$sha" --limit 100 --json databaseId,workflowName,status,conclusion
+gh run watch <databaseId> --exit-status
 ```
 
-必須チェック `ci`（Ruleset）が green になるまで待つ。失敗時は **バイパスしない**。原因を release ブランチで
+PR の head で動く各 workflow の最新の実行が、すべて completed で success になるまで待つ（必須チェック `ci`（Ruleset）のほか、CodeQL と Dependency review も含む）。`gh pr checks` は使わない（fine-grained のトークンでは check runs を読めない）。失敗時は **バイパスしない**。原因を release ブランチで
 修正（コミット追加）するか、リリースを中止（`gh pr close <pr-number> --delete-branch`）してユーザーに相談する。
 
 green になったら:
